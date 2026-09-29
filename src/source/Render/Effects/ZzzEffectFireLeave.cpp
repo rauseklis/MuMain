@@ -386,7 +386,7 @@ bool MoveHeavenRain(PARTICLE* o)
         o->TurningForce[0] += Random::RangeFloat(-4, 3) * 0.02f * FPS_ANIMATION_FACTOR;
         o->TurningForce[1] += Random::RangeFloat(-8, 7) * 0.02f * FPS_ANIMATION_FACTOR;
         o->TurningForce[2] += Random::RangeFloat(-4, 3) * 0.02f * FPS_ANIMATION_FACTOR;
-        VectorAdd(o->Angle, o->TurningForce, o->Angle);
+        VectorAddScaled(o->Angle, o->TurningForce, o->Angle, FPS_ANIMATION_FACTOR);
 
         vec3_t Range;
         VectorSubtract(o->StartPosition, o->Position, Range);
@@ -457,8 +457,8 @@ bool MoveLeaves()
     else if (RainCurrent < RainTarget)
         RainCurrent += FPS_ANIMATION_FACTOR;
 
-    RainSpeed = ((int)sinf(WorldTime * 0.001f) * 10 + 30) * FPS_ANIMATION_FACTOR;
-    RainAngle = (int)sinf(WorldTime * 0.0005f + 50.f) * 20 * FPS_ANIMATION_FACTOR;
+    RainSpeed = ((int)sinf(WorldTime * 0.001f) * 10 + 30);
+    RainAngle = (int)sinf(WorldTime * 0.0005f + 50.f) * 20;
     RainPosition += 20 * FPS_ANIMATION_FACTOR;
     RainPosition %= 2000;
 

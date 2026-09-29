@@ -233,8 +233,8 @@ void MoveBoid(OBJECT* o, int i, OBJECT* Boids, int MAX)
         TargetX = o->Position[0] + TargetX / NumBirds;
         TargetY = o->Position[1] + TargetY / NumBirds;
 
-        o->Angle[2] = (float)TurnAngle((int)o->Angle[2], CalcAngle(o->Position[0], o->Position[1], TargetX, TargetY),
-                                       (int)o->Gravity);
+        o->Angle[2] = TurnAngle2(o->Angle[2], static_cast<float>(CalcAngle(o->Position[0], o->Position[1], TargetX, TargetY)),
+                                o->Gravity * FPS_ANIMATION_FACTOR);
     }
 }
 

@@ -526,7 +526,7 @@ static void RenderGameWorld(BYTE& byWaterMap, int width, int height)
     RenderFishs();
     RenderMount();
 
-    if (renderWeatherEffects)
+    if (renderWeatherEffects && !ShouldRenderLeaves())
         RenderLeaves();
 
     if (!gMapManager.InChaosCastle())

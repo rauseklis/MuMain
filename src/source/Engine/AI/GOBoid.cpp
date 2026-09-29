@@ -635,7 +635,7 @@ bool MoveMount(OBJECT* o, bool bForceRender)
             if (Distance >= FlyRange * FlyRange)
             {
                 float Angle = CreateAngle(o->Position[0], o->Position[1], TargetPosition[0], TargetPosition[1]);
-                o->Angle[2] = TurnAngle2(o->Angle[2], Angle, 20.f);
+                o->Angle[2] = TurnAngle2(o->Angle[2], Angle, 20.f * FPS_ANIMATION_FACTOR);
             }
             AngleMatrix(o->Angle, o->Matrix);
             vec3_t Direction;
