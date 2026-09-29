@@ -41,21 +41,9 @@ static  const int g_iKalimaLevel[14][2] = { { 40, 999 }, { 131, 999 }, { 181, 99
 
 #define KUNDUN_ZONE NUM_HELLAS
 
-bool CreateWaterTerrain(int mapIndex)
+bool CreateWaterTerrain(int)
 {
-    if (gMapManager.InHellas(mapIndex))
-    {
-        DeleteWaterTerrain();
-
-        g_pCSWaterTerrain = new CSWaterTerrain(mapIndex);
-
-        return true;
-    }
-    else
-    {
-        DeleteWaterTerrain();
-    }
-
+    DeleteWaterTerrain();
     return false;
 }
 
