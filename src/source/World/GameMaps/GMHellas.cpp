@@ -23,8 +23,6 @@
 #include "GameLogic/Skills/SkillManager.h"
 #include "Camera/CameraProjection.h"
 #include "I18N/All.h"
-#include "Core/Utilities/Log/MuLogger.h"
-#include <unordered_map>
 
 extern  int  WaterTextureNumber;
 extern	wchar_t TextList[50][100];
@@ -519,19 +517,6 @@ bool RenderHellasObjectMesh(OBJECT* o, BMD* b)
     }
     else if (o->Type == MODEL_WARCRAFT)
     {
-        // TEMP diagnostic for Kalima portal invisibility investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
-        {
-            static std::unordered_map<const OBJECT*, double> s_kalimaDiagLastLogMs;
-            double& lastLogMs = s_kalimaDiagLastLogMs[o];
-            if (WorldTime - lastLogMs >= 1000.0)
-            {
-                lastLogMs = WorldTime;
-                MU_LOG_INFO(mu::log::Get("render"),
-                            "[KALIMA-DIAG] render-reached pos=({:.1f},{:.1f},{:.1f}) Alpha={:.3f}", o->Position[0],
-                            o->Position[1], o->Position[2], o->Alpha);
-            }
-        }
-
         if (o->SubType == 1)
         {
             Vector(1.0f, 0.1f, 0.1f, b->BodyLight);

@@ -3101,6 +3101,18 @@ void ReceiveCreateSummonViewport(const BYTE* ReceiveBuffer)
         int CreateFlag = (Key >> 15);
         Key &= 0x7FFF;
 
+        // A Kalima gate (MONSTER_GATE_TO_KALIMA_1..7) can have its summon-viewport
+        // packet resent for a Key we already have a live object for. Treating a
+        // resend as a fresh appearance replays AppearMonster()'s default branch,
+        // which unconditionally resets Alpha to 0 to start a new ~0.8s fade-in
+        // (see ZzzAI.cpp Alpha()). If resends arrive faster than that fade
+        // completes, Alpha never climbs past Calc_RenderObject's visibility
+        // cutoff and the portal is stuck invisible forever, even though it's
+        // otherwise fully functional. Guard against replaying the appear/fade
+        // sequence for a gate that's already live.
+        bool alreadyLiveKalimaGate = (Type >= MONSTER_GATE_TO_KALIMA_1 && Type <= MONSTER_GATE_TO_KALIMA_7)
+            && FindCharacterIndex(Key) < MAX_CHARACTERS_CLIENT;
+
         CHARACTER* c;
 
         if (Type >= MONSTER_GATE_TO_KALIMA_1 && Type <= MONSTER_GATE_TO_KALIMA_7)
@@ -3144,7 +3156,7 @@ void ReceiveCreateSummonViewport(const BYTE* ReceiveBuffer)
             c->OwnerID[MAX_USERNAME_SIZE] = 0;
         }
 
-        if (CreateFlag)
+        if (CreateFlag && !alreadyLiveKalimaGate)
         {
             AppearMonster(c);
             CreateEffect(MODEL_MAGIC_CIRCLE1, o->Position, o->Angle, o->Light, 0, o);
