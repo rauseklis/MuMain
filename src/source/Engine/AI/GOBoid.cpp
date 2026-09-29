@@ -26,6 +26,33 @@
 
 int EnableEvent = 0;
 
+// TEMP diagnostic for high-fps bird-speed investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+// Tracks one live MODEL_BIRD01's real-world speed (units/sec) for display in the $details overlay.
+bool   g_bBirdSpeedTracked = false;
+float  g_fBirdSpeedUnitsPerSec = 0.f;
+static vec3_t   s_vBirdSpeedLastPos = { 0.f, 0.f, 0.f };
+static double   s_dBirdSpeedLastTime = 0.0;
+static bool     s_bBirdSpeedHasLast = false;
+
+// TEMP diagnostic for high-fps bird-speed investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+static void UpdateBirdSpeedTracker(const vec3_t& Position)
+{
+    if (s_bBirdSpeedHasLast)
+    {
+        double dElapsedMs = WorldTime - s_dBirdSpeedLastTime;
+        if (dElapsedMs < 1.0)
+        {
+            return;
+        }
+        float fDistance = VectorDistance3D(s_vBirdSpeedLastPos, Position);
+        g_fBirdSpeedUnitsPerSec = fDistance / (float)(dElapsedMs / 1000.0);
+        g_bBirdSpeedTracked = true;
+    }
+    VectorCopy(Position, s_vBirdSpeedLastPos);
+    s_dBirdSpeedLastTime = WorldTime;
+    s_bBirdSpeedHasLast = true;
+}
+
 static  const   BYTE    BOID_FLY = 0;
 static  const   BYTE    BOID_DOWN = 1;
 static  const   BYTE    BOID_GROUND = 2;
@@ -1224,6 +1251,9 @@ void MoveBoids()
         AddTerrainLight(o->Position[0], o->Position[1], Light, 16, PrimaryTerrainLight);
     }
 
+    // TEMP diagnostic for high-fps bird-speed investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+    bool bBirdSpeedUpdatedThisFrame = false;
+
     int Index = TERRAIN_INDEX_REPEAT((int)(Hero->Object.Position[0] / TERRAIN_SCALE), (int)(Hero->Object.Position[1] / TERRAIN_SCALE));
     for (int i = 0; i < MAX_BOIDS; i++)
     {
@@ -1455,6 +1485,13 @@ void MoveBoids()
                     break;
                 }
 
+                // TEMP diagnostic for high-fps bird-speed investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+                if (!bBirdSpeedUpdatedThisFrame && o->Type == MODEL_BIRD01)
+                {
+                    UpdateBirdSpeedTracker(o->Position);
+                    bBirdSpeedUpdatedThisFrame = true;
+                }
+
                 MoveBoidGroup(o, i);
 
                 if (o->LifeTime <= 0 && (gMapManager.WorldActive == WD_7ATLANSE || gMapManager.WorldActive == WD_67DOPPLEGANGER3) && TerrainWall[Index] == TW_SAFEZONE)
@@ -1505,6 +1542,15 @@ void MoveBoids()
             }
             Alpha(o);
         }
+    }
+
+    // TEMP diagnostic for high-fps bird-speed investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+    // No live MODEL_BIRD01 seen this frame - drop the stale sample so the overlay shows "no bird tracked"
+    // instead of a frozen last-known number.
+    if (!bBirdSpeedUpdatedThisFrame)
+    {
+        s_bBirdSpeedHasLast = false;
+        g_bBirdSpeedTracked = false;
     }
 }
 

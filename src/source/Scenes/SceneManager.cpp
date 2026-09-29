@@ -72,6 +72,9 @@ extern int HeroTile;
 extern bool Destroy;
 extern double WorldTime;
 extern float FPS_ANIMATION_FACTOR;
+// TEMP diagnostic for high-fps bird-speed investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+extern bool  g_bBirdSpeedTracked;
+extern float g_fBirdSpeedUnitsPerSec;
 
 namespace
 {
@@ -707,6 +710,13 @@ static void RenderDebugInfo()
     g_pRenderText->RenderText((int)DEBUG_TEXT_X, y, szLine); y += DEBUG_TEXT_LINE_HEIGHT;
 
     mu_swprintf(szLine, L"AnimFactor: %.3f", FPS_ANIMATION_FACTOR);
+    g_pRenderText->RenderText((int)DEBUG_TEXT_X, y, szLine); y += DEBUG_TEXT_LINE_HEIGHT;
+
+    // TEMP diagnostic for high-fps bird-speed investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+    if (g_bBirdSpeedTracked)
+        mu_swprintf(szLine, L"Bird speed: %.1f units/sec (FPS_ANIMATION_FACTOR: %.3f)", g_fBirdSpeedUnitsPerSec, FPS_ANIMATION_FACTOR);
+    else
+        mu_swprintf(szLine, L"Bird speed: (no bird tracked)");
     g_pRenderText->RenderText((int)DEBUG_TEXT_X, y, szLine); y += DEBUG_TEXT_LINE_HEIGHT;
 
     mu_swprintf(szLine, L"MousePos: %d %d %d", MouseX, MouseY, MouseLButtonPush);
