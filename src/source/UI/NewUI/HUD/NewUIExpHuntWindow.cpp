@@ -110,6 +110,9 @@ namespace SEASON3B
     {
         EnableAlphaTest();
 
+        constexpr float kBorderThickness = 2.0f;
+        RenderColorQuadARGB(static_cast<float>(m_Pos.x) - kBorderThickness, static_cast<float>(m_Pos.y) - kBorderThickness,
+            static_cast<float>(WND_WIDTH) + kBorderThickness * 2.0f, static_cast<float>(WND_HEIGHT) + kBorderThickness * 2.0f, 0xFFC8A050u);
         RenderColorQuadARGB(static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y),
             static_cast<float>(WND_WIDTH), static_cast<float>(WND_HEIGHT), 0xB0000000u);
 
@@ -128,9 +131,14 @@ namespace SEASON3B
 
     float CNewUIExpHuntWindow::GetLayerDepth()
     {
-        // Just above the chat/system log windows (6.1f / 6.05f) so this HUD
-        // renders on top of them, but below the minimap and move-command
-        // window (8.1f / 8.3f) so dragging this one never occludes those.
-        return 6.5f;
+        // Must be above MiniMap (8.1f) and MoveCommandWindow (8.3f): those windows'
+        // UpdateMouseEvent() unconditionally claim almost the entire screen for their
+        // own broad mouse checks and, being higher depth, are dispatched mouse events
+        // first. A lower depth here meant this window's own UpdateMouseEvent() never
+        // ran at all while the mouse was anywhere near the top of the screen, so
+        // dragging could never even start. Confirmed via CNewUIManager::UpdateMouseEvent()
+        // (descending-depth dispatch, hard-stops on the first false) and
+        // CNewUIMiniMap::UpdateMouseEvent()'s unconditional CheckMouseIn(0,0,640,430) claim.
+        return 8.5f;
     }
 }

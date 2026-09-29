@@ -22,9 +22,12 @@ namespace GameLogic::ExpHunt
     // call must be summed - never assume one call equals one kill.
     void AddSample(std::uint64_t experience);
 
-    // Experience-per-minute rate over the trailing 60-second window,
-    // extrapolated from actual elapsed time when tracking started less than
-    // 60 seconds ago. Returns 0.0 while inactive or before any sample has
-    // been recorded.
+    // Sum of experience gained in the trailing 60-second window. Rises when a
+    // new sample is added, falls only when a sample ages past 60 seconds -
+    // stays static otherwise. No extrapolation: during the first 60 seconds
+    // of tracking this under-represents the eventual steady-state rate (not
+    // enough of the window has been observed yet), which is expected - hunt
+    // a spot for at least a minute before comparing it to another. Returns
+    // 0.0 while inactive or before any sample has been recorded.
     double GetRatePerMinute();
 }

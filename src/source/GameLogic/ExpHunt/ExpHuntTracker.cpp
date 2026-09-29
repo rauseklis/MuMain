@@ -18,7 +18,6 @@ namespace GameLogic::ExpHunt
         };
 
         bool s_active = false;
-        double s_startTimeMs = 0.0;
         std::deque<Sample> s_samples;
 
         void PurgeOldSamples()
@@ -34,7 +33,6 @@ namespace GameLogic::ExpHunt
     void Start()
     {
         s_active = true;
-        s_startTimeMs = WorldTime;
         s_samples.clear();
     }
 
@@ -68,19 +66,12 @@ namespace GameLogic::ExpHunt
 
         PurgeOldSamples();
 
-        const double elapsed = WorldTime - s_startTimeMs;
-        const double windowMs = elapsed < kWindowMs ? elapsed : kWindowMs;
-        if (windowMs <= 0.0)
-        {
-            return 0.0;
-        }
-
         std::uint64_t total = 0;
         for (const auto& sample : s_samples)
         {
             total += sample.experience;
         }
 
-        return static_cast<double>(total) * (kWindowMs / windowMs);
+        return static_cast<double>(total);
     }
 }

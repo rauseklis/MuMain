@@ -2023,6 +2023,7 @@ bool CNewUISystem::IsImpossibleHideInterface(DWORD dwKey)
         || dwKey == INTERFACE_GOLD_BOWMAN
         || dwKey == INTERFACE_GOLD_BOWMAN_LENA
         || dwKey == INTERFACE_EMPIREGUARDIAN_TIMER
+        || dwKey == INTERFACE_EXPHUNT
         )
     {
         return true;
