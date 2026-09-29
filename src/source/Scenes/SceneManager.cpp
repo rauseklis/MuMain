@@ -706,6 +706,9 @@ static void RenderDebugInfo()
         (s_avgFps > 0.0f) ? 1000.0f / s_avgFps : 0.0f);
     g_pRenderText->RenderText((int)DEBUG_TEXT_X, y, szLine); y += DEBUG_TEXT_LINE_HEIGHT;
 
+    mu_swprintf(szLine, L"AnimFactor: %.3f", FPS_ANIMATION_FACTOR);
+    g_pRenderText->RenderText((int)DEBUG_TEXT_X, y, szLine); y += DEBUG_TEXT_LINE_HEIGHT;
+
     mu_swprintf(szLine, L"MousePos: %d %d %d", MouseX, MouseY, MouseLButtonPush);
     g_pRenderText->RenderText((int)DEBUG_TEXT_X, y, szLine); y += DEBUG_TEXT_LINE_HEIGHT;
 

@@ -1053,7 +1053,7 @@ void MoveEagle(OBJECT* o)
     }
 
     float fSeedAngle = WorldTime * 0.001f;
-    float fFlyRange = o->Gravity * FPS_ANIMATION_FACTOR;
+    float fFlyRange = o->Gravity;
     float fAngle = 0;
     if (o->AI == BOID_FLY)
     {
@@ -1098,14 +1098,14 @@ void MoveEagle(OBJECT* o)
             o->AI = BOID_FLY;
             o->HeadAngle[2] = 0;
 
-            o->HeadAngle[0] = cosf(fSeedAngle) * fFlyRange * FPS_ANIMATION_FACTOR;
-            o->HeadAngle[1] = sinf(fSeedAngle) * fFlyRange * FPS_ANIMATION_FACTOR;
+            o->HeadAngle[0] = cosf(fSeedAngle) * fFlyRange;
+            o->HeadAngle[1] = sinf(fSeedAngle) * fFlyRange;
             fAngle = CreateAngle(o->Position[0], o->Position[1], o->Position[0] + o->HeadAngle[0], o->Position[1] + o->HeadAngle[1]);
         }
     }
 
-    o->Position[0] += o->HeadAngle[0];
-    o->Position[1] += o->HeadAngle[1];
+    o->Position[0] += o->HeadAngle[0] * FPS_ANIMATION_FACTOR;
+    o->Position[1] += o->HeadAngle[1] * FPS_ANIMATION_FACTOR;
     o->Position[2] += sinf(WorldTime * 0.0005f) * 1.0f * FPS_ANIMATION_FACTOR;
     o->Angle[1] += sinf(WorldTime * 0.001f) * 0.4f * FPS_ANIMATION_FACTOR;
     o->Angle[2] = fAngle + 270;

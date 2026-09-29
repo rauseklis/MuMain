@@ -3987,9 +3987,10 @@ void MoveObject(OBJECT* o)
                 }
                 else
                 {
-                    o->Angle[2] = TurnAngle2(o->Angle[2], o->HeadAngle[2], 10.f);
-                    o->Position[0] += (o->HeadTargetAngle[0] - o->Position[0]) * 0.2f;
-                    o->Position[1] += (o->HeadTargetAngle[1] - o->Position[1]) * 0.2f;
+                    o->Angle[2] = TurnAngle2(o->Angle[2], o->HeadAngle[2], 10.f * FPS_ANIMATION_FACTOR);
+                    const float objectFollowScale = 1.0f - powf(0.8f, FPS_ANIMATION_FACTOR);
+                    o->Position[0] += (o->HeadTargetAngle[0] - o->Position[0]) * objectFollowScale;
+                    o->Position[1] += (o->HeadTargetAngle[1] - o->Position[1]) * objectFollowScale;
                 }
             }
             break;

@@ -5628,8 +5628,9 @@ void MoveCharacterVisual(CHARACTER* c, OBJECT* o)
                     if (o->HeadTargetAngle[i] < 0) o->HeadTargetAngle[i] += 360.f;
             }
 
+            const float headTurnScale = 1.0f - powf(0.8f, FPS_ANIMATION_FACTOR);
             for (int j = 0; j < 2; j++)
-                o->HeadAngle[j] = TurnAngle2(o->HeadAngle[j], o->HeadTargetAngle[j], FarAngle(o->HeadAngle[j], o->HeadTargetAngle[j]) * 0.2f);
+                o->HeadAngle[j] = TurnAngle2(o->HeadAngle[j], o->HeadTargetAngle[j], FarAngle(o->HeadAngle[j], o->HeadTargetAngle[j]) * headTurnScale);
         }
 
         vec3_t p, Position;
