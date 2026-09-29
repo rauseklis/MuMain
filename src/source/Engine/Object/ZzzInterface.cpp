@@ -17,7 +17,6 @@
 #include "Render/Textures/ZzzTexture.h"
 #include "Engine/AI/ZzzAI.h"
 #include "Engine/Object/ZzzInterface.h"
-#include "GameLogic/ExpHunt/ExpHuntTracker.h"
 #include "UI/Chat/ChatInput.h"
 #include "GameLogic/Combat/ClassAttack.h"
 #include "GameLogic/Combat/SkillCast.h"
@@ -1972,19 +1971,6 @@ bool CheckCommand(wchar_t* Text, bool bMacroText)
             iTextSize = i;
         }
         Name[iTextSize] = 0;
-
-        if (wcsicmp(Text, L"/hunt on") == 0)
-        {
-            GameLogic::ExpHunt::Start();
-            g_pNewUISystem->Show(SEASON3B::INTERFACE_EXPHUNT);
-            return true;
-        }
-        else if (wcsicmp(Text, L"/hunt off") == 0)
-        {
-            GameLogic::ExpHunt::Stop();
-            g_pNewUISystem->Hide(SEASON3B::INTERFACE_EXPHUNT);
-            return true;
-        }
 
         if (!g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_STORAGE))
         {

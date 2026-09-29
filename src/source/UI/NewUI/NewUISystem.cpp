@@ -1619,12 +1619,22 @@ void CNewUISystem::Toggle(DWORD dwKey)
 
 void CNewUISystem::ToggleExpHunt()
 {
-    GameLogic::ExpHunt::IsActive() ? GameLogic::ExpHunt::Stop() : GameLogic::ExpHunt::Start();
+    if (GameLogic::ExpHunt::IsActive())
+    {
+        GameLogic::ExpHunt::Stop();
+        Hide(SEASON3B::INTERFACE_EXPHUNT);
+    }
+    else
+    {
+        GameLogic::ExpHunt::Start();
+        Show(SEASON3B::INTERFACE_EXPHUNT);
+    }
 }
 
 void CNewUISystem::ResetExpHunt()
 {
     GameLogic::ExpHunt::Stop();
+    Hide(SEASON3B::INTERFACE_EXPHUNT);
     if (m_pNewExpHuntWindow)
     {
         m_pNewExpHuntWindow->ResetToDefaultPosition();
