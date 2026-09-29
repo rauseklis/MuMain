@@ -42,3 +42,22 @@ TEST_CASE("mip count includes the base level and the one-by-one level [render][g
     CHECK(CalculateMipLevelCount(256, 128) == 9);
     CHECK(CalculateMipLevelCount(1024, 1024) == 11);
 }
+
+TEST_CASE("only known 3D asset directories receive enhanced filtering [render][graphics_quality]")
+{
+    using Render::GraphicsQuality::IsEnhancedTexturePath;
+
+    CHECK(IsEnhancedTexturePath(L"Data\\World1\\TileGrass01.jpg"));
+    CHECK(IsEnhancedTexturePath(L"C:/MU/Data/Object74/stone.tga"));
+    CHECK(IsEnhancedTexturePath(L"Data\\Player\\Armor01.jpg"));
+    CHECK(IsEnhancedTexturePath(L"data/NPC/shopkeeper.jpg"));
+    CHECK(IsEnhancedTexturePath(L"Data\\Monster\\Bahamut.tga"));
+    CHECK(IsEnhancedTexturePath(L"Data\\Items\\Sword01.jpg"));
+
+    CHECK_FALSE(IsEnhancedTexturePath(L"Data\\Interface\\newui_option_top.tga"));
+    CHECK_FALSE(IsEnhancedTexturePath(L"Data\\Effect\\flare.jpg"));
+    CHECK_FALSE(IsEnhancedTexturePath(L"Data\\Skill\\HellGate.tga"));
+    CHECK_FALSE(IsEnhancedTexturePath(L"Data\\Logo\\titel01.jpg"));
+    CHECK_FALSE(IsEnhancedTexturePath(L"Data\\World\\not-a-number.jpg"));
+    CHECK_FALSE(IsEnhancedTexturePath(L"unclassified.jpg"));
+}

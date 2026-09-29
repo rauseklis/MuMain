@@ -9,6 +9,7 @@
 #include "Core/Utilities/Log/MuLogger.h"
 
 #include <SDL3/SDL_gpu.h>
+#include "Render/Renderer/GraphicsQuality.h"
 #include "Render/Renderer/MuRenderer.h"
 
 #include <algorithm>
@@ -127,9 +128,10 @@ std::vector<std::uint8_t> PadRGBToRGBA(const BYTE* rgbData, int width, int heigh
 }
 
 bool UploadTextureSDLGpu(BITMAP_t* bitmap, const std::uint8_t* pixelData, int width, int height, SDL_GPUFilter filter,
-                         SDL_GPUSamplerAddressMode wrapMode)
+                         SDL_GPUSamplerAddressMode wrapMode, bool enhancedTexture)
 {
-    SDL_GPUDevice* device = static_cast<SDL_GPUDevice*>(mu::GetRenderer().GetDevice());
+    auto& renderer = mu::GetRenderer();
+    SDL_GPUDevice* device = static_cast<SDL_GPUDevice*>(renderer.GetDevice());
     if (!device || !bitmap || !pixelData || width <= 0 || height <= 0)
     {
         return false;
@@ -141,8 +143,17 @@ bool UploadTextureSDLGpu(BITMAP_t* bitmap, const std::uint8_t* pixelData, int wi
     texInfo.width = static_cast<Uint32>(width);
     texInfo.height = static_cast<Uint32>(height);
     texInfo.layer_count_or_depth = 1;
-    texInfo.num_levels = 1;
+    const bool generateMipmaps = enhancedTexture && renderer.GetTextureMipmapsEnabled();
+    const Uint32 mipLevels = generateMipmaps
+                                 ? Render::GraphicsQuality::CalculateMipLevelCount(static_cast<Uint32>(width),
+                                                                                  static_cast<Uint32>(height))
+                                 : 1u;
+    texInfo.num_levels = mipLevels;
     texInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+    if (generateMipmaps)
+    {
+        texInfo.usage |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+    }
 
     SDL_GPUTexture* gpuTexture = SDL_CreateGPUTexture(device, &texInfo);
     if (!gpuTexture)
@@ -204,16 +215,24 @@ bool UploadTextureSDLGpu(BITMAP_t* bitmap, const std::uint8_t* pixelData, int wi
 
     SDL_UploadToGPUTexture(copyPass, &src, &dst, false);
     SDL_EndGPUCopyPass(copyPass);
+    if (generateMipmaps)
+    {
+        SDL_GenerateMipmapsForGPUTexture(commandBuffer, gpuTexture);
+    }
     SDL_SubmitGPUCommandBuffer(commandBuffer);
     SDL_ReleaseGPUTransferBuffer(device, transfer);
 
     SDL_GPUSamplerCreateInfo samplerInfo{};
-    samplerInfo.min_filter = filter;
-    samplerInfo.mag_filter = filter;
-    samplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+    samplerInfo.min_filter = enhancedTexture ? SDL_GPU_FILTER_LINEAR : filter;
+    samplerInfo.mag_filter = enhancedTexture ? SDL_GPU_FILTER_LINEAR : filter;
+    samplerInfo.mipmap_mode = generateMipmaps ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
     samplerInfo.address_mode_u = wrapMode;
     samplerInfo.address_mode_v = wrapMode;
     samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+    samplerInfo.min_lod = 0.0f;
+    samplerInfo.max_lod = static_cast<float>(mipLevels - 1u);
+    samplerInfo.enable_anisotropy = enhancedTexture && renderer.GetAnisotropy() > 1;
+    samplerInfo.max_anisotropy = static_cast<float>(renderer.GetAnisotropy());
 
     SDL_GPUSampler* sampler = SDL_CreateGPUSampler(device, &samplerInfo);
     if (!sampler)
@@ -874,7 +893,7 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
     pNewBitmap->TextureNumber = uiBitmapIndex;
     std::vector<std::uint8_t> rgbaData = PadRGBToRGBA(pNewBitmap->Buffer, textureWidth, textureHeight);
     if (!UploadTextureSDLGpu(pNewBitmap.get(), rgbaData.data(), textureWidth, textureHeight, MapGLFilterToSDL(uiFilter),
-                             MapGLWrapToSDL(uiWrapMode)))
+                             MapGLWrapToSDL(uiWrapMode), Render::GraphicsQuality::IsEnhancedTexturePath(filename)))
     {
         g_ErrorReport.Write(L"SDL texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
         return false;
@@ -967,7 +986,7 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
 
     pNewBitmap->TextureNumber = uiBitmapIndex;
     if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, Width, Height, MapGLFilterToSDL(uiFilter),
-                             MapGLWrapToSDL(uiWrapMode)))
+                             MapGLWrapToSDL(uiWrapMode), Render::GraphicsQuality::IsEnhancedTexturePath(filename)))
     {
         g_ErrorReport.Write(L"SDL texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
         return false;
