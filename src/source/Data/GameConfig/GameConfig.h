@@ -91,6 +91,9 @@ public:
     bool GetSortParticleDraws() const { return m_sortParticleDraws; }
     bool GetVSyncEnabled() const { return m_vsyncEnabled; }
     int GetMaxFps() const { return m_maxFps; }
+    int GetAntiAliasing() const { return m_antiAliasing; }
+    bool GetTextureMipmapsEnabled() const { return m_textureMipmaps; }
+    int GetAnisotropy() const { return m_anisotropy; }
     void SetVSyncEnabled(bool enabled);
 
     // Helpers
@@ -133,6 +136,9 @@ private:
     bool m_sortParticleDraws;
     bool m_vsyncEnabled;
     int m_maxFps;
+    int m_antiAliasing;
+    bool m_textureMipmaps;
+    int m_anisotropy;
 
     int ReadInt(const wchar_t* section, const wchar_t* key, int defaultValue);
     void WriteInt(const wchar_t* section, const wchar_t* key, int value);

@@ -47,6 +47,9 @@ namespace CfgKeys
     inline constexpr wchar_t CfgKeySortParticleDraws[] = L"SortParticleDraws";
     inline constexpr wchar_t CfgKeyVSync[] = L"VSync";
     inline constexpr wchar_t CfgKeyMaxFps[] = L"MaxFPS";
+    inline constexpr wchar_t CfgKeyAntiAliasing[] = L"AntiAliasing";
+    inline constexpr wchar_t CfgKeyTextureMipmaps[] = L"TextureMipmaps";
+    inline constexpr wchar_t CfgKeyAnisotropy[] = L"Anisotropy";
 }
 
 namespace CfgDefaults
@@ -86,4 +89,7 @@ namespace CfgDefaults
     inline constexpr int CfgDefaultMaxFps = 240;
     inline constexpr int CfgMinMaxFps = 25;
     inline constexpr int CfgMaxMaxFps = 1000;
+    inline constexpr int CfgDefaultAntiAliasing = 4;
+    inline constexpr bool CfgDefaultTextureMipmaps = true;
+    inline constexpr int CfgDefaultAnisotropy = 16;
 }
