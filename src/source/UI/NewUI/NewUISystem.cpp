@@ -46,6 +46,7 @@ CNewUISystem::CNewUISystem()
     m_pNewUIHotKey = nullptr;
     m_pNewChatLogWindow = nullptr;
     m_pNewSystemLogWindow = nullptr;
+    m_pNewExpHuntWindow = nullptr;
     m_pNewSlideWindow = nullptr;
     m_pNewGuildMakeWindow = nullptr;
     m_pNewFriendWindow = nullptr;
@@ -142,6 +143,10 @@ bool CNewUISystem::Create()
     if (false == m_pNewSystemLogWindow->Create(m_pNewUIMng, 0, 80))
         return false;
 
+    m_pNewExpHuntWindow = new CNewUIExpHuntWindow;
+    if (false == m_pNewExpHuntWindow->Create(m_pNewUIMng, 300, 10))
+        return false;
+
     m_pNewOptionWindow = new CNewUIOptionWindow;
     if (m_pNewOptionWindow->Create(m_pNewUIMng, (640 / 2) - (190 / 2), 5) == false)
     {
@@ -174,6 +179,7 @@ void CNewUISystem::Release()
     SAFE_DELETE(m_pNewOptionWindow);
     SAFE_DELETE(m_pNewChatLogWindow);
     SAFE_DELETE(m_pNewSystemLogWindow);
+    SAFE_DELETE(m_pNewExpHuntWindow);
     SAFE_DELETE(m_pNewUI3DRenderMng);
 
     m_pNewUIMng->RemoveAllUIObjs();
@@ -2017,6 +2023,7 @@ bool CNewUISystem::IsImpossibleHideInterface(DWORD dwKey)
         || dwKey == INTERFACE_GOLD_BOWMAN
         || dwKey == INTERFACE_GOLD_BOWMAN_LENA
         || dwKey == INTERFACE_EMPIREGUARDIAN_TIMER
+        || dwKey == INTERFACE_EXPHUNT
         )
     {
         return true;
