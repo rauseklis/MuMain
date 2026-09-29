@@ -816,7 +816,7 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
                 b->RenderMesh(14, RENDER_CHROME | RENDER_BRIGHT, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
                 b->RenderMesh(15, RENDER_CHROME | RENDER_BRIGHT, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
 
-                if (gMapManager.WorldActive != WD_10HEAVEN && gMapManager.InHellas() == false)
+                if (gMapManager.WorldActive != WD_10HEAVEN)
                 {
                     if (!g_Direction.m_CKanturu.IsMayaScene())
                     {
@@ -883,7 +883,7 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
 
                 b->EndRender();
 
-                if (gMapManager.WorldActive != WD_10HEAVEN && gMapManager.InHellas() == FALSE)
+                if (gMapManager.WorldActive != WD_10HEAVEN)
                 {
                     if (!g_Direction.m_CKanturu.IsMayaScene())
                     {
@@ -1008,7 +1008,7 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
                 }
                 b->EndRender();
 
-                if (gMapManager.WorldActive != WD_10HEAVEN && gMapManager.InHellas() == false)
+                if (gMapManager.WorldActive != WD_10HEAVEN)
                 {
                     if (!g_Direction.m_CKanturu.IsMayaScene())
                     {
@@ -8211,11 +8211,6 @@ void RenderPartObjectEffect(OBJECT* o, int Type, vec3_t Light, float Alpha, int 
         }
         bool bRenderShadow = true;
 
-        if (gMapManager.InHellas())
-        {
-            bRenderShadow = false;
-        }
-
         if (WD_10HEAVEN == gMapManager.WorldActive || o->m_bySkillCount == 3 || g_Direction.m_CKanturu.IsMayaScene())
         {
             bRenderShadow = false;
@@ -9056,11 +9051,6 @@ void RenderPartObjectEffect(OBJECT* o, int Type, vec3_t Light, float Alpha, int 
             DisableAlphaBlend();
         }
         bool bRenderShadow = true;
-
-        if (gMapManager.InHellas())
-        {
-            bRenderShadow = false;
-        }
 
         if (WD_10HEAVEN == gMapManager.WorldActive || o->m_bySkillCount == 3 || g_Direction.m_CKanturu.IsMayaScene())
         {
