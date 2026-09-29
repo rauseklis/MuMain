@@ -12,6 +12,11 @@ namespace SEASON3B
 {
     namespace
     {
+        constexpr float CAP_SOURCE_WIDTH = 22.f;
+        constexpr float CAP_SOURCE_HEIGHT = 25.f;
+        constexpr float TEXTURE_SIZE = 32.f;
+        constexpr int TEXT_TOP_OFFSET = 3;
+
         std::wstring FormatExpRate(double ratePerMinute)
         {
             std::uint64_t whole = ratePerMinute > 0.0 ? static_cast<std::uint64_t>(ratePerMinute + 0.5) : 0;
@@ -126,20 +131,30 @@ namespace SEASON3B
     {
         EnableAlphaTest();
 
-        const float middleWidth = static_cast<float>(WND_WIDTH - CAP_WIDTH);
+        const float middleWidth = static_cast<float>(WND_WIDTH - (CAP_WIDTH * 2));
+        const float capU = 0.5f / TEXTURE_SIZE;
+        const float capV = 0.5f / TEXTURE_SIZE;
+        const float capUWidth = (CAP_SOURCE_WIDTH - 1.f) / TEXTURE_SIZE;
+        const float capVHeight = (CAP_SOURCE_HEIGHT - 1.f) / TEXTURE_SIZE;
 
         RenderImage(IMAGE_EXPHUNT_CAP, static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y),
-            static_cast<float>(CAP_WIDTH), static_cast<float>(WND_HEIGHT));
+            static_cast<float>(CAP_WIDTH), static_cast<float>(WND_HEIGHT),
+            capU, capV, capUWidth, capVHeight);
 
         RenderImage(IMAGE_EXPHUNT_MIDDLE, static_cast<float>(m_Pos.x + CAP_WIDTH), static_cast<float>(m_Pos.y),
             middleWidth, static_cast<float>(WND_HEIGHT), 0.1f, 0.f, 22.4f / 32.f, 25.f / 32.f);
+
+        const float rightCapU = capU + capUWidth;
+        RenderImage(IMAGE_EXPHUNT_CAP, static_cast<float>(m_Pos.x + WND_WIDTH - CAP_WIDTH),
+            static_cast<float>(m_Pos.y), static_cast<float>(CAP_WIDTH), static_cast<float>(WND_HEIGHT),
+            rightCapU, capV, -capUWidth, capVHeight);
 
         const std::wstring text = FormatExpRate(GameLogic::ExpHunt::GetRatePerMinute());
 
         g_pRenderText->SetFont(g_hFontBold);
         g_pRenderText->SetBgColor(0);
         g_pRenderText->SetTextColor(255, 220, 120, 255);
-        g_pRenderText->RenderText(m_Pos.x + CAP_WIDTH, m_Pos.y + 6, text.c_str(),
+        g_pRenderText->RenderText(m_Pos.x + CAP_WIDTH, m_Pos.y + TEXT_TOP_OFFSET, text.c_str(),
             static_cast<int>(middleWidth), 0, RT3_SORT_CENTER);
         g_pRenderText->SetFont(g_hFont);
 

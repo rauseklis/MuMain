@@ -1,6 +1,5 @@
 // Small draggable HUD window for the /hunt command: shows the trailing
-// experience-per-minute rate from GameLogic::ExpHunt. No background art -
-// renders as a flat color box with text, the same way the debug overlays do.
+// experience-per-minute rate from GameLogic::ExpHunt.
 #pragma once
 
 #include "UI/NewUI/NewUIManager.h"
@@ -33,9 +32,9 @@ namespace SEASON3B
         void LoadImages();
         void UnloadImages();
 
-        static constexpr int WND_WIDTH = 280;
-        static constexpr int WND_HEIGHT = 25;
-        static constexpr int CAP_WIDTH = 22;
+        static constexpr int WND_WIDTH = 220;
+        static constexpr int WND_HEIGHT = 20;
+        static constexpr int CAP_WIDTH = 18;
 
         CNewUIManager* m_pNewUIMng;
         POINT m_Pos;
