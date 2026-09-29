@@ -2,6 +2,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "UI/NewUI/Events/NewUICursedTempleResult.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "UI/Widgets/UIBaseDef.h"
@@ -132,7 +133,7 @@ void SEASON3B::CNewUICursedTempleResult::UpdateResult()
     if (m_WinState == 0)
         return;
 
-    m_ResultEffectAlph += 0.015f;
+    m_ResultEffectAlph = mu::FrameStepTowards(m_ResultEffectAlph, 1.0f, 0.015f);
     if (1.0f < m_ResultEffectAlph)
     {
         m_ResultEffectAlph = 1.0f;

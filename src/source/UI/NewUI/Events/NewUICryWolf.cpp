@@ -2,6 +2,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "UI/NewUI/Events/NewUICryWolf.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
@@ -302,7 +303,7 @@ bool SEASON3B::CNewUICryWolf::Render()
     {
         if (Deco_Insert < 21.f)
         {
-            Deco_Insert += 1.f;
+            Deco_Insert = mu::FrameStepTowards(Deco_Insert, 21.f, 1.f);
         }
         else
         {
@@ -321,7 +322,7 @@ bool SEASON3B::CNewUICryWolf::Render()
     {
         if (Deco_Insert > 0.f)
         {
-            Deco_Insert -= 1.f;
+            Deco_Insert = mu::FrameStepTowards(Deco_Insert, 0.f, 1.f);
         }
     }
 

@@ -2,6 +2,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "UI/NewUI/Events/NewUICursedTempleSystem.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "UI/NewUI/Dialogs/NewUICustomMessageBox.h"
@@ -673,7 +674,7 @@ void SEASON3B::CNewUICursedTempleSystem::UpdateScore()
     {
     case 0:
     {
-        m_ScoreEffectAlph += 0.015f;
+        m_ScoreEffectAlph = mu::FrameStepTowards(m_ScoreEffectAlph, 1.0f, 0.015f);
         if (1.0f < m_ScoreEffectAlph)
         {
             m_ScoreEffectState = 1;
@@ -693,7 +694,7 @@ void SEASON3B::CNewUICursedTempleSystem::UpdateScore()
     break;
     case 2:
     {
-        m_ScoreEffectAlph -= 0.015f;
+        m_ScoreEffectAlph = mu::FrameStepTowards(m_ScoreEffectAlph, 0.0f, 0.015f);
         if (0.0f > m_ScoreEffectAlph)
         {
             EndScoreEffect();

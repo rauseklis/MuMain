@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "GameLogic/Items/CComGem.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Textures/ZzzTexture.h"
@@ -394,7 +395,7 @@ void CKanturuDirection::PrepareCameraFocus(bool adjustViewDistance)
     g_Direction.CloseAllWindows();
     g_Direction.m_CameraLevel = 5;
     if (adjustViewDistance && g_Direction.m_fCameraViewFar <= 1200.0f)
-        g_Direction.m_fCameraViewFar += 10.0f;
+        g_Direction.m_fCameraViewFar = mu::FrameStepTowards(g_Direction.m_fCameraViewFar, 1200.0f, 10.0f);
 }
 
 void CKanturuDirection::ActivateDirectionSequence()
