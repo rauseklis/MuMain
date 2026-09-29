@@ -1,4 +1,4 @@
-// Small draggable HUD window for the /hunt command: shows the trailing
+// Small draggable HUD window for the Experience Hunter: shows the trailing
 // experience-per-minute rate from GameLogic::ExpHunt.
 #pragma once
 
@@ -12,8 +12,9 @@ namespace SEASON3B
         CNewUIExpHuntWindow();
         ~CNewUIExpHuntWindow() override;
 
-        bool Create(CNewUIManager* pNewUIMng, int x, int y);
+        bool Create(CNewUIManager* pNewUIMng);
         void Release();
+        void ResetToDefaultPosition();
 
         bool UpdateMouseEvent() override;
         bool UpdateKeyEvent() override;
@@ -35,6 +36,8 @@ namespace SEASON3B
         static constexpr int WND_WIDTH = 220;
         static constexpr int WND_HEIGHT = 20;
         static constexpr int CAP_WIDTH = 18;
+        static constexpr int DEFAULT_X = 420;
+        static constexpr int DEFAULT_Y = 0;
 
         CNewUIManager* m_pNewUIMng;
         POINT m_Pos;

@@ -47,7 +47,7 @@ namespace SEASON3B
         Release();
     }
 
-    bool CNewUIExpHuntWindow::Create(CNewUIManager* pNewUIMng, int x, int y)
+    bool CNewUIExpHuntWindow::Create(CNewUIManager* pNewUIMng)
     {
         if (nullptr == pNewUIMng)
         {
@@ -55,12 +55,20 @@ namespace SEASON3B
         }
 
         m_pNewUIMng = pNewUIMng;
-        m_Pos.x = x;
-        m_Pos.y = y;
+        ResetToDefaultPosition();
         m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_EXPHUNT, this);
         LoadImages();
         Show(false);
         return true;
+    }
+
+    void CNewUIExpHuntWindow::ResetToDefaultPosition()
+    {
+        m_Pos.x = DEFAULT_X;
+        m_Pos.y = DEFAULT_Y;
+        m_bDragging = false;
+        m_iDragGrabOffsetX = 0;
+        m_iDragGrabOffsetY = 0;
     }
 
     void CNewUIExpHuntWindow::Release()

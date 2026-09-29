@@ -145,7 +145,7 @@ bool CNewUISystem::Create()
         return false;
 
     m_pNewExpHuntWindow = new CNewUIExpHuntWindow;
-    if (false == m_pNewExpHuntWindow->Create(m_pNewUIMng, 300, 10))
+    if (false == m_pNewExpHuntWindow->Create(m_pNewUIMng))
         return false;
 
     m_pNewOptionWindow = new CNewUIOptionWindow;
@@ -1620,6 +1620,15 @@ void CNewUISystem::Toggle(DWORD dwKey)
 void CNewUISystem::ToggleExpHunt()
 {
     GameLogic::ExpHunt::IsActive() ? GameLogic::ExpHunt::Stop() : GameLogic::ExpHunt::Start();
+}
+
+void CNewUISystem::ResetExpHunt()
+{
+    GameLogic::ExpHunt::Stop();
+    if (m_pNewExpHuntWindow)
+    {
+        m_pNewExpHuntWindow->ResetToDefaultPosition();
+    }
 }
 
 void CNewUISystem::HideAll()
