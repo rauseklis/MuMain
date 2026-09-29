@@ -1,4 +1,3 @@
-// client/src/source/GameLogic/ExpHunt/ExpHuntTracker.cpp
 #include "stdafx.h"
 #include "GameLogic/ExpHunt/ExpHuntTracker.h"
 

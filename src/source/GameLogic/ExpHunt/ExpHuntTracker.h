@@ -1,5 +1,3 @@
-// client/src/source/GameLogic/ExpHunt/ExpHuntTracker.h
-//
 // Tracks a trailing-60-second experience-per-minute rate for the /hunt
 // player command. Pure logic, no UI or networking knowledge - fed by
 // whichever packet handler currently receives experience gains.
