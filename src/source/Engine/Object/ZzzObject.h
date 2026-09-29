@@ -17,7 +17,7 @@ void CreateShadowAngle();
 
 OBJECT* CollisionDetectObjects(OBJECT* PickObject);
 
-void RenderObject(OBJECT* o, bool Translate = false, int Select = 0, int ExtraMon = 0);
+bool RenderObject(OBJECT* o, bool Translate = false, int Select = 0, int ExtraMon = 0);
 void RenderObjects();
 void NextGradeObjectRender(CHARACTER* c);
 void RenderObject_AfterImage(OBJECT* o, bool Translate = false, int Select = 0, int ExtraMon = 0);
