@@ -3,6 +3,7 @@
 //*****************************************************************************
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "UIMapName.h"
 #include "World/MapInfra/MapManager.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
@@ -165,7 +166,7 @@ void CUIMapName::Update()
     switch (m_eState)
     {
     case FADEIN:
-        m_fAlpha += UIMN_ALPHA_VARIATION;
+        m_fAlpha = mu::FrameStepTowards(m_fAlpha, 1.0f, UIMN_ALPHA_VARIATION);
         if (1.0f <= m_fAlpha)
         {
             m_eState = SHOW;
@@ -183,7 +184,7 @@ void CUIMapName::Update()
         break;
 
     case FADEOUT:
-        m_fAlpha -= UIMN_ALPHA_VARIATION;
+        m_fAlpha = mu::FrameStepTowards(m_fAlpha, 0.0f, UIMN_ALPHA_VARIATION);
         if (0.0f >= m_fAlpha)
         {
             m_eState = HIDE;
