@@ -5850,11 +5850,6 @@ void RenderItems()
                 {
                     o->Position[2] += 10.0f * (float)sinf((float)(i * 1237 + WorldTime) * 0.002f);
                 }
-                else if (gMapManager.InHellas() == true)
-                {
-                    o->Position[2] = GetWaterTerrain(o->Position[0], o->Position[1]) + 180;
-                }
-
                 RenderPartObject(o, o->Type, NULL, Light, o->Alpha, Items[i].Item.Level, Items[i].Item.ExcellentFlags, Items[i].Item.AncientDiscriminator, true, true, true);
                 VectorCopy(vBackup, o->Position);
 

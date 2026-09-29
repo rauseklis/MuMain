@@ -435,7 +435,7 @@ bool RenderHellasVisual(OBJECT* o, BMD* b)
     case 15:
     case 29:
         CheckGrass(o);
-        o->Position[2] = GetWaterTerrain(o->Position[0], o->Position[1]) + 180;
+        o->Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
         break;
     case 32:
         CheckGrass(o);
@@ -445,7 +445,7 @@ bool RenderHellasVisual(OBJECT* o, BMD* b)
         Vector(0.f, 0.f, 0.f, p);
         b->TransformPosition(BoneTransform[5], p, Position);
         CreateSprite(BITMAP_LIGHT, Position, Luminosity + 0.2f, Light, o);
-        o->Position[2] = GetWaterTerrain(o->Position[0], o->Position[1]) + 180;
+        o->Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
         break;
     case 35:
         Vector(0.3f, 0.6f, 1.f, Light);
