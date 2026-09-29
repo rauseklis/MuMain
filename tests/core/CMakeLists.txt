@@ -7,6 +7,14 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME test_frame_timing
+    SOURCES
+        test_frame_timing.cpp
+    LINK_LIBS
+        MuClient
+)
+
+mu_add_test(
     NAME test_ground_truth
     SOURCES
         test_ground_truth.cpp

@@ -7,6 +7,7 @@
 #include "Render/Terrain/ZzzLodTerrain.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "Engine/AI/ZzzAI.h"
+#include "Core/Time/FrameTiming.h"
 #include "Render/Effects/ZzzEffect.h"
 #include "Audio/DSPlaySound.h"
 #include "UI/Legacy/UIManager.h"
@@ -47,8 +48,7 @@ namespace Render::Effects::Behaviors
             o->Timer = 0.0f;
             break;
         }
-        if (o->Timer > o->Angle[1]) o->Angle[1] += 0.5f;
-        if (o->Timer < o->Angle[1]) o->Angle[1] -= 0.5f;
+        o->Angle[1] = mu::FrameStepTowards(o->Angle[1], o->Timer, 0.5f);
 
         if (fTemp <= 800.0f && fTemp >= -800.0f)
         {
@@ -1030,14 +1030,14 @@ namespace Render::Effects::Behaviors
 
             if (o->Kind == 1)
             {
-                if (o->Alpha > 0.0f) o->Alpha -= 0.03f;
+                if (o->Alpha > 0.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.03f);
                 else DeleteEffect(MODEL_SUMMONER_EQUIP_HEAD_SAHAMUTT, o->Owner);
             }
             else
             {
                 if (Hero->SafeZone/* || rand_fps_check(100)*/ || sinf(WorldTime * 0.0004f + o->Skill * 0.024f) < 0.3f)
                     o->Kind = 1;
-                if (o->Alpha < 1.0f) o->Alpha += 0.03f;
+                if (o->Alpha < 1.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 1.0f, 0.03f);
             }
 
             if (pObject->Live)
@@ -1088,14 +1088,14 @@ namespace Render::Effects::Behaviors
 
             if (o->Kind == 1)
             {
-                if (o->Alpha > 0.0f) o->Alpha -= 0.03f;
+                if (o->Alpha > 0.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.03f);
                 else DeleteEffect(MODEL_SUMMONER_EQUIP_HEAD_NEIL, o->Owner);
             }
             else
             {
                 if (Hero->SafeZone/* || rand_fps_check(100)*/ || sinf(WorldTime * 0.0004f + o->Skill * 0.024f) < 0.3f)
                     o->Kind = 1;
-                if (o->Alpha < 1.0f) o->Alpha += 0.03f;
+                if (o->Alpha < 1.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 1.0f, 0.03f);
             }
 
             if (pObject->Live)
@@ -1265,8 +1265,8 @@ namespace Render::Effects::Behaviors
     {
         float Matrix[3][4];
     {
-        if (o->LifeTime < 20) o->Alpha -= 0.05f;
-        else if (o->Alpha < 0.7f) o->Alpha += 0.04f;
+        if (o->LifeTime < 20) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.05f);
+        else if (o->Alpha < 0.7f) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.7f, 0.04f);
 
         if (o->AnimationFrame > 8 && o->Skill == 0)
         {
@@ -1373,8 +1373,8 @@ namespace Render::Effects::Behaviors
         }
         else if (o->SubType == 9)
         {
-            if (o->LifeTime < 20) o->Alpha -= 0.05f;
-            else if (o->Alpha < 1.0f) o->Alpha += 0.05f;
+            if (o->LifeTime < 20) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.05f);
+            else if (o->Alpha < 1.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 1.0f, 0.05f);
 
             o->HeadAngle[0] += (4.0f) * FPS_ANIMATION_FACTOR;
             o->HeadAngle[1] -= (8.0f) * FPS_ANIMATION_FACTOR;
@@ -1382,8 +1382,8 @@ namespace Render::Effects::Behaviors
         }
         else if (o->SubType == 10)
         {
-            if (o->LifeTime < 20) o->Alpha -= 0.03f;
-            else if (o->Alpha < 1.0f) o->Alpha += 0.05f;
+            if (o->LifeTime < 20) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.03f);
+            else if (o->Alpha < 1.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 1.0f, 0.05f);
         }
         else if (o->SubType == 11)
         {
@@ -7222,7 +7222,7 @@ namespace Render::Effects::Behaviors
             o->LifeTime = 0;
             return true;
         }
-        if (o->Alpha >= 1.0f) o->Angle[2] += 5.0f;
+        if (o->Alpha >= 1.0f) o->Angle[2] += mu::FrameScale(5.0f);
         //				o->Alpha = sin((o->LifeTime/130.0f)*3.14f) - 0.1f;
         if (o->LifeTime > 120)
         {
@@ -7235,12 +7235,12 @@ namespace Render::Effects::Behaviors
         else if (o->LifeTime > 95)
         {
             if (o->Alpha > 1.0f) o->Alpha = 1.0f;
-            else o->Alpha += 0.4f;
+            else o->Alpha = mu::FrameStepTowards(o->Alpha, 1.0f, 0.4f);
         }
         else if (o->LifeTime < 50)
         {
             if (o->Alpha < 0) o->Alpha = 0;
-            else o->Alpha -= 0.1f;
+            else o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.1f);
         }
 
         BMD* b = &Models[o->Owner->Type];
@@ -7715,8 +7715,8 @@ namespace Render::Effects::Behaviors
                 EffectDestructor(o);
                 return true;
             }
-            if (o->LifeTime < 20) o->Alpha -= 0.1f;
-            else if (o->Alpha < 1.0f) o->Alpha += 0.1f;
+            if (o->LifeTime < 20) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.1f);
+            else if (o->Alpha < 1.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 1.0f, 0.1f);
 
             OBJECT* pObject = o;
             BMD* pModel = &Models[pObject->Type];

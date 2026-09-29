@@ -19,6 +19,7 @@
 #include <mutex>
 
 #include "Core/Utilities/Random.h"
+#include "Core/Time/FrameTiming.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Engine/Object/ZzzInterface.h"
@@ -175,19 +176,17 @@ void Alpha(OBJECT* o)
     {
         if (o->AlphaTarget > o->Alpha)
         {
-            o->Alpha += 0.05f;
-            if (o->Alpha > 1.f)
-                o->Alpha = 1.f;
+            o->Alpha = mu::FrameStepTowards(o->Alpha, 1.f, 0.05f);
         }
         else if (o->AlphaTarget < o->Alpha)
         {
-            o->Alpha -= 0.05f;
-            if (o->Alpha < 0.f)
-                o->Alpha = 0.f;
+            o->Alpha = mu::FrameStepTowards(o->Alpha, 0.f, 0.05f);
         }
     }
     else
-        o->Alpha += (o->AlphaTarget - o->Alpha) * 0.1f;
+    {
+        o->Alpha = mu::FrameLerp(o->Alpha, o->AlphaTarget, 0.1f);
+    }
     if (o->BlendMeshLight > o->Alpha)
         o->BlendMeshLight = o->Alpha;
 }

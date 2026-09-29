@@ -4,6 +4,7 @@
 #include "Engine/Object/ZzzCharacter.h"
 #include "Render/Effects/ZzzEffect.h"
 #include "EffectBehaviors.h"
+#include "Core/Time/FrameTiming.h"
 
 namespace Render::Effects::Behaviors
 {
@@ -97,16 +98,16 @@ namespace Render::Effects::Behaviors
     // MODEL_SUMMONER_SUMMON_NEIL_NIFE1..3: fade out near end of life, otherwise fade in.
     bool MoveSummonerNeilNife(OBJECT* o, int /*index*/, float /*luminosity*/)
     {
-        if (o->LifeTime < 20) o->Alpha -= 0.05f;
-        else if (o->Alpha < 1.0f) o->Alpha += 0.05f;
+        if (o->LifeTime < 20) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.05f);
+        else if (o->Alpha < 1.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 1.0f, 0.05f);
         return true;
     }
 
     // MODEL_SUMMONER_SUMMON_NEIL_GROUND1..3: same fade-out, faster fade-in.
     bool MoveSummonerNeilGround(OBJECT* o, int /*index*/, float /*luminosity*/)
     {
-        if (o->LifeTime < 20) o->Alpha -= 0.05f;
-        else if (o->Alpha < 1.0f) o->Alpha += 0.3f;
+        if (o->LifeTime < 20) o->Alpha = mu::FrameStepTowards(o->Alpha, 0.0f, 0.05f);
+        else if (o->Alpha < 1.0f) o->Alpha = mu::FrameStepTowards(o->Alpha, 1.0f, 0.3f);
         return true;
     }
 
