@@ -18,3 +18,4 @@ Locale=en
 Font=
 [Render]
 VSync=1
+MaxFPS=240

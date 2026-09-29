@@ -90,6 +90,7 @@ public:
     // Render
     bool GetSortParticleDraws() const { return m_sortParticleDraws; }
     bool GetVSyncEnabled() const { return m_vsyncEnabled; }
+    int GetMaxFps() const { return m_maxFps; }
     void SetVSyncEnabled(bool enabled);
 
     // Helpers
@@ -131,6 +132,7 @@ private:
     int m_zoom;
     bool m_sortParticleDraws;
     bool m_vsyncEnabled;
+    int m_maxFps;
 
     int ReadInt(const wchar_t* section, const wchar_t* key, int defaultValue);
     void WriteInt(const wchar_t* section, const wchar_t* key, int value);

@@ -266,27 +266,10 @@ static void ConsumeDiagnosticFrameCapture()
                         static_cast<unsigned long long>(capture.targetFrame), pixels.width, pixels.height, path);
 }
 
-// Monitor refresh rate (Hz) for the display the window is on, via SDL instead
-// of the Win32 GetDeviceCaps(VREFRESH) (issue #442). Falls back to 60.
+// Configured render cap used when VSync is off or unavailable.
 int GetFPSLimit()
 {
-    constexpr int DEFAULT_REFRESH_HZ = 60;
-    if (g_sdlWindow)
-    {
-        // Before the window is mapped to a display, SDL_GetDisplayForWindow
-        // returns 0; fall back to the primary display so a high-refresh monitor
-        // isn't capped at the default 60 Hz.
-        SDL_DisplayID displayID = SDL_GetDisplayForWindow(g_sdlWindow);
-        if (displayID == 0)
-            displayID = SDL_GetPrimaryDisplay();
-        if (displayID != 0)
-        {
-            const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(displayID);
-            if (mode && mode->refresh_rate > 0.0f)
-                return static_cast<int>(mode->refresh_rate + 0.5f);
-        }
-    }
-    return DEFAULT_REFRESH_HZ;
+    return GameConfig::GetInstance().GetMaxFps();
 }
 
 namespace

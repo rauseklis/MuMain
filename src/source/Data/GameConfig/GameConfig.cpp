@@ -12,6 +12,8 @@
 #include "Core/Platform/Dpapi.h"   // Legacy credential format migration
 #include "Core/Platform/PlatformCrypto.h"
 
+#include <algorithm>
+
 GameConfig& GameConfig::GetInstance()
 {
     static GameConfig instance;
@@ -83,6 +85,7 @@ void GameConfig::Load()
     m_zoom = ReadInt(CfgSectionCamera, CfgKeyZoom, CfgDefaultZoom);
     m_sortParticleDraws = ReadBool(CfgSectionRender, CfgKeySortParticleDraws, CfgDefaultSortParticleDraws);
     m_vsyncEnabled = ReadBool(CfgSectionRender, CfgKeyVSync, CfgDefaultVSync);
+    m_maxFps = std::clamp(ReadInt(CfgSectionRender, CfgKeyMaxFps, CfgDefaultMaxFps), CfgMinMaxFps, CfgMaxMaxFps);
 
     // Strip keys/sections we used to write but no longer use, so user config
     // files don't accumulate orphans. Append one line per retired key — no
@@ -127,6 +130,7 @@ void GameConfig::Save()
 
     WriteInt(CfgSectionCamera, CfgKeyZoom, m_zoom);
     WriteBool(CfgSectionRender, CfgKeyVSync, m_vsyncEnabled);
+    WriteInt(CfgSectionRender, CfgKeyMaxFps, m_maxFps);
 }
 
 std::vector<std::wstring> GameConfig::ReadStringList(const wchar_t* section, const wchar_t* keyPrefix)

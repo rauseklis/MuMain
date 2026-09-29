@@ -745,8 +745,8 @@ bool DisableVSync()
     return false;
 }
 
-// GetFPSLimit() lives in the platform layer (Winmain.cpp): it queries the
-// monitor refresh rate, which SDL exposes per display (issue #442).
+// GetFPSLimit() lives in the platform layer (Winmain.cpp): it reads the
+// configured render cap used when VSync is off or unavailable.
 
 #ifdef LDS_ADD_MULTISAMPLEANTIALIASING
 BOOL InitGLMultisample(HINSTANCE hInstance, HWND hWnd, PIXELFORMATDESCRIPTOR pfd, int iRequestMSAAValue, int& OutiPixelFormat)

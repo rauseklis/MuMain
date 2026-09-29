@@ -46,6 +46,7 @@ namespace CfgKeys
     inline constexpr wchar_t CfgKeyCoreProfile[] = L"CoreProfile";
     inline constexpr wchar_t CfgKeySortParticleDraws[] = L"SortParticleDraws";
     inline constexpr wchar_t CfgKeyVSync[] = L"VSync";
+    inline constexpr wchar_t CfgKeyMaxFps[] = L"MaxFPS";
 }
 
 namespace CfgDefaults
@@ -82,4 +83,7 @@ namespace CfgDefaults
     // Opt-in until real effects have been visually checked on target hardware.
     inline constexpr bool CfgDefaultSortParticleDraws = false;
     inline constexpr bool CfgDefaultVSync = true;
+    inline constexpr int CfgDefaultMaxFps = 240;
+    inline constexpr int CfgMinMaxFps = 25;
+    inline constexpr int CfgMaxMaxFps = 1000;
 }
