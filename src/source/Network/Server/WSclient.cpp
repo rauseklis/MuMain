@@ -29,6 +29,7 @@
 #include "Audio/DSPlaySound.h"
 
 #include "GameLogic/Events/MatchEvent.h"
+#include "GameLogic/ExpHunt/ExpHuntTracker.h"
 #include "Engine/AI/GOBoid.h"
 #include "GameLogic/Quests/CSQuest.h"
 #include "GameLogic/Items/PersonalShopTitleImp.h"
@@ -5756,6 +5757,7 @@ BOOL ReceiveDieExp(const BYTE* ReceiveBuffer, BOOL bEncrypted)
 
     App::Control::Events::RecordDeathOf(Key, HeroKey);
     App::Control::Events::RecordExperienceGain(Exp, Damage);
+    GameLogic::ExpHunt::AddSample(Exp);
 
     if (gCharacterManager.IsMasterExperienceActive(CharacterAttribute->Class, CharacterAttribute->Level) == true)
     {
@@ -5857,6 +5859,8 @@ BOOL ReceiveDieExpLarge(const BYTE* ReceiveBuffer, BOOL bEncrypted)
     {
         return TRUE;
     }
+
+    GameLogic::ExpHunt::AddSample(addedExperience);
 
     if (experienceType == eExperienceType_Master)
     {
