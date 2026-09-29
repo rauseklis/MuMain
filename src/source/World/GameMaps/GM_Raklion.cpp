@@ -2269,9 +2269,19 @@ bool CGM_Raklion::CreateSnow(PARTICLE* o)
     Vector(Hero->Object.Position[0] + (float)(rand() % 1600 - 800),
            Hero->Object.Position[1] + (float)(rand() % 1400 - 500),
            Hero->Object.Position[2] + (float)(rand() % 200 + 200), o->Position);
-    Vector(-(float)(rand() % 30 + 50), 0.f, 0.f, o->Angle);
+    // Tuning reduction (2026-09-29, high-fps investigation): the original -50..-79 degree
+    // tilt combined with 30-49 fall speed gave every particle the same large, one-directional
+    // horizontal "wind" velocity (~23-48 units/tick) - big enough to rival the player's own
+    // movement speed (~12-20 units/tick). Since the camera is rigidly hero-relative, walking
+    // in the same world direction as the wind visually cancelled out most of the snow's
+    // apparent motion ("snow stops when I walk along it"), and the large one-directional bias
+    // also produced a lopsided apparent fall angle depending on view direction. This keeps
+    // Raklion noticeably windier/steeper than Devias's plain snowfall (-30 degrees, 8-23 speed)
+    // while bringing the drift down enough not to cancel against normal player movement.
+    // See docs/AUDIT.md.
+    Vector(-(float)(rand() % 20 + 35), 0.f, 0.f, o->Angle);
     vec3_t Velocity;
-    Vector(0.f, 0.f, -(float)(rand() % 20 + 30), Velocity);
+    Vector(0.f, 0.f, -(float)(rand() % 15 + 15), Velocity);
     float Matrix[3][4];
     AngleMatrix(o->Angle, Matrix);
     VectorRotate(Velocity, Matrix, o->Velocity);
