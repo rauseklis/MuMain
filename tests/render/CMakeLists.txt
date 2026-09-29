@@ -43,6 +43,12 @@ mu_add_test(
         test_gpu_skinning_path.cpp
 )
 
+mu_add_test(
+    NAME bmd_polygon_topology_tests
+    SOURCES
+        test_bmd_polygon_topology.cpp
+)
+
 add_test(
     NAME imgui_sdlgpu_backend_contract
     COMMAND "${CMAKE_COMMAND}"
