@@ -7,6 +7,7 @@
 #include "UI/NewUI/NewUI3DRenderMng.h"
 #include "UI/NewUI/HUD/NewUIHotKey.h"
 #include "UI/NewUI/HUD/NewUIChatLogWindow.h"
+#include "UI/NewUI/HUD/NewUIExpHuntWindow.h"
 #include "UI/NewUI/Widgets/NewUISlideWindow.h"
 #include "Guild/NewUIGuildMakeWindow.h"
 #include "UI/NewUI/Party/NewUIFriendWindow.h"
@@ -151,6 +152,7 @@ namespace SEASON3B
         CNewUIChatInputBox* m_pNewChatInputBox;
         CNewUIChatLogWindow* m_pNewChatLogWindow;
         CNewUISystemLogWindow* m_pNewSystemLogWindow;
+        CNewUIExpHuntWindow* m_pNewExpHuntWindow;
         CNewUISlideWindow* m_pNewSlideWindow;
         CNewUIFriendWindow* m_pNewFriendWindow;
         CNewUIMainFrameWindow* m_pNewMainFrameWindow;
