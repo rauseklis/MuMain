@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "GameLogic/ExpHunt/ExpHuntTracker.h"
 #include "UI/NewUI/Dialogs/NewUIMessageBox.h"
 #include "UI/Scaling/UITransform.h"
 
@@ -1614,6 +1615,11 @@ void CNewUISystem::Hide(DWORD dwKey)
 void CNewUISystem::Toggle(DWORD dwKey)
 {
     IsVisible(dwKey) ? Hide(dwKey) : Show(dwKey);
+}
+
+void CNewUISystem::ToggleExpHunt()
+{
+    GameLogic::ExpHunt::IsActive() ? GameLogic::ExpHunt::Stop() : GameLogic::ExpHunt::Start();
 }
 
 void CNewUISystem::HideAll()

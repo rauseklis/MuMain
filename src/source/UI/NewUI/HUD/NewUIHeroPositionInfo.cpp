@@ -6,6 +6,7 @@
 #include "I18N/All.h"
 
 #include "Audio/DSPlaySound.h"
+#include "GameLogic/ExpHunt/ExpHuntTracker.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "World/MapInfra/MapManager.h"
 #include "MUHelper/MuHelper.h"
@@ -88,9 +89,41 @@ bool CNewUIHeroPositionInfo::Create(CNewUIManager* pNewUIMng, int x, int y)
         &I18N::Game::StopOfficialMUHelper,
         0);
 
+    SetButtonInfo(
+        &m_BtnExpHuntStart,
+        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 6,
+        x + WidenX + 77,
+        y,
+        18,
+        13,
+        1,
+        0,
+        1,
+        1u,
+        nullptr,
+        &I18N::Game::ExperienceHunter,
+        0);
+
+    SetButtonInfo(
+        &m_BtnExpHuntStop,
+        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 7,
+        x + WidenX + 77,
+        y,
+        18,
+        13,
+        1,
+        0,
+        1,
+        1u,
+        nullptr,
+        &I18N::Game::ExperienceHunter,
+        0);
+
     MoveTextTipPos(&m_BtnConfig, -20, 9);
     MoveTextTipPos(&m_BtnStart, -20, 9);
     MoveTextTipPos(&m_BtnStop, -20, 9);
+    MoveTextTipPos(&m_BtnExpHuntStart, -20, 9);
+    MoveTextTipPos(&m_BtnExpHuntStop, -20, 9);
 
     Show(true);
 
@@ -131,7 +164,25 @@ bool CNewUIHeroPositionInfo::BtnProcess()
         return true;
     }
 
+    if (ProcessExpHuntButton())
+    {
+        return true;
+    }
+
     return false;
+}
+
+bool CNewUIHeroPositionInfo::ProcessExpHuntButton()
+{
+    CNewUIButton& button = GameLogic::ExpHunt::IsActive() ? m_BtnExpHuntStop : m_BtnExpHuntStart;
+    if (!button.UpdateMouseEvent())
+    {
+        return false;
+    }
+
+    g_pNewUISystem->ToggleExpHunt();
+    PlayBuffer(SOUND_CLICK01);
+    return true;
 }
 
 bool CNewUIHeroPositionInfo::UpdateMouseEvent()
@@ -186,6 +237,7 @@ bool CNewUIHeroPositionInfo::Render()
     m_BtnConfig.Render();
 
     MUHelper::g_MuHelper.IsActive() ? m_BtnStop.Render() : m_BtnStart.Render();
+    GameLogic::ExpHunt::IsActive() ? m_BtnExpHuntStop.Render() : m_BtnExpHuntStart.Render();
     //--
     mu_swprintf(szText, L"%ls (%d , %d)", gMapManager.GetMapName(gMapManager.WorldActive), m_CurHeroPosition.x, m_CurHeroPosition.y);
 

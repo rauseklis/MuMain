@@ -12097,6 +12097,9 @@
     <value>Stop Official MU Helper</value>
     <comment>legacy_id=3563</comment>
   </data>
+  <data name="Experience Hunter" xml:space="preserve">
+    <value>Experience Hunter</value>
+  </data>
   <data name="InTheCaseOfDeregisteringBasic" xml:space="preserve">
     <value>In the case of deregistering Basic skill and activation skill 1&amp;2, combo skill can't be used.</value>
     <comment>legacy_id=3564</comment>

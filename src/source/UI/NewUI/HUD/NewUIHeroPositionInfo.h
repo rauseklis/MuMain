@@ -33,6 +33,8 @@ namespace SEASON3B
         CNewUIButton     m_BtnConfig;
         CNewUIButton     m_BtnStart;
         CNewUIButton     m_BtnStop;
+        CNewUIButton     m_BtnExpHuntStart;
+        CNewUIButton     m_BtnExpHuntStop;
     public:
         CNewUIHeroPositionInfo();
         virtual ~CNewUIHeroPositionInfo();
@@ -59,6 +61,7 @@ namespace SEASON3B
         // Slots — see CNewUIButton::ChangeText(const wchar_t* const*).
         void SetButtonInfo(CNewUIButton* m_Btn, int imgindex, int x, int y, int sx, int sy, bool overflg, bool isimgwidth, bool bClickEffect, bool MoveTxt, const wchar_t* const* btnameSlot, const wchar_t* const* tooltipSlot, bool istoppos);
     private:
+        bool ProcessExpHuntButton();
         void LoadImages();
         void UnloadImages();
     };
