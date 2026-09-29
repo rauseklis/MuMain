@@ -1,6 +1,7 @@
 ﻿// GMEmpireGuardian3.cpp: implementation of the GMEmpireGuardian3 class.
 //////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 
 #include "Render/Models/ZzzBMD.h"
 #include "Engine/Object/ZzzObject.h"
@@ -172,7 +173,7 @@ bool GMEmpireGuardian3::MoveObject(OBJECT* o)
         return true;
     case 81:
     {
-        o->BlendMeshTexCoordV += 0.015f;
+        o->BlendMeshTexCoordV += mu::FrameScale(0.015f);
     }
         return true;
     case 36:

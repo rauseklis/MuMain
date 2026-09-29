@@ -1,4 +1,5 @@
 ﻿#include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "GameLogic/Items/CComGem.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Textures/ZzzTexture.h"
@@ -322,9 +323,9 @@ bool CDirection::MoveCreatedMonster(int Index, int x, int y, float Angle, int Sp
         else
         {
             if (iResult > 3 && iResult <= 180)
-                c->Object.Angle[2] += 3.0f;
+                c->Object.Angle[2] += mu::FrameScale(3.0f);
             else
-                c->Object.Angle[2] -= 3.0f;
+                c->Object.Angle[2] -= mu::FrameScale(3.0f);
 
             SetAction(&c->Object, MONSTER01_STOP1);
         }
@@ -387,8 +388,8 @@ void CDirection::HeroFallingDownDirection()
     if (!m_bDownHero)
         return;
 
-    Hero->Object.Gravity += 1.5f;
-    Hero->Object.Angle[0] -= 2.f;
+    Hero->Object.Gravity += mu::FrameScale(1.5f);
+    Hero->Object.Angle[0] -= mu::FrameScale(2.f);
     Hero->Object.m_bActionStart = true;
     Hero->Object.Direction[1] += Hero->Object.Direction[0];
 

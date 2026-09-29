@@ -3,6 +3,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "LoginScene.h"
 #include "Camera/CameraUtility.h"
 #include "Camera/CameraManager.h"
@@ -438,7 +439,7 @@ bool NewRenderLogInScene(HDC hDC)
 
     if (CCameraMove::GetInstancePtr()->IsTourMode())
     {
-        g_fMULogoAlpha += 0.02f;
+        g_fMULogoAlpha = mu::FrameStepTowards(g_fMULogoAlpha, 10.0f, 0.02f);
         if (g_fMULogoAlpha > 10.0f) g_fMULogoAlpha = 10.0f;
 
         EnableAlphaBlend();

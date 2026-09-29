@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "Render/Models/ZzzBMD.h"
@@ -108,12 +109,12 @@ bool GMNewTown::MoveObject(OBJECT* pObject)
         break;
     case 2:
     {
-        pObject->BlendMeshTexCoordV += 0.015f;
+        pObject->BlendMeshTexCoordV += mu::FrameScale(0.015f);
     }
     break;
     case 53:
     {
-        pObject->BlendMeshTexCoordV += 0.015f;
+        pObject->BlendMeshTexCoordV += mu::FrameScale(0.015f);
     }
     break;
     case 54:
@@ -121,7 +122,7 @@ bool GMNewTown::MoveObject(OBJECT* pObject)
         break;
     case 55:
     {
-        pObject->BlendMeshTexCoordV += 0.015f;
+        pObject->BlendMeshTexCoordV += mu::FrameScale(0.015f);
     }
     break;
     case 56:
@@ -146,7 +147,7 @@ bool GMNewTown::MoveObject(OBJECT* pObject)
         break;
     case 89:
     {
-        pObject->BlendMeshTexCoordV += 0.005f;
+        pObject->BlendMeshTexCoordV += mu::FrameScale(0.005f);
     }
     break;
     case 62:

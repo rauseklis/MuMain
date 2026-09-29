@@ -1,4 +1,5 @@
 ﻿#include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "UI/Legacy/UIWindows.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Textures/ZzzTexture.h"
@@ -47,12 +48,12 @@ bool M33Aida::MoveAidaObject(OBJECT* pObject)
     {
     case 25:
     {
-        pObject->BlendMeshTexCoordV -= 0.015f;
+        pObject->BlendMeshTexCoordV -= mu::FrameScale(0.015f);
     }
     break;
     case 28:
     {
-        pObject->BlendMeshTexCoordV -= 0.015f;
+        pObject->BlendMeshTexCoordV -= mu::FrameScale(0.015f);
     }
     break;
     case 30:
