@@ -222,13 +222,17 @@ void CNewUIHeroPositionInfo::LoadImages()
     LoadBitmap(L"Interface\\MacroUI\\MacroUI_Setup.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 3, GL_LINEAR);
     LoadBitmap(L"Interface\\MacroUI\\MacroUI_Start.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 4, GL_LINEAR);
     LoadBitmap(L"Interface\\MacroUI\\MacroUI_Stop.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 5, GL_LINEAR);
+    LoadBitmap(L"Interface\\MacroUI\\MacroUI_ExpHuntStart.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 6, GL_LINEAR);
+    LoadBitmap(L"Interface\\MacroUI\\MacroUI_ExpHuntStop.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 7, GL_LINEAR);
 }
 
 void CNewUIHeroPositionInfo::UnloadImages()
 {
-    DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW);
-    DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 1);
-    DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2);
+    constexpr int ImageCount = 8;
+    for (int offset = 0; offset < ImageCount; ++offset)
+    {
+        DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + offset);
+    }
 }
 
 void CNewUIHeroPositionInfo::SetButtonInfo(CNewUIButton* m_Btn, int imgindex, int x, int y, int sx, int sy, bool overflg, bool isimgwidth, bool bClickEffect, bool MoveTxt, const wchar_t* const* btnameSlot, const wchar_t* const* tooltipSlot, bool istoppos)
