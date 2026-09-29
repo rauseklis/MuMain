@@ -130,6 +130,15 @@ namespace
 #include "GameLogic/Social/MonkSystem.h"
 #include "UI/NewUI/NewUISystem.h"
 
+namespace
+{
+    bool UsesSwimmingMovement()
+    {
+        return gMapManager.WorldActive == WD_7ATLANSE
+            || gMapManager.WorldActive == WD_67DOPPLEGANGER3;
+    }
+}
+
 CHARACTER* CharactersClient;
 CHARACTER CharacterView;
 CHARACTER* Hero;
@@ -299,7 +308,7 @@ void SetPlayerStop(CHARACTER* c)
 
                 int Index = TERRAIN_INDEX_REPEAT((int)(c->Object.Position[0] / TERRAIN_SCALE), (int)(c->Object.Position[1] / TERRAIN_SCALE));
 
-                if (SceneFlag == MAIN_SCENE && (gMapManager.WorldActive == WD_7ATLANSE || gMapManager.InHellas() || gMapManager.WorldActive == WD_67DOPPLEGANGER3) && (TerrainWall[Index] & TW_SAFEZONE) != TW_SAFEZONE)
+                if (SceneFlag == MAIN_SCENE && UsesSwimmingMovement() && (TerrainWall[Index] & TW_SAFEZONE) != TW_SAFEZONE)
                     Fly = true;
 
                 if (c->MonsterIndex == MONSTER_ELF_SOLDIER)
@@ -454,6 +463,8 @@ void SetPlayerStop(CHARACTER* c)
 
 void SetPlayerWalk(CHARACTER* c)
 {
+    const bool usesSwimmingMovement = UsesSwimmingMovement();
+
     if (c->SafeZone)
     {
         c->Run = 0;
@@ -471,16 +482,10 @@ void SetPlayerWalk(CHARACTER* c)
         {
             if (gCharacterManager.GetBaseClass(c->Class) == CLASS_DARK || gCharacterManager.GetBaseClass(c->Class) == CLASS_DARK_LORD
                 || gCharacterManager.GetBaseClass(c->Class) == CLASS_RAGEFIGHTER
-                || ((gMapManager.WorldActive != WD_7ATLANSE && !gMapManager.InHellas() && gMapManager.WorldActive != WD_67DOPPLEGANGER3) && c->BodyPart[BODYPART_BOOTS].Type != -1 && c->BodyPart[BODYPART_BOOTS].Level >= 5)
-                || ((gMapManager.WorldActive == WD_7ATLANSE || gMapManager.InHellas()
-                    || gMapManager.WorldActive == WD_67DOPPLEGANGER3
-                    ) && c->BodyPart[BODYPART_GLOVES].Type != -1 && c->BodyPart[BODYPART_GLOVES].Level >= 5)
-                || ((gMapManager.WorldActive != WD_7ATLANSE && !gMapManager.InHellas()
-                    && gMapManager.WorldActive != WD_67DOPPLEGANGER3
-                    ) && pItemBoots->Level >= 5)
-                || ((gMapManager.WorldActive == WD_7ATLANSE || gMapManager.InHellas()
-                    || gMapManager.WorldActive == WD_67DOPPLEGANGER3
-                    ) && pItemGloves->Level >= 5)
+                || (!usesSwimmingMovement && c->BodyPart[BODYPART_BOOTS].Type != -1 && c->BodyPart[BODYPART_BOOTS].Level >= 5)
+                || (usesSwimmingMovement && c->BodyPart[BODYPART_GLOVES].Type != -1 && c->BodyPart[BODYPART_GLOVES].Level >= 5)
+                || (!usesSwimmingMovement && pItemBoots->Level >= 5)
+                || (usesSwimmingMovement && pItemGloves->Level >= 5)
                 || c->Helper.Type == MODEL_HORN_OF_FENRIR
                 || c->Object.SubType == MODEL_CURSEDTEMPLE_ALLIED_PLAYER
                 || c->Object.SubType == MODEL_CURSEDTEMPLE_ILLUSION_PLAYER)
@@ -622,7 +627,7 @@ void SetPlayerWalk(CHARACTER* c)
                 else
                     SetAction(&c->Object, PLAYER_FLY);
             }
-            else if (!c->SafeZone && (gMapManager.WorldActive == WD_7ATLANSE || gMapManager.InHellas() || gMapManager.WorldActive == WD_67DOPPLEGANGER3))
+            else if (!c->SafeZone && usesSwimmingMovement)
             {
                 if (c->Run >= 40)
                     SetAction(&c->Object, PLAYER_RUN_SWIM);
@@ -5366,7 +5371,7 @@ void PlayWalkSound()
         {
             PlayBuffer(SOUND_HUMAN_WALK_GRASS);
         }
-        else if ((gMapManager.WorldActive == WD_7ATLANSE || gMapManager.InHellas() || gMapManager.WorldActive == WD_67DOPPLEGANGER3) && !Hero->SafeZone)
+        else if (UsesSwimmingMovement() && !Hero->SafeZone)
         {
             PlayBuffer(SOUND_HUMAN_WALK_SWIM);
         }
@@ -6254,32 +6259,6 @@ void MoveCharacterVisual(CHARACTER* c, OBJECT* o)
             }
         }
 
-        if ((o->CurrentAction == PLAYER_RUN_RIDE
-            || o->CurrentAction == PLAYER_RAGE_UNI_RUN
-            || o->CurrentAction == PLAYER_RAGE_UNI_RUN_ONE_RIGHT
-            || o->CurrentAction == PLAYER_RUN_RIDE_WEAPON || o->CurrentAction == PLAYER_RUN_SWIM || o->CurrentAction == PLAYER_WALK_SWIM || o->CurrentAction == PLAYER_FLY || o->CurrentAction == PLAYER_FLY_CROSSBOW || o->CurrentAction == PLAYER_RUN_RIDE_HORSE)
-            && o->Type == MODEL_PLAYER
-            && gMapManager.InHellas()
-            && rand_fps_check(1))
-        {
-            vec3_t Light = { 0.3f, 0.3f, 0.3f };
-            VectorCopy(o->Position, Position);
-
-            float  Matrix[3][4];
-
-            Vector(0.f, -40.f, 0.f, p);
-
-            AngleMatrix(o->Angle, Matrix);
-            VectorRotate(p, Matrix, Position);
-            VectorAddScaled(o->Position, Position, Position, FPS_ANIMATION_FACTOR);
-
-            Position[0] += rand() % 64 - 32.f;
-            Position[1] += rand() % 64 - 32.f;
-            Position[2] += 50.f;
-            VectorScale(Position, FPS_ANIMATION_FACTOR, Position)
-
-            CreateParticle(BITMAP_WATERFALL_5, Position, o->Angle, Light, 1);
-        }
     }
 }
 
@@ -15251,7 +15230,7 @@ bool RenderCharacterBackItem(CHARACTER* c, OBJECT* o, bool bTranslate)
     {
         bBindBack = true;
     }
-    if ((gMapManager.WorldActive == WD_7ATLANSE || gMapManager.InHellas() || gMapManager.WorldActive == WD_67DOPPLEGANGER3) && (o->CurrentAction == PLAYER_WALK_SWIM || o->CurrentAction == PLAYER_RUN_SWIM))
+    if (UsesSwimmingMovement() && (o->CurrentAction == PLAYER_WALK_SWIM || o->CurrentAction == PLAYER_RUN_SWIM))
     {
         bBindBack = true;
     }
