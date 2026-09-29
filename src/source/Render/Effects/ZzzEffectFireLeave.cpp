@@ -411,9 +411,16 @@ void MoveEtcLeaf(PARTICLE* o)
     }
     else
     {
-        o->Velocity[0] += Random::RangeFloat(-8, 7) * 0.1f * FPS_ANIMATION_FACTOR;
-        o->Velocity[1] += Random::RangeFloat(-8, 7) * 0.1f * FPS_ANIMATION_FACTOR;
-        o->Velocity[2] += Random::RangeFloat(-8, 7) * 0.1f * FPS_ANIMATION_FACTOR;
+        // Random-walk noise, not a deterministic rate: each frame injects fresh
+        // independent randomness, so accumulated variance per real second only
+        // stays constant across frame rates if each step scales by sqrt() of the
+        // time factor, not the factor itself (see docs/AUDIT.md, high-fps snow
+        // drift investigation). The position integration below is a normal
+        // deterministic rate and correctly uses the factor directly, unscaled.
+        const float noiseScale = sqrtf(FPS_ANIMATION_FACTOR);
+        o->Velocity[0] += Random::RangeFloat(-8, 7) * 0.1f * noiseScale;
+        o->Velocity[1] += Random::RangeFloat(-8, 7) * 0.1f * noiseScale;
+        o->Velocity[2] += Random::RangeFloat(-8, 7) * 0.1f * noiseScale;
         VectorAddScaled(o->Position, o->Velocity, o->Position, FPS_ANIMATION_FACTOR);
     }
 }
