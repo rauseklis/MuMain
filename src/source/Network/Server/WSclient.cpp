@@ -958,6 +958,7 @@ void InitGame()
 BOOL ReceiveLogOut(const BYTE* ReceiveBuffer, BOOL bEncrypted)
 {
     LogOut = false;
+    g_pNewUISystem->ResetExpHunt();
     auto Data = (LPPHEADER_DEFAULT_SUBCODE)ReceiveBuffer;
     switch (Data->Value)
     {
@@ -1032,6 +1033,7 @@ BOOL ReceiveLogOut(const BYTE* ReceiveBuffer, BOOL bEncrypted)
 void ResetClientToLoginScene()
 {
     App::Control::Events::RecordDisconnected("the game session was torn down");
+    g_pNewUISystem->ResetExpHunt();
 
     // Mirror of the in-game logout path (see ReceiveLogOut, case 2): release the
     // active game session and return to a clean login scene. The auto-reconnect

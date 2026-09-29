@@ -107,6 +107,8 @@ namespace SEASON3B
         void Show(DWORD dwKey);
         void Hide(DWORD dwKey);
         void Toggle(DWORD dwKey);	//. Show <-> Hide
+        void ToggleExpHunt();
+        void ResetExpHunt();
         void HideAll();
 
         // Shared handler for the top-right "X" close glyph baked into the common

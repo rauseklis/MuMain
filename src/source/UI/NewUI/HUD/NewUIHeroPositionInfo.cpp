@@ -6,6 +6,7 @@
 #include "I18N/All.h"
 
 #include "Audio/DSPlaySound.h"
+#include "GameLogic/ExpHunt/ExpHuntTracker.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "World/MapInfra/MapManager.h"
 #include "MUHelper/MuHelper.h"
@@ -88,9 +89,41 @@ bool CNewUIHeroPositionInfo::Create(CNewUIManager* pNewUIMng, int x, int y)
         &I18N::Game::StopOfficialMUHelper,
         0);
 
+    SetButtonInfo(
+        &m_BtnExpHuntStart,
+        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 6,
+        x + WidenX + 77,
+        y,
+        18,
+        13,
+        1,
+        0,
+        1,
+        1u,
+        nullptr,
+        &I18N::Game::ExperienceHunter,
+        0);
+
+    SetButtonInfo(
+        &m_BtnExpHuntStop,
+        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 7,
+        x + WidenX + 77,
+        y,
+        18,
+        13,
+        1,
+        0,
+        1,
+        1u,
+        nullptr,
+        &I18N::Game::ExperienceHunter,
+        0);
+
     MoveTextTipPos(&m_BtnConfig, -20, 9);
     MoveTextTipPos(&m_BtnStart, -20, 9);
     MoveTextTipPos(&m_BtnStop, -20, 9);
+    MoveTextTipPos(&m_BtnExpHuntStart, -20, 9);
+    MoveTextTipPos(&m_BtnExpHuntStop, -20, 9);
 
     Show(true);
 
@@ -131,7 +164,25 @@ bool CNewUIHeroPositionInfo::BtnProcess()
         return true;
     }
 
+    if (ProcessExpHuntButton())
+    {
+        return true;
+    }
+
     return false;
+}
+
+bool CNewUIHeroPositionInfo::ProcessExpHuntButton()
+{
+    CNewUIButton& button = GameLogic::ExpHunt::IsActive() ? m_BtnExpHuntStop : m_BtnExpHuntStart;
+    if (!button.UpdateMouseEvent())
+    {
+        return false;
+    }
+
+    g_pNewUISystem->ToggleExpHunt();
+    PlayBuffer(SOUND_CLICK01);
+    return true;
 }
 
 bool CNewUIHeroPositionInfo::UpdateMouseEvent()
@@ -141,7 +192,7 @@ bool CNewUIHeroPositionInfo::UpdateMouseEvent()
         return false;
     }
 
-    int Width = HERO_POSITION_INFO_BASEA_WINDOW_WIDTH + WidenX + 73;
+    int Width = HERO_POSITION_INFO_BASEA_WINDOW_WIDTH + WidenX + 91;
 
     if (CheckMouseIn(m_Pos.x, m_Pos.y, Width, HERO_POSITION_INFO_BASE_WINDOW_HEIGHT))
     {
@@ -181,11 +232,12 @@ bool CNewUIHeroPositionInfo::Render()
 
     RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 1, m_Pos.x + HERO_POSITION_INFO_BASEA_WINDOW_WIDTH, m_Pos.y, float(WidenX), float(HERO_POSITION_INFO_BASE_WINDOW_HEIGHT), 0.1f, 0.f, 22.4f / 32.f, 25.f / 32.f);
 
-    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2, m_Pos.x + HERO_POSITION_INFO_BASEA_WINDOW_WIDTH + WidenX, m_Pos.y, 73.f, 20.f);
+    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2, m_Pos.x + HERO_POSITION_INFO_BASEA_WINDOW_WIDTH + WidenX, m_Pos.y, 91.f, 20.f);
     //--
     m_BtnConfig.Render();
 
     MUHelper::g_MuHelper.IsActive() ? m_BtnStop.Render() : m_BtnStart.Render();
+    GameLogic::ExpHunt::IsActive() ? m_BtnExpHuntStop.Render() : m_BtnExpHuntStart.Render();
     //--
     mu_swprintf(szText, L"%ls (%d , %d)", gMapManager.GetMapName(gMapManager.WorldActive), m_CurHeroPosition.x, m_CurHeroPosition.y);
 
@@ -218,17 +270,21 @@ void CNewUIHeroPositionInfo::LoadImages()
 {
     LoadBitmap(L"Interface\\Minimap_positionA.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW, GL_LINEAR);
     LoadBitmap(L"Interface\\Minimap_positionB.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 1, GL_LINEAR);
-    LoadBitmap(L"Interface\\MacroUI\\Minimap_positionC.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2, GL_LINEAR);
+    LoadBitmap(L"Interface\\MacroUI\\Minimap_positionC_ExpHunt.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2, GL_LINEAR);
     LoadBitmap(L"Interface\\MacroUI\\MacroUI_Setup.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 3, GL_LINEAR);
     LoadBitmap(L"Interface\\MacroUI\\MacroUI_Start.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 4, GL_LINEAR);
     LoadBitmap(L"Interface\\MacroUI\\MacroUI_Stop.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 5, GL_LINEAR);
+    LoadBitmap(L"Interface\\MacroUI\\MacroUI_ExpHuntStart.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 6, GL_LINEAR);
+    LoadBitmap(L"Interface\\MacroUI\\MacroUI_ExpHuntStop.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 7, GL_LINEAR);
 }
 
 void CNewUIHeroPositionInfo::UnloadImages()
 {
-    DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW);
-    DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 1);
-    DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2);
+    constexpr int ImageCount = 8;
+    for (int offset = 0; offset < ImageCount; ++offset)
+    {
+        DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + offset);
+    }
 }
 
 void CNewUIHeroPositionInfo::SetButtonInfo(CNewUIButton* m_Btn, int imgindex, int x, int y, int sx, int sy, bool overflg, bool isimgwidth, bool bClickEffect, bool MoveTxt, const wchar_t* const* btnameSlot, const wchar_t* const* tooltipSlot, bool istoppos)

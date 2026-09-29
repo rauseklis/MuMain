@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "GameLogic/ExpHunt/ExpHuntTracker.h"
 #include "UI/NewUI/Dialogs/NewUIMessageBox.h"
 #include "UI/Scaling/UITransform.h"
 
@@ -144,7 +145,7 @@ bool CNewUISystem::Create()
         return false;
 
     m_pNewExpHuntWindow = new CNewUIExpHuntWindow;
-    if (false == m_pNewExpHuntWindow->Create(m_pNewUIMng, 300, 10))
+    if (false == m_pNewExpHuntWindow->Create(m_pNewUIMng))
         return false;
 
     m_pNewOptionWindow = new CNewUIOptionWindow;
@@ -1614,6 +1615,30 @@ void CNewUISystem::Hide(DWORD dwKey)
 void CNewUISystem::Toggle(DWORD dwKey)
 {
     IsVisible(dwKey) ? Hide(dwKey) : Show(dwKey);
+}
+
+void CNewUISystem::ToggleExpHunt()
+{
+    if (GameLogic::ExpHunt::IsActive())
+    {
+        GameLogic::ExpHunt::Stop();
+        Hide(SEASON3B::INTERFACE_EXPHUNT);
+    }
+    else
+    {
+        GameLogic::ExpHunt::Start();
+        Show(SEASON3B::INTERFACE_EXPHUNT);
+    }
+}
+
+void CNewUISystem::ResetExpHunt()
+{
+    GameLogic::ExpHunt::Stop();
+    Hide(SEASON3B::INTERFACE_EXPHUNT);
+    if (m_pNewExpHuntWindow)
+    {
+        m_pNewExpHuntWindow->ResetToDefaultPosition();
+    }
 }
 
 void CNewUISystem::HideAll()
