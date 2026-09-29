@@ -146,6 +146,13 @@ struct RendererStats
     double submitMilliseconds = 0.0;
 };
 
+struct GraphicsQualitySettings
+{
+    int antiAliasingSamples = 4;
+    bool textureMipmaps = true;
+    int anisotropy = 16;
+};
+
 // ---------------------------------------------------------------------------
 // IMuRenderer: Pure abstract rendering interface.
 // Game code obtains the active backend via GetRenderer() (see below).
@@ -251,6 +258,18 @@ public:
     [[nodiscard]] virtual bool SetVSyncEnabled(bool /*enabled*/)
     {
         return false;
+    }
+    [[nodiscard]] virtual int GetMultisampleCount() const
+    {
+        return 1;
+    }
+    [[nodiscard]] virtual bool GetTextureMipmapsEnabled() const
+    {
+        return false;
+    }
+    [[nodiscard]] virtual int GetAnisotropy() const
+    {
+        return 1;
     }
     [[nodiscard]] virtual bool RequestFramePixels()
     {
@@ -464,7 +483,8 @@ public:
 // ---------------------------------------------------------------------------
 [[nodiscard]] IMuRenderer& GetRenderer();
 [[nodiscard]] bool InitSDLGpuRenderer(void* pNativeWindow, std::string_view fontFamily, float normalPointSize,
-                                      float bigPointSize, float fixedPointSize);
+                                      float bigPointSize, float fixedPointSize,
+                                      const GraphicsQualitySettings& graphicsQuality);
 void WaitForSDLGpuIdle();
 void ShutdownSDLGpuRenderer();
 

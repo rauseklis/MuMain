@@ -165,8 +165,8 @@ require_match(editor_code
     "initInfo\\.ColorTargetFormat[ \t]*=[ \t]*colorTargetFormat[ \t]*;"
     "renderer init uses the swapchain color format")
 require_match(editor_code
-    "initInfo\\.MSAASamples[ \t]*=[ \t]*SDL_GPU_SAMPLECOUNT_1[ \t]*;"
-    "renderer init uses SDL_GPU_SAMPLECOUNT_1")
+    "initInfo\\.MSAASamples[ \t]*=[ \t]*ToGpuSampleCount[ \t]*\\([ \t]*mu::GetRenderer\\(\\)\\.GetMultisampleCount\\(\\)[ \t]*\\)[ \t]*;"
+    "renderer init uses the game render pass sample count")
 require_match(editor_code "ImGui_ImplSDLGPU3_NewFrame[ \t\r\n]*\\(\\)[ \t]*;" "editor starts the SDL_GPU frame")
 require_match(editor_code "ImGui::Render[ \t\r\n]*\\(\\)[ \t]*;" "editor finalizes ImGui draw data")
 

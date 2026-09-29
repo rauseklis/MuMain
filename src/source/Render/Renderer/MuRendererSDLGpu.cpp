@@ -33,6 +33,7 @@
 
 #include "D3D12Diagnostics.h"
 #include "DrawCommandHistory.h"
+#include "GraphicsQuality.h"
 #include "MuRenderer.h"
 #include "QuadTopology.h"
 #include "SdlGpuPixelFormat.h"
@@ -243,6 +244,10 @@ static SDL_Window* s_window = nullptr;
 static SDL_GPUCommandBuffer* s_cmdBuf = nullptr;
 static SDL_GPURenderPass* s_renderPass = nullptr;
 static SDL_GPUTexture* s_swapchainTexture = nullptr;
+static SDL_GPUTexture* s_multisampleColorTexture = nullptr;
+static SDL_GPUSampleCount s_multisampleCount = SDL_GPU_SAMPLECOUNT_1;
+static int s_multisampleCountValue = 1;
+static GraphicsQualitySettings s_graphicsQuality;
 
 // Swapchain dimensions in physical pixels (from SDL_AcquireGPUSwapchainTexture).
 // Used for viewport calculations — distinct from logical window size on HiDPI/Retina.
@@ -878,6 +883,7 @@ static Uint32 s_offscreenCaptureHeight = 0u;
 // Shared depth buffer for offscreen captures, resized on demand. Captures are
 // processed strictly one at a time (never concurrently), so one is enough.
 static SDL_GPUTexture* s_offscreenDepthTexture = nullptr;
+static SDL_GPUTexture* s_offscreenMultisampleColorTexture = nullptr;
 static Uint32 s_offscreenDepthW = 0u;
 static Uint32 s_offscreenDepthH = 0u;
 #endif
@@ -1209,7 +1215,8 @@ public:
     // Called once after window creation, before the game loop.
     // -----------------------------------------------------------------------
     [[nodiscard]] static bool Init(void* pNativeWindow, std::string_view fontFamily, float normalPointSize,
-                                   float bigPointSize, float fixedPointSize)
+                                   float bigPointSize, float fixedPointSize,
+                                   const GraphicsQualitySettings& graphicsQuality)
     {
         s_window = static_cast<SDL_Window*>(pNativeWindow);
         if (!s_window)
@@ -1246,6 +1253,8 @@ public:
             s_device = nullptr;
             return false;
         }
+
+        ConfigureGraphicsQuality(graphicsQuality);
 
         // Story 4.3.2: Load real HLSL shader blobs from MU_SHADER_DIR.
         // Driver name used to select the correct blob format (SPIR-V/DXIL/MSL).
@@ -1363,7 +1372,11 @@ public:
             SDL_GetWindowSizeInPixels(s_window, &winW, &winH);
             if (winW > 0 && winH > 0)
             {
-                CreateOrResizeDepthTexture(static_cast<Uint32>(winW), static_cast<Uint32>(winH));
+                if (!CreateOrResizeFrameTargets(static_cast<Uint32>(winW), static_cast<Uint32>(winH)))
+                {
+                    Shutdown();
+                    return false;
+                }
             }
         }
 
@@ -1438,6 +1451,12 @@ public:
             s_defaultSampler = nullptr;
         }
 
+        if (s_multisampleColorTexture)
+        {
+            SDL_ReleaseGPUTexture(s_device, s_multisampleColorTexture);
+            s_multisampleColorTexture = nullptr;
+        }
+
         // Story 7.9.7 (AC-3): Release depth texture.
         if (s_depthTexture)
         {
@@ -1446,6 +1465,21 @@ public:
             s_depthW = 0u;
             s_depthH = 0u;
         }
+
+#ifdef _EDITOR
+        if (s_offscreenMultisampleColorTexture)
+        {
+            SDL_ReleaseGPUTexture(s_device, s_offscreenMultisampleColorTexture);
+            s_offscreenMultisampleColorTexture = nullptr;
+        }
+        if (s_offscreenDepthTexture)
+        {
+            SDL_ReleaseGPUTexture(s_device, s_offscreenDepthTexture);
+            s_offscreenDepthTexture = nullptr;
+            s_offscreenDepthW = 0u;
+            s_offscreenDepthH = 0u;
+        }
+#endif
 
         // Story 4.3.2 (AC-10): Release fog uniform buffers.
         if (s_fogUniformBuf)
@@ -1570,7 +1604,13 @@ public:
 
         // Story 7.9.7 (AC-3): Ensure depth texture matches swapchain dimensions.
         // Recreates on first frame or when window is resized.
-        CreateOrResizeDepthTexture(s_swapW, s_swapH);
+        if (!CreateOrResizeFrameTargets(s_swapW, s_swapH))
+        {
+            SDL_CancelGPUCommandBuffer(s_cmdBuf);
+            s_cmdBuf = nullptr;
+            FailPendingFrameReadback();
+            return;
+        }
 
         // Deferred rendering: do NOT begin the render pass here.
         // Draw calls record RenderCmds into s_renderCmds during the frame.
@@ -1830,10 +1870,13 @@ public:
 #endif
         {
             SDL_GPUColorTargetInfo colorTarget{};
-            colorTarget.texture = frameColorTexture;
+            const bool multisampling = s_multisampleColorTexture != nullptr;
+            colorTarget.texture = multisampling ? s_multisampleColorTexture : frameColorTexture;
             colorTarget.clear_color = s_clearColor;
             colorTarget.load_op = SDL_GPU_LOADOP_CLEAR;
-            colorTarget.store_op = SDL_GPU_STOREOP_STORE;
+            colorTarget.store_op = multisampling ? SDL_GPU_STOREOP_RESOLVE : SDL_GPU_STOREOP_STORE;
+            colorTarget.resolve_texture = multisampling ? frameColorTexture : nullptr;
+            colorTarget.cycle = multisampling;
 
             SDL_GPUDepthStencilTargetInfo depthTarget{};
             depthTarget.texture = s_depthTexture;
@@ -2333,6 +2376,21 @@ public:
         return true;
     }
 
+    [[nodiscard]] int GetMultisampleCount() const override
+    {
+        return s_multisampleCountValue;
+    }
+
+    [[nodiscard]] bool GetTextureMipmapsEnabled() const override
+    {
+        return s_graphicsQuality.textureMipmaps;
+    }
+
+    [[nodiscard]] int GetAnisotropy() const override
+    {
+        return s_graphicsQuality.anisotropy;
+    }
+
     // Story 4.4.1 (AC-2, Task 6.2/6.3): GetDevice override — returns s_device.
     // Allows GlobalBitmap.cpp to obtain the SDL_GPUDevice* via mu::GetRenderer().GetDevice()
     // without a direct dependency on MuRendererSDLGpu.cpp internals.
@@ -2575,7 +2633,7 @@ public:
 
         SDL_GPUTextureCreateInfo texInfo{};
         texInfo.type = SDL_GPU_TEXTURETYPE_2D;
-        texInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        texInfo.format = SDL_GetGPUSwapchainTextureFormat(s_device, s_window);
         texInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
         texInfo.width = width;
         texInfo.height = height;
@@ -3917,6 +3975,7 @@ private:
         pipelineInfo.vertex_input_state = vtxInputState;
         pipelineInfo.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
         pipelineInfo.rasterizer_state = rasterState;
+        pipelineInfo.multisample_state.sample_count = s_multisampleCount;
         pipelineInfo.depth_stencil_state = depthState;
         pipelineInfo.target_info = targetInfo;
         pipelineInfo.props = 0;
@@ -4150,26 +4209,78 @@ private:
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Story 7.9.7 (AC-3): CreateOrResizeDepthTexture
-    // Creates (or recreates on resize) an SDL_GPUTexture with depth format
-    // matching the current swapchain dimensions. Called from Init() and
-    // BeginFrame() when swapchain size changes.
-    // -----------------------------------------------------------------------
-    static bool CreateOrResizeDepthTexture(Uint32 width, Uint32 height)
+    [[nodiscard]] static SDL_GPUSampleCount ToGpuSampleCount(int sampleCount)
+    {
+        switch (sampleCount)
+        {
+        case 8:
+            return SDL_GPU_SAMPLECOUNT_8;
+        case 4:
+            return SDL_GPU_SAMPLECOUNT_4;
+        case 2:
+            return SDL_GPU_SAMPLECOUNT_2;
+        default:
+            return SDL_GPU_SAMPLECOUNT_1;
+        }
+    }
+
+    static void ConfigureGraphicsQuality(const GraphicsQualitySettings& requested)
+    {
+        s_graphicsQuality.antiAliasingSamples =
+            Render::GraphicsQuality::NormalizeMsaaSamples(requested.antiAliasingSamples);
+        s_graphicsQuality.textureMipmaps = requested.textureMipmaps;
+        s_graphicsQuality.anisotropy = Render::GraphicsQuality::NormalizeAnisotropy(requested.anisotropy);
+
+        const SDL_GPUTextureFormat colorFormat = SDL_GetGPUSwapchainTextureFormat(s_device, s_window);
+        s_multisampleCountValue = 1;
+        s_multisampleCount = SDL_GPU_SAMPLECOUNT_1;
+        for (const int candidate : Render::GraphicsQuality::SupportedMsaaSamples)
+        {
+            if (candidate > s_graphicsQuality.antiAliasingSamples)
+            {
+                continue;
+            }
+
+            const SDL_GPUSampleCount gpuCandidate = ToGpuSampleCount(candidate);
+            const bool colorSupported =
+                candidate == 1 || SDL_GPUTextureSupportsSampleCount(s_device, colorFormat, gpuCandidate);
+            const bool depthSupported = candidate == 1 ||
+                                        SDL_GPUTextureSupportsSampleCount(s_device, SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
+                                                                         gpuCandidate);
+            if (colorSupported && depthSupported)
+            {
+                s_multisampleCountValue = candidate;
+                s_multisampleCount = gpuCandidate;
+                break;
+            }
+        }
+
+        mu::log::Get("render")->info(
+            "SDL_gpu -- graphics quality: MSAA requested={}x selected={}x, mipmaps={}, anisotropy={}x",
+            requested.antiAliasingSamples, s_multisampleCountValue,
+            s_graphicsQuality.textureMipmaps ? "enabled" : "disabled", s_graphicsQuality.anisotropy);
+    }
+
+    // Creates the depth target and, when MSAA is active, the multisample color
+    // target. Both must match the pipelines' sample count.
+    static bool CreateOrResizeFrameTargets(Uint32 width, Uint32 height)
     {
         if (width == 0 || height == 0)
         {
             return false;
         }
 
-        // Skip if the existing depth texture already matches the requested size.
-        if (s_depthTexture && s_depthW == width && s_depthH == height)
+        const bool colorTargetReady = s_multisampleCountValue == 1 || s_multisampleColorTexture;
+        if (s_depthTexture && colorTargetReady && s_depthW == width && s_depthH == height)
         {
             return true;
         }
 
-        // Release old depth texture if resizing.
+        if (s_multisampleColorTexture)
+        {
+            SDL_ReleaseGPUTexture(s_device, s_multisampleColorTexture);
+            s_multisampleColorTexture = nullptr;
+        }
         if (s_depthTexture)
         {
             SDL_ReleaseGPUTexture(s_device, s_depthTexture);
@@ -4183,6 +4294,7 @@ private:
         depthInfo.height = height;
         depthInfo.layer_count_or_depth = 1;
         depthInfo.num_levels = 1;
+        depthInfo.sample_count = s_multisampleCount;
         depthInfo.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
 
         s_depthTexture = SDL_CreateGPUTexture(s_device, &depthInfo);
@@ -4195,22 +4307,46 @@ private:
             return false;
         }
 
+        if (s_multisampleCountValue > 1)
+        {
+            SDL_GPUTextureCreateInfo colorInfo{};
+            colorInfo.type = SDL_GPU_TEXTURETYPE_2D;
+            colorInfo.format = SDL_GetGPUSwapchainTextureFormat(s_device, s_window);
+            colorInfo.width = width;
+            colorInfo.height = height;
+            colorInfo.layer_count_or_depth = 1;
+            colorInfo.num_levels = 1;
+            colorInfo.sample_count = s_multisampleCount;
+            colorInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+            s_multisampleColorTexture = SDL_CreateGPUTexture(s_device, &colorInfo);
+            if (!s_multisampleColorTexture)
+            {
+                mu::log::Get("render")->error("SDL_gpu -- multisample color texture creation failed ({}x{}, {}x): {}",
+                                              width, height, s_multisampleCountValue, SDL_GetError());
+                SDL_ReleaseGPUTexture(s_device, s_depthTexture);
+                s_depthTexture = nullptr;
+                s_depthW = 0u;
+                s_depthH = 0u;
+                return false;
+            }
+        }
+
         s_depthW = width;
         s_depthH = height;
         return true;
     }
 
 #ifdef _EDITOR
-    // Depth buffer for editor offscreen captures (see BeginOffscreenCapture). Same
-    // shape as CreateOrResizeDepthTexture but keeps its own texture, since it's
-    // sized for a small thumbnail, not the swapchain.
-    static bool EnsureOffscreenDepthTexture(Uint32 width, Uint32 height)
+    // Matching color/depth targets for editor preview captures. The resolved
+    // single-sample texture remains owned by the normal texture registry.
+    static bool EnsureOffscreenMultisampleTargets(Uint32 width, Uint32 height)
     {
         if (width == 0 || height == 0)
         {
             return false;
         }
-        if (s_offscreenDepthTexture && s_offscreenDepthW == width && s_offscreenDepthH == height)
+        const bool colorTargetReady = s_multisampleCountValue == 1 || s_offscreenMultisampleColorTexture;
+        if (s_offscreenDepthTexture && colorTargetReady && s_offscreenDepthW == width && s_offscreenDepthH == height)
         {
             return true;
         }
@@ -4218,6 +4354,11 @@ private:
         {
             SDL_ReleaseGPUTexture(s_device, s_offscreenDepthTexture);
             s_offscreenDepthTexture = nullptr;
+        }
+        if (s_offscreenMultisampleColorTexture)
+        {
+            SDL_ReleaseGPUTexture(s_device, s_offscreenMultisampleColorTexture);
+            s_offscreenMultisampleColorTexture = nullptr;
         }
 
         SDL_GPUTextureCreateInfo depthInfo{};
@@ -4227,6 +4368,7 @@ private:
         depthInfo.height = height;
         depthInfo.layer_count_or_depth = 1;
         depthInfo.num_levels = 1;
+        depthInfo.sample_count = s_multisampleCount;
         depthInfo.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
 
         s_offscreenDepthTexture = SDL_CreateGPUTexture(s_device, &depthInfo);
@@ -4237,6 +4379,31 @@ private:
             s_offscreenDepthW = 0u;
             s_offscreenDepthH = 0u;
             return false;
+        }
+
+        if (s_multisampleCountValue > 1)
+        {
+            SDL_GPUTextureCreateInfo colorInfo{};
+            colorInfo.type = SDL_GPU_TEXTURETYPE_2D;
+            colorInfo.format = SDL_GetGPUSwapchainTextureFormat(s_device, s_window);
+            colorInfo.width = width;
+            colorInfo.height = height;
+            colorInfo.layer_count_or_depth = 1;
+            colorInfo.num_levels = 1;
+            colorInfo.sample_count = s_multisampleCount;
+            colorInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+            s_offscreenMultisampleColorTexture = SDL_CreateGPUTexture(s_device, &colorInfo);
+            if (!s_offscreenMultisampleColorTexture)
+            {
+                mu::log::Get("render")->error(
+                    "SDL_gpu -- offscreen multisample color texture creation failed ({}x{}, {}x): {}", width,
+                    height, s_multisampleCountValue, SDL_GetError());
+                SDL_ReleaseGPUTexture(s_device, s_offscreenDepthTexture);
+                s_offscreenDepthTexture = nullptr;
+                s_offscreenDepthW = 0u;
+                s_offscreenDepthH = 0u;
+                return false;
+            }
         }
 
         s_offscreenDepthW = width;
@@ -4259,16 +4426,21 @@ private:
         for (const auto& capture : s_pendingOffscreenCaptures)
         {
             const auto textureIt = s_textureMap.find(capture.textureId);
-            if (textureIt == s_textureMap.end() || !EnsureOffscreenDepthTexture(capture.width, capture.height))
+            if (textureIt == s_textureMap.end() ||
+                !EnsureOffscreenMultisampleTargets(capture.width, capture.height))
             {
                 continue;
             }
 
             SDL_GPUColorTargetInfo colorTarget{};
-            colorTarget.texture = static_cast<SDL_GPUTexture*>(textureIt->second);
+            SDL_GPUTexture* resolvedTexture = static_cast<SDL_GPUTexture*>(textureIt->second);
+            const bool multisampling = s_offscreenMultisampleColorTexture != nullptr;
+            colorTarget.texture = multisampling ? s_offscreenMultisampleColorTexture : resolvedTexture;
             colorTarget.clear_color = SDL_FColor{0.10f, 0.10f, 0.12f, 1.0f};
             colorTarget.load_op = SDL_GPU_LOADOP_CLEAR;
-            colorTarget.store_op = SDL_GPU_STOREOP_STORE;
+            colorTarget.store_op = multisampling ? SDL_GPU_STOREOP_RESOLVE : SDL_GPU_STOREOP_STORE;
+            colorTarget.resolve_texture = multisampling ? resolvedTexture : nullptr;
+            colorTarget.cycle = multisampling;
 
             SDL_GPUDepthStencilTargetInfo depthTarget{};
             depthTarget.texture = s_offscreenDepthTexture;
@@ -4745,9 +4917,11 @@ private:
 
 // C++ linkage entry points for MuMain.cpp (no class forward declaration needed).
 [[nodiscard]] bool InitSDLGpuRenderer(void* pNativeWindow, std::string_view fontFamily, float normalPointSize,
-                                      float bigPointSize, float fixedPointSize)
+                                      float bigPointSize, float fixedPointSize,
+                                      const GraphicsQualitySettings& graphicsQuality)
 {
-    return MuRendererSDLGpu::Init(pNativeWindow, fontFamily, normalPointSize, bigPointSize, fixedPointSize);
+    return MuRendererSDLGpu::Init(pNativeWindow, fontFamily, normalPointSize, bigPointSize, fixedPointSize,
+                                  graphicsQuality);
 }
 
 void WaitForSDLGpuIdle()

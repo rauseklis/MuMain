@@ -2056,9 +2056,14 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int nC
 
     const std::string selectedFontFamily = WideToUtf8(GameConfig::GetInstance().GetFontSelection());
     const FontSizes initialFontSizes = CalculateFontSizes();
+    const mu::GraphicsQualitySettings graphicsQuality{
+        GameConfig::GetInstance().GetAntiAliasing(),
+        GameConfig::GetInstance().GetTextureMipmapsEnabled(),
+        GameConfig::GetInstance().GetAnisotropy(),
+    };
     if (!mu::InitSDLGpuRenderer(g_sdlWindow, selectedFontFamily, static_cast<float>(initialFontSizes.normal),
                                 static_cast<float>(initialFontSizes.big),
-                                static_cast<float>(initialFontSizes.fixed)))
+                                static_cast<float>(initialFontSizes.fixed), graphicsQuality))
     {
         g_ErrorReport.Write(L"SDL_gpu renderer init failed.\r\n");
         ShutdownRendererWindow();
