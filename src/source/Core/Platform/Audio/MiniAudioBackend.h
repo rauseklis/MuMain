@@ -97,6 +97,7 @@ private:
     ma_sound m_musicSound{};
     bool m_musicLoaded = false;
     std::string m_currentMusicName;
+    std::string m_failedMusicName;
     bool m_initialized = false;
 };
 

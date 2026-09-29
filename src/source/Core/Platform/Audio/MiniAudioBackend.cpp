@@ -534,6 +534,14 @@ void MiniAudioBackend::PlayMusic(const char* name, bool enforce)
         return;
     }
 
+    // Missing music assets can be requested every rendered frame by map music code.
+    // Remember the last failed non-enforced request so a missing file does not
+    // turn high FPS into a log storm or repeated synchronous file-open work.
+    if (!enforce && !m_failedMusicName.empty() && m_failedMusicName == normalizedName)
+    {
+        return;
+    }
+
     // Stop and release previous music stream
     if (m_musicLoaded)
     {
@@ -557,6 +565,7 @@ void MiniAudioBackend::PlayMusic(const char* name, bool enforce)
 
     if (result != MA_SUCCESS)
     {
+        m_failedMusicName = normalizedName;
         mu::log::Get("audio")->error("AUDIO: MiniAudioBackend::PlayMusic -- failed to init stream '{}' ({})", name,
                                      static_cast<int>(result));
         return;
@@ -569,6 +578,7 @@ void MiniAudioBackend::PlayMusic(const char* name, bool enforce)
 
     m_musicLoaded = true;
     m_currentMusicName = normalizedName;
+    m_failedMusicName.clear();
 }
 
 // ---------------------------------------------------------------------------

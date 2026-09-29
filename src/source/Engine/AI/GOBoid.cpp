@@ -949,7 +949,7 @@ void MoveButterFly(OBJECT* o)
         o->Direction[2] *= pow(0.8f, FPS_ANIMATION_FACTOR);
         o->Direction[2] -= 1.f * FPS_ANIMATION_FACTOR;
     }
-    o->Position[2] += (float)(rand() % 15 - 7) * 0.3f;
+    o->Position[2] += (float)(rand() % 15 - 7) * 0.3f * FPS_ANIMATION_FACTOR;
 }
 
 void MoveBird(OBJECT* o)
@@ -1106,8 +1106,8 @@ void MoveEagle(OBJECT* o)
 
     o->Position[0] += o->HeadAngle[0];
     o->Position[1] += o->HeadAngle[1];
-    o->Position[2] += sinf(WorldTime * 0.0005f) * 1.0f;
-    o->Angle[1] += sinf(WorldTime * 0.001f) * 0.4f;
+    o->Position[2] += sinf(WorldTime * 0.0005f) * 1.0f * FPS_ANIMATION_FACTOR;
+    o->Angle[1] += sinf(WorldTime * 0.001f) * 0.4f * FPS_ANIMATION_FACTOR;
     o->Angle[2] = fAngle + 270;
 }
 
