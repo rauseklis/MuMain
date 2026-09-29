@@ -36,7 +36,7 @@ namespace SEASON3B
         static constexpr int WND_WIDTH = 220;
         static constexpr int WND_HEIGHT = 20;
         static constexpr int CAP_WIDTH = 18;
-        static constexpr int DEFAULT_X = 420;
+        static constexpr int DEFAULT_X = REFERENCE_WIDTH - WND_WIDTH;
         static constexpr int DEFAULT_Y = 0;
 
         CNewUIManager* m_pNewUIMng;
