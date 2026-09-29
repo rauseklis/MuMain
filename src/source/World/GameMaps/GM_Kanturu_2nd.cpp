@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "Engine/Object/ZzzInfomation.h"
 #include "Render/Models/ZzzBMD.h"
 #include "Engine/Object/ZzzObject.h"
@@ -739,7 +740,7 @@ bool M38Kanturu2nd::Render_Kanturu2nd_MonsterObjectMesh(OBJECT* o, BMD* b, int E
     {
         if (o->CurrentAction == MONSTER01_DIE)
         {
-            o->Alpha -= 0.1f;
+            o->Alpha -= mu::FrameScale(0.1f);
             if (o->Alpha <= 0.0f)
             {
                 o->Alpha = 0.0f;

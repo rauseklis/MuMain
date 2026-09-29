@@ -1,4 +1,5 @@
 ﻿#include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "UI/Legacy/UIWindows.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Textures/ZzzTexture.h"
@@ -1272,7 +1273,7 @@ bool M39Kanturu3rd::RenderKanturu3rdMonsterObjectMesh(OBJECT* o, BMD* b, bool Ex
     {
         if (o->CurrentAction == MONSTER01_DIE)
         {
-            o->Alpha -= 0.1f;
+            o->Alpha -= mu::FrameScale(0.1f);
             if (o->Alpha <= 0.0f)
             {
                 o->Alpha = 0.0f;
@@ -1707,7 +1708,7 @@ void M39Kanturu3rd::Kanturu3rdSuccess()
     tv = fHeight / 128.f;
 
     if (fAlpha <= 1.0f)
-        fAlpha += 0.01f;
+        fAlpha += mu::FrameScale(0.01f);
     else if (fAlpha >= 0.99f && g_Time.GetTimeCheck(3, 5000))
     {
         fAlpha = 0.1f;
@@ -1730,7 +1731,7 @@ void M39Kanturu3rd::Kanturu3rdFailed()
     tv = fHeight / 128.f;
 
     if (fAlpha <= 1.0f)
-        fAlpha += 0.01f;
+        fAlpha += mu::FrameScale(0.01f);
     else if (fAlpha >= 0.99f && g_Time.GetTimeCheck(4, 5000))
     {
         fAlpha = 0.1f;

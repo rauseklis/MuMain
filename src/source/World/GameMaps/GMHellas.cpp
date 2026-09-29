@@ -2,6 +2,7 @@
 //  GMHellas.cpp
 //////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "UI/Legacy/UIWindows.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Renderer/MuRenderer.h"
@@ -553,7 +554,7 @@ bool RenderHellasObjectMesh(OBJECT* o, BMD* b)
     {
         Vector(1.0f, 1.0f, 1.0f, b->BodyLight);
         if (o->AnimationFrame > 3 && o->Alpha > 0.2f)
-            o->Alpha -= 0.02f;
+            o->Alpha -= mu::FrameScale(0.02f);
         b->RenderBody(RENDER_TEXTURE | RENDER_DARK, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
         b->RenderBody(RENDER_TEXTURE | RENDER_DARK, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
         Vector(0.0f, 0.0f, 0.0f, b->BodyLight);

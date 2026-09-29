@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "Core/Input/KeyState.h"
 #include "Core/Platform/Imm.h"
 #include "UI/Legacy/UIManager.h"
@@ -2572,7 +2573,7 @@ void Attack(CHARACTER* c)
 
     if (o->Teleport == TELEPORT_BEGIN)
     {
-        o->Alpha -= 0.1f;
+        o->Alpha -= mu::FrameScale(0.1f);
         if (o->Alpha < 0.1f)
         {
             o->Teleport = TELEPORT;

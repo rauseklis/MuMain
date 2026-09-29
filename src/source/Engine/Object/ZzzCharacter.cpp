@@ -6,6 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include <execution>
 #include <algorithm>
 #include <span>
@@ -9286,7 +9287,7 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
             }
             else
             {
-                c->Object.Alpha -= 0.07f;
+                c->Object.Alpha -= mu::FrameScale(0.07f);
                 float fAlpha = c->Object.Alpha;
                 if (fAlpha < 0) fAlpha = 0;
 

@@ -2,6 +2,7 @@
 //
 //////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 
 #include "GameLogic/Social/MonkSystem.h"
 #include "Render/Effects/ZzzEffect.h"
@@ -1442,7 +1443,7 @@ bool CDummyUnit::IsDistance()
         }
         else
         {
-            m_fAlpha -= 0.07f;
+            m_fAlpha -= mu::FrameScale(0.07f);
         }
     }
     else
@@ -1453,7 +1454,7 @@ bool CDummyUnit::IsDistance()
         }
         else
         {
-            m_fAlpha += 0.02f;
+            m_fAlpha += mu::FrameScale(0.02f);
         }
     }
 

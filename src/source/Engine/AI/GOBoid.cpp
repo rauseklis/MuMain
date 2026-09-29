@@ -4,6 +4,7 @@
 //
 //////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "Engine/Object/ZzzInfomation.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Models/ZzzBMD.h"
@@ -188,7 +189,7 @@ bool MoveMount(OBJECT* o, bool bForceRender)
 
             if (o->Owner->Teleport == TELEPORT_BEGIN || o->Owner->Teleport == TELEPORT)
             {
-                o->Alpha -= 0.1f;
+                o->Alpha -= mu::FrameScale(0.1f);
                 if (o->Alpha < 0) o->Alpha = 0.f;
             }
             else
@@ -504,7 +505,7 @@ bool MoveMount(OBJECT* o, bool bForceRender)
 
             if (o->Owner->Teleport == TELEPORT_BEGIN || o->Owner->Teleport == TELEPORT)
             {
-                o->Alpha -= 0.1f;
+                o->Alpha -= mu::FrameScale(0.1f);
                 if (o->Alpha < 0) o->Alpha = 0.f;
             }
             else

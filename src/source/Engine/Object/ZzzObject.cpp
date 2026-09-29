@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "Camera/CameraMove.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Models/ZzzBMD.h"
@@ -252,7 +253,7 @@ bool Calc_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
 {
     if (gMapManager.InChaosCastle() == true && Hero->Object.m_bActionStart == true)
     {
-        o->Alpha -= 0.15f;
+        o->Alpha -= mu::FrameScale(0.15f);
     }
 
     if (o->Alpha < 0.01f)
@@ -387,7 +388,7 @@ bool Calc_ObjectAnimation(OBJECT* o, bool Translate, int Select)
 {
     if (gMapManager.InChaosCastle() == true && Hero->Object.m_bActionStart)
     {
-        o->Alpha -= 0.15f;
+        o->Alpha -= mu::FrameScale(0.15f);
     }
 
     if (o->Alpha < 0.01f) return false;
