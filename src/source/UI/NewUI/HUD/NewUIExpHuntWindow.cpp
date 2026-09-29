@@ -81,7 +81,18 @@ namespace SEASON3B
 
         if (m_bDragging)
         {
-            if (!MouseLButtonPush)
+            // Continuation must check the held state (MouseLButton), not the
+            // one-shot press edge (MouseLButtonPush). MouseLButtonPush is true only
+            // on the single frame the button went down and is cleared every frame
+            // afterward by ClearMousePressState() (Scenes/SceneManager.cpp), so
+            // checking it here ended the drag on the very next frame regardless of
+            // whether the button was still held - the window could never actually
+            // follow the mouse. MouseLButton stays true for the whole hold
+            // duration (set in SDL_EVENT_MOUSE_BUTTON_DOWN, cleared on
+            // SDL_EVENT_MOUSE_BUTTON_UP - see Core/Platform/sdl3/SDLEventLoop.cpp),
+            // matching the convention the legacy window-move code already uses
+            // (UI::Legacy::UIWindows.cpp, UISTATE_MOVE handling).
+            if (!MouseLButton)
             {
                 m_bDragging = false;
                 return false;
