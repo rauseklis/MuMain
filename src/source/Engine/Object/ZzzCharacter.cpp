@@ -8381,7 +8381,7 @@ void RenderLinkObject(float x, float y, float z, CHARACTER* c, PART_t* f, int Ty
         break;
     }
 
-    if (gMapManager.WorldActive != WD_10HEAVEN && gMapManager.InHellas() == FALSE &&
+    if (gMapManager.WorldActive != WD_10HEAVEN &&
         !g_Direction.m_CKanturu.IsMayaScene() && !IsWingShadowDisabledDebug()) // DXP-23 diagnostic
     {
         switch (Type)        // 날개인지 검사
@@ -8569,9 +8569,7 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
 
     if (o->Alpha >= 0.5f && c->HideShadow == false)
     {
-        if (gMapManager.WorldActive != WD_10HEAVEN && (o->Type == MODEL_PLAYER) && (!(MODEL_HORN_OF_UNIRIA <= c->Helper.Type && c->Helper.Type <= MODEL_HORN_OF_DINORANT) || c->SafeZone)
-            && gMapManager.InHellas() == false
-            )
+        if (gMapManager.WorldActive != WD_10HEAVEN && (o->Type == MODEL_PLAYER) && (!(MODEL_HORN_OF_UNIRIA <= c->Helper.Type && c->Helper.Type <= MODEL_HORN_OF_DINORANT) || c->SafeZone))
         {
             if (gMapManager.InBloodCastle() && o->m_bActionStart && c->Dead > 0)
             {
