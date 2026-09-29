@@ -41,6 +41,8 @@
 #include "Engine/Physics/PhysicsManager.h"
 #include "Engine/AI/GOBoid.h"
 #include "GameLogic/Items/CSItemOption.h"
+#include "Core/Utilities/Log/MuLogger.h"
+#include <unordered_map>
 
 // Phase 5: Camera system includes for 3D frustum culling
 #include "Camera/CameraManager.h"
@@ -4065,6 +4067,24 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
     PushingCharacter(c, o);
     DeadCharacter(c, o, b);
     Alpha(o);
+
+    // TEMP diagnostic for Kalima portal invisibility investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+    if ((c->MonsterIndex >= MONSTER_GATE_TO_KALIMA_1 && c->MonsterIndex <= MONSTER_GATE_TO_KALIMA_7) ||
+        o->Type == MODEL_WARCRAFT)
+    {
+        static std::unordered_map<const OBJECT*, double> s_kalimaDiagLastLogMs;
+        double& lastLogMs = s_kalimaDiagLastLogMs[o];
+        if (WorldTime - lastLogMs >= 1000.0)
+        {
+            lastLogMs = WorldTime;
+            MU_LOG_INFO(mu::log::Get("gameplay"),
+                        "[KALIMA-DIAG] tick idx={} pos=({:.1f},{:.1f},{:.1f}) Alpha={:.3f} AlphaTarget={:.3f} "
+                        "AlphaEnable={} Visible={} Live={} Kind={} Type={} HiddenMesh={} CurrentAction={} AnimationFrame={:.2f}",
+                        (int)c->MonsterIndex, o->Position[0], o->Position[1], o->Position[2], o->Alpha,
+                        o->AlphaTarget, o->AlphaEnable, o->Visible, o->Live, (int)o->Kind, o->Type, o->HiddenMesh,
+                        (int)o->CurrentAction, o->AnimationFrame);
+        }
+    }
 
     if (c->Freeze > 0.f)
     {
@@ -15115,6 +15135,19 @@ CHARACTER* CreateHellGate(char* ID, int Key, EMonsterType Index, int x, int y, i
         CreateJoint(BITMAP_JOINT_THUNDER + 1, portal->Object.Position, portal->Object.Position, portal->Object.Angle, 1, NULL, 50.f + rand() % 10);
         CreateJoint(BITMAP_JOINT_THUNDER + 1, portal->Object.Position, portal->Object.Position, portal->Object.Angle, 1, NULL, 60.f + rand() % 10);
     }
+
+    // TEMP diagnostic for Kalima portal invisibility investigation (2026-09-29) - remove once resolved, see docs/AUDIT.md
+    if (Index >= MONSTER_GATE_TO_KALIMA_1 && Index <= MONSTER_GATE_TO_KALIMA_7)
+    {
+        const OBJECT& po = portal->Object;
+        MU_LOG_INFO(mu::log::Get("gameplay"),
+                    "[KALIMA-DIAG] create idx={} pos=({:.1f},{:.1f},{:.1f}) Alpha={:.3f} AlphaTarget={:.3f} "
+                    "AlphaEnable={} Visible={} Live={} Kind={} Type={} HiddenMesh={} CurrentAction={} AnimationFrame={:.2f}",
+                    (int)Index, po.Position[0], po.Position[1], po.Position[2], po.Alpha, po.AlphaTarget,
+                    po.AlphaEnable, po.Visible, po.Live, (int)po.Kind, po.Type, po.HiddenMesh, (int)po.CurrentAction,
+                    po.AnimationFrame);
+    }
+
     return portal;
 }
 
