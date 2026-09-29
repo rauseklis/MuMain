@@ -24,8 +24,18 @@ namespace SEASON3B
         float GetLayerDepth() override;
 
     private:
-        static constexpr int WND_WIDTH = 190;
-        static constexpr int WND_HEIGHT = 22;
+        enum IMAGE_LIST
+        {
+            IMAGE_EXPHUNT_CAP = BITMAP_EXPHUNT_BEGIN,
+            IMAGE_EXPHUNT_MIDDLE,
+        };
+
+        void LoadImages();
+        void UnloadImages();
+
+        static constexpr int WND_WIDTH = 280;
+        static constexpr int WND_HEIGHT = 25;
+        static constexpr int CAP_WIDTH = 22;
 
         CNewUIManager* m_pNewUIMng;
         POINT m_Pos;

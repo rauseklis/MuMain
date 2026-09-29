@@ -3,6 +3,7 @@
 
 #include "Core/Globals/_enum.h"
 #include "GameLogic/ExpHunt/ExpHuntTracker.h"
+#include "Render/Textures/ZzzTexture.h"
 #include "UI/Legacy/UIControls.h"
 
 #include <string>
@@ -13,9 +14,6 @@ namespace SEASON3B
     {
         std::wstring FormatExpRate(double ratePerMinute)
         {
-            // Clamp non-positive rates to 0 - GetRatePerMinute() shouldn't return
-            // negative values, but this guards against any rounding/edge-case
-            // artifacts feeding a negative or NaN-derived value into the cast below.
             std::uint64_t whole = ratePerMinute > 0.0 ? static_cast<std::uint64_t>(ratePerMinute + 0.5) : 0;
 
             std::wstring digits = std::to_wstring(whole);
@@ -29,7 +27,7 @@ namespace SEASON3B
                 grouped.append(digits, i, 3);
             }
 
-            return grouped + L" / min";
+            return L"Experience Hunter: " + grouped + L" / min";
         }
     }
 
@@ -55,6 +53,7 @@ namespace SEASON3B
         m_Pos.x = x;
         m_Pos.y = y;
         m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_EXPHUNT, this);
+        LoadImages();
         Show(false);
         return true;
     }
@@ -63,9 +62,22 @@ namespace SEASON3B
     {
         if (m_pNewUIMng)
         {
+            UnloadImages();
             m_pNewUIMng->RemoveUIObj(this);
             m_pNewUIMng = nullptr;
         }
+    }
+
+    void CNewUIExpHuntWindow::LoadImages()
+    {
+        LoadBitmap(L"Interface\\Minimap_positionA.tga", IMAGE_EXPHUNT_CAP, GL_LINEAR);
+        LoadBitmap(L"Interface\\Minimap_positionB.tga", IMAGE_EXPHUNT_MIDDLE, GL_LINEAR);
+    }
+
+    void CNewUIExpHuntWindow::UnloadImages()
+    {
+        DeleteBitmap(IMAGE_EXPHUNT_CAP);
+        DeleteBitmap(IMAGE_EXPHUNT_MIDDLE);
     }
 
     bool CNewUIExpHuntWindow::UpdateMouseEvent()
@@ -81,17 +93,10 @@ namespace SEASON3B
 
         if (m_bDragging)
         {
-            // Continuation must check the held state (MouseLButton), not the
-            // one-shot press edge (MouseLButtonPush). MouseLButtonPush is true only
-            // on the single frame the button went down and is cleared every frame
-            // afterward by ClearMousePressState() (Scenes/SceneManager.cpp), so
-            // checking it here ended the drag on the very next frame regardless of
-            // whether the button was still held - the window could never actually
-            // follow the mouse. MouseLButton stays true for the whole hold
-            // duration (set in SDL_EVENT_MOUSE_BUTTON_DOWN, cleared on
-            // SDL_EVENT_MOUSE_BUTTON_UP - see Core/Platform/sdl3/SDLEventLoop.cpp),
-            // matching the convention the legacy window-move code already uses
-            // (UI::Legacy::UIWindows.cpp, UISTATE_MOVE handling).
+            // MouseLButton (not MouseLButtonPush) is required here: Push is a
+            // one-shot press-edge flag cleared every frame regardless of
+            // whether the button is still held, so using it to decide whether
+            // to KEEP dragging ended the drag one frame after every press.
             if (!MouseLButton)
             {
                 m_bDragging = false;
@@ -121,18 +126,21 @@ namespace SEASON3B
     {
         EnableAlphaTest();
 
-        constexpr float kBorderThickness = 2.0f;
-        RenderColorQuadARGB(static_cast<float>(m_Pos.x) - kBorderThickness, static_cast<float>(m_Pos.y) - kBorderThickness,
-            static_cast<float>(WND_WIDTH) + kBorderThickness * 2.0f, static_cast<float>(WND_HEIGHT) + kBorderThickness * 2.0f, 0xFFC8A050u);
-        RenderColorQuadARGB(static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y),
-            static_cast<float>(WND_WIDTH), static_cast<float>(WND_HEIGHT), 0xB0000000u);
+        const float middleWidth = static_cast<float>(WND_WIDTH - CAP_WIDTH);
+
+        RenderImage(IMAGE_EXPHUNT_CAP, static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y),
+            static_cast<float>(CAP_WIDTH), static_cast<float>(WND_HEIGHT));
+
+        RenderImage(IMAGE_EXPHUNT_MIDDLE, static_cast<float>(m_Pos.x + CAP_WIDTH), static_cast<float>(m_Pos.y),
+            middleWidth, static_cast<float>(WND_HEIGHT), 0.1f, 0.f, 22.4f / 32.f, 25.f / 32.f);
 
         const std::wstring text = FormatExpRate(GameLogic::ExpHunt::GetRatePerMinute());
 
         g_pRenderText->SetFont(g_hFontBold);
         g_pRenderText->SetBgColor(0);
         g_pRenderText->SetTextColor(255, 220, 120, 255);
-        g_pRenderText->RenderText(m_Pos.x + 6, m_Pos.y + 4, text.c_str());
+        g_pRenderText->RenderText(m_Pos.x + CAP_WIDTH, m_Pos.y + 6, text.c_str(),
+            static_cast<int>(middleWidth), 0, RT3_SORT_CENTER);
         g_pRenderText->SetFont(g_hFont);
 
         DisableAlphaBlend();
