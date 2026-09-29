@@ -25,6 +25,7 @@
 #include "Camera/CameraMove.h"
 #include "Engine/Physics/PhysicsManager.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "Render/Models/BmdPolygonTopology.h"
 #include "Render/Models/GpuSkinningPath.h"
 #include "Render/Renderer/MuRenderer.h"
 #include "Render/Renderer/RenderUtils.h"
@@ -62,9 +63,9 @@ vec3_t LightTransform[MAX_MESH][MAX_VERTICES];
 static uint32_t g_SkinStampCounter = 0;
 static bool g_LazyCpuSkin = true; // DXP-20 inc4 Step D: gate flipped on -- see DXP-20-inc4-plan.md
 
-vec3_t RenderArrayVertices[MAX_VERTICES * 3];
-vec4_t RenderArrayColors[MAX_VERTICES * 3];
-vec2_t RenderArrayTexCoords[MAX_VERTICES * 3];
+vec3_t RenderArrayVertices[MAX_VERTICES * 6];
+vec4_t RenderArrayColors[MAX_VERTICES * 6];
+vec2_t RenderArrayTexCoords[MAX_VERTICES * 6];
 
 namespace
 {
@@ -1256,8 +1257,11 @@ int BMD::AddToCoinHeap(int coinIndex, int target_vertex_index)
     for (int j = 0; j < m->NumTriangles; j++)
     {
         const auto triangle = &m->Triangles[j];
-        for (int k = 0; k < triangle->Polygon; k++)
+        const std::size_t triangleCornerCount =
+            Render::Models::GetBmdTriangleCornerCount(triangle->Polygon);
+        for (std::size_t outputCorner = 0; outputCorner < triangleCornerCount; ++outputCorner)
         {
+            const int k = Render::Models::BmdPolygonTriangleCorners[outputCorner];
             const int source_vertex_index = triangle->VertexIndex[k];
             target_vertex_index++;
 
@@ -1283,7 +1287,12 @@ void BMD::EndRenderCoinHeap(int coinCount)
     constexpr int meshIndex = 0;
     Mesh_t* m = &Meshs[meshIndex];
 
-    const int numVerts = m->NumTriangles * 3 * coinCount;
+    int verticesPerCoin = 0;
+    for (int i = 0; i < m->NumTriangles; ++i)
+    {
+        verticesPerCoin += static_cast<int>(Render::Models::GetBmdTriangleCornerCount(m->Triangles[i].Polygon));
+    }
+    const int numVerts = verticesPerCoin * coinCount;
     auto muVerts = GetRendererVertexScratch(static_cast<std::size_t>(numVerts));
     for (int i = 0; i < numVerts; ++i)
     {
@@ -1647,7 +1656,10 @@ void BMD::RenderMesh(int meshIndex, int renderFlags, float alpha, int blendMeshI
         }
     };
 
-    const std::size_t maxVertexCount = static_cast<std::size_t>(m->NumTriangles) * 3;
+    // BMD's legacy Triangle_t can describe either a triangle or a quad. Both renderer
+    // entry points below consume triangle lists, so reserve for and explicitly split
+    // every quad into (0,1,2) and (0,2,3).
+    const std::size_t maxVertexCount = static_cast<std::size_t>(m->NumTriangles) * 6;
     const bool gpuSkinningEligible = CanGpuSkinMesh(finalRenderFlags, renderFlags, m_pCurrentBoneTransform);
     bool gpuSkinningSubmitted = false;
     if (gpuSkinningEligible)
@@ -1658,8 +1670,11 @@ void BMD::RenderMesh(int meshIndex, int renderFlags, float alpha, int blendMeshI
         for (int j = 0; j < m->NumTriangles; ++j)
         {
             const auto* triangle = &m->Triangles[j];
-            for (int k = 0; k < triangle->Polygon; ++k)
+            const std::size_t triangleCornerCount =
+                Render::Models::GetBmdTriangleCornerCount(triangle->Polygon);
+            for (std::size_t outputCorner = 0; outputCorner < triangleCornerCount; ++outputCorner)
             {
+                const int k = Render::Models::BmdPolygonTriangleCorners[outputCorner];
                 const int vertexIndex = triangle->VertexIndex[k];
                 const int normalIndex = triangle->NormalIndex[k];
                 const auto& vertex = m->Vertices[vertexIndex];
@@ -1729,8 +1744,11 @@ void BMD::RenderMesh(int meshIndex, int renderFlags, float alpha, int blendMeshI
     for (int j = 0; j < m->NumTriangles; j++)
     {
         const auto triangle = &m->Triangles[j];
-        for (int k = 0; k < triangle->Polygon; k++)
+        const std::size_t triangleCornerCount =
+            Render::Models::GetBmdTriangleCornerCount(triangle->Polygon);
+        for (std::size_t outputCorner = 0; outputCorner < triangleCornerCount; ++outputCorner)
         {
+            const int k = Render::Models::BmdPolygonTriangleCorners[outputCorner];
             const int source_vertex_index = triangle->VertexIndex[k];
             target_vertex_index++;
 
@@ -2083,13 +2101,15 @@ void BMD::RenderMeshAlternative(int iRndExtFlag, int iParam, int i, int RenderFl
         Render = RENDER_TEXTURE;
     }
 
-    auto muVerts = GetRendererVertexScratch(static_cast<std::size_t>(m->NumTriangles) * 3);
+    auto muVerts = GetRendererVertexScratch(static_cast<std::size_t>(m->NumTriangles) * 6);
     std::size_t vertexIndex = 0;
     for (int j = 0; j < m->NumTriangles; j++)
     {
         Triangle_t* tp = &m->Triangles[j];
-        for (int k = 0; k < tp->Polygon; k++)
+        const std::size_t triangleCornerCount = Render::Models::GetBmdTriangleCornerCount(tp->Polygon);
+        for (std::size_t outputCorner = 0; outputCorner < triangleCornerCount; ++outputCorner)
         {
+            const int k = Render::Models::BmdPolygonTriangleCorners[outputCorner];
             int vi = tp->VertexIndex[k];
             int ni = tp->NormalIndex[k];
 
@@ -2550,14 +2570,16 @@ void BMD::RenderMeshTranslate(int i, int RenderFlag, float Alpha, int BlendMesh,
         Render = RENDER_TEXTURE;
     }
 
-    auto muVerts = GetRendererVertexScratch(static_cast<std::size_t>(m->NumTriangles) * 3);
+    auto muVerts = GetRendererVertexScratch(static_cast<std::size_t>(m->NumTriangles) * 6);
     std::size_t vertexIndex = 0;
     for (int j = 0; j < m->NumTriangles; j++)
     {
         vec3_t  pos;
         Triangle_t* tp = &m->Triangles[j];
-        for (int k = 0; k < tp->Polygon; k++)
+        const std::size_t triangleCornerCount = Render::Models::GetBmdTriangleCornerCount(tp->Polygon);
+        for (std::size_t outputCorner = 0; outputCorner < triangleCornerCount; ++outputCorner)
         {
+            const int k = Render::Models::BmdPolygonTriangleCorners[outputCorner];
             int vi = tp->VertexIndex[k];
             int ni = tp->NormalIndex[k];
 
@@ -2733,8 +2755,10 @@ void BMD::AddMeshShadowTriangles(const int blendMesh, const int hiddenMesh, cons
         for (int j = 0; j < mesh->NumTriangles; j++)
         {
             const auto* tp = &mesh->Triangles[j];
-            for (int k = 0; k < tp->Polygon; k++)
+            const std::size_t triangleCornerCount = Render::Models::GetBmdTriangleCornerCount(tp->Polygon);
+            for (std::size_t outputCorner = 0; outputCorner < triangleCornerCount; ++outputCorner)
             {
+                const int k = Render::Models::BmdPolygonTriangleCorners[outputCorner];
                 const int source_vertex_index = tp->VertexIndex[k];
                 target_vertex_index++;
 
