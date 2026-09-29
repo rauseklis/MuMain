@@ -165,7 +165,13 @@ bool GMNewTown::MoveObject(OBJECT* pObject)
                 Vector(0.5f, 0.5f, 0.5f, pBoid->Light);
                 pBoid->Alpha = 0.f;
                 pBoid->AlphaTarget = 1.f;
-                pBoid->Gravity = 10.0f * pObject->Scale;
+                // Tuning reduction (2026-09-29, high-fps investigation): FPS_ANIMATION_FACTOR scaling
+                // was empirically proven correct via in-game A/B test on Lorencia birds (same measured
+                // speed at 25fps capped vs uncapped) - this constant (fFlyRange in MoveEagle(),
+                // GOBoid.cpp) is a deliberate ~25% base-speed/turn-radius reduction, not a timing bug
+                // fix, per user request after eagles shared the birds' "feels too fast at true, honest
+                // speed" characteristic. See docs/AUDIT.md.
+                pBoid->Gravity = 7.5f * pObject->Scale; // was 10.0f (-25%)
                 pBoid->AlphaEnable = true;
                 pBoid->Scale = 0.5f;
 

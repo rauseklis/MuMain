@@ -1194,7 +1194,17 @@ void MoveBoidGroup(OBJECT* o, int index)
         }
         else
         {
-            Vector(o->Velocity * 25.f, 0.f, o->Direction[2], Direction);
+            // Tuning reduction (2026-09-29, high-fps investigation): FPS_ANIMATION_FACTOR scaling
+            // was empirically proven correct via in-game A/B test (same measured speed at 25fps
+            // capped vs uncapped) - this constant is a deliberate ~25% base-speed reduction, not
+            // a timing bug fix, per user request after birds still felt too fast at true, honest
+            // speed once rendering became smooth. Applies to MODEL_BIRD01/MODEL_CROW only -
+            // butterflies (and anything else routed through this generic path) keep the
+            // original 25.f, since they already have their own separate, slower-by-design
+            // Velocity and were never part of the "feels too fast" complaint. See docs/AUDIT.md.
+            const bool bIsTunedBoid = (o->Type == MODEL_BIRD01 || o->Type == MODEL_CROW);
+            const float fBoidBaseSpeed = bIsTunedBoid ? 18.75f : 25.f; // 25.f -> 18.75f (-25%)
+            Vector(o->Velocity * fBoidBaseSpeed, 0.f, o->Direction[2], Direction);
         }
         VectorRotate(Direction, o->Matrix, p);
         VectorAddScaled(o->Position, p, o->Position, FPS_ANIMATION_FACTOR);
@@ -1360,11 +1370,22 @@ void MoveBoids()
                 o->CurrentAction = 0;
 
                 if (gMapManager.WorldActive == WD_0LORENCIA)
+                {
                     o->Type = MODEL_BIRD01;
+                    // Tuning reduction (2026-09-29, high-fps investigation): FPS_ANIMATION_FACTOR scaling
+                    // was empirically proven correct via in-game A/B test (same measured speed at 25fps
+                    // capped vs uncapped) - this constant is a deliberate ~25% turn-rate-cap reduction, not
+                    // a timing bug fix, per user request after birds still felt too fast at true, honest
+                    // speed once rendering became smooth. See docs/AUDIT.md.
+                    o->Gravity = 9.75f; // was 13
+                }
                 else if (gMapManager.WorldActive == WD_1DUNGEON || gMapManager.WorldActive == WD_4LOSTTOWER)
                     o->Type = MODEL_BAT01;
                 else if (gMapManager.WorldActive == WD_3NORIA)
                 {
+                    // Butterflies already fly at a deliberately slower, separate base speed
+                    // (Velocity 0.3 vs the bird/crow baseline of 1.0) - left untouched by the
+                    // 2026-09-29 boid-speed tuning reduction below, see docs/AUDIT.md.
                     o->Type = MODEL_BUTTERFLY01;
                     o->Velocity = 0.3f;
                     o->LightEnable = false;
@@ -1373,6 +1394,9 @@ void MoveBoids()
                 else if (gMapManager.InBloodCastle() == true)
                 {
                     o->Type = MODEL_CROW;
+                    // Tuning reduction (2026-09-29, high-fps investigation): see comment on the
+                    // MODEL_BIRD01 branch above. Same ~25% turn-rate-cap reduction. See docs/AUDIT.md.
+                    o->Gravity = 9.75f; // was 13
                 }
                 else if (gMapManager.WorldActive == WD_51HOME_6TH_CHAR)
                 {
