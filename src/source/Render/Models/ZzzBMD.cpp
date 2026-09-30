@@ -26,6 +26,7 @@
 #include "Engine/Physics/PhysicsManager.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "Render/Models/BmdPolygonTopology.h"
+#include "Render/Models/ShadowProjection.h"
 #include "Render/Models/GpuSkinningPath.h"
 #include "Render/Renderer/MuRenderer.h"
 #include "Render/Renderer/RenderUtils.h"
@@ -2648,8 +2649,9 @@ __forceinline void CalcShadowPosition(vec3_t* position, const vec3_t origin, con
     // The result is the relative coordinate of the vertex to the origin.
     VectorSubtract(result, origin, result)
 
-    // scale the shadow in the x direction
-    result[0] += result[2] * (result[0] + sx) / (result[2] - sy);
+    // scale the shadow in the x direction -- see ShadowProjection.h for the
+    // extracted, independently-tested formula (tests/render/test_shadow_projection.cpp).
+    result[0] += Render::Models::CalcShadowHorizontalShear(result[0], result[2], sx, sy);
 
     // Add the origin again, to get the absolute coordinate of the vertex again
     VectorAdd(result, origin, result);

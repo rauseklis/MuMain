@@ -49,6 +49,12 @@ mu_add_test(
         test_bmd_polygon_topology.cpp
 )
 
+mu_add_test(
+    NAME shadow_projection_tests
+    SOURCES
+        test_shadow_projection.cpp
+)
+
 add_test(
     NAME imgui_sdlgpu_backend_contract
     COMMAND "${CMAKE_COMMAND}"
