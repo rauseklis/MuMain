@@ -1416,6 +1416,20 @@ MSG MainLoop()
                     CameraManager::Instance().ToggleZoomLock();
                 }
 #endif
+#ifndef _EDITOR
+                // F12 minimizes the game window (user-requested hotkey). Not a
+                // reserved system key on either platform (unlike F10), so it
+                // arrives here uniformly via SDL on Windows and Linux alike -
+                // no WndProc/WM_SYSKEYDOWN involvement needed. Edge-triggered
+                // like the F10 toggle above. Skipped in editor/admin builds,
+                // where F12 already toggles the in-game editor (see MainLoop's
+                // ENABLE_EDITOR block) - keeping the two bindings from
+                // stacking there.
+                if (event.key.scancode == SDL_SCANCODE_F12 && !event.key.repeat && g_sdlWindow != nullptr)
+                {
+                    SDL_MinimizeWindow(g_sdlWindow);
+                }
+#endif
                 // Navigation/erase/clipboard for the focused portable field (#447).
                 FeedPortableKey(event.key);
                 break;
