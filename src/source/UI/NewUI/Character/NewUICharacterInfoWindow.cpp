@@ -22,8 +22,20 @@
 
 using namespace SEASON3B;
 
+// Populated per-frame by the SDL event loop; consumed (and zeroed) by whichever
+// UI element under the cursor handles it first this frame. Same idiom as
+// NewUIOptionWindow's volume sliders and NewUIComboBox's scroll lists.
+extern int MouseWheel;
+
 namespace
 {
+    // Points added per wheel tick when scrolling over a stat's "+" button, so
+    // players can distribute a large pool of free stat points quickly instead
+    // of clicking once per point. The wire packet (IncreaseCharacterStatPoint)
+    // has no amount field, so each point is still one round-trip; this just
+    // fires a quick burst of that same packet per tick.
+    constexpr int STAT_SCROLL_BATCH_AMOUNT = 10;
+
     float GetMasterSkillValue(ActionSkillType skill)
     {
         return CharacterAttribute->MasterSkillInfo[skill].GetSkillValue();
@@ -185,6 +197,31 @@ bool SEASON3B::CNewUICharacterInfoWindow::BtnProcess()
             {
                 SocketClient->ToGameServer()->SendIncreaseCharacterStatPoint(static_cast<CharacterStatAttribute>(i));
                 PlayBuffer(SOUND_CLICK01);
+                return true;
+            }
+
+            // Scrolling the mouse wheel over a stat's "+" button adds a quick
+            // batch of points instead of requiring one wheel tick (or click)
+            // per point. Capped to the player's currently known free points,
+            // same check the server itself enforces, so this can't overshoot
+            // into a string of rejected requests.
+            if (MouseWheel > 0 &&
+                CheckMouseIn(m_BtnStat[i].GetPos().x, m_BtnStat[i].GetPos().y,
+                             m_BtnStat[i].GetSize().x, m_BtnStat[i].GetSize().y))
+            {
+                MouseWheel = 0;
+
+                const int pointsToAdd = std::min<int>(STAT_SCROLL_BATCH_AMOUNT, CharacterAttribute->LevelUpPoint);
+                for (int p = 0; p < pointsToAdd; ++p)
+                {
+                    SocketClient->ToGameServer()->SendIncreaseCharacterStatPoint(static_cast<CharacterStatAttribute>(i));
+                }
+
+                if (pointsToAdd > 0)
+                {
+                    PlayBuffer(SOUND_CLICK01);
+                }
+
                 return true;
             }
         }
