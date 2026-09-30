@@ -614,43 +614,11 @@ bool RenderHellasObjectMesh(OBJECT* o, BMD* b)
     return false;
 }
 
-float LastBigMonCreation = 0.0f;
-const float BigMonInterval = 4000.0f; // every 4 seconds.
-
 int CreateBigMon(OBJECT* o)
 {
-    if (gMapManager.InHellas() == false) return 0;
-
-    if (LastBigMonCreation < WorldTime - BigMonInterval)
-    {
-        LastBigMonCreation = WorldTime;
-        o->Live = true;
-        OpenMonsterModel(MONSTER_MODEL_BAHAMUT);
-        o->Type = MODEL_BAHAMUT;
-        o->Scale = 2.5f + (float)(rand() % 3 + 6) * 0.05f;
-        o->Alpha = 1.f;
-        o->AlphaTarget = o->Alpha;
-        o->LightEnable = false;
-        o->Velocity = (float)(rand() % 10 + 10) * 0.04f;
-        o->Gravity = rand() % 3 - 1.5f;
-        o->LightEnable = true;
-        o->AlphaEnable = false;
-        o->SubType = 0;
-        o->HiddenMesh = 5;
-        o->BlendMesh = -1;
-        o->LifeTime = 200;
-        o->CurrentAction = MONSTER01_WALK;
-        SetAction(o, o->CurrentAction);
-        Vector(0.f, 0.f, 90.f - rand() % 30 - 15, o->Angle);
-        Vector(Hero->Object.Position[0] - 1000 - rand() % 200,
-            Hero->Object.Position[1] - 500 + rand() % 200,
-            Hero->Object.Position[2] - 800.f, o->Position);
-    }
-    else
-    {
-        o->Live = false;
-    }
-    return 1;
+    // Disabled per user request (2026-09-29): ambient background Bahamut in
+    // Kalima's sky, removed entirely rather than tuned. See docs/AUDIT.md.
+    return 0;
 }
 
 void MoveBigMon(OBJECT* o)
