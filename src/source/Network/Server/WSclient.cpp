@@ -10274,14 +10274,30 @@ void ReceiveOption(const BYTE* ReceiveBuffer)
     byELevel = (Data->QWERLevel & 0x0000FF00) >> 8;
     byRLevel = Data->QWERLevel & 0x000000FF;
 
-    g_pMainFrame->SetItemHotKey(SEASON3B::HOTKEY_Q, Data->KeyQWE[0] + ITEM_POTION, byQLevel);
-    g_pMainFrame->SetItemHotKey(SEASON3B::HOTKEY_W, Data->KeyQWE[1] + ITEM_POTION, byWLevel);
-    g_pMainFrame->SetItemHotKey(SEASON3B::HOTKEY_E, Data->KeyQWE[2] + ITEM_POTION, byELevel);
+    // A raw KeyQWE[]/KeyR byte of 0 means "this quickslot was never customized" - the server has
+    // no separate "unset" sentinel, so a never-assigned slot and one genuinely holding item offset
+    // 0 (Apple) are indistinguishable on the wire. Confirmed live (see docs/AUDIT.md,
+    // "Q/W/E/R quickslots all show the same item") that treating raw 0 as "Apple" unconditionally
+    // registered every never-customized slot to Apple, and since Apple is tagged as a healing
+    // potion, W/E/R's own fallback logic (which checks "am I already registered to a healing item"
+    // before falling back to my own mana/antidote/shield default) then searched Q's healing-potion
+    // range too, so all four resolved to the same item. Mapping raw 0 to -1 (unregistered) instead
+    // leaves each slot to use its own case-specific default range from GetHotKeyItemIndex(), which
+    // for Q is already the same Large Healing..Apple range - so this is a no-op for Q and fixes
+    // W/E/R without needing to special-case Q at all.
+    auto ResolveHotKeyItemType = [](BYTE rawKey) -> int
+    {
+        return (rawKey == 0) ? -1 : (rawKey + ITEM_POTION);
+    };
+
+    g_pMainFrame->SetItemHotKey(SEASON3B::HOTKEY_Q, ResolveHotKeyItemType(Data->KeyQWE[0]), byQLevel);
+    g_pMainFrame->SetItemHotKey(SEASON3B::HOTKEY_W, ResolveHotKeyItemType(Data->KeyQWE[1]), byWLevel);
+    g_pMainFrame->SetItemHotKey(SEASON3B::HOTKEY_E, ResolveHotKeyItemType(Data->KeyQWE[2]), byELevel);
 
     BYTE wChatListBoxSize = (Data->ChatLogBox >> 4) * 3;
     BYTE wChatListBoxBackAlpha = Data->ChatLogBox & 0x0F;
 
-    g_pMainFrame->SetItemHotKey(SEASON3B::HOTKEY_R, Data->KeyR + ITEM_POTION, byRLevel);
+    g_pMainFrame->SetItemHotKey(SEASON3B::HOTKEY_R, ResolveHotKeyItemType(Data->KeyR), byRLevel);
 }
 
 void ReceiveEventChipInfomation(const BYTE* ReceiveBuffer)
