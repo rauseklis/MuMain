@@ -10029,7 +10029,15 @@ void RenderEffectShadows()
                     break;
                 case BITMAP_TWLIGHT:
                 case BITMAP_SHOCK_WAVE:
-                    if (o->Type == BITMAP_SHOCK_WAVE && gMapManager.InHellas() && o->SubType != 6)
+                    // Was gated on gMapManager.InHellas() alone. CreateWaterTerrain() (GMHellas.cpp)
+                    // now unconditionally returns false for every map (see docs/AUDIT.md, "Render
+                    // Kalima with its ground terrain"), so g_pCSWaterTerrain is never constructed and
+                    // RenderWaterTerrain() below is a silent no-op in Hellas - this shock-wave decal
+                    // was rendering nowhere at all there (no fallback to the normal ground decal).
+                    // IsWaterTerrain() (also GMHellas.cpp) reflects whether a water surface actually
+                    // exists to blend this decal onto, so it both fixes Hellas today and keeps working
+                    // if water terrain is ever reintroduced for some other map.
+                    if (o->Type == BITMAP_SHOCK_WAVE && IsWaterTerrain() && o->SubType != 6)
                     {
                         DisableDepthMask();
                         RenderWaterTerrain(o->Type, o->Position[0], o->Position[1], o->Scale, o->Scale, o->Light, -o->Angle[2]);

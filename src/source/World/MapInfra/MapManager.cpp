@@ -956,8 +956,14 @@ void CMapManager::Load() // OK
 
     if (this->InHellas())
     {
-        LoadBitmap(L"Object25\\water1.tga", BITMAP_MAPTILE, GL_LINEAR, GL_REPEAT, false);
-        LoadBitmap(L"Object25\\water2.jpg", BITMAP_MAPTILE + 1, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        // These two used to seed BITMAP_MAPTILE/+1 with the water surface texture before
+        // CSWaterTerrain::Render() bound them each frame. Since CreateWaterTerrain() (GMHellas.cpp)
+        // now unconditionally returns false for every map (see docs/AUDIT.md, "Render Kalima with
+        // its ground terrain"), g_pCSWaterTerrain is never constructed and nothing ever binds these
+        // textures again - and the generic per-map terrain-texture loader a few dozen lines below
+        // unconditionally overwrites BITMAP_MAPTILE/+1 with TileGrass01/02 right after this function
+        // returns to its caller. These two loads are 100% guaranteed-dead work on every Kalima map
+        // load; removed rather than left as silent waste.
 
         gLoadData.AccessModel(MODEL_CUNDUN_PART1, L"Data\\Monster\\", L"cd71a", -1);
         gLoadData.OpenTexture(MODEL_CUNDUN_PART1, L"Monster\\");
