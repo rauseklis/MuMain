@@ -95,6 +95,12 @@ public:
     bool GetTextureMipmapsEnabled() const { return m_textureMipmaps; }
     int GetAnisotropy() const { return m_anisotropy; }
     void SetVSyncEnabled(bool enabled);
+    // Values <= 0 are stored as the "Unlimited" sentinel (see CfgMaxFpsUnlimited);
+    // positive values are clamped to [CfgMinMaxFps, CfgMaxMaxFps].
+    void SetMaxFps(int fps);
+    void SetAntiAliasing(int samples);
+    void SetTextureMipmapsEnabled(bool enabled);
+    void SetAnisotropy(int level);
 
     // Helpers
     static std::wstring BinaryToHex(const BYTE* data, DWORD size);

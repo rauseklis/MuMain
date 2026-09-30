@@ -6,11 +6,13 @@
 #include "UI/NewUI/Options/NewUIOptionWindow.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "Render/Textures/ZzzTexture.h"
+#include "Render/Renderer/GraphicsQuality.h"
 #include "Audio/DSPlaySound.h"
 #include "Data/GameConfig/GameConfig.h"
 #include "Data/GameConfig/GameConfigConstants.h"
 #include "Audio/AudioPlayer.h"
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include "I18N/All.h"
 
@@ -23,6 +25,14 @@ std::vector<std::pair<int, int>> MuGetSupportedDisplayResolutions();
 void MuApplyWindowResolution(unsigned int width, unsigned int height, bool windowed);
 float ConvertX(float x);
 float ConvertY(float y);
+
+// Render/FPS live-apply plumbing (see docs/superpowers/specs/2026-09-30-ingame-graphics-settings-design.md).
+// Declared locally rather than pulling in their defining headers, matching this
+// file's existing convention for externally-defined free functions above.
+extern void MuSetVSyncPreference(bool enabled);
+bool IsVSyncEnabled();
+int GetFPSLimit();
+void SetTargetFps(double targetFps);
 
 using namespace SEASON3B;
 
@@ -146,6 +156,82 @@ static const wchar_t* const* GetFontLabels()
     return labels;
 }
 
+// Max FPS combo values (config.ini [Render] MaxFPS). -1 is the "Unlimited"
+// sentinel GameConfig::SetMaxFps/GetMaxFps use; there is no normalizer for
+// this key (unlike AntiAliasing/Anisotropy below) since it's a plain frame cap,
+// not a GPU capability that needs probing.
+static const struct { int value; const wchar_t* label; } s_MaxFpsOptions[] = {
+    { 30,  L"30" },
+    { 60,  L"60" },
+    { 120, L"120" },
+    { 144, L"144" },
+    { 165, L"165" },
+    { 240, L"240" },
+    { -1,  L"Unlimited" },
+};
+static const int s_NumMaxFpsOptions = sizeof(s_MaxFpsOptions) / sizeof(s_MaxFpsOptions[0]);
+
+static const wchar_t* const* GetMaxFpsLabels()
+{
+    static const wchar_t* labels[s_NumMaxFpsOptions] = {};
+    static bool initialized = false;
+    if (!initialized)
+    {
+        for (int i = 0; i < s_NumMaxFpsOptions; i++)
+            labels[i] = s_MaxFpsOptions[i].label;
+        initialized = true;
+    }
+    return labels;
+}
+
+// Anti-aliasing combo values (config.ini [Render] AntiAliasing). Matches the
+// exact output set of Render::GraphicsQuality::NormalizeMsaaSamples, so every
+// config value normalizes to one of these options with no leftover cases.
+static const struct { int value; const wchar_t* label; } s_AntiAliasingOptions[] = {
+    { 1, L"Off" },
+    { 2, L"2x" },
+    { 4, L"4x" },
+    { 8, L"8x" },
+};
+static const int s_NumAntiAliasingOptions = sizeof(s_AntiAliasingOptions) / sizeof(s_AntiAliasingOptions[0]);
+
+static const wchar_t* const* GetAntiAliasingLabels()
+{
+    static const wchar_t* labels[s_NumAntiAliasingOptions] = {};
+    static bool initialized = false;
+    if (!initialized)
+    {
+        for (int i = 0; i < s_NumAntiAliasingOptions; i++)
+            labels[i] = s_AntiAliasingOptions[i].label;
+        initialized = true;
+    }
+    return labels;
+}
+
+// Anisotropic filtering combo values (config.ini [Render] Anisotropy). Matches
+// the exact output set of Render::GraphicsQuality::NormalizeAnisotropy.
+static const struct { int value; const wchar_t* label; } s_AnisotropyOptions[] = {
+    { 1,  L"Off" },
+    { 2,  L"2x" },
+    { 4,  L"4x" },
+    { 8,  L"8x" },
+    { 16, L"16x" },
+};
+static const int s_NumAnisotropyOptions = sizeof(s_AnisotropyOptions) / sizeof(s_AnisotropyOptions[0]);
+
+static const wchar_t* const* GetAnisotropyLabels()
+{
+    static const wchar_t* labels[s_NumAnisotropyOptions] = {};
+    static bool initialized = false;
+    if (!initialized)
+    {
+        for (int i = 0; i < s_NumAnisotropyOptions; i++)
+            labels[i] = s_AnisotropyOptions[i].label;
+        initialized = true;
+    }
+    return labels;
+}
+
 namespace
 {
     // Volume levels are integers 0..MAX_VOLUME; the slider track is SLIDER_WIDTH pixels wide.
@@ -195,6 +281,47 @@ namespace
     constexpr int FONT_COMBO_WIDTH   = 148;
     constexpr int FONT_COMBO_HEIGHT  = 16;
     constexpr int FONT_COMBO_MAX_VISIBLE = 5;
+
+    // Render/FPS settings, continuing straight down from Windowed Mode (label
+    // at y=361) at the same 39px row pitch the Font/Language/Resolution/
+    // Windowed block above already uses. AntiAliasing, TextureMipmaps, and
+    // Anisotropy each also render a small "Restart required" note, so the row
+    // *after* one of those three gets extra pitch (56 instead of 39) to clear it.
+    constexpr int MAXFPS_LABEL_Y_LOCAL = 400;   // Windowed Mode (361) + 39
+    constexpr int MAXFPS_COMBO_X_LOCAL = 22;
+    constexpr int MAXFPS_COMBO_Y_LOCAL = 413;   // label + 13
+    constexpr int MAXFPS_COMBO_WIDTH   = 148;
+    constexpr int MAXFPS_COMBO_HEIGHT  = 16;
+    constexpr int MAXFPS_COMBO_MAX_VISIBLE = 4;
+
+    constexpr int VSYNC_LABEL_Y_LOCAL = 439;    // Max FPS (400) + 39
+    constexpr int VSYNC_CHECKBOX_Y_LOCAL = 434; // label - 5
+
+    constexpr int AA_LABEL_Y_LOCAL = 478;       // VSync (439) + 39
+    constexpr int AA_COMBO_X_LOCAL = 22;
+    constexpr int AA_COMBO_Y_LOCAL = 491;       // label + 13
+    constexpr int AA_COMBO_WIDTH   = 148;
+    constexpr int AA_COMBO_HEIGHT  = 16;
+    constexpr int AA_COMBO_MAX_VISIBLE = 4;
+    constexpr int AA_NOTE_Y_LOCAL = 509;        // combo bottom (491+16) + 2
+
+    constexpr int MIPMAPS_LABEL_Y_LOCAL = 534;      // Anti-Aliasing (478) + 56 (clears its note)
+    constexpr int MIPMAPS_CHECKBOX_Y_LOCAL = 529;   // label - 5
+    constexpr int MIPMAPS_NOTE_Y_LOCAL = 551;       // label + 17
+
+    constexpr int ANISO_LABEL_Y_LOCAL = 590;    // Texture Mipmaps (534) + 56 (clears its note)
+    constexpr int ANISO_COMBO_X_LOCAL = 22;
+    constexpr int ANISO_COMBO_Y_LOCAL = 603;    // label + 13
+    constexpr int ANISO_COMBO_WIDTH   = 148;
+    constexpr int ANISO_COMBO_HEIGHT  = 16;
+    constexpr int ANISO_COMBO_MAX_VISIBLE = 4;
+    constexpr int ANISO_NOTE_Y_LOCAL = 621;     // combo bottom (603+16) + 2
+
+    constexpr int CLOSE_BUTTON_Y_LOCAL = 646;   // Anisotropy (590) + 56 (clears its note)
+
+    // Color for the small restart-required notes: dimmer than the normal
+    // white row text so they read as secondary/informational.
+    constexpr BYTE NOTE_TEXT_GRAY = 160;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -218,6 +345,12 @@ SEASON3B::CNewUIOptionWindow::CNewUIOptionWindow()
     m_bWindowedMode = (g_bUseWindowMode == TRUE);
     m_iLanguageIndex = FindCurrentLanguageIndex();
     m_iFontIndex = FindCurrentFontIndex();
+
+    m_iMaxFpsIndex = FindCurrentMaxFpsIndex();
+    m_bVSync = GameConfig::GetInstance().GetVSyncEnabled();
+    m_iAntiAliasingIndex = FindCurrentAntiAliasingIndex();
+    m_bTextureMipmaps = GameConfig::GetInstance().GetTextureMipmapsEnabled();
+    m_iAnisotropyIndex = FindCurrentAnisotropyIndex();
 }
 
 SEASON3B::CNewUIOptionWindow::~CNewUIOptionWindow()
@@ -238,6 +371,9 @@ bool SEASON3B::CNewUIOptionWindow::Create(CNewUIManager* pNewUIMng, int x, int y
     InitResolutionCombo();
     InitLanguageCombo();
     InitFontCombo();
+    InitMaxFpsCombo();
+    InitAntiAliasingCombo();
+    InitAnisotropyCombo();
     Show(false);
     return true;
 }
@@ -305,11 +441,53 @@ void SEASON3B::CNewUIOptionWindow::InitFontCombo()
         FONT_COMBO_MAX_VISIBLE);
 }
 
+void SEASON3B::CNewUIOptionWindow::InitMaxFpsCombo()
+{
+    m_iMaxFpsIndex = FindCurrentMaxFpsIndex();
+    m_MaxFpsCombo.Setup(
+        m_Pos.x + MAXFPS_COMBO_X_LOCAL,
+        m_Pos.y + MAXFPS_COMBO_Y_LOCAL,
+        MAXFPS_COMBO_WIDTH,
+        MAXFPS_COMBO_HEIGHT,
+        GetMaxFpsLabels(),
+        s_NumMaxFpsOptions,
+        m_iMaxFpsIndex,
+        MAXFPS_COMBO_MAX_VISIBLE);
+}
+
+void SEASON3B::CNewUIOptionWindow::InitAntiAliasingCombo()
+{
+    m_iAntiAliasingIndex = FindCurrentAntiAliasingIndex();
+    m_AntiAliasingCombo.Setup(
+        m_Pos.x + AA_COMBO_X_LOCAL,
+        m_Pos.y + AA_COMBO_Y_LOCAL,
+        AA_COMBO_WIDTH,
+        AA_COMBO_HEIGHT,
+        GetAntiAliasingLabels(),
+        s_NumAntiAliasingOptions,
+        m_iAntiAliasingIndex,
+        AA_COMBO_MAX_VISIBLE);
+}
+
+void SEASON3B::CNewUIOptionWindow::InitAnisotropyCombo()
+{
+    m_iAnisotropyIndex = FindCurrentAnisotropyIndex();
+    m_AnisotropyCombo.Setup(
+        m_Pos.x + ANISO_COMBO_X_LOCAL,
+        m_Pos.y + ANISO_COMBO_Y_LOCAL,
+        ANISO_COMBO_WIDTH,
+        ANISO_COMBO_HEIGHT,
+        GetAnisotropyLabels(),
+        s_NumAnisotropyOptions,
+        m_iAnisotropyIndex,
+        ANISO_COMBO_MAX_VISIBLE);
+}
+
 void SEASON3B::CNewUIOptionWindow::SetButtonInfo()
 {
     m_BtnClose.ChangeTextBackColor(RGBA(255, 255, 255, 0));
     m_BtnClose.ChangeButtonImgState(true, IMAGE_OPTION_BTN_CLOSE, true);
-    m_BtnClose.ChangeButtonInfo(m_Pos.x + 68, m_Pos.y + 388, 54, 30);
+    m_BtnClose.ChangeButtonInfo(m_Pos.x + 68, m_Pos.y + CLOSE_BUTTON_Y_LOCAL, 54, 30);
     m_BtnClose.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
     m_BtnClose.ChangeImgColor(BUTTON_STATE_DOWN, RGBA(255, 255, 255, 255));
 }
@@ -332,6 +510,9 @@ void SEASON3B::CNewUIOptionWindow::SetPos(int x, int y)
     m_ResolutionCombo.SetPos(m_Pos.x + RES_COMBO_X_LOCAL, m_Pos.y + RES_COMBO_Y_LOCAL);
     m_LanguageCombo.SetPos(m_Pos.x + LANG_COMBO_X_LOCAL, m_Pos.y + LANG_COMBO_Y_LOCAL);
     m_FontCombo.SetPos(m_Pos.x + FONT_COMBO_X_LOCAL, m_Pos.y + FONT_COMBO_Y_LOCAL);
+    m_MaxFpsCombo.SetPos(m_Pos.x + MAXFPS_COMBO_X_LOCAL, m_Pos.y + MAXFPS_COMBO_Y_LOCAL);
+    m_AntiAliasingCombo.SetPos(m_Pos.x + AA_COMBO_X_LOCAL, m_Pos.y + AA_COMBO_Y_LOCAL);
+    m_AnisotropyCombo.SetPos(m_Pos.x + ANISO_COMBO_X_LOCAL, m_Pos.y + ANISO_COMBO_Y_LOCAL);
 }
 
 bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
@@ -364,9 +545,12 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
     // through to the Close button or a checkbox behind the dropdown.
     struct ComboSlot { CNewUIComboBox* combo; int* index; void (CNewUIOptionWindow::*apply)(); };
     const ComboSlot slots[] = {
-        { &m_ResolutionCombo, &m_iResolutionIndex, &CNewUIOptionWindow::ApplyResolution },
-        { &m_LanguageCombo,   &m_iLanguageIndex,   &CNewUIOptionWindow::ApplyLanguage   },
-        { &m_FontCombo,       &m_iFontIndex,       &CNewUIOptionWindow::ApplyFont        },
+        { &m_ResolutionCombo,   &m_iResolutionIndex,   &CNewUIOptionWindow::ApplyResolution    },
+        { &m_LanguageCombo,     &m_iLanguageIndex,     &CNewUIOptionWindow::ApplyLanguage      },
+        { &m_FontCombo,         &m_iFontIndex,         &CNewUIOptionWindow::ApplyFont          },
+        { &m_MaxFpsCombo,       &m_iMaxFpsIndex,       &CNewUIOptionWindow::ApplyMaxFps        },
+        { &m_AntiAliasingCombo, &m_iAntiAliasingIndex, &CNewUIOptionWindow::ApplyAntiAliasing  },
+        { &m_AnisotropyCombo,   &m_iAnisotropyIndex,   &CNewUIOptionWindow::ApplyAnisotropy    },
     };
     for (int pass = 0; pass < 2; ++pass)   // pass 0 = open combo (on top), pass 1 = closed
     {
@@ -403,10 +587,23 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
     }
 
     bool oldWindowedMode = m_bWindowedMode;
+    bool oldVSync = m_bVSync;
+    bool oldTextureMipmaps = m_bTextureMipmaps;
     HandleCheckboxInputs();
 
     if (m_bWindowedMode != oldWindowedMode)
         ApplyWindowModeToggle();
+
+    if (m_bVSync != oldVSync)
+        ApplyVSync();
+
+    if (m_bTextureMipmaps != oldTextureMipmaps)
+    {
+        GameConfig::GetInstance().SetTextureMipmapsEnabled(m_bTextureMipmaps);
+        GameConfig::GetInstance().Save();
+        // Takes effect on next launch only -- mipmap chains are generated once
+        // per texture at upload time (see design doc).
+    }
 
     if (HandleVolumeSlider(m_iVolumeLevel, 104))
         OnSoundVolumeChanged();
@@ -418,7 +615,7 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
 
     // Combo box already processed at the top. Just consume clicks inside the
     // option window itself so they don't fall through to the world.
-    if (CheckMouseIn(m_Pos.x, m_Pos.y, 190, 419))
+    if (CheckMouseIn(m_Pos.x, m_Pos.y, 190, CLOSE_BUTTON_Y_LOCAL + 30))
         return false;
 
     return true;
@@ -433,6 +630,8 @@ void SEASON3B::CNewUIOptionWindow::HandleCheckboxInputs()
         { 155, &m_bSlideHelp         },
         { 238, &m_bRenderAllEffects  },
         { 356, &m_bWindowedMode      },
+        { VSYNC_CHECKBOX_Y_LOCAL,    &m_bVSync          },
+        { MIPMAPS_CHECKBOX_Y_LOCAL,  &m_bTextureMipmaps },
     };
 
     constexpr int CHECKBOX_X_LOCAL = 150;
@@ -577,6 +776,20 @@ void SEASON3B::CNewUIOptionWindow::OpenningProcess()
     m_FontCombo.SetSelectedIndex(m_iFontIndex);
     m_FontCombo.Close();
     m_bWindowedMode = (g_bUseWindowMode == TRUE);
+
+    // Render/FPS settings can also change externally while the window is
+    // hidden (e.g. the console's vsync on/off commands), so resync them too.
+    m_iMaxFpsIndex = FindCurrentMaxFpsIndex();
+    m_MaxFpsCombo.SetSelectedIndex(m_iMaxFpsIndex);
+    m_MaxFpsCombo.Close();
+    m_bVSync = GameConfig::GetInstance().GetVSyncEnabled();
+    m_iAntiAliasingIndex = FindCurrentAntiAliasingIndex();
+    m_AntiAliasingCombo.SetSelectedIndex(m_iAntiAliasingIndex);
+    m_AntiAliasingCombo.Close();
+    m_bTextureMipmaps = GameConfig::GetInstance().GetTextureMipmapsEnabled();
+    m_iAnisotropyIndex = FindCurrentAnisotropyIndex();
+    m_AnisotropyCombo.SetSelectedIndex(m_iAnisotropyIndex);
+    m_AnisotropyCombo.Close();
 }
 
 void SEASON3B::CNewUIOptionWindow::ClosingProcess()
@@ -584,6 +797,9 @@ void SEASON3B::CNewUIOptionWindow::ClosingProcess()
     m_ResolutionCombo.Close();
     m_LanguageCombo.Close();
     m_FontCombo.Close();
+    m_MaxFpsCombo.Close();
+    m_AntiAliasingCombo.Close();
+    m_AnisotropyCombo.Close();
 }
 
 void SEASON3B::CNewUIOptionWindow::LoadImages()
@@ -626,9 +842,10 @@ void SEASON3B::CNewUIOptionWindow::RenderFrame()
     x = m_Pos.x;
     y = m_Pos.y;
     // Frame is composed of: 64px top + N*10px middle slats + 45px bottom. The
-    // slat count is tuned so the frame reaches the Close button (Y 388) plus the
-    // bottom border, after the Font/Language/Resolution/Windowed rows.
-    constexpr int SLAT_COUNT = 30;
+    // slat count is tuned so the frame reaches the Close button (Y CLOSE_BUTTON_Y_LOCAL)
+    // plus the bottom border, after the Font/Language/Resolution/Windowed rows
+    // and the five Render/FPS rows below them.
+    constexpr int SLAT_COUNT = 56;
     constexpr float FRAME_HEIGHT = 64.f + SLAT_COUNT * 10.f + 45.f;
     RenderImage(IMAGE_OPTION_FRAME_BACK, x, y, 190.f, FRAME_HEIGHT);
     RenderImage(IMAGE_OPTION_FRAME_UP, x, y, 190.f, 64.f);
@@ -705,6 +922,35 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
     y += 39.f;
     RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Windowed Mode
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 361, I18N::Game::WindowedMode);
+
+    y += 39.f;
+    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Max FPS
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + MAXFPS_LABEL_Y_LOCAL, I18N::Game::MaxFPS);
+
+    y += 39.f;
+    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // VSync
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + VSYNC_LABEL_Y_LOCAL, I18N::Game::VSync);
+
+    y += 39.f;
+    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Anti-Aliasing
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + AA_LABEL_Y_LOCAL, I18N::Game::AntiAliasing);
+    g_pRenderText->SetTextColor(NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, 255);
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + AA_NOTE_Y_LOCAL, I18N::Game::RestartRequired);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
+
+    y += 56.f;
+    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Texture Mipmaps
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + MIPMAPS_LABEL_Y_LOCAL, I18N::Game::TextureMipmaps);
+    g_pRenderText->SetTextColor(NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, 255);
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + MIPMAPS_NOTE_Y_LOCAL, I18N::Game::RestartRequired);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
+
+    y += 56.f;
+    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Anisotropic Filtering
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + ANISO_LABEL_Y_LOCAL, I18N::Game::AnisotropicFiltering);
+    g_pRenderText->SetTextColor(NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, 255);
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + ANISO_NOTE_Y_LOCAL, I18N::Game::RestartRequired);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
 }
 
 void SEASON3B::CNewUIOptionWindow::RenderButtons()
@@ -782,13 +1028,32 @@ void SEASON3B::CNewUIOptionWindow::RenderButtons()
         RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 356, 15, 15, 0, 15.f);
     }
 
+    if (m_bVSync)
+    {
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + VSYNC_CHECKBOX_Y_LOCAL, 15, 15, 0, 0);
+    }
+    else
+    {
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + VSYNC_CHECKBOX_Y_LOCAL, 15, 15, 0, 15.f);
+    }
+
+    if (m_bTextureMipmaps)
+    {
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + MIPMAPS_CHECKBOX_Y_LOCAL, 15, 15, 0, 0);
+    }
+    else
+    {
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + MIPMAPS_CHECKBOX_Y_LOCAL, 15, 15, 0, 15.f);
+    }
+
     // Combo boxes drawn last so their expanded dropdowns sit on top of
     // anything else in the window. Within the combo pair, render the
     // closed one(s) first and any open dropdown last - otherwise a combo
     // physically below an open one would draw its closed field on top of
     // that open dropdown's list (since they overlap in screen space when
     // the upper one expands downward).
-    CNewUIComboBox* combos[] = { &m_ResolutionCombo, &m_LanguageCombo, &m_FontCombo };
+    CNewUIComboBox* combos[] = { &m_ResolutionCombo, &m_LanguageCombo, &m_FontCombo,
+                                 &m_MaxFpsCombo, &m_AntiAliasingCombo, &m_AnisotropyCombo };
     for (auto* c : combos) if (!c->IsOpen()) c->Render();
     for (auto* c : combos) if (c->IsOpen())  c->Render();
 }
@@ -975,4 +1240,108 @@ void SEASON3B::CNewUIOptionWindow::ApplyWindowModeToggle()
     // Consume the in-flight VK_LBUTTON press so the same click doesn't
     // toggle again next frame; the user must release and click again.
     g_pNewKeyInput->SetKeyState(VK_LBUTTON, SEASON3B::CNewKeyInput::KEY_NONE);
+}
+
+int SEASON3B::CNewUIOptionWindow::FindCurrentMaxFpsIndex()
+{
+    const int current = GameConfig::GetInstance().GetMaxFps();
+    if (current <= 0)
+    {
+        return s_NumMaxFpsOptions - 1;  // Unlimited is always the last entry
+    }
+
+    // Not every hand-edited config.ini value lands exactly on a listed option
+    // (e.g. 100): pick the closest capped value instead of silently defaulting,
+    // same "closest" philosophy FindClosestDisplayResolutionIndex uses above.
+    int bestIndex = 0;
+    int bestDistance = std::abs(s_MaxFpsOptions[0].value - current);
+    for (int i = 1; i < s_NumMaxFpsOptions - 1; ++i)   // exclude the Unlimited sentinel entry
+    {
+        const int distance = std::abs(s_MaxFpsOptions[i].value - current);
+        if (distance < bestDistance)
+        {
+            bestIndex = i;
+            bestDistance = distance;
+        }
+    }
+    return bestIndex;
+}
+
+void SEASON3B::CNewUIOptionWindow::ApplyMaxFps()
+{
+    if (m_iMaxFpsIndex < 0 || m_iMaxFpsIndex >= s_NumMaxFpsOptions)
+    {
+        return;
+    }
+
+    GameConfig::GetInstance().SetMaxFps(s_MaxFpsOptions[m_iMaxFpsIndex].value);
+    GameConfig::GetInstance().Save();
+
+    // VSync forces an uncapped target FPS regardless of MaxFPS (see
+    // SceneManager.cpp's SetTargetFps); only reapply the limiter live when
+    // VSync isn't already driving frame pacing. Either way the new value is
+    // now persisted and will take over as soon as VSync is off.
+    if (!IsVSyncEnabled())
+    {
+        SetTargetFps(GetFPSLimit());
+    }
+}
+
+int SEASON3B::CNewUIOptionWindow::FindCurrentAntiAliasingIndex()
+{
+    const int normalized = Render::GraphicsQuality::NormalizeMsaaSamples(GameConfig::GetInstance().GetAntiAliasing());
+    for (int i = 0; i < s_NumAntiAliasingOptions; ++i)
+    {
+        if (s_AntiAliasingOptions[i].value == normalized)
+            return i;
+    }
+    return 0;  // unreachable: NormalizeMsaaSamples always returns one of the listed values
+}
+
+void SEASON3B::CNewUIOptionWindow::ApplyAntiAliasing()
+{
+    if (m_iAntiAliasingIndex < 0 || m_iAntiAliasingIndex >= s_NumAntiAliasingOptions)
+    {
+        return;
+    }
+
+    GameConfig::GetInstance().SetAntiAliasing(s_AntiAliasingOptions[m_iAntiAliasingIndex].value);
+    GameConfig::GetInstance().Save();
+    // Restart required: the MSAA sample count is baked into every render
+    // pipeline/color/depth target at GPU-device init (ConfigureGraphicsQuality
+    // in MuRendererSDLGpu.cpp), so this can't be applied live.
+}
+
+int SEASON3B::CNewUIOptionWindow::FindCurrentAnisotropyIndex()
+{
+    const int normalized = Render::GraphicsQuality::NormalizeAnisotropy(GameConfig::GetInstance().GetAnisotropy());
+    for (int i = 0; i < s_NumAnisotropyOptions; ++i)
+    {
+        if (s_AnisotropyOptions[i].value == normalized)
+            return i;
+    }
+    return 0;  // unreachable: NormalizeAnisotropy always returns one of the listed values
+}
+
+void SEASON3B::CNewUIOptionWindow::ApplyAnisotropy()
+{
+    if (m_iAnisotropyIndex < 0 || m_iAnisotropyIndex >= s_NumAnisotropyOptions)
+    {
+        return;
+    }
+
+    GameConfig::GetInstance().SetAnisotropy(s_AnisotropyOptions[m_iAnisotropyIndex].value);
+    GameConfig::GetInstance().Save();
+    // Restart required: anisotropy is applied once per texture, at upload
+    // time in GlobalBitmap.cpp's UploadTextureSDLGpu, not something that can
+    // be re-applied to already-uploaded textures live.
+}
+
+void SEASON3B::CNewUIOptionWindow::ApplyVSync()
+{
+    // Persists to config.ini, saves, and defers the actual swapchain
+    // present-mode change to the next frame's ApplyPendingVSyncPreference()
+    // call in Winmain.cpp -- the same live-apply path the console's
+    // "vsync on"/"vsync off" commands use.
+    MuSetVSyncPreference(m_bVSync);
 }
