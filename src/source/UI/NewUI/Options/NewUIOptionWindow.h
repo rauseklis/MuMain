@@ -47,8 +47,6 @@ namespace SEASON3B
             IMAGE_OPTION_EFFECT_COLOR,
             IMAGE_OPTION_VOLUME_BACK,
             IMAGE_OPTION_VOLUME_COLOR,
-            IMAGE_OPTION_ARROW_LEFT,
-            IMAGE_OPTION_ARROW_RIGHT,
         };
 
     public:

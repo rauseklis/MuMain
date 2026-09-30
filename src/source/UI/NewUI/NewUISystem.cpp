@@ -149,10 +149,10 @@ bool CNewUISystem::Create()
         return false;
 
     m_pNewOptionWindow = new CNewUIOptionWindow;
-    // 600 must match WINDOW_WIDTH in NewUIOptionWindow.cpp (widened from 190
-    // to fit the 3-column Render/FPS settings block within the 640x480
-    // reference canvas -- see that file's layout comments for why).
-    if (m_pNewOptionWindow->Create(m_pNewUIMng, (640 / 2) - (600 / 2), 5) == false)
+    // The compact 190px panel is horizontally centered in NewUI's 640px
+    // reference canvas. Every child control is positioned relative to this
+    // origin, so moving the parent preserves all render and hit-test alignment.
+    if (m_pNewOptionWindow->Create(m_pNewUIMng, (640 - 190) / 2, 5) == false)
     {
         return false;
     }

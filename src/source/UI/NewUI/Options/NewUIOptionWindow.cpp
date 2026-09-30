@@ -315,9 +315,10 @@ namespace
     constexpr int CLOSE_BUTTON_X_LOCAL = 68;
     constexpr int CLOSE_BUTTON_Y_LOCAL = 388;
     constexpr int PAGER_Y_LOCAL = 375;
-    constexpr int PAGER_LEFT_X_LOCAL = 53;
-    constexpr int PAGER_RIGHT_X_LOCAL = 131;
-    constexpr int PAGER_HIT_SIZE = 16;
+    constexpr int PAGER_GENERAL_X_LOCAL = 29;
+    constexpr int PAGER_GRAPHICS_X_LOCAL = 96;
+    constexpr int PAGER_TAB_WIDTH = 65;
+    constexpr int PAGER_TAB_HEIGHT = 13;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -587,16 +588,16 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
 
     if (SEASON3B::IsPress(VK_LBUTTON))
     {
-        if (CheckMouseIn(m_Pos.x + PAGER_LEFT_X_LOCAL, m_Pos.y + PAGER_Y_LOCAL - 3,
-                         PAGER_HIT_SIZE, PAGER_HIT_SIZE))
+        if (CheckMouseIn(m_Pos.x + PAGER_GENERAL_X_LOCAL, m_Pos.y + PAGER_Y_LOCAL - 2,
+                         PAGER_TAB_WIDTH, PAGER_TAB_HEIGHT))
         {
-            ChangePage((m_iCurrentPage + PAGE_COUNT - 1) % PAGE_COUNT);
+            ChangePage(PAGE_GENERAL);
             return false;
         }
-        if (CheckMouseIn(m_Pos.x + PAGER_RIGHT_X_LOCAL, m_Pos.y + PAGER_Y_LOCAL - 3,
-                         PAGER_HIT_SIZE, PAGER_HIT_SIZE))
+        if (CheckMouseIn(m_Pos.x + PAGER_GRAPHICS_X_LOCAL, m_Pos.y + PAGER_Y_LOCAL - 2,
+                         PAGER_TAB_WIDTH, PAGER_TAB_HEIGHT))
         {
-            ChangePage((m_iCurrentPage + 1) % PAGE_COUNT);
+            ChangePage(PAGE_GRAPHICS);
             return false;
         }
     }
@@ -856,8 +857,6 @@ void SEASON3B::CNewUIOptionWindow::LoadImages()
     LoadBitmap(L"Interface\\newui_option_effect04.tga", IMAGE_OPTION_EFFECT_COLOR, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_option_volume01.tga", IMAGE_OPTION_VOLUME_BACK, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_option_volume02.tga", IMAGE_OPTION_VOLUME_COLOR, GL_LINEAR);
-    LoadBitmap(L"Interface\\newui_arrow(L).tga", IMAGE_OPTION_ARROW_LEFT, GL_LINEAR);
-    LoadBitmap(L"Interface\\newui_arrow(R).tga", IMAGE_OPTION_ARROW_RIGHT, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIOptionWindow::UnloadImages()
@@ -875,8 +874,6 @@ void SEASON3B::CNewUIOptionWindow::UnloadImages()
     DeleteBitmap(IMAGE_OPTION_EFFECT_COLOR);
     DeleteBitmap(IMAGE_OPTION_VOLUME_BACK);
     DeleteBitmap(IMAGE_OPTION_VOLUME_COLOR);
-    DeleteBitmap(IMAGE_OPTION_ARROW_LEFT);
-    DeleteBitmap(IMAGE_OPTION_ARROW_RIGHT);
 }
 
 void SEASON3B::CNewUIOptionWindow::RenderFrame()
@@ -985,23 +982,23 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
         }
     }
 
-    wchar_t pageText[8]{};
-    mu_swprintf(pageText, L"%d / %d", m_iCurrentPage + 1, PAGE_COUNT);
-    g_pRenderText->SetTextColor(255, 189, 25, 255);
-    g_pRenderText->RenderText(m_Pos.x + 69, m_Pos.y + PAGER_Y_LOCAL - 1,
-                              pageText, 52, 0, RT3_SORT_CENTER);
+    const DWORD activeColor = RGBA(255, 189, 25, 255);
+    const DWORD inactiveColor = RGBA(170, 170, 170, 255);
+    g_pRenderText->SetTextColor(m_iCurrentPage == PAGE_GENERAL ? activeColor : inactiveColor);
+    g_pRenderText->RenderText(m_Pos.x + PAGER_GENERAL_X_LOCAL, m_Pos.y + PAGER_Y_LOCAL - 1,
+                              L"General", PAGER_TAB_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->SetTextColor(m_iCurrentPage == PAGE_GRAPHICS ? activeColor : inactiveColor);
+    g_pRenderText->RenderText(m_Pos.x + PAGER_GRAPHICS_X_LOCAL, m_Pos.y + PAGER_Y_LOCAL - 1,
+                              L"Graphics", PAGER_TAB_WIDTH, 0, RT3_SORT_CENTER);
+
+    const int activeX = m_iCurrentPage == PAGE_GENERAL ? PAGER_GENERAL_X_LOCAL : PAGER_GRAPHICS_X_LOCAL;
+    RenderColorQuadARGB((float)(m_Pos.x + activeX + 8), (float)(m_Pos.y + PAGER_Y_LOCAL + 10),
+                        (float)(PAGER_TAB_WIDTH - 16), 1.f, 0xFFFFBD19u);
 }
 
 void SEASON3B::CNewUIOptionWindow::RenderButtons()
 {
     m_BtnClose.Render();
-
-    // The same understated NewUI arrows used by WindowMenu/QuickCommand frame
-    // the page indicator and keep the pager visually native to the client.
-    RenderImage(IMAGE_OPTION_ARROW_LEFT, m_Pos.x + PAGER_LEFT_X_LOCAL + 5,
-                m_Pos.y + PAGER_Y_LOCAL, 6.f, 9.f);
-    RenderImage(IMAGE_OPTION_ARROW_RIGHT, m_Pos.x + PAGER_RIGHT_X_LOCAL + 5,
-                m_Pos.y + PAGER_Y_LOCAL, 6.f, 9.f);
 
     if (m_iCurrentPage == PAGE_GENERAL)
     {
