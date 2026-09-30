@@ -312,8 +312,12 @@ namespace
 
     constexpr int WINDOW_WIDTH = 190;
     constexpr int WINDOW_HEIGHT = 419;
-    constexpr int CLOSE_BUTTON_X_LOCAL = 68;
-    constexpr int CLOSE_BUTTON_Y_LOCAL = 388;
+    constexpr int CLOSE_BUTTON_X_LOCAL = 73;
+    constexpr int CLOSE_BUTTON_Y_LOCAL = 391;
+    constexpr int CLOSE_BUTTON_WIDTH = 44;
+    constexpr int CLOSE_BUTTON_HEIGHT = 24;
+    constexpr int CLOSE_BUTTON_SOURCE_WIDTH = 54;
+    constexpr int CLOSE_BUTTON_SOURCE_HEIGHT = 30;
     constexpr int PAGER_Y_LOCAL = 375;
     constexpr int PAGER_GENERAL_X_LOCAL = 29;
     constexpr int PAGER_GRAPHICS_X_LOCAL = 96;
@@ -485,7 +489,8 @@ void SEASON3B::CNewUIOptionWindow::SetButtonInfo()
 {
     m_BtnClose.ChangeTextBackColor(RGBA(255, 255, 255, 0));
     m_BtnClose.ChangeButtonImgState(true, IMAGE_OPTION_BTN_CLOSE, true);
-    m_BtnClose.ChangeButtonInfo(m_Pos.x + CLOSE_BUTTON_X_LOCAL, m_Pos.y + CLOSE_BUTTON_Y_LOCAL, 54, 30);
+    m_BtnClose.ChangeButtonInfo(m_Pos.x + CLOSE_BUTTON_X_LOCAL, m_Pos.y + CLOSE_BUTTON_Y_LOCAL,
+                                CLOSE_BUTTON_WIDTH, CLOSE_BUTTON_HEIGHT);
     m_BtnClose.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
     m_BtnClose.ChangeImgColor(BUTTON_STATE_DOWN, RGBA(255, 255, 255, 255));
 }
@@ -882,7 +887,11 @@ void SEASON3B::CNewUIOptionWindow::RenderFrame()
     float y = m_Pos.y;
 
     // Original compact 190px Options frame.
-    constexpr int SLAT_COUNT = 30;
+    // 31 middle slats make the composed frame exactly WINDOW_HEIGHT tall:
+    // 64 top + 310 middle + 45 bottom = 419. The previous 30-slat frame
+    // stopped at 409 while its background continued to 419, exposing a grey
+    // strip beneath the ornamental bottom cap.
+    constexpr int SLAT_COUNT = 31;
     RenderImage(IMAGE_OPTION_FRAME_BACK, x, y, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
     RenderImage(IMAGE_OPTION_FRAME_UP, x, y, (float)WINDOW_WIDTH, 64.f);
     y += 64.f;
@@ -998,7 +1007,19 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
 
 void SEASON3B::CNewUIOptionWindow::RenderButtons()
 {
-    m_BtnClose.Render();
+    // CNewUIButton's ordinary renderer crops sprites when its destination is
+    // smaller than the source. Draw the same state frame through the stretch
+    // helper so the 54x30 artwork scales cleanly to this compact 44x24 button.
+    int closeFrame = 0;
+    if (m_BtnClose.GetBTState() == BUTTON_STATE_OVER)
+        closeFrame = 1;
+    else if (m_BtnClose.GetBTState() == BUTTON_STATE_DOWN)
+        closeFrame = 2;
+    RenderImageStretch(IMAGE_OPTION_BTN_CLOSE,
+                       m_Pos.x + CLOSE_BUTTON_X_LOCAL, m_Pos.y + CLOSE_BUTTON_Y_LOCAL,
+                       (float)CLOSE_BUTTON_WIDTH, (float)CLOSE_BUTTON_HEIGHT,
+                       0.f, (float)(closeFrame * CLOSE_BUTTON_SOURCE_HEIGHT),
+                       (float)CLOSE_BUTTON_SOURCE_WIDTH, (float)CLOSE_BUTTON_SOURCE_HEIGHT);
 
     if (m_iCurrentPage == PAGE_GENERAL)
     {
