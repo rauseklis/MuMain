@@ -18,6 +18,21 @@ typedef struct _PATH_t
     int           Count;
     SpinLock      Lock;
 
+    // Final-arrival visual catch-up. MovePath() (ZzzAI.cpp) sets this instead
+    // of hard-snapping OBJECT::Position to the exact tile-center on arrival,
+    // so UpdateVisualArrivalCatchup() (called every frame from
+    // MoveCharacterVisual in ZzzCharacter.cpp, for every character
+    // regardless of movement state) can ease the last bit of the visual
+    // position there smoothly over real time instead of in one instant
+    // step. This is purely cosmetic: gameplay logic (arrival detection,
+    // adjacency checks, action triggers) already reads the integer
+    // PositionX/PositionY grid coordinates, which are still set exactly and
+    // immediately by MovePath() as before -- this does not delay or change
+    // when a movement completes or an action fires.
+    bool          VisualCatchupActive;
+    float         VisualCatchupTargetX;
+    float         VisualCatchupTargetY;
+
     _PATH_t()
     {
         CurrentPath = 0;
@@ -36,6 +51,10 @@ typedef struct _PATH_t
         Direction = 0;
         Run = 0;
         Count = 0;
+
+        VisualCatchupActive = false;
+        VisualCatchupTargetX = 0.f;
+        VisualCatchupTargetY = 0.f;
     }
 } PATH_t;
 

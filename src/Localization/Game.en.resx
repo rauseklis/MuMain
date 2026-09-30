@@ -1433,6 +1433,21 @@
   <data name="Windowed mode" xml:space="preserve">
     <value>Windowed mode</value>
   </data>
+  <data name="Max FPS" xml:space="preserve">
+    <value>Max FPS</value>
+  </data>
+  <data name="VSync" xml:space="preserve">
+    <value>VSync</value>
+  </data>
+  <data name="Anti-Aliasing (restart)" xml:space="preserve">
+    <value>Anti-Aliasing (restart)</value>
+  </data>
+  <data name="Mipmaps (restart)" xml:space="preserve">
+    <value>Mipmaps (restart)</value>
+  </data>
+  <data name="Anisotropy (restart)" xml:space="preserve">
+    <value>Anisotropy (restart)</value>
+  </data>
   <data name="Close388" xml:space="preserve">
     <value>Close</value>
     <comment>legacy_id=388,1002</comment>

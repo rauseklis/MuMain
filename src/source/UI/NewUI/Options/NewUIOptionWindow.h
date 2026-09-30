@@ -91,6 +91,7 @@ namespace SEASON3B
         void RenderFrame();
         void RenderContents();
         void RenderButtons();
+        void ChangePage(int page);
 
         // UpdateMouseEvent helpers
         void HandleCheckboxInputs();
@@ -105,6 +106,14 @@ namespace SEASON3B
 
         CNewUIButton m_BtnClose;
 
+        enum OPTION_PAGE
+        {
+            PAGE_GENERAL = 0,
+            PAGE_GRAPHICS,
+            PAGE_COUNT,
+        };
+        int m_iCurrentPage;
+
         bool m_bAutoAttack;
         bool m_bWhisperSound;
         bool m_bSlideHelp;
@@ -117,6 +126,15 @@ namespace SEASON3B
         int m_iLanguageIndex;
         int m_iFontIndex;
 
+        // Render/FPS settings (see docs/superpowers/specs/2026-09-30-ingame-graphics-settings-design.md).
+        // MaxFps/VSync apply live; AntiAliasing/TextureMipmaps/Anisotropy write to
+        // config.ini immediately but only take effect on the next launch.
+        int m_iMaxFpsIndex;
+        bool m_bVSync;
+        int m_iAntiAliasingIndex;
+        bool m_bTextureMipmaps;
+        int m_iAnisotropyIndex;
+
         std::vector<UI::Options::DisplayResolution> m_resolutions;
         std::vector<std::wstring> m_resolutionLabels;
         std::vector<const wchar_t*> m_resolutionLabelPointers;
@@ -128,6 +146,9 @@ namespace SEASON3B
         CNewUIComboBox m_ResolutionCombo;
         CNewUIComboBox m_LanguageCombo;
         CNewUIComboBox m_FontCombo;
+        CNewUIComboBox m_MaxFpsCombo;
+        CNewUIComboBox m_AntiAliasingCombo;
+        CNewUIComboBox m_AnisotropyCombo;
 
         void ApplyResolution();
         int FindCurrentResolutionIndex();
@@ -142,6 +163,20 @@ namespace SEASON3B
         void ApplyFont();
         int FindCurrentFontIndex();
         void InitFontCombo();
+
+        void ApplyMaxFps();
+        int FindCurrentMaxFpsIndex();
+        void InitMaxFpsCombo();
+
+        void ApplyAntiAliasing();
+        int FindCurrentAntiAliasingIndex();
+        void InitAntiAliasingCombo();
+
+        void ApplyAnisotropy();
+        int FindCurrentAnisotropyIndex();
+        void InitAnisotropyCombo();
+
+        void ApplyVSync();
     };
 }
 

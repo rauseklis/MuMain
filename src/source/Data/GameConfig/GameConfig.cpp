@@ -85,7 +85,8 @@ void GameConfig::Load()
     m_zoom = ReadInt(CfgSectionCamera, CfgKeyZoom, CfgDefaultZoom);
     m_sortParticleDraws = ReadBool(CfgSectionRender, CfgKeySortParticleDraws, CfgDefaultSortParticleDraws);
     m_vsyncEnabled = ReadBool(CfgSectionRender, CfgKeyVSync, CfgDefaultVSync);
-    m_maxFps = std::clamp(ReadInt(CfgSectionRender, CfgKeyMaxFps, CfgDefaultMaxFps), CfgMinMaxFps, CfgMaxMaxFps);
+    const int rawMaxFps = ReadInt(CfgSectionRender, CfgKeyMaxFps, CfgDefaultMaxFps);
+    m_maxFps = (rawMaxFps <= 0) ? CfgMaxFpsUnlimited : std::clamp(rawMaxFps, CfgMinMaxFps, CfgMaxMaxFps);
     m_antiAliasing = ReadInt(CfgSectionRender, CfgKeyAntiAliasing, CfgDefaultAntiAliasing);
     m_textureMipmaps = ReadBool(CfgSectionRender, CfgKeyTextureMipmaps, CfgDefaultTextureMipmaps);
     m_anisotropy = ReadInt(CfgSectionRender, CfgKeyAnisotropy, CfgDefaultAnisotropy);
@@ -201,6 +202,27 @@ void GameConfig::SetMusicVolume(int level)
 void GameConfig::SetVSyncEnabled(bool enabled)
 {
     m_vsyncEnabled = enabled;
+}
+
+void GameConfig::SetMaxFps(int fps)
+{
+    m_maxFps = (fps <= 0) ? CfgDefaults::CfgMaxFpsUnlimited
+                          : std::clamp(fps, CfgDefaults::CfgMinMaxFps, CfgDefaults::CfgMaxMaxFps);
+}
+
+void GameConfig::SetAntiAliasing(int samples)
+{
+    m_antiAliasing = samples;
+}
+
+void GameConfig::SetTextureMipmapsEnabled(bool enabled)
+{
+    m_textureMipmaps = enabled;
+}
+
+void GameConfig::SetAnisotropy(int level)
+{
+    m_anisotropy = level;
 }
 
 void GameConfig::SetRememberMe(bool remember)

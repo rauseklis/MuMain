@@ -290,6 +290,7 @@ void CUIRenderTextSDLTtf::RenderText(int x, int y, const wchar_t* text, int boxW
     ConsumeGlyphUploads(prepared.text);
     // The GPU text coordinates point up, so a positive lift moves the text up.
     const float lift = static_cast<float>(Render::Text::LayoutLift(font)) * metrics.scale;
-    SubmitTextDrawData(renderer, drawData, layout.renderX + layout.alignmentOffset,
-                       static_cast<float>(windowHeight) - layout.screenY + lift, metrics.scale, m_textColor);
+    const float drawX = std::round(layout.renderX + layout.alignmentOffset);
+    const float drawY = std::round(static_cast<float>(windowHeight) - layout.screenY + lift);
+    SubmitTextDrawData(renderer, drawData, drawX, drawY, metrics.scale, m_textColor);
 }

@@ -116,6 +116,10 @@ void DefaultCamera::Reset()
     m_State.Reset();
     // Phase 5: Reset scene tracking to force config reload on next Update()
     m_LastSceneFlag = -1;
+    // Discard the hero-tracking smoothing target so the next
+    // CalculateCameraPosition() call re-seeds it instantly instead of
+    // gliding in from a stale pre-reset position.
+    m_HasSmoothedHeroXY = false;
 }
 
 void DefaultCamera::ApplyConfigToState()
@@ -227,6 +231,12 @@ void DefaultCamera::OnActivate(const CameraState& previousState)
 {
     // Phase 5: When activating, ensure camera is configured for current scene
     extern EGameScene SceneFlag;
+
+    // Discard the hero-tracking smoothing target on (re)activation so the
+    // pre-compute below (and frame 1 proper) re-seed instantly to the
+    // current hero position instead of gliding in from a stale pre-switch
+    // target.
+    m_HasSmoothedHeroXY = false;
 
     CAMERA_LOG("[CAM] DefaultCamera::OnActivate - Scene=%d, PrevPos=(%.1f,%.1f,%.1f), PrevAngle=(%.1f,%.1f,%.1f), PrevDist=%.0f",
                (int)SceneFlag,
@@ -505,6 +515,18 @@ namespace
     // Snap threshold — when the offset is close enough, snap to target
     // to avoid endless micro-oscillation.
     constexpr float MOUNT_LERP_SNAP_THRESHOLD   = 0.5f;
+
+    // Horizontal hero-tracking smoothing (see SmoothHeroTrackingPosition).
+    // Snap distance must clear the largest known instant correction the
+    // movement code can produce in one step -- MovePath()'s arrival check in
+    // ZzzAI.cpp treats any remaining gap under 20.f world units as "arrived"
+    // and hard-snaps straight to the tile center -- with real margin, while
+    // staying far below any legitimate teleport/zone-change distance (at
+    // least dozens of tiles). Smoothing time constant mirrors the mount-lerp
+    // pattern above: reaches ~95% of target within HERO_TRACK_SMOOTH_MS.
+    constexpr float HERO_TRACK_SNAP_DISTANCE    = 150.0f;
+    constexpr float HERO_TRACK_SMOOTH_MS        = 80.0f;
+    constexpr float HERO_TRACK_LERP_TAU         = HERO_TRACK_SMOOTH_MS / 3000.0f;
 }
 
 float DefaultCamera::GetTargetMountOffset() const
@@ -574,6 +596,41 @@ void DefaultCamera::AdjustHeroHeight()
         m_CurrentMountOffset += delta * (1.0f - expf(-dt / MOUNT_LERP_TAU));
 }
 
+void DefaultCamera::SmoothHeroTrackingPosition(vec3_t& position)
+{
+    if (!m_HasSmoothedHeroXY)
+    {
+        m_SmoothedHeroXY[0] = position[0];
+        m_SmoothedHeroXY[1] = position[1];
+        m_HasSmoothedHeroXY = true;
+        return;
+    }
+
+    const float dx = position[0] - m_SmoothedHeroXY[0];
+    const float dy = position[1] - m_SmoothedHeroXY[1];
+    const float distSq = dx * dx + dy * dy;
+
+    if (distSq > HERO_TRACK_SNAP_DISTANCE * HERO_TRACK_SNAP_DISTANCE)
+    {
+        // Large jump (teleport, zone change, GM warp) -- follow instantly.
+        m_SmoothedHeroXY[0] = position[0];
+        m_SmoothedHeroXY[1] = position[1];
+    }
+    else
+    {
+        // Time-based exponential lerp (frame-rate independent), same
+        // technique as the mount-offset lerp above.
+        extern float FPS_ANIMATION_FACTOR;
+        const float dt = FPS_ANIMATION_FACTOR / 25.0f;  // REFERENCE_FPS = 25
+        const float blend = 1.0f - expf(-dt / HERO_TRACK_LERP_TAU);
+        m_SmoothedHeroXY[0] += dx * blend;
+        m_SmoothedHeroXY[1] += dy * blend;
+    }
+
+    position[0] = m_SmoothedHeroXY[0];
+    position[1] = m_SmoothedHeroXY[1];
+}
+
 void DefaultCamera::CalculateCameraPosition()
 {
     vec3_t Position, TransformPosition;
@@ -612,7 +669,8 @@ void DefaultCamera::CalculateCameraPosition()
         g_pCatapultWindow->GetCameraPos(Position);
     }
 
-    if (g_Direction.IsDirection() && !g_Direction.m_bDownHero)
+    const bool bDirectionMode = g_Direction.IsDirection() && !g_Direction.m_bDownHero;
+    if (bDirectionMode)
     {
         Hero->Object.Position[2] = DIRECTION_MODE_HERO_Z;
         g_shCameraLevel = g_Direction.GetCameraPosition(Position);
@@ -629,6 +687,15 @@ void DefaultCamera::CalculateCameraPosition()
     else
     {
         g_shCameraLevel = 0;
+    }
+
+    // Smooth the normal hero-follow position (not the scripted cutscene
+    // position above) so small hard corrections elsewhere don't reproduce as
+    // an instant camera jump. See SmoothHeroTrackingPosition() for why this
+    // is safe for real teleports/zone changes.
+    if (!bDirectionMode)
+    {
+        SmoothHeroTrackingPosition(Position);
     }
 
     if (CCameraMove::GetInstancePtr()->IsTourMode())

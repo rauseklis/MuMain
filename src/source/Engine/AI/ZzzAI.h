@@ -32,6 +32,7 @@ void MoveHead(CHARACTER* c);
 void Damage(vec3_t soPosition, CHARACTER* tc, float AttackRange, int AttackPoint, bool Hit);
 
 bool MovePath(CHARACTER* c, bool Turn = true);
+void UpdateVisualArrivalCatchup(CHARACTER* c);
 void InitPath();
 bool PathFinding2(int sx, int sy, int tx, int ty, PATH_t* a, float fDistance = 0.0f, int iDefaultWall = TW_CHARACTER);
 

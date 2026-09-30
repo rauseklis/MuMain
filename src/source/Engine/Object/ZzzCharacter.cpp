@@ -5589,6 +5589,14 @@ void MonsterMoveSandSmoke(OBJECT* o)
 
 void MoveCharacterVisual(CHARACTER* c, OBJECT* o)
 {
+    // Runs every frame for every live character (see MoveCharacterClient()),
+    // regardless of c->Movement state, and before the camera reads this
+    // character's position this frame (MoveHero()/MoveCharactersClient() in
+    // MainScene.cpp both run before MoveMainCamera()). This is the hook that
+    // finishes easing any pending post-arrival visual position correction
+    // left by MovePath() in ZzzAI.cpp -- see UpdateVisualArrivalCatchup().
+    UpdateVisualArrivalCatchup(c);
+
     BMD* b = &Models[o->Type];
     if (b->NumActions == 0)
     {

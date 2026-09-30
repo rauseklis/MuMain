@@ -89,6 +89,12 @@ namespace CfgDefaults
     inline constexpr int CfgDefaultMaxFps = 240;
     inline constexpr int CfgMinMaxFps = 25;
     inline constexpr int CfgMaxMaxFps = 1000;
+    // A MaxFPS value read from (or written to) config.ini that is <= 0 means
+    // "Unlimited" in the options window's Max FPS combo. Real Windows'
+    // GetPrivateProfileInt cannot round-trip a negative int (it reads back as
+    // 0), so treating any non-positive value as the sentinel handles both
+    // -1 (what GameConfig::SetMaxFps writes) and that 0 fallback identically.
+    inline constexpr int CfgMaxFpsUnlimited = -1;
     inline constexpr int CfgDefaultAntiAliasing = 4;
     inline constexpr bool CfgDefaultTextureMipmaps = true;
     inline constexpr int CfgDefaultAnisotropy = 16;

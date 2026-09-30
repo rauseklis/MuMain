@@ -66,6 +66,11 @@ namespace SEASON3B
         CNewUIButton m_BtnPet;
         CNewUIButton m_BtnMasterLevel;
 
+        // g_pTimer->GetAbsTime() timestamp (ms) of the last stat point added
+        // by holding the middle mouse button over a stat's "+" button. Gates
+        // the repeat-add rate in BtnProcess() to real time, not frame count.
+        double m_dMiddleClickStatAddTime;
+
     public:
         CNewUICharacterInfoWindow();
         virtual ~CNewUICharacterInfoWindow();

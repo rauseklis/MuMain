@@ -607,28 +607,88 @@ bool MovePath(CHARACTER* c, bool Turn)
                     p->CurrentPath = p->PathNum - 1;
                     c->PositionX = p->PathX[p->CurrentPath];
                     c->PositionY = p->PathY[p->CurrentPath];
-                    o->Position[0] = cx;
-                    o->Position[1] = cy;
+
+                    // Gameplay-facing arrival (grid PositionX/Y above, and
+                    // Success below) is unchanged and still immediate. Only
+                    // the cosmetic float o->Position -- which the camera
+                    // (DefaultCamera::CalculateCameraPosition) and the
+                    // renderer read directly with no smoothing of their own
+                    // -- used to be hard-snapped here to the exact tile
+                    // center, up to 20.f units away (the Distance check
+                    // above). That instant correction reproduced as a
+                    // one-frame camera "chop" right as movement stopped.
+                    // Ease it instead; see UpdateVisualArrivalCatchup().
+                    p->VisualCatchupActive = true;
+                    p->VisualCatchupTargetX = cx;
+                    p->VisualCatchupTargetY = cy;
+
                     Success = true;
                 }
             }
         }
         if (!Success && Turn)
         {
+            // Frame-rate-independent smooth body turn, same technique as the
+            // head-angle interpolation in ZzzCharacter.cpp's MoveCharacterVisual:
+            // close a constant fraction of the remaining real-world time per
+            // second, regardless of how many frames that time is spread over.
+            // Previously this closed a flat 50% of the remaining angle per
+            // *frame* (uncompensated by FPS_ANIMATION_FACTOR) and, for deltas
+            // of 45 degrees or more, snapped straight to the target angle in a
+            // single frame. Both were fine at the original ~25fps reference
+            // rate but at 240fps the flat-50%-per-frame case converges within
+            // a handful of milliseconds and the >=45-degree case was already
+            // instant -- so nearly every turn looked like a snap instead of a
+            // rotation. Replacing both with one formula keeps the same
+            // convergence speed in real time at any frame rate, including the
+            // original reference rate, and removes the discontinuity at 45
+            // degrees.
             float Angle = CreateAngle(o->Position[0], o->Position[1], cx, cy);
-            float TargetAngle = FarAngle(o->Angle[2], Angle);
-            if (TargetAngle >= 45.f)
-            {
-                o->Angle[2] = Angle;
-            }
-            else
-            {
-                o->Angle[2] = TurnAngle2(o->Angle[2], Angle, TargetAngle * 0.5f);
-            }
+            const float bodyTurnScale = 1.0f - powf(0.5f, FPS_ANIMATION_FACTOR);
+            o->Angle[2] = TurnAngle2(o->Angle[2], Angle, FarAngle(o->Angle[2], Angle) * bodyTurnScale);
         }
     }
 
     return Success;
+}
+
+void UpdateVisualArrivalCatchup(CHARACTER* c)
+{
+    PATH_t* p = &c->Path;
+    if (!p->VisualCatchupActive)
+        return;
+
+    OBJECT* o = &c->Object;
+    const float dx = p->VisualCatchupTargetX - o->Position[0];
+    const float dy = p->VisualCatchupTargetY - o->Position[1];
+    const float distSq = dx * dx + dy * dy;
+
+    // Close enough to stop easing and land exactly on the tile center.
+    // Threshold is in world units; well below anything visible on screen.
+    constexpr float CATCHUP_SNAP_EPSILON = 0.5f;
+    if (distSq <= CATCHUP_SNAP_EPSILON * CATCHUP_SNAP_EPSILON)
+    {
+        o->Position[0] = p->VisualCatchupTargetX;
+        o->Position[1] = p->VisualCatchupTargetY;
+        p->VisualCatchupActive = false;
+        return;
+    }
+
+    // Frame-rate-independent exponential decay -- same technique as the
+    // body-turn smoothing in MovePath() above and the mount-offset/hero-
+    // tracking lerps in DefaultCamera.cpp. Reaches ~95% of the remaining
+    // distance within CATCHUP_MS regardless of frame rate. Deliberately
+    // fast (tens of ms): this is only ever closing the small remainder
+    // (<=20.f world units, MovePath's arrival tolerance) left over from
+    // velocity integration, not a real travel distance, so it should read
+    // as the walk settling, not as added travel time.
+    constexpr float CATCHUP_MS = 60.0f;
+    constexpr float CATCHUP_TAU = CATCHUP_MS / 3000.0f;  // seconds
+    extern float FPS_ANIMATION_FACTOR;
+    const float dt = FPS_ANIMATION_FACTOR / 25.0f;  // REFERENCE_FPS = 25
+    const float blend = 1.0f - expf(-dt / CATCHUP_TAU);
+    o->Position[0] += dx * blend;
+    o->Position[1] += dy * blend;
 }
 
 void InitPath()
@@ -684,6 +744,13 @@ bool PathFinding2(int sx, int sy, int tx, int ty, PATH_t* a, float fDistance, in
 
             a->CurrentPath = 0;
             a->CurrentPathFloat = 0;
+
+            // A fresh path is about to drive o->Position via the normal
+            // per-frame velocity integration (MoveCharacterPosition) again.
+            // Cancel any still-pending arrival catch-up from a previous
+            // path so it can't keep easing toward a now-stale target
+            // underneath the new movement.
+            a->VisualCatchupActive = false;
 
             Success = true;
         }

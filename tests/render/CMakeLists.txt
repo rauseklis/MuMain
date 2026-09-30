@@ -38,6 +38,12 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME ui_texture_quality_tests
+    SOURCES
+        test_ui_texture_quality.cpp
+)
+
+mu_add_test(
     NAME aura_joint_lifecycle_tests
     SOURCES
         test_aura_joint_lifecycle.cpp
