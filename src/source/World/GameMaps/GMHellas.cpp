@@ -616,9 +616,18 @@ bool RenderHellasObjectMesh(OBJECT* o, BMD* b)
 
 int CreateBigMon(OBJECT* o)
 {
+    if (gMapManager.InHellas() == false) return 0;
+
     // Disabled per user request (2026-09-29): ambient background Bahamut in
     // Kalima's sky, removed entirely rather than tuned. See docs/AUDIT.md.
-    return 0;
+    //
+    // Must still return 1 (claim this ambient boid slot) whenever in Hellas,
+    // exactly like the original always did - the caller in GOBoid.cpp falls
+    // back to spawning a different default ambient decoration into this slot
+    // when it gets 0, which is what caused floating stone-like objects to
+    // appear in Kalima after a naive `return 0` here.
+    o->Live = false;
+    return 1;
 }
 
 void MoveBigMon(OBJECT* o)
