@@ -459,6 +459,18 @@ bool MoveLeaves()
             if (weather == 2)
                 iMaxLeaves = 50;
     }
+    else if (IsIceCity())
+    {
+        // Raklion/Lacleon: per explicit user request (2026-09-30), a heavier/denser snowfall
+        // than the shared default (80) so a strong snowstorm reads clearly on its own, now that
+        // the screen-space overlay that used to (badly) supplement it has been removed
+        // (CGM_Raklion::RenderBaseSmoke(), see docs/AUDIT.md). Full MAX_LEAVES budget, matching
+        // the precedent already set for Devil Square's own full-budget rain above. The
+        // already-tuned per-particle wind/tilt/speed values from the earlier 6e255d0f fix are
+        // untouched - only the number of simultaneous snowflakes is increased here. Expect this
+        // to need live "heavier/lighter" iteration.
+        iMaxLeaves = MAX_LEAVES;
+    }
     if (RainCurrent > RainTarget)
         RainCurrent -= FPS_ANIMATION_FACTOR;
     else if (RainCurrent < RainTarget)

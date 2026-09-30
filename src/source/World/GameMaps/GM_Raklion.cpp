@@ -2291,14 +2291,20 @@ bool CGM_Raklion::CreateSnow(PARTICLE* o)
 
 void CGM_Raklion::RenderBaseSmoke()
 {
-    EnableAlphaBlend();
-    float WindX2 = (float)((int)WorldTime % 100000) * 0.0006f;
-    float WindY2 = -(float)((int)WorldTime % 100000) * 0.0006f;
-    RenderBitmapUV(BITMAP_CHROME + 3, 0.f, 0.f, (float)REFERENCE_WIDTH,
-                   UI::Scaling::ScreenOverlayContentHeight(WindowWidth, WindowHeight), WindX2, WindY2, 3.0f, 2.0f);
-    float WindX = (float)((int)WorldTime % 100000) * 0.0001f;
-    RenderBitmapUV(BITMAP_CHROME + 2, 0.f, 0.f, (float)REFERENCE_WIDTH,
-                   UI::Scaling::ScreenOverlayContentHeight(WindowWidth, WindowHeight), WindX, 0.f, 0.3f, 0.3f);
+    // Disabled per explicit user request (2026-09-30): this screen-space scrolling overlay (the
+    // Tarkan desert-sand texture, panned at a hardcoded direction with no relationship to
+    // CreateSnow()'s world-space wind) was the source of the "two visibly different snow
+    // directions on screen" bug. A projection-based reconciliation was tried and made things
+    // worse live (snow appeared to fall upward, and the overlay picked up spurious motion tied to
+    // the hero's own position) - reverted rather than debugged further. Per the user's call, this
+    // overlay is removed entirely for Raklion; CreateSnow()/MoveLeaves()'s real world-space
+    // particles (unaffected by this change) are the sole snow effect there now, made heavier to
+    // compensate. See docs/AUDIT.md.
+    //
+    // Left as a no-op rather than removing the call site in ZzzInterface.cpp's RenderOutSides()
+    // so that IsIceCity()'s branch there still exists and can't accidentally fall through to
+    // another map's RenderBaseSmoke() handler. The shared RenderBaseSmoke() mechanism itself, and
+    // its use by GMCrywolf1st.cpp/GMSwampOfQuiet.cpp/GMBattleCastle.cpp, is untouched.
 }
 
 bool IsIceCity()
