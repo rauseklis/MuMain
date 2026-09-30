@@ -349,7 +349,7 @@ int OpenTerrainMapping(wchar_t* FileName) {
 
     TerrainGrassEnable = true;
 
-    if (gMapManager.InChaosCastle() || gMapManager.InBattleCastle()) {
+    if (gMapManager.InChaosCastle() || gMapManager.InBattleCastle() || gMapManager.InHellas()) {
         TerrainGrassEnable = false;
     }
 
