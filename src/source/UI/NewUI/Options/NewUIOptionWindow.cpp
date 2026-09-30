@@ -358,6 +358,42 @@ namespace
     // left past its rightmost control.
     constexpr int WINDOW_WIDTH = 600;
     constexpr int CLOSE_BUTTON_X_LOCAL = (WINDOW_WIDTH - 54) / 2;  // 273: centered, was hardcoded 68 for the old 190-wide frame
+
+    // RenderImage(image, x, y, w, h) does NOT stretch: it crops the source
+    // texture's top-left w x h TEXELS and draws them at that same pixel size
+    // (see NewUICommon.cpp -- uw/vh are computed as w/pImage->Width, not a
+    // separate scale factor). newui_option_top.OZT and newui_item_back03.OZT
+    // (IMAGE_OPTION_FRAME_UP/DOWN) only have 190 real texels of width, so the
+    // original single-width-190 window's use of that call was already an
+    // exact 1:1 crop with nothing to spare -- requesting 600 the same way
+    // samples past the real content into POT texture padding, which is why
+    // widening WINDOW_WIDTH alone left columns 2/3 with no visible frame.
+    //
+    // Decoded both OZT files (24-byte-header-stripped) to inspect them
+    // directly: both are a 190px-wide horizontal border with ornate
+    // scrollwork in a symmetric ~50px cap on each side and a flat/near-flat
+    // fill in between (verified by per-column brightness variance: columns
+    // 50-139 are within noise of each other, vs. 3-6x higher variance in the
+    // 0-49 and 140-189 corner columns) -- a standard 3-slice border asset.
+    // So: draw the two 50px corner crops unchanged (1:1, same as before) at
+    // the new left/right edges, and stretch just the flat 90px middle slice
+    // (RenderImageStretch, which -- unlike plain RenderImage -- takes an
+    // explicit source rect and properly scales it) to fill the gap between
+    // them. A flat/near-flat source stretches with no visible seam.
+    constexpr int FRAME_CAP_SRC_WIDTH = 190;    // real (non-POT-padded) width of both cap textures
+    constexpr int FRAME_CAP_CORNER_WIDTH = 50;  // verified via per-column variance, see above
+    constexpr int FRAME_CAP_MIDDLE_SRC_WIDTH = FRAME_CAP_SRC_WIDTH - 2 * FRAME_CAP_CORNER_WIDTH;  // 90
+    constexpr int FRAME_UP_HEIGHT = 64;
+    constexpr int FRAME_DOWN_HEIGHT = 45;
+
+    // newui_msgbox_back.OZJ (IMAGE_OPTION_FRAME_BACK) is a real photographic
+    // stone-texture fill at 225x512 real pixels (decoded and measured
+    // directly) -- also short of the new 600px width, but with no corner
+    // detail to preserve (a busy, low-contrast, non-repeating texture), so
+    // the whole thing can just be stretched with RenderImageStretch: no
+    // seam is visible either way, and stretching avoids one entirely.
+    constexpr int FRAME_BACK_SRC_WIDTH = 225;
+    constexpr int FRAME_BACK_SRC_HEIGHT = 512;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -893,8 +929,22 @@ void SEASON3B::CNewUIOptionWindow::RenderFrame()
     // reference canvas only leaves ~475 logical units total for this window).
     constexpr int SLAT_COUNT = 35;
     constexpr float FRAME_HEIGHT = 64.f + SLAT_COUNT * 10.f + 45.f;
-    RenderImage(IMAGE_OPTION_FRAME_BACK, x, y, (float)WINDOW_WIDTH, FRAME_HEIGHT);
-    RenderImage(IMAGE_OPTION_FRAME_UP, x, y, (float)WINDOW_WIDTH, 64.f);
+
+    // Back fill: a real photographic texture short of the new width with no
+    // corner detail to preserve, so a single stretch covers it seamlessly.
+    RenderImageStretch(IMAGE_OPTION_FRAME_BACK, x, y, (float)WINDOW_WIDTH, FRAME_HEIGHT,
+                       0.f, 0.f, (float)FRAME_BACK_SRC_WIDTH, (float)FRAME_BACK_SRC_HEIGHT);
+
+    // Top cap: left corner (1:1 crop, unchanged) + stretched flat middle +
+    // right corner (1:1 crop, moved out to the new right edge).
+    RenderImage(IMAGE_OPTION_FRAME_UP, x, y, (float)FRAME_CAP_CORNER_WIDTH, (float)FRAME_UP_HEIGHT, 0.f, 0.f);
+    RenderImageStretch(IMAGE_OPTION_FRAME_UP, x + FRAME_CAP_CORNER_WIDTH, y,
+                       (float)(WINDOW_WIDTH - 2 * FRAME_CAP_CORNER_WIDTH), (float)FRAME_UP_HEIGHT,
+                       (float)FRAME_CAP_CORNER_WIDTH, 0.f, (float)FRAME_CAP_MIDDLE_SRC_WIDTH, (float)FRAME_UP_HEIGHT);
+    RenderImage(IMAGE_OPTION_FRAME_UP, x + WINDOW_WIDTH - FRAME_CAP_CORNER_WIDTH, y,
+               (float)FRAME_CAP_CORNER_WIDTH, (float)FRAME_UP_HEIGHT,
+               (float)(FRAME_CAP_SRC_WIDTH - FRAME_CAP_CORNER_WIDTH), 0.f);
+
     y += 64.f;
     for (int i = 0; i < SLAT_COUNT; ++i)
     {
@@ -902,7 +952,15 @@ void SEASON3B::CNewUIOptionWindow::RenderFrame()
         RenderImage(IMAGE_OPTION_FRAME_RIGHT, x + WINDOW_WIDTH - 21, y, 21.f, 10.f);
         y += 10.f;
     }
-    RenderImage(IMAGE_OPTION_FRAME_DOWN, x, y, (float)WINDOW_WIDTH, 45.f);
+
+    // Bottom cap: same 3-slice technique as the top cap above.
+    RenderImage(IMAGE_OPTION_FRAME_DOWN, x, y, (float)FRAME_CAP_CORNER_WIDTH, (float)FRAME_DOWN_HEIGHT, 0.f, 0.f);
+    RenderImageStretch(IMAGE_OPTION_FRAME_DOWN, x + FRAME_CAP_CORNER_WIDTH, y,
+                       (float)(WINDOW_WIDTH - 2 * FRAME_CAP_CORNER_WIDTH), (float)FRAME_DOWN_HEIGHT,
+                       (float)FRAME_CAP_CORNER_WIDTH, 0.f, (float)FRAME_CAP_MIDDLE_SRC_WIDTH, (float)FRAME_DOWN_HEIGHT);
+    RenderImage(IMAGE_OPTION_FRAME_DOWN, x + WINDOW_WIDTH - FRAME_CAP_CORNER_WIDTH, y,
+               (float)FRAME_CAP_CORNER_WIDTH, (float)FRAME_DOWN_HEIGHT,
+               (float)(FRAME_CAP_SRC_WIDTH - FRAME_CAP_CORNER_WIDTH), 0.f);
 
     y = m_Pos.y + 60.f;
     RenderImage(IMAGE_OPTION_LINE, x + 18, y, 154.f, 2.f);     // after auto attack
