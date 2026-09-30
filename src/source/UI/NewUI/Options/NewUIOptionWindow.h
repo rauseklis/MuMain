@@ -47,6 +47,8 @@ namespace SEASON3B
             IMAGE_OPTION_EFFECT_COLOR,
             IMAGE_OPTION_VOLUME_BACK,
             IMAGE_OPTION_VOLUME_COLOR,
+            IMAGE_OPTION_ARROW_LEFT,
+            IMAGE_OPTION_ARROW_RIGHT,
         };
 
     public:
@@ -91,6 +93,7 @@ namespace SEASON3B
         void RenderFrame();
         void RenderContents();
         void RenderButtons();
+        void ChangePage(int page);
 
         // UpdateMouseEvent helpers
         void HandleCheckboxInputs();
@@ -104,6 +107,14 @@ namespace SEASON3B
         POINT						m_Pos;
 
         CNewUIButton m_BtnClose;
+
+        enum OPTION_PAGE
+        {
+            PAGE_GENERAL = 0,
+            PAGE_GRAPHICS,
+            PAGE_COUNT,
+        };
+        int m_iCurrentPage;
 
         bool m_bAutoAttack;
         bool m_bWhisperSound;
