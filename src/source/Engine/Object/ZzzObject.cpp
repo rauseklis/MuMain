@@ -5674,10 +5674,17 @@ void CreateShiny(OBJECT* o)
 // Helper: Handle item falling animation
 static void HandleItemFalling(OBJECT* o)
 {
+    // Angle[0]/[1] is an instantaneous tilt pose recomputed from the current
+    // (already frame-rate-correct, see MoveItems()) Gravity velocity every
+    // frame -- it is an assignment, not an accumulated delta, so it must not
+    // be scaled by FPS_ANIMATION_FACTOR again. Doing so made the tilt up to
+    // ~10x shallower at 240fps than at the 25fps reference rate for the same
+    // physical fall speed (premature/unneeded scaling, same class of bug as
+    // the rain wind pre-scaling noted elsewhere in this codebase).
     if (o->Type >= MODEL_SHIELD && o->Type < MODEL_SHIELD + MAX_ITEM_INDEX)
-        o->Angle[1] = -o->Gravity * 10.f * FPS_ANIMATION_FACTOR;
+        o->Angle[1] = -o->Gravity * 10.f;
     else
-        o->Angle[0] = -o->Gravity * 10.f * FPS_ANIMATION_FACTOR;
+        o->Angle[0] = -o->Gravity * 10.f;
 }
 
 // Helper: Handle item on ground (set angle and camera rotation)
@@ -5709,9 +5716,20 @@ void MoveItems()
         OBJECT* o = &Items[i].Object;
         if (o->Live)
         {
-            // Apply gravity physics
+            // Apply gravity physics. Position is correctly integrated against
+            // FPS_ANIMATION_FACTOR, but the velocity (Gravity) decrement below
+            // was a flat per-*frame* value, unscaled by FPS_ANIMATION_FACTOR.
+            // At the ~25fps reference rate that's one frame ~= one reference
+            // frame, so it happened to look right, but at 240fps this ran
+            // ~9.6x more often per real second, so the toss-up velocity blew
+            // through its whole arc (rise, apex, fall) roughly ~9.6x faster in
+            // real time even though each position step was individually
+            // correctly scaled. Scaling the decrement the same way as the
+            // position step keeps the arc's real-world duration constant
+            // across frame rates, matching the pattern already used for the
+            // 25fps reference elsewhere in this file/engine.
             o->Position[2] += o->Gravity * FPS_ANIMATION_FACTOR;
-            o->Gravity -= 6.f;
+            o->Gravity -= 6.f * FPS_ANIMATION_FACTOR;
 
             // Calculate ground height
             float groundHeight = RequestTerrainHeight(o->Position[0], o->Position[1]) + 30.f;
