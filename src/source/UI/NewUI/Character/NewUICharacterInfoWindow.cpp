@@ -19,22 +19,24 @@
 #include "Network/Server/ServerListManager.h"
 #include "I18N/All.h"
 #include "GameLogic/Items/ItemCategories.h"
+#include "Core/Time/Timer.h"
 
 using namespace SEASON3B;
 
-// Populated per-frame by the SDL event loop; consumed (and zeroed) by whichever
-// UI element under the cursor handles it first this frame. Same idiom as
-// NewUIOptionWindow's volume sliders and NewUIComboBox's scroll lists.
-extern int MouseWheel;
+// g_pTimer->GetAbsTime() returns real wall-clock milliseconds since the timer
+// was created (std::chrono::high_resolution_clock under the hood) - NOT a
+// frame count, so a repeat rate built on it stays correct regardless of FPS.
+// This is the same primitive CInput already uses for double-click timing.
+extern CTimer* g_pTimer;
 
 namespace
 {
-    // Points added per wheel tick when scrolling over a stat's "+" button, so
-    // players can distribute a large pool of free stat points quickly instead
-    // of clicking once per point. The wire packet (IncreaseCharacterStatPoint)
-    // has no amount field, so each point is still one round-trip; this just
-    // fires a quick burst of that same packet per tick.
-    constexpr int STAT_SCROLL_BATCH_AMOUNT = 10;
+    // Real-time (not frame-count) interval between points added while the
+    // middle mouse button is held over a stat's "+" button, so distributing a
+    // large pool of free stat points doesn't require clicking once per point.
+    // ~15 adds/sec: fast enough to feel instant, slow enough not to spam the
+    // network with a packet every single rendered frame.
+    constexpr double MIDDLE_CLICK_STAT_ADD_INTERVAL_MS = 1000.0 / 15.0;
 
     float GetMasterSkillValue(ActionSkillType skill)
     {
@@ -79,6 +81,7 @@ SEASON3B::CNewUICharacterInfoWindow::CNewUICharacterInfoWindow()
 {
     m_pNewUIMng = NULL;
     m_Pos.x = m_Pos.y = 0;
+    m_dMiddleClickStatAddTime = 0.0;
 }
 
 SEASON3B::CNewUICharacterInfoWindow::~CNewUICharacterInfoWindow()
@@ -200,25 +203,28 @@ bool SEASON3B::CNewUICharacterInfoWindow::BtnProcess()
                 return true;
             }
 
-            // Scrolling the mouse wheel over a stat's "+" button adds a quick
-            // batch of points instead of requiring one wheel tick (or click)
-            // per point. Capped to the player's currently known free points,
-            // same check the server itself enforces, so this can't overshoot
-            // into a string of rejected requests.
-            if (MouseWheel > 0 &&
+            // Holding the middle mouse button down over a stat's "+" button
+            // repeatedly adds points at a fixed real-time rate, instead of
+            // requiring one click per point. IsPress fires once on the press
+            // edge (so the first point lands immediately, no initial delay);
+            // IsRepeat fires every frame it's still held, gated below to the
+            // real-time interval so it doesn't send a packet every frame.
+            // Moving off the button or releasing the button simply stops
+            // matching this condition next frame - no separate stop handling
+            // needed. The outer `CharacterAttribute->LevelUpPoint > 0` guard
+            // means this whole loop stops running the instant the client
+            // learns points are exhausted, so it can't keep firing past 0.
+            if ((SEASON3B::IsPress(VK_MBUTTON) || SEASON3B::IsRepeat(VK_MBUTTON)) &&
                 CheckMouseIn(m_BtnStat[i].GetPos().x, m_BtnStat[i].GetPos().y,
                              m_BtnStat[i].GetSize().x, m_BtnStat[i].GetSize().y))
             {
-                MouseWheel = 0;
+                const double now = g_pTimer->GetAbsTime();
 
-                const int pointsToAdd = std::min<int>(STAT_SCROLL_BATCH_AMOUNT, CharacterAttribute->LevelUpPoint);
-                for (int p = 0; p < pointsToAdd; ++p)
+                if (SEASON3B::IsPress(VK_MBUTTON) ||
+                    now - m_dMiddleClickStatAddTime >= MIDDLE_CLICK_STAT_ADD_INTERVAL_MS)
                 {
+                    m_dMiddleClickStatAddTime = now;
                     SocketClient->ToGameServer()->SendIncreaseCharacterStatPoint(static_cast<CharacterStatAttribute>(i));
-                }
-
-                if (pointsToAdd > 0)
-                {
                     PlayBuffer(SOUND_CLICK01);
                 }
 
