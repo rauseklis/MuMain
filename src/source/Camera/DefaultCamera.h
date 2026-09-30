@@ -113,6 +113,18 @@ private:
     float m_CurrentMountOffset = 0.0f;
     int   m_LastMountType = -1;
 
+    // Horizontal hero-tracking smoothing. CalculateCameraPosition() otherwise
+    // copies Hero->Object.Position into the camera position directly every
+    // frame with no damping, so any hard position correction elsewhere (e.g.
+    // the snap-to-tile-center done once at the end of MovePath() in
+    // ZzzAI.cpp when a click-to-move finishes) reproduces as an instant
+    // one-frame camera jump. This smooths small corrections; anything larger
+    // than HERO_TRACK_SNAP_DISTANCE (teleports, zone changes, GM warps) still
+    // snaps immediately, so real position jumps are not laggily dragged.
+    void SmoothHeroTrackingPosition(vec3_t& position);
+    vec3_t m_SmoothedHeroXY = {};
+    bool   m_HasSmoothedHeroXY = false;
+
 #ifdef ENABLE_EDIT2
     void HandleEditorMode();
 #endif
