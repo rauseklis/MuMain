@@ -11,6 +11,7 @@
 #include <SDL3/SDL_gpu.h>
 #include "Render/Renderer/GraphicsQuality.h"
 #include "Render/Renderer/MuRenderer.h"
+#include "Render/Textures/UiTextureQuality.h"
 
 #include <algorithm>
 #include <array>
@@ -892,7 +893,10 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
 
     pNewBitmap->TextureNumber = uiBitmapIndex;
     std::vector<std::uint8_t> rgbaData = PadRGBToRGBA(pNewBitmap->Buffer, textureWidth, textureHeight);
-    if (!UploadTextureSDLGpu(pNewBitmap.get(), rgbaData.data(), textureWidth, textureHeight, MapGLFilterToSDL(uiFilter),
+    const SDL_GPUFilter filter = Render::UiTextureQuality::IsInterfaceTexturePath(filename)
+                                     ? SDL_GPU_FILTER_LINEAR
+                                     : MapGLFilterToSDL(uiFilter);
+    if (!UploadTextureSDLGpu(pNewBitmap.get(), rgbaData.data(), textureWidth, textureHeight, filter,
                              MapGLWrapToSDL(uiWrapMode), Render::GraphicsQuality::IsEnhancedTexturePath(filename)))
     {
         g_ErrorReport.Write(L"SDL texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
@@ -985,7 +989,11 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
     }
 
     pNewBitmap->TextureNumber = uiBitmapIndex;
-    if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, Width, Height, MapGLFilterToSDL(uiFilter),
+    const bool interfaceTexture = Render::UiTextureQuality::IsInterfaceTexturePath(filename);
+    if (interfaceTexture)
+        Render::UiTextureQuality::BleedTransparentRgb(pNewBitmap->BufferStorage, Width, Height);
+    const SDL_GPUFilter filter = interfaceTexture ? SDL_GPU_FILTER_LINEAR : MapGLFilterToSDL(uiFilter);
+    if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, Width, Height, filter,
                              MapGLWrapToSDL(uiWrapMode), Render::GraphicsQuality::IsEnhancedTexturePath(filename)))
     {
         g_ErrorReport.Write(L"SDL texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
