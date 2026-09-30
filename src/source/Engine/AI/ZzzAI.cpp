@@ -615,16 +615,24 @@ bool MovePath(CHARACTER* c, bool Turn)
         }
         if (!Success && Turn)
         {
+            // Frame-rate-independent smooth body turn, same technique as the
+            // head-angle interpolation in ZzzCharacter.cpp's MoveCharacterVisual:
+            // close a constant fraction of the remaining real-world time per
+            // second, regardless of how many frames that time is spread over.
+            // Previously this closed a flat 50% of the remaining angle per
+            // *frame* (uncompensated by FPS_ANIMATION_FACTOR) and, for deltas
+            // of 45 degrees or more, snapped straight to the target angle in a
+            // single frame. Both were fine at the original ~25fps reference
+            // rate but at 240fps the flat-50%-per-frame case converges within
+            // a handful of milliseconds and the >=45-degree case was already
+            // instant -- so nearly every turn looked like a snap instead of a
+            // rotation. Replacing both with one formula keeps the same
+            // convergence speed in real time at any frame rate, including the
+            // original reference rate, and removes the discontinuity at 45
+            // degrees.
             float Angle = CreateAngle(o->Position[0], o->Position[1], cx, cy);
-            float TargetAngle = FarAngle(o->Angle[2], Angle);
-            if (TargetAngle >= 45.f)
-            {
-                o->Angle[2] = Angle;
-            }
-            else
-            {
-                o->Angle[2] = TurnAngle2(o->Angle[2], Angle, TargetAngle * 0.5f);
-            }
+            const float bodyTurnScale = 1.0f - powf(0.5f, FPS_ANIMATION_FACTOR);
+            o->Angle[2] = TurnAngle2(o->Angle[2], Angle, FarAngle(o->Angle[2], Angle) * bodyTurnScale);
         }
     }
 
