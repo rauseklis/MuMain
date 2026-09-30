@@ -149,7 +149,10 @@ bool CNewUISystem::Create()
         return false;
 
     m_pNewOptionWindow = new CNewUIOptionWindow;
-    if (m_pNewOptionWindow->Create(m_pNewUIMng, (640 / 2) - (190 / 2), 5) == false)
+    // 600 must match WINDOW_WIDTH in NewUIOptionWindow.cpp (widened from 190
+    // to fit the 3-column Render/FPS settings block within the 640x480
+    // reference canvas -- see that file's layout comments for why).
+    if (m_pNewOptionWindow->Create(m_pNewUIMng, (640 / 2) - (600 / 2), 5) == false)
     {
         return false;
     }

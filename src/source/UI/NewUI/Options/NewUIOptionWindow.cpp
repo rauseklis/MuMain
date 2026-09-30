@@ -282,46 +282,82 @@ namespace
     constexpr int FONT_COMBO_HEIGHT  = 16;
     constexpr int FONT_COMBO_MAX_VISIBLE = 5;
 
-    // Render/FPS settings, continuing straight down from Windowed Mode (label
-    // at y=361) at the same 39px row pitch the Font/Language/Resolution/
-    // Windowed block above already uses. AntiAliasing, TextureMipmaps, and
-    // Anisotropy each also render a small "Restart required" note, so the row
-    // *after* one of those three gets extra pitch (56 instead of 39) to clear it.
-    constexpr int MAXFPS_LABEL_Y_LOCAL = 400;   // Windowed Mode (361) + 39
-    constexpr int MAXFPS_COMBO_X_LOCAL = 22;
-    constexpr int MAXFPS_COMBO_Y_LOCAL = 413;   // label + 13
-    constexpr int MAXFPS_COMBO_WIDTH   = 148;
-    constexpr int MAXFPS_COMBO_HEIGHT  = 16;
-    constexpr int MAXFPS_COMBO_MAX_VISIBLE = 4;
+    // Render/FPS settings. This window is laid out against the NewUI system's
+    // fixed 640x480 reference canvas (UITransform.cpp's kReferenceWidth/
+    // kReferenceHeight -- confirmed by grepping every other window's Create()
+    // call site in NewUISystem.cpp, which is full of literal "640"/"480"
+    // anchors) and PanelTransform scales+centers that whole canvas into the
+    // real window, so a coordinate here is NOT a screen pixel. The window is
+    // created at y=5 (NewUISystem.cpp), leaving only ~475 logical units to the
+    // canvas bottom for the ENTIRE window -- a single extra stacked column
+    // of 5 rows does not fit in that budget (an earlier attempt at that
+    // pushed the close button to local y=646, i.e. off-canvas, which is what
+    // actually cut the window off on screen). So these 5 rows go in 3 short
+    // columns instead (matching the row pitch already proven safe for a
+    // stacked label+combo pair -- see FONT/LANG/RES above -- just tightened
+    // from 39 to 32, still clearing the combo's own content height of
+    // 13 label-to-combo offset + 16 combo height = 29), the same general
+    // idea as the scrollbar-based dense windows elsewhere in NewUI
+    // (NewUIGuardWindow etc.) without needing to pull in that separate
+    // widget for five static rows.
+    //
+    // Column layout, left to right: [MaxFPS combo / VSync checkbox],
+    // [Anti-Aliasing combo / Texture Mipmaps checkbox], [Anisotropy combo].
+    // Each column reuses the exact x+40 (label) / x+150 (checkbox) / x+22
+    // width148 (combo) offsets the original single-column rows already used,
+    // just at a different column origin -- so column content width is
+    // proven, not guessed. AntiAliasing/TextureMipmaps/Anisotropy take
+    // effect only after a restart; rather than a separate note line (no
+    // vertical room for one), that's folded into the label text itself
+    // ("Anti-Aliasing (restart)" etc.), confirmed to fit the same ~110px
+    // label budget "Beep sound for whispering" (25 characters) already uses
+    // in the original AutoAttack/Whisper rows above.
+    constexpr int RENDER_ROW_PITCH = 32;  // > 29 (13 + combo height 16): always clears a combo row
 
-    constexpr int VSYNC_LABEL_Y_LOCAL = 439;    // Max FPS (400) + 39
-    constexpr int VSYNC_CHECKBOX_Y_LOCAL = 434; // label - 5
+    constexpr int COL1_X_OFFSET = 0;    // matches the original single-column x+40/x+150/x+22 verbatim
+    constexpr int COL2_X_OFFSET = 200;  // COL1 checkbox right edge (165) + 75px gap
+    constexpr int COL3_X_OFFSET = 400;  // COL2 checkbox right edge (365) + 75px gap
 
-    constexpr int AA_LABEL_Y_LOCAL = 478;       // VSync (439) + 39
-    constexpr int AA_COMBO_X_LOCAL = 22;
-    constexpr int AA_COMBO_Y_LOCAL = 491;       // label + 13
-    constexpr int AA_COMBO_WIDTH   = 148;
-    constexpr int AA_COMBO_HEIGHT  = 16;
-    constexpr int AA_COMBO_MAX_VISIBLE = 4;
-    constexpr int AA_NOTE_Y_LOCAL = 509;        // combo bottom (491+16) + 2
+    constexpr int RENDER_ROW_LABEL_X_LOCAL = 40;
+    constexpr int RENDER_ROW_POINT_X_LOCAL = 20;
+    constexpr int RENDER_ROW_CHECKBOX_X_LOCAL = 150;
+    constexpr int RENDER_ROW_COMBO_X_LOCAL = 22;
+    constexpr int RENDER_ROW_COMBO_WIDTH = 148;
+    constexpr int RENDER_ROW_COMBO_HEIGHT = 16;
+    constexpr int RENDER_ROW_COMBO_MAX_VISIBLE = 4;
 
-    constexpr int MIPMAPS_LABEL_Y_LOCAL = 534;      // Anti-Aliasing (478) + 56 (clears its note)
-    constexpr int MIPMAPS_CHECKBOX_Y_LOCAL = 529;   // label - 5
-    constexpr int MIPMAPS_NOTE_Y_LOCAL = 551;       // label + 17
+    constexpr int RENDER_BLOCK_TOP_Y_LOCAL = 385;  // Windowed Mode content ends ~y=375; +10 gap
 
-    constexpr int ANISO_LABEL_Y_LOCAL = 590;    // Texture Mipmaps (534) + 56 (clears its note)
-    constexpr int ANISO_COMBO_X_LOCAL = 22;
-    constexpr int ANISO_COMBO_Y_LOCAL = 603;    // label + 13
-    constexpr int ANISO_COMBO_WIDTH   = 148;
-    constexpr int ANISO_COMBO_HEIGHT  = 16;
-    constexpr int ANISO_COMBO_MAX_VISIBLE = 4;
-    constexpr int ANISO_NOTE_Y_LOCAL = 621;     // combo bottom (603+16) + 2
+    constexpr int MAXFPS_LABEL_Y_LOCAL = RENDER_BLOCK_TOP_Y_LOCAL;         // 385
+    constexpr int MAXFPS_COMBO_Y_LOCAL = MAXFPS_LABEL_Y_LOCAL + 13;        // 398
+    constexpr int MAXFPS_COMBO_X_LOCAL = COL1_X_OFFSET + RENDER_ROW_COMBO_X_LOCAL;
 
-    constexpr int CLOSE_BUTTON_Y_LOCAL = 646;   // Anisotropy (590) + 56 (clears its note)
+    constexpr int VSYNC_LABEL_Y_LOCAL = MAXFPS_LABEL_Y_LOCAL + RENDER_ROW_PITCH;  // 417
+    constexpr int VSYNC_CHECKBOX_Y_LOCAL = VSYNC_LABEL_Y_LOCAL - 5;               // 412
+    constexpr int VSYNC_CHECKBOX_X_LOCAL = COL1_X_OFFSET + RENDER_ROW_CHECKBOX_X_LOCAL;
 
-    // Color for the small restart-required notes: dimmer than the normal
-    // white row text so they read as secondary/informational.
-    constexpr BYTE NOTE_TEXT_GRAY = 160;
+    constexpr int AA_LABEL_Y_LOCAL = RENDER_BLOCK_TOP_Y_LOCAL;                 // 385
+    constexpr int AA_COMBO_Y_LOCAL = AA_LABEL_Y_LOCAL + 13;                    // 398
+    constexpr int AA_COMBO_X_LOCAL = COL2_X_OFFSET + RENDER_ROW_COMBO_X_LOCAL;
+
+    constexpr int MIPMAPS_LABEL_Y_LOCAL = AA_LABEL_Y_LOCAL + RENDER_ROW_PITCH; // 417
+    constexpr int MIPMAPS_CHECKBOX_Y_LOCAL = MIPMAPS_LABEL_Y_LOCAL - 5;        // 412
+    constexpr int MIPMAPS_CHECKBOX_X_LOCAL = COL2_X_OFFSET + RENDER_ROW_CHECKBOX_X_LOCAL;
+
+    constexpr int ANISO_LABEL_Y_LOCAL = RENDER_BLOCK_TOP_Y_LOCAL;             // 385
+    constexpr int ANISO_COMBO_Y_LOCAL = ANISO_LABEL_Y_LOCAL + 13;             // 398
+    constexpr int ANISO_COMBO_X_LOCAL = COL3_X_OFFSET + RENDER_ROW_COMBO_X_LOCAL;
+
+    // Tallest column bottom is a checkbox row (VSync/Mipmaps): label-5 (checkbox
+    // top) + 15 (checkbox size) = MIPMAPS_CHECKBOX_Y_LOCAL + 15 = 427.
+    constexpr int CLOSE_BUTTON_Y_LOCAL = 440;  // 427 + 13px clearance
+
+    // New window width: column 3's combo right edge is
+    // COL3_X_OFFSET + RENDER_ROW_COMBO_X_LOCAL + RENDER_ROW_COMBO_WIDTH = 570;
+    // +30 for a right-edge margin matching the ~20-25px the original design
+    // left past its rightmost control.
+    constexpr int WINDOW_WIDTH = 600;
+    constexpr int CLOSE_BUTTON_X_LOCAL = (WINDOW_WIDTH - 54) / 2;  // 273: centered, was hardcoded 68 for the old 190-wide frame
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -447,12 +483,12 @@ void SEASON3B::CNewUIOptionWindow::InitMaxFpsCombo()
     m_MaxFpsCombo.Setup(
         m_Pos.x + MAXFPS_COMBO_X_LOCAL,
         m_Pos.y + MAXFPS_COMBO_Y_LOCAL,
-        MAXFPS_COMBO_WIDTH,
-        MAXFPS_COMBO_HEIGHT,
+        RENDER_ROW_COMBO_WIDTH,
+        RENDER_ROW_COMBO_HEIGHT,
         GetMaxFpsLabels(),
         s_NumMaxFpsOptions,
         m_iMaxFpsIndex,
-        MAXFPS_COMBO_MAX_VISIBLE);
+        RENDER_ROW_COMBO_MAX_VISIBLE);
 }
 
 void SEASON3B::CNewUIOptionWindow::InitAntiAliasingCombo()
@@ -461,12 +497,12 @@ void SEASON3B::CNewUIOptionWindow::InitAntiAliasingCombo()
     m_AntiAliasingCombo.Setup(
         m_Pos.x + AA_COMBO_X_LOCAL,
         m_Pos.y + AA_COMBO_Y_LOCAL,
-        AA_COMBO_WIDTH,
-        AA_COMBO_HEIGHT,
+        RENDER_ROW_COMBO_WIDTH,
+        RENDER_ROW_COMBO_HEIGHT,
         GetAntiAliasingLabels(),
         s_NumAntiAliasingOptions,
         m_iAntiAliasingIndex,
-        AA_COMBO_MAX_VISIBLE);
+        RENDER_ROW_COMBO_MAX_VISIBLE);
 }
 
 void SEASON3B::CNewUIOptionWindow::InitAnisotropyCombo()
@@ -475,19 +511,19 @@ void SEASON3B::CNewUIOptionWindow::InitAnisotropyCombo()
     m_AnisotropyCombo.Setup(
         m_Pos.x + ANISO_COMBO_X_LOCAL,
         m_Pos.y + ANISO_COMBO_Y_LOCAL,
-        ANISO_COMBO_WIDTH,
-        ANISO_COMBO_HEIGHT,
+        RENDER_ROW_COMBO_WIDTH,
+        RENDER_ROW_COMBO_HEIGHT,
         GetAnisotropyLabels(),
         s_NumAnisotropyOptions,
         m_iAnisotropyIndex,
-        ANISO_COMBO_MAX_VISIBLE);
+        RENDER_ROW_COMBO_MAX_VISIBLE);
 }
 
 void SEASON3B::CNewUIOptionWindow::SetButtonInfo()
 {
     m_BtnClose.ChangeTextBackColor(RGBA(255, 255, 255, 0));
     m_BtnClose.ChangeButtonImgState(true, IMAGE_OPTION_BTN_CLOSE, true);
-    m_BtnClose.ChangeButtonInfo(m_Pos.x + 68, m_Pos.y + CLOSE_BUTTON_Y_LOCAL, 54, 30);
+    m_BtnClose.ChangeButtonInfo(m_Pos.x + CLOSE_BUTTON_X_LOCAL, m_Pos.y + CLOSE_BUTTON_Y_LOCAL, 54, 30);
     m_BtnClose.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
     m_BtnClose.ChangeImgColor(BUTTON_STATE_DOWN, RGBA(255, 255, 255, 255));
 }
@@ -615,7 +651,7 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
 
     // Combo box already processed at the top. Just consume clicks inside the
     // option window itself so they don't fall through to the world.
-    if (CheckMouseIn(m_Pos.x, m_Pos.y, 190, CLOSE_BUTTON_Y_LOCAL + 30))
+    if (CheckMouseIn(m_Pos.x, m_Pos.y, WINDOW_WIDTH, CLOSE_BUTTON_Y_LOCAL + 30))
         return false;
 
     return true;
@@ -623,18 +659,26 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
 
 void SEASON3B::CNewUIOptionWindow::HandleCheckboxInputs()
 {
-    struct Checkbox { int yLocal; bool* target; };
+    struct Checkbox { int xLocal; int yLocal; bool* target; };
+    constexpr int CHECKBOX_X_LOCAL = 150;  // shared x for every checkbox already in column 1
     const Checkbox boxes[] = {
-        {  43, &m_bAutoAttack        },
-        {  65, &m_bWhisperSound      },
-        { 155, &m_bSlideHelp         },
-        { 238, &m_bRenderAllEffects  },
-        { 356, &m_bWindowedMode      },
-        { VSYNC_CHECKBOX_Y_LOCAL,    &m_bVSync          },
-        { MIPMAPS_CHECKBOX_Y_LOCAL,  &m_bTextureMipmaps },
+        { CHECKBOX_X_LOCAL,  43, &m_bAutoAttack        },
+        { CHECKBOX_X_LOCAL,  65, &m_bWhisperSound      },
+        { CHECKBOX_X_LOCAL, 155, &m_bSlideHelp         },
+        // Was { 238, ... } here, but the checkbox is actually drawn at
+        // y+217 (see RenderButtons below) -- an existing mismatch dating to
+        // a June 2026 row-spacing change that moved the drawn checkbox up
+        // without updating this hit-test row, confirmed via `git blame`
+        // (hit-test row: 2026-04-25; render position: 2026-06-15). That is
+        // what made this pre-existing control unresponsive, not tonight's
+        // layout changes. Fixed by matching the hit-test to where it's
+        // actually drawn.
+        { CHECKBOX_X_LOCAL, 217, &m_bRenderAllEffects  },
+        { CHECKBOX_X_LOCAL, 356, &m_bWindowedMode      },
+        { VSYNC_CHECKBOX_X_LOCAL,   VSYNC_CHECKBOX_Y_LOCAL,   &m_bVSync          },
+        { MIPMAPS_CHECKBOX_X_LOCAL, MIPMAPS_CHECKBOX_Y_LOCAL, &m_bTextureMipmaps },
     };
 
-    constexpr int CHECKBOX_X_LOCAL = 150;
     constexpr int CHECKBOX_SIZE = 15;
 
     if (!SEASON3B::IsPress(VK_LBUTTON))
@@ -642,7 +686,7 @@ void SEASON3B::CNewUIOptionWindow::HandleCheckboxInputs()
 
     for (const auto& cb : boxes)
     {
-        if (CheckMouseIn(m_Pos.x + CHECKBOX_X_LOCAL, m_Pos.y + cb.yLocal, CHECKBOX_SIZE, CHECKBOX_SIZE))
+        if (CheckMouseIn(m_Pos.x + cb.xLocal, m_Pos.y + cb.yLocal, CHECKBOX_SIZE, CHECKBOX_SIZE))
             *cb.target = !*cb.target;
     }
 }
@@ -844,19 +888,21 @@ void SEASON3B::CNewUIOptionWindow::RenderFrame()
     // Frame is composed of: 64px top + N*10px middle slats + 45px bottom. The
     // slat count is tuned so the frame reaches the Close button (Y CLOSE_BUTTON_Y_LOCAL)
     // plus the bottom border, after the Font/Language/Resolution/Windowed rows
-    // and the five Render/FPS rows below them.
-    constexpr int SLAT_COUNT = 56;
+    // and the 3-column Render/FPS block below them (see its constants above
+    // for why this is 3 short columns rather than 5 stacked rows: the 640x480
+    // reference canvas only leaves ~475 logical units total for this window).
+    constexpr int SLAT_COUNT = 35;
     constexpr float FRAME_HEIGHT = 64.f + SLAT_COUNT * 10.f + 45.f;
-    RenderImage(IMAGE_OPTION_FRAME_BACK, x, y, 190.f, FRAME_HEIGHT);
-    RenderImage(IMAGE_OPTION_FRAME_UP, x, y, 190.f, 64.f);
+    RenderImage(IMAGE_OPTION_FRAME_BACK, x, y, (float)WINDOW_WIDTH, FRAME_HEIGHT);
+    RenderImage(IMAGE_OPTION_FRAME_UP, x, y, (float)WINDOW_WIDTH, 64.f);
     y += 64.f;
     for (int i = 0; i < SLAT_COUNT; ++i)
     {
         RenderImage(IMAGE_OPTION_FRAME_LEFT, x, y, 21.f, 10.f);
-        RenderImage(IMAGE_OPTION_FRAME_RIGHT, x + 190 - 21, y, 21.f, 10.f);
+        RenderImage(IMAGE_OPTION_FRAME_RIGHT, x + WINDOW_WIDTH - 21, y, 21.f, 10.f);
         y += 10.f;
     }
-    RenderImage(IMAGE_OPTION_FRAME_DOWN, x, y, 190.f, 45.f);
+    RenderImage(IMAGE_OPTION_FRAME_DOWN, x, y, (float)WINDOW_WIDTH, 45.f);
 
     y = m_Pos.y + 60.f;
     RenderImage(IMAGE_OPTION_LINE, x + 18, y, 154.f, 2.f);     // after auto attack
@@ -923,34 +969,36 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
     RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Windowed Mode
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 361, I18N::Game::WindowedMode);
 
-    y += 39.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Max FPS
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + MAXFPS_LABEL_Y_LOCAL, I18N::Game::MaxFPS);
+    // Render/FPS settings: 3 short columns instead of 5 stacked rows -- see
+    // the constants block above for why (the 640x480 reference canvas this
+    // window is laid out against leaves no room for 5 more full rows in a
+    // single column). Column origins are COL1/COL2/COL3_X_OFFSET; each
+    // column reuses the same point-icon/label offsets as every row above
+    // (point at colX+20, label at colX+40).
+    RenderImage(IMAGE_OPTION_POINT, m_Pos.x + COL1_X_OFFSET + RENDER_ROW_POINT_X_LOCAL,
+               m_Pos.y + MAXFPS_LABEL_Y_LOCAL - 2.f, 10.f, 10.f);   // Max FPS
+    g_pRenderText->RenderText(m_Pos.x + COL1_X_OFFSET + RENDER_ROW_LABEL_X_LOCAL, m_Pos.y + MAXFPS_LABEL_Y_LOCAL,
+                              I18N::Game::MaxFPS);
 
-    y += 39.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // VSync
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + VSYNC_LABEL_Y_LOCAL, I18N::Game::VSync);
+    RenderImage(IMAGE_OPTION_POINT, m_Pos.x + COL1_X_OFFSET + RENDER_ROW_POINT_X_LOCAL,
+               m_Pos.y + VSYNC_LABEL_Y_LOCAL - 2.f, 10.f, 10.f);    // VSync
+    g_pRenderText->RenderText(m_Pos.x + COL1_X_OFFSET + RENDER_ROW_LABEL_X_LOCAL, m_Pos.y + VSYNC_LABEL_Y_LOCAL,
+                              I18N::Game::VSync);
 
-    y += 39.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Anti-Aliasing
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + AA_LABEL_Y_LOCAL, I18N::Game::AntiAliasing);
-    g_pRenderText->SetTextColor(NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, 255);
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + AA_NOTE_Y_LOCAL, I18N::Game::RestartRequired);
-    g_pRenderText->SetTextColor(255, 255, 255, 255);
+    RenderImage(IMAGE_OPTION_POINT, m_Pos.x + COL2_X_OFFSET + RENDER_ROW_POINT_X_LOCAL,
+               m_Pos.y + AA_LABEL_Y_LOCAL - 2.f, 10.f, 10.f);       // Anti-Aliasing (restart)
+    g_pRenderText->RenderText(m_Pos.x + COL2_X_OFFSET + RENDER_ROW_LABEL_X_LOCAL, m_Pos.y + AA_LABEL_Y_LOCAL,
+                              I18N::Game::AntiAliasingRestart);
 
-    y += 56.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Texture Mipmaps
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + MIPMAPS_LABEL_Y_LOCAL, I18N::Game::TextureMipmaps);
-    g_pRenderText->SetTextColor(NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, 255);
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + MIPMAPS_NOTE_Y_LOCAL, I18N::Game::RestartRequired);
-    g_pRenderText->SetTextColor(255, 255, 255, 255);
+    RenderImage(IMAGE_OPTION_POINT, m_Pos.x + COL2_X_OFFSET + RENDER_ROW_POINT_X_LOCAL,
+               m_Pos.y + MIPMAPS_LABEL_Y_LOCAL - 2.f, 10.f, 10.f);  // Mipmaps (restart)
+    g_pRenderText->RenderText(m_Pos.x + COL2_X_OFFSET + RENDER_ROW_LABEL_X_LOCAL, m_Pos.y + MIPMAPS_LABEL_Y_LOCAL,
+                              I18N::Game::MipmapsRestart);
 
-    y += 56.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Anisotropic Filtering
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + ANISO_LABEL_Y_LOCAL, I18N::Game::AnisotropicFiltering);
-    g_pRenderText->SetTextColor(NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, NOTE_TEXT_GRAY, 255);
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + ANISO_NOTE_Y_LOCAL, I18N::Game::RestartRequired);
-    g_pRenderText->SetTextColor(255, 255, 255, 255);
+    RenderImage(IMAGE_OPTION_POINT, m_Pos.x + COL3_X_OFFSET + RENDER_ROW_POINT_X_LOCAL,
+               m_Pos.y + ANISO_LABEL_Y_LOCAL - 2.f, 10.f, 10.f);    // Anisotropy (restart)
+    g_pRenderText->RenderText(m_Pos.x + COL3_X_OFFSET + RENDER_ROW_LABEL_X_LOCAL, m_Pos.y + ANISO_LABEL_Y_LOCAL,
+                              I18N::Game::AnisotropyRestart);
 }
 
 void SEASON3B::CNewUIOptionWindow::RenderButtons()
@@ -1030,20 +1078,20 @@ void SEASON3B::CNewUIOptionWindow::RenderButtons()
 
     if (m_bVSync)
     {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + VSYNC_CHECKBOX_Y_LOCAL, 15, 15, 0, 0);
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + VSYNC_CHECKBOX_X_LOCAL, m_Pos.y + VSYNC_CHECKBOX_Y_LOCAL, 15, 15, 0, 0);
     }
     else
     {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + VSYNC_CHECKBOX_Y_LOCAL, 15, 15, 0, 15.f);
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + VSYNC_CHECKBOX_X_LOCAL, m_Pos.y + VSYNC_CHECKBOX_Y_LOCAL, 15, 15, 0, 15.f);
     }
 
     if (m_bTextureMipmaps)
     {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + MIPMAPS_CHECKBOX_Y_LOCAL, 15, 15, 0, 0);
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + MIPMAPS_CHECKBOX_X_LOCAL, m_Pos.y + MIPMAPS_CHECKBOX_Y_LOCAL, 15, 15, 0, 0);
     }
     else
     {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + MIPMAPS_CHECKBOX_Y_LOCAL, 15, 15, 0, 15.f);
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + MIPMAPS_CHECKBOX_X_LOCAL, m_Pos.y + MIPMAPS_CHECKBOX_Y_LOCAL, 15, 15, 0, 15.f);
     }
 
     // Combo boxes drawn last so their expanded dropdowns sit on top of

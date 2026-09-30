@@ -1439,17 +1439,14 @@
   <data name="VSync" xml:space="preserve">
     <value>VSync</value>
   </data>
-  <data name="Anti-Aliasing" xml:space="preserve">
-    <value>Anti-Aliasing</value>
+  <data name="Anti-Aliasing (restart)" xml:space="preserve">
+    <value>Anti-Aliasing (restart)</value>
   </data>
-  <data name="Texture Mipmaps" xml:space="preserve">
-    <value>Texture Mipmaps</value>
+  <data name="Mipmaps (restart)" xml:space="preserve">
+    <value>Mipmaps (restart)</value>
   </data>
-  <data name="Anisotropic Filtering" xml:space="preserve">
-    <value>Anisotropic Filtering</value>
-  </data>
-  <data name="Restart required" xml:space="preserve">
-    <value>Restart required</value>
+  <data name="Anisotropy (restart)" xml:space="preserve">
+    <value>Anisotropy (restart)</value>
   </data>
   <data name="Close388" xml:space="preserve">
     <value>Close</value>
