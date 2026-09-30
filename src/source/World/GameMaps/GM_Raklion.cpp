@@ -14,6 +14,7 @@
 #include "World/MapInfra/w_MapHeaders.h"
 #include "Audio/DSPlaySound.h"
 #include "UI/Scaling/UITransform.h"
+#include "Camera/CameraProjection.h"
 
 using namespace SEASON4A;
 
@@ -2254,6 +2255,63 @@ void CGM_Raklion::RenderAfterObjectMesh(OBJECT* o, BMD* b, bool ExtraMon)
     }
 }
 
+namespace
+{
+    // Single source of truth for Raklion's snow wind tilt, shared by CreateSnow() (the real
+    // world-space particles) and RenderBaseSmoke() (the screen-space overlay, see below) so the
+    // two can never drift apart again the way they did before this fix - see docs/AUDIT.md,
+    // "Raklion snow: two independent wind mechanisms" entry.
+    constexpr float kSnowWindTiltMinDegrees = 35.f;
+    constexpr float kSnowWindTiltMaxDegrees = 55.f; // exclusive, matches rand() % 20 + 35 below
+    constexpr float kSnowWindTiltMidDegrees =
+        (kSnowWindTiltMinDegrees + kSnowWindTiltMaxDegrees - 1.f) * 0.5f;
+
+    // Projects CreateSnow()'s wind direction (its per-particle tilt angle, at the midpoint of the
+    // random range, and a representative fall speed - the exact speed doesn't matter, only the
+    // direction, since the result is normalized) into a normalized 2D screen-space direction,
+    // using the same camera projection utility used throughout the renderer
+    // (CameraProjection::WorldToScreen). RenderBaseSmoke() uses this so its overlay always scrolls
+    // in the same apparent direction the real snow falls, instead of an independently hardcoded
+    // guess. Returns false (leaving outDirX/outDirY untouched) if the projection degenerates
+    // (e.g. the two sample points happen to project to the same screen point).
+    bool GetSnowWindScreenDirection(float& outDirX, float& outDirY)
+    {
+        vec3_t angle;
+        Vector(-kSnowWindTiltMidDegrees, 0.f, 0.f, angle);
+        vec3_t localFall;
+        Vector(0.f, 0.f, -22.f, localFall); // midpoint of CreateSnow()'s 15-29 fall speed range
+        float matrix[3][4];
+        AngleMatrix(angle, matrix);
+        vec3_t worldWindDir;
+        VectorRotate(localFall, matrix, worldWindDir);
+
+        // 100 units: small relative to the camera's default 1000-unit follow distance
+        // (CameraState.cpp) so the two sample points stay close enough for the perspective
+        // projection to behave near-linearly, but far enough apart that their projected screen
+        // positions differ by more than integer-pixel rounding noise.
+        vec3_t pointA, pointB;
+        VectorCopy(Hero->Object.Position, pointA);
+        VectorMA(pointA, 100.f, worldWindDir, pointB);
+
+        int screenAX, screenAY, screenBX, screenBY;
+        CameraProjection::WorldToScreen(g_Camera, pointA, &screenAX, &screenAY);
+        CameraProjection::WorldToScreen(g_Camera, pointB, &screenBX, &screenBY);
+
+        float dx = (float)(screenBX - screenAX);
+        float dy = (float)(screenBY - screenAY);
+        float lengthSq = dx * dx + dy * dy;
+        if (lengthSq < 0.0001f)
+        {
+            return false;
+        }
+
+        float invLength = 1.f / sqrtf(lengthSq);
+        outDirX = dx * invLength;
+        outDirY = dy * invLength;
+        return true;
+    }
+}
+
 bool CGM_Raklion::CreateSnow(PARTICLE* o)
 {
     if (IsIceCity() == false)
@@ -2292,13 +2350,30 @@ bool CGM_Raklion::CreateSnow(PARTICLE* o)
 void CGM_Raklion::RenderBaseSmoke()
 {
     EnableAlphaBlend();
-    float WindX2 = (float)((int)WorldTime % 100000) * 0.0006f;
-    float WindY2 = -(float)((int)WorldTime % 100000) * 0.0006f;
+
+    // Both overlay layers below are meant to be the same wind at two parallax speeds (same
+    // pattern as the identical two-layer RenderBaseSmoke() in GMCrywolf1st.cpp/GMSwampOfQuiet.cpp/
+    // GMBattleCastle.cpp, which both scroll purely horizontally at two different rates) - NOT one
+    // wind layer plus one unrelated static haze layer. Previously only the first (faster) layer
+    // had a hardcoded diagonal (WindX2/WindY2 = +0.0006/-0.0006) meant to suggest falling snow,
+    // while the second (slower) layer kept the generic horizontal-only pattern shared with those
+    // other maps - the two were never derived from the same direction, hence visibly disagreeing
+    // with each other AND with the real CreateSnow() particles. See docs/AUDIT.md.
+    // Fallback (only used if the projection below degenerates): the old hardcoded diagonal,
+    // normalized.
+    float dirX = 1.f * (1.f / sqrtf(2.f));
+    float dirY = -1.f * (1.f / sqrtf(2.f));
+    (void)GetSnowWindScreenDirection(dirX, dirY);
+
+    float fastSpeed = (float)((int)WorldTime % 100000) * 0.0006f;
     RenderBitmapUV(BITMAP_CHROME + 3, 0.f, 0.f, (float)REFERENCE_WIDTH,
-                   UI::Scaling::ScreenOverlayContentHeight(WindowWidth, WindowHeight), WindX2, WindY2, 3.0f, 2.0f);
-    float WindX = (float)((int)WorldTime % 100000) * 0.0001f;
+                   UI::Scaling::ScreenOverlayContentHeight(WindowWidth, WindowHeight),
+                   fastSpeed * dirX, fastSpeed * dirY, 3.0f, 2.0f);
+
+    float slowSpeed = (float)((int)WorldTime % 100000) * 0.0001f;
     RenderBitmapUV(BITMAP_CHROME + 2, 0.f, 0.f, (float)REFERENCE_WIDTH,
-                   UI::Scaling::ScreenOverlayContentHeight(WindowWidth, WindowHeight), WindX, 0.f, 0.3f, 0.3f);
+                   UI::Scaling::ScreenOverlayContentHeight(WindowWidth, WindowHeight),
+                   slowSpeed * dirX, slowSpeed * dirY, 0.3f, 0.3f);
 }
 
 bool IsIceCity()
