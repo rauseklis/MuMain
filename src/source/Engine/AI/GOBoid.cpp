@@ -1695,23 +1695,18 @@ void RenderFishs()
             o->Visible = TestFrustrum2D(o->Position[0] * 0.01f, o->Position[1] * 0.01f, -20.f);
             if (o->Visible && o->Type != -1)
             {
-                RenderObject(o);
+                const bool rendered = RenderObject(o);
 
-                if (o->Type == MODEL_FISH01 + 7 || o->Type == MODEL_FISH01 + 8)
+                if (rendered && o->Type != MODEL_FISH01 + 7 && o->Type != MODEL_FISH01 + 8
+                    && gMapManager.WorldActive != WD_10HEAVEN)
                 {
-                }
-                else
-                {
-                    if (gMapManager.WorldActive != WD_10HEAVEN)
-                    {
-                        EnableAlphaTest();
-                        BMD* b = &Models[o->Type];
-                        vec3_t Position;
-                        VectorCopy(o->Position, Position);
-                        Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
-                        VectorCopy(Position, b->BodyOrigin);
-                        b->RenderBodyShadow(-1, -1, -1, -1, nullptr, 0, 0.2f);
-                    }
+                    EnableAlphaTest();
+                    BMD* b = &Models[o->Type];
+                    vec3_t Position;
+                    VectorCopy(o->Position, Position);
+                    Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
+                    VectorCopy(Position, b->BodyOrigin);
+                    b->RenderBodyShadow(-1, -1, -1, -1, nullptr, 0, 0.2f);
                 }
             }
         }

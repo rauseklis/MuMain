@@ -24,6 +24,24 @@ namespace mu
 void QueueEditorRenderCommand();
 }
 
+namespace
+{
+[[nodiscard]] SDL_GPUSampleCount ToGpuSampleCount(int sampleCount)
+{
+    switch (sampleCount)
+    {
+    case 8:
+        return SDL_GPU_SAMPLECOUNT_8;
+    case 4:
+        return SDL_GPU_SAMPLECOUNT_4;
+    case 2:
+        return SDL_GPU_SAMPLECOUNT_2;
+    default:
+        return SDL_GPU_SAMPLECOUNT_1;
+    }
+}
+}
+
 #ifndef _WIN32
 #include <cstdio>    // popen / pclose
 #include <unistd.h>  // access
@@ -97,7 +115,7 @@ bool InitializeImGuiBackends(SDL_Window* window)
     ImGui_ImplSDLGPU3_InitInfo initInfo = {};
     initInfo.Device = device;
     initInfo.ColorTargetFormat = colorTargetFormat;
-    initInfo.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
+    initInfo.MSAASamples = ToGpuSampleCount(mu::GetRenderer().GetMultisampleCount());
     if (!ImGui_ImplSDLGPU3_Init(&initInfo))
     {
         fwprintf(stderr, L"[MuEditor] ImGui_ImplSDLGPU3_Init failed\n");

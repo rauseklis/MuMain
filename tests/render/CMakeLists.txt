@@ -32,6 +32,12 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME graphics_quality_tests
+    SOURCES
+        test_graphics_quality.cpp
+)
+
+mu_add_test(
     NAME aura_joint_lifecycle_tests
     SOURCES
         test_aura_joint_lifecycle.cpp

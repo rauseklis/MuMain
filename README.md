@@ -292,6 +292,9 @@ The client reads options from `config.ini` in the executable directory:
 | **`[UI]`** | `Locale` | `"en"` | Active generated UI locale. The Options window persists runtime language changes here. |
 | **`[Camera]`** | `Zoom` | `1735` | Persisted Orbital-camera distance. |
 | **`[Render]`** | `VSync` | `1` | `1` enables display-paced presentation; `0` keeps VSync disabled across restarts and fullscreen/resolution changes. `$vsync on` / `$vsync off` update this value. |
+| **`[Render]`** | `AntiAliasing` | `4` | Requested MSAA sample count. Supported values are `0` (disabled), `2`, `4`, and `8`; the renderer falls back to the highest supported level at or below the request. |
+| **`[Render]`** | `TextureMipmaps` | `1` | `1` generates mipmaps for 3D world, terrain, character, monster, NPC, item, and object textures. Interface and effect textures retain their legacy sampling. |
+| **`[Render]`** | `Anisotropy` | `16` | Anisotropic-filtering level for enhanced 3D textures. Supported values are `1`, `2`, `4`, `8`, and `16`; `1` disables anisotropy. |
 
 Rendering always uses the SDL GPU backend. The legacy `[Render] CoreProfile`
 key is not read; values `0` and `1` have no effect and do not select an OpenGL

@@ -2661,13 +2661,14 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
     }
 }
 
-void RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
+bool RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
 {
     if (Calc_RenderObject(o, Translate, Select, ExtraMon) == false)
     {
-        return;
+        return false;
     }
     Draw_RenderObject(o, Translate, Select, ExtraMon);
+    return true;
 }
 
 void RenderObject_AfterImage(OBJECT* o, bool Translate, int Select, int ExtraMon)
