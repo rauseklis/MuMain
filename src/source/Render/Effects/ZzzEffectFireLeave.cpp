@@ -464,12 +464,17 @@ bool MoveLeaves()
         // Raklion/Lacleon: per explicit user request (2026-09-30), a heavier/denser snowfall
         // than the shared default (80) so a strong snowstorm reads clearly on its own, now that
         // the screen-space overlay that used to (badly) supplement it has been removed
-        // (CGM_Raklion::RenderBaseSmoke(), see docs/AUDIT.md). Full MAX_LEAVES budget, matching
-        // the precedent already set for Devil Square's own full-budget rain above. The
-        // already-tuned per-particle wind/tilt/speed values from the earlier 6e255d0f fix are
-        // untouched - only the number of simultaneous snowflakes is increased here. Expect this
-        // to need live "heavier/lighter" iteration.
-        iMaxLeaves = MAX_LEAVES;
+        // (CGM_Raklion::RenderBaseSmoke(), see docs/AUDIT.md). First attempt used the full
+        // MAX_LEAVES (200) budget; the user asked for double that again on top (~400), which
+        // meant MAX_LEAVES itself was already the ceiling - raising MAX_LEAVES directly would
+        // have doubled Heaven's rain ramp (CreateHeavenRain()'s Rainly formula) and Devil
+        // Square's own full-budget rain too, neither of which was asked for. Uses
+        // MAX_LEAVES_DOUBLE (400, an existing constant, already the Leaves[] array's real
+        // capacity - see ZzzEffect.cpp) instead, which only affects Raklion: every other map's
+        // MAX_LEAVES-based formula is untouched. The already-tuned per-particle wind/tilt/speed
+        // values from the earlier 6e255d0f fix are untouched too - only the particle count
+        // changed. Expect this to need live "heavier/lighter" iteration.
+        iMaxLeaves = MAX_LEAVES_DOUBLE;
     }
     if (RainCurrent > RainTarget)
         RainCurrent -= FPS_ANIMATION_FACTOR;
@@ -573,7 +578,11 @@ void RenderLeaves()
 
     for (int i = 0; i < iMaxLeaves; i++)
 #else // DEVIAS_XMAS_EVENT
-    for (int i = 0; i < MAX_LEAVES; i++)
+    // Scans the full Leaves[] capacity (MAX_LEAVES_DOUBLE, see ZzzEffect.cpp) rather than just
+    // MAX_LEAVES, so Raklion's snow living in the upper half of the array (MoveLeaves()'s
+    // IsIceCity() case) actually gets drawn. Harmless for every other map, which never populates
+    // those slots and just sees Live==false there. See docs/AUDIT.md.
+    for (int i = 0; i < MAX_LEAVES_DOUBLE; i++)
 #endif // DEVIAS_XMAS_EVENT
     {
         PARTICLE* o = &Leaves[i];

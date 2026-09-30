@@ -1557,7 +1557,10 @@ void CMapManager::DeleteObjects()
         Boids[i].Live = false;
     for (int i = 0; i < MAX_FISHS; i++)
         Fishs[i].Live = false;
-    for (int i = 0; i < MAX_LEAVES; i++)
+    // Leaves[] is sized MAX_LEAVES_DOUBLE (see ZzzEffect.cpp, for Raklion's snow budget) - clear
+    // the full capacity on map change so stale Raklion snow in the upper half of the array can't
+    // linger into a different map. See docs/AUDIT.md.
+    for (int i = 0; i < MAX_LEAVES_DOUBLE; i++)
         Leaves[i].Live = false;
     for (int i = 0; i < MAX_PARTICLES; i++)
         Particles[i].Live = false;

@@ -25,11 +25,12 @@
 #include "Scenes/MainScene.h"
 
 PARTICLE  Particles[MAX_PARTICLES];
-#ifdef DEVIAS_XMAS_EVENT
+// Sized to MAX_LEAVES_DOUBLE unconditionally (not just under the disabled DEVIAS_XMAS_EVENT
+// flag) so Raklion's snow (see MoveLeaves()'s IsIceCity() case) has room to use the full doubled
+// budget the user asked for, without inflating MAX_LEAVES itself - every other map's
+// MAX_LEAVES-based formula (Heaven's rain ramp, Devil Square's budget, etc.) is unaffected. See
+// docs/AUDIT.md.
 PARTICLE  Leaves[MAX_LEAVES_DOUBLE];
-#else // DEVIAS_XMAS_EVENT
-PARTICLE  Leaves[MAX_LEAVES];
-#endif // DEVIAS_XMAS_EVENT
 JOINT     Joints[MAX_JOINTS];
 
 BYTE    g_byUpperBoneLocation[7] = { 25, 26, 27, 20, 34, 35, 36 };
