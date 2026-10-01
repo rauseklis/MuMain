@@ -3036,8 +3036,8 @@ void OpenSkills()
     gLoadData.AccessModel(MODEL_ARROW_GAMBLE, L"Data\\Skill\\", L"gamble_arrows01");
     gLoadData.OpenTexture(MODEL_ARROW_GAMBLE, L"Skill\\");
 
-    gLoadData.OpenTexture(MODEL_SPEARSKILL, L"Skill\\");
     gLoadData.AccessModel(MODEL_SPEARSKILL, L"Data\\Skill\\", L"RidingSpear", 1);
+    gLoadData.OpenTexture(MODEL_SPEARSKILL, L"Skill\\");
     gLoadData.AccessModel(MODEL_PROTECT, L"Data\\Skill\\", L"Protect", 1);
 
     for (int i = 0; i < 2; i++)
