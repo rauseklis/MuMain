@@ -1864,6 +1864,11 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
             case MODEL_SKILL_WHEEL2:
                 o->LifeTime = 25;//
                 o->Weapon = CharacterMachine->PacketSerial;
+                // Drive the orbit sweep from its own phase instead of o->Angle[2]
+                // so the blade's render orientation stays fixed while it circles
+                // the caster (see Move_MODEL_SKILL_WHEEL2). StartPosition is
+                // otherwise unused by this effect.
+                o->StartPosition[0] = o->Angle[2];
                 break;
             case MODEL_SKILL_FURY_STRIKE:
             {
@@ -3396,10 +3401,17 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 }
                 else if (o->SubType == 1)
                 {
-                    o->LifeTime = o->Owner->LifeTime;
+                    // Trail children used to inherit the owner projectile's remaining
+                    // lifetime, which ranges from nearly the full 20-tick flight (when
+                    // spawned early) down to almost nothing (when spawned late). Combined
+                    // with the spawn-rate fix in Move_MODEL_PIER_PART, that produced an
+                    // inconsistent, sometimes long-lived trail. Each child now gets a
+                    // short, fixed, time-based lifetime so every trail segment reliably
+                    // fades out quickly regardless of when in the flight it was created.
+                    o->LifeTime = 8.f;
                     o->HiddenMesh = 0;
                     o->Scale = 0.5f;
-                    o->Alpha = (float)((20 - o->LifeTime) / 5.f);
+                    o->Alpha = 1.0f;
                     Vector(0.f, 0.f, 0.f, o->Direction);
 
                     // Fireburst lays down many trail segments along each projectile.  The
