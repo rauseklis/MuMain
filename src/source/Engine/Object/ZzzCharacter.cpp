@@ -4420,6 +4420,9 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
         case AT_SKILL_TWISTING_SLASH_MASTERY:
             o->Weapon = c->Weapon[0].Type - MODEL_SWORD;
             o->WeaponLevel = (BYTE)c->Weapon[0].Level;
+            // A new cast starts before the previous 25-tick orbit can expire.
+            // Keep one current weapon per character instead of overlapping casts.
+            DeleteEffect(MODEL_SKILL_WHEEL2, o);
             CreateEffect(MODEL_SKILL_WHEEL1, o->Position, o->Angle, o->Light, 0, o, o->PKKey, FindHotKey((c->Skill)));
 
             if (SceneFlag != LOG_IN_SCENE)
