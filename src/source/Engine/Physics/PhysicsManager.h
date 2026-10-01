@@ -185,6 +185,8 @@ protected:
     float m_fWind;
     BYTE m_byWindMax;
     BYTE m_byWindMin;
+    float m_fSimulationAccumulator;
+    bool m_bSimulationStarted;
 
 public:
     OBJECT* GetOwner(void)
