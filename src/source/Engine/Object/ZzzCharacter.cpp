@@ -4604,8 +4604,11 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
                 Vector(0.f, 0.f, i * 90.f, Angle);
 
                 int SkillIndex = FindHotKey((c->Skill));
-                CreateJoint(BITMAP_JOINT_SPIRIT, Position, o->Position, Angle, 0, o, 80.f, o->PKKey, SkillIndex, o->m_bySkillSerialNum);
-                CreateJoint(BITMAP_JOINT_SPIRIT, Position, o->Position, Angle, 0, o, 20.f);
+                // SubType 26 is Evil Spirit's own joint subtype (distinct from the shared SubType 0
+                // used by GM_Kanturu_2nd's MODEL_PERSONA attack2), so its color can be recolored
+                // without affecting that unrelated monster effect.
+                CreateJoint(BITMAP_JOINT_SPIRIT, Position, o->Position, Angle, 26, o, 80.f, o->PKKey, SkillIndex, o->m_bySkillSerialNum);
+                CreateJoint(BITMAP_JOINT_SPIRIT, Position, o->Position, Angle, 26, o, 20.f);
             }
             if (c == Hero)
             {
