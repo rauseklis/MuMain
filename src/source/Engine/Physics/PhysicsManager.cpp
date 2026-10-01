@@ -62,12 +62,12 @@ void CPhysicsVertex::UpdateForce(unsigned int iKey, DWORD dwType, float fWind)
 #ifndef DISABLE_WIND
     for (int i = 0; i < 3; ++i)
     {
-        m_vForce[i] = fRand * CPhysicsManager::s_vWind[i] - m_vVel[i] * 0.01f;
+        m_vForce[i] = fRand * CPhysicsManager::s_vWind[i] - m_vVel[i] * 0.01f * FPS_ANIMATION_FACTOR;
     }
 #else
     for (int i = 0; i < 3; ++i)
     {
-        m_vForce[i] = -m_vVel[i] * 0.01f;
+        m_vForce[i] = -m_vVel[i] * 0.01f * FPS_ANIMATION_FACTOR;
     }
 #endif
 
@@ -124,7 +124,7 @@ void CPhysicsVertex::Move(float fTime)
     for (int i = 0; i < 3; ++i)
     {
         m_vVel[i] += m_vForce[i] * s_fInvOfMass * fTime;
-        m_vPos[i] += m_vVel[i] * fTime;
+        m_vPos[i] += m_vVel[i] * fTime * FPS_ANIMATION_FACTOR;
     }
 }
 
