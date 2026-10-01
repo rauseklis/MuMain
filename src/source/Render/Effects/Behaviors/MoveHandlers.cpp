@@ -2772,7 +2772,8 @@ namespace Render::Effects::Behaviors
     // MODEL_SKILL_WHEEL1
     bool Move_MODEL_SKILL_WHEEL1(OBJECT* o, int index, float Luminosity)
     {
-        CreateEffectFpsChecked(MODEL_SKILL_WHEEL2, o->Position, o->Angle, o->Light, 4 - o->LifeTime, o->Owner, o->PKKey, o->Skill, o->Kind);
+        CreateEffect(MODEL_SKILL_WHEEL2, o->Position, o->Angle, o->Light, 0, o->Owner, o->PKKey, o->Skill, o->Kind);
+        o->LifeTime = 0.f;
         return true;
     }
 
