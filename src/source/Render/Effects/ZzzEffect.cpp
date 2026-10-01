@@ -3402,7 +3402,12 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->Alpha = (float)((20 - o->LifeTime) / 5.f);
                     Vector(0.f, 0.f, 0.f, o->Direction);
 
-                    CreateParticle(BITMAP_FIRE + 1, o->Position, o->Angle, o->Light, 0, 1.f, o);
+                    // Fireburst lays down many trail segments along each projectile.  The
+                    // generic fire particle lives for 12 legacy ticks and expands, so
+                    // repeated casts leave large cards scattered across the viewport.
+                    // Use the existing short flame variant and keep it below the trail
+                    // model's scale so the flames form a compact chain around the cast.
+                    CreateParticle(BITMAP_FIRE + 1, o->Position, o->Angle, o->Light, 1, 0.6f, o);
                 }
                 else if (o->SubType == 2)
                 {
