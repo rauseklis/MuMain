@@ -61,3 +61,23 @@ TEST_CASE("only known 3D asset directories receive enhanced filtering [render][g
     CHECK_FALSE(IsEnhancedTexturePath(L"Data\\World\\not-a-number.jpg"));
     CHECK_FALSE(IsEnhancedTexturePath(L"unclassified.jpg"));
 }
+
+TEST_CASE("the hand-recreated skill textures are exceptions to the Skill rule [render][graphics_quality]")
+{
+    using Render::GraphicsQuality::IsEnhancedTexturePath;
+
+    // MMn2 (Data/Skill/MMn2.OZJ, Soul Barrier) and magic_a01/magic_a02
+    // (Data/Skill/, Hell Fire's ground rune and flame texture) were recreated
+    // at higher resolution, so they need linear filtering and mipmaps like
+    // the other enhanced asset directories; everything else under
+    // Data/Skill/ keeps the sharp nearest filtering tested above
+    // (Data\Skill\HellGate.tga).
+    CHECK(IsEnhancedTexturePath(L"Data\\Skill\\MMn2.OZJ"));
+    CHECK(IsEnhancedTexturePath(L"data/skill/mmn2.jpg"));
+    CHECK_FALSE(IsEnhancedTexturePath(L"Data\\Skill\\MMn20ther.tga"));
+
+    CHECK(IsEnhancedTexturePath(L"Data\\Skill\\magic_a01.OZJ"));
+    CHECK(IsEnhancedTexturePath(L"data/skill/magic_a02.jpg"));
+    CHECK_FALSE(IsEnhancedTexturePath(L"Data\\Skill\\magic_b.OZJ"));
+    CHECK_FALSE(IsEnhancedTexturePath(L"Data\\Skill\\magic_a010ther.tga"));
+}
