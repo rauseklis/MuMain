@@ -525,6 +525,13 @@ typedef struct
     bool        m_bCreateTails; // Flag, if tails are created.
     int         NumTails; // The number of currently used tail entries. Usually this gets increased by one in every frame until the maximum is reached.
     int         MaxTails; // The maximum number of tail entries to use.
+    // CreateJoint scales MaxTails by the current FPS_ANIMATION_FACTOR once, at creation, so the
+    // tail count looks the same at any frame rate. If that one frame's timing is a stall (e.g. a
+    // map load, which reads as a catastrophically low instantaneous FPS), the bad reading gets
+    // baked in for this joint's whole lifetime. When creation lands on such a frame, the base
+    // MaxTails is kept unscaled and this flag is set so MoveJoint() retries the scaling on the
+    // first subsequent frame with sane timing, instead of a corrupted value sticking forever.
+    bool        m_bTailScalePending;
     vec3_t      Tails[MAX_TAILS][4]; // The tail entries, which are getting moved back by one in every frame.
 } JOINT;
 //character end

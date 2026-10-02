@@ -20,6 +20,7 @@
 #include "GameLogic/Pets/CSPetSystem.h"
 #include "Render/Renderer/MuRenderer.h"
 #include "Render/Renderer/RenderUtils.h"
+#include "Render/Effects/TailScaling.h"
 #include "Scenes/MainScene.h"
 #include "GameLogic/Items/ItemCategories.h"
 
@@ -92,6 +93,7 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
             o->Velocity = 0.f;
             o->Target = NULL;
             o->m_bCreateTails = true;
+            o->m_bTailScalePending = false;
             o->byOnlyOneRender = 0;
             o->bTileMapping = false;
             o->m_byReverseUV = 0;
@@ -2778,24 +2780,27 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
             break;
             }
 
-            // Because the Tails will be too short when FPS is high, we need to
-            // increase the MaxTails.
-            o->MaxTails = static_cast<int>(o->MaxTails / FPS_ANIMATION_FACTOR);
-            if (o->MaxTails > MAX_TAILS)
-            {
-                o->MaxTails = MAX_TAILS;
-            }
+            // Because the Tails will be too short when FPS is high, we need to increase the
+            // MaxTails -- but only on a frame whose FPS reading is trustworthy. A frame landing on
+            // a stall (a map/zone load, typically) reports a tiny instantaneous FPS that is not
+            // representative of real play; scaling by it here would bake a corrupted, far-too-small
+            // MaxTails into this joint for its entire lifetime (joints like Soul Barrier's live
+            // effectively forever). Skip the scaling on such a frame and let MoveJoint retry it on
+            // this joint's first subsequent update once real per-frame timing resumes, instead of
+            // guessing a substitute value for a frame rate we don't actually know yet. See
+            // TailScaling.h for the extracted, unit-tested logic and the full reasoning.
+            extern double FPS;
+            o->MaxTails = Render::Effects::TailScaling::ComputeMaxTails(o->MaxTails, FPS, FPS_ANIMATION_FACTOR, MAX_TAILS,
+                                                                o->m_bTailScalePending);
 
             if (Type == MODEL_SPEARSKILL && SubType == 0) // DXP temp diagnostic, to be removed
             {
-                extern double FPS;
-                extern double WorldTime;
-                (void)WorldTime;
                 const bool isHero = (Hero != nullptr) && (o->Target == &Hero->Object);
                 g_ErrorReport.Write(
-                    L"DXP-DIAG CreateJoint SOULBARRIER SubType=0 slot=%p FinalMaxTails=%d "
+                    L"DXP-DIAG CreateJoint SOULBARRIER SubType=0 slot=%p FinalMaxTails=%d Pending=%d "
                     L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f WorldActive=%d IsHero=%d\r\n",
-                    (void*)o, o->MaxTails, FPS_ANIMATION_FACTOR, FPS, gMapManager.WorldActive, isHero);
+                    (void*)o, o->MaxTails, (int)o->m_bTailScalePending, FPS_ANIMATION_FACTOR, FPS,
+                    gMapManager.WorldActive, isHero);
             }
 
             return;
@@ -3022,6 +3027,28 @@ else Angle[2] = TurnAngle2(Angle[2],0.f,FarAngle(Angle[2],0.f)*0.5f);
 
 void MoveJoint(JOINT* o, int iIndex)
 {
+    if (o->m_bTailScalePending)
+    {
+        // See CreateJoint and TailScaling.h: the FPS-based MaxTails scaling was skipped there
+        // because that frame's timing was a stall, not real gameplay. Retry it here on the first
+        // subsequent frame whose timing looks sane, so the joint still ends up with the correctly
+        // scaled MaxTails instead of being stuck at its small, unscaled base value for its whole
+        // lifetime.
+        extern double FPS;
+        const bool wasPending = o->m_bTailScalePending;
+        o->MaxTails = Render::Effects::TailScaling::ComputeMaxTails(o->MaxTails, FPS, FPS_ANIMATION_FACTOR, MAX_TAILS,
+                                                            o->m_bTailScalePending);
+
+        if (wasPending && !o->m_bTailScalePending && o->Type == MODEL_SPEARSKILL &&
+            o->SubType == 0) // DXP temp diagnostic, to be removed
+        {
+            g_ErrorReport.Write(
+                L"DXP-DIAG MoveJoint SOULBARRIER deferred scaling applied slot=%p FinalMaxTails=%d "
+                L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f\r\n",
+                (void*)o, o->MaxTails, FPS_ANIMATION_FACTOR, FPS);
+        }
+    }
+
     float Height;
     vec3_t Light;
     float Luminosity;

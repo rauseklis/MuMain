@@ -10,3 +10,9 @@ mu_add_test(
     SOURCES
         test_cloth_simulation_timing.cpp
 )
+
+mu_add_test(
+    NAME test_tail_scaling
+    SOURCES
+        test_tail_scaling.cpp
+)
