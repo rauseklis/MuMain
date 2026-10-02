@@ -3872,16 +3872,15 @@ void MoveJoint(JOINT* o, int iIndex)
                 // the added color's own magnitude, i.e. this scale on o->Light. Applied uniformly to
                 // all three channels so the R:G:B ratio (and therefore the hue and the bright-flash-
                 // fading-to-green envelope) is unchanged -- only the overall intensity is turned down.
-                // First pass used 0.65f; a second live test asked for noticeably more transparency
-                // still, so this was lowered further to 0.4f. At the green channel's full 1.0 weight,
-                // Luminosity (o->LifeTime * 0.1f, peaking at 4.9) only clamps PackABGR's [0,1] ceiling
-                // while Luminosity * 0.4f >= 1, i.e. LifeTime >= 25 -- roughly the first half of each
-                // joint's 49-tick LifeTime -- versus almost the whole LifeTime at the original
-                // uncorrected weight of 1.0. The back half of the fade is therefore a genuine, highly
-                // visible brightness gradient (translucent) rather than a flat maximum, while the first
-                // half still reaches full green brightness so the effect stays clearly legible, including
-                // against bright backgrounds.
-                constexpr float kIntensityScale = 0.4f;
+                // History: 0.65f -> 0.4f -> 0.2f, each step in response to live feedback that the glow
+                // was still too solid. At 0.4f the green channel (full 1.0 weight; Luminosity =
+                // o->LifeTime * 0.1f peaks at 4.9) still sat clamped at PackABGR's [0,1] ceiling for
+                // LifeTime >= 25, and Evil Spirit stacks 8 additive joints (4 angles x 2 CreateJoint
+                // calls) each with a tail ribbon, so perceived opacity is the SUM of many layers and a
+                // modest per-joint cut barely reads as transparent. At 0.2f the peak is
+                // 4.9 * 0.2 = 0.98 < 1, so the green channel never reaches the clamp at all: the whole
+                // LifeTime is an unclamped gradient and each layer contributes far less to the sum.
+                constexpr float kIntensityScale = 0.2f;
                 Luminosity = o->LifeTime * 0.1f;
                 Vector(Luminosity * 0.12f * kIntensityScale, Luminosity * 1.0f * kIntensityScale,
                        Luminosity * 0.5f * kIntensityScale, o->Light);
