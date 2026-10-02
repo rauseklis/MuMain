@@ -666,9 +666,11 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
                     // grayscale "void" streak, but it can never produce a vivid green: against a dark
                     // background there is nothing to subtract, so the result is still black regardless
                     // of tint, and against a bright background a green-weighted tint would remove green
-                    // the hardest of all three channels. Switch to a normal alpha blend instead, same as
-                    // every other SubType in this switch that wants its Vector(r,g,b,o->Light) tint to
-                    // actually be visible as that color (e.g. SubType 19's identical
+                    // the hardest of all three channels. Switch to RENDER_TYPE_ALPHA_BLEND instead
+                    // (which, despite the name, is actually an additive "Glow" blend here -- see the
+                    // detailed note in MoveJoint() below), same as every other SubType in this switch
+                    // that wants its Vector(r,g,b,o->Light) tint to actually be visible as that color
+                    // (e.g. SubType 19's identical
                     // "if (o->Type == BITMAP_JOINT_SPIRIT) o->RenderType = RENDER_TYPE_ALPHA_BLEND;"
                     // right below, and SubTypes 2/21/3/6/13/18).
                     if (o->Type == BITMAP_JOINT_SPIRIT)
@@ -3849,15 +3851,31 @@ void MoveJoint(JOINT* o, int iIndex)
                 // Evil Spirit: same brightness envelope as SubType 0's neutral glow, but weighted
                 // toward an emerald-green hue instead of white. This reads as intended (rather than
                 // getting subtracted away to black) only because CreateJoint's SubType 26 setup above
-                // switched this joint's RenderType to RENDER_TYPE_ALPHA_BLEND -- with that normal
-                // alpha blend, o->Light is a direct multiplicative tint on the texture (PackABGR
-                // clamps each channel to [0,1] independently), so a HIGHER channel weight means MORE
-                // of that color shows, same as every other colored SubType in this switch. Red stays
-                // low throughout so the trail never drifts yellow/white; blue is strong enough to add
-                // a brief arcane cyan-white flash at full brightness (early LifeTime) before settling
-                // into a saturated green as the joint fades.
+                // switched this joint's RenderType to RENDER_TYPE_ALPHA_BLEND -- which, despite the
+                // name, actually maps to BlendMode::Glow (SRC=ONE, DST=ONE, op=ADD; see
+                // EnableAlphaBlend() in ZzzOpenglUtil.cpp and the pipeline table in
+                // MuRendererSDLGpu.cpp's CreatePipelines()), i.e. a pure ADDITIVE blend:
+                // result = dst_color + texture_color * o->Light, with no alpha compositing at all
+                // (the vertex alpha PackABGR packs is literally unused by this blend's color_blend_op,
+                // which is why every PackABGR call in this file hardcodes alpha=1.f). So a HIGHER
+                // channel weight means more of that color gets ADDED on top of the background -- same
+                // read ("more weight = more of that color shows") as under normal alpha blending, just
+                // via addition instead of compositing. Red stays low throughout so the trail never
+                // drifts yellow/white; blue is strong enough to add a brief arcane cyan-white flash at
+                // full brightness (early LifeTime) before settling into a saturated green as the joint
+                // fades.
+                //
+                // kIntensityScale: live feedback said the colors "pop too much" and asked for a bit
+                // more translucency. Since this is an additive blend, there is no real alpha/opacity
+                // control to turn down (confirmed above -- PackABGR's alpha argument is a no-op here);
+                // the only lever that actually reduces how much the effect overpowers the background is
+                // the added color's own magnitude, i.e. this scale on o->Light. Applied uniformly to
+                // all three channels so the R:G:B ratio (and therefore the hue and the bright-flash-
+                // fading-to-green envelope) is unchanged -- only the overall intensity is turned down.
+                constexpr float kIntensityScale = 0.65f;
                 Luminosity = o->LifeTime * 0.1f;
-                Vector(Luminosity * 0.12f, Luminosity * 1.0f, Luminosity * 0.5f, o->Light);
+                Vector(Luminosity * 0.12f * kIntensityScale, Luminosity * 1.0f * kIntensityScale,
+                       Luminosity * 0.5f * kIntensityScale, o->Light);
                 Luminosity = -(float)(rand() % 4 + 4) * 0.01f;
                 Vector(Luminosity, Luminosity, Luminosity, Light);
                 AddTerrainLight(o->Position[0], o->Position[1], Light, 4, PrimaryTerrainLight);
