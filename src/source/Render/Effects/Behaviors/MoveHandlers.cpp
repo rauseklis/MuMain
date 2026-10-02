@@ -2772,7 +2772,8 @@ namespace Render::Effects::Behaviors
     // MODEL_SKILL_WHEEL1
     bool Move_MODEL_SKILL_WHEEL1(OBJECT* o, int index, float Luminosity)
     {
-        CreateEffectFpsChecked(MODEL_SKILL_WHEEL2, o->Position, o->Angle, o->Light, 4 - o->LifeTime, o->Owner, o->PKKey, o->Skill, o->Kind);
+        CreateEffect(MODEL_SKILL_WHEEL2, o->Position, o->Angle, o->Light, 0, o->Owner, o->PKKey, o->Skill, o->Kind);
+        o->LifeTime = 0.f;
         return true;
     }
 
@@ -2802,10 +2803,20 @@ namespace Render::Effects::Behaviors
             Vector(0.f, -150.f, 0.f, p);
         }
 
-        AngleMatrix(o->Angle, Matrix);
+        // Only the orbit phase (StartPosition[0]) sweeps around the caster.
+        // o->Angle itself is left untouched so the blade's own render
+        // orientation stays fixed instead of also spinning on its own axis
+        // while it circles -- previously both the orbit position and the
+        // model's render angle were driven by the same o->Angle[2], which
+        // made the blade tumble in place as it swept around the character.
+        vec3_t OrbitAngle;
+        VectorCopy(o->Angle, OrbitAngle);
+        OrbitAngle[2] = o->StartPosition[0];
+
+        AngleMatrix(OrbitAngle, Matrix);
         VectorRotate(p, Matrix, Position);
         VectorAdd(o->Owner->Position, Position, o->Position);
-        o->Angle[2] -= 18 * FPS_ANIMATION_FACTOR;
+        o->StartPosition[0] -= 18 * FPS_ANIMATION_FACTOR;
 
         if (rand_fps_check(1)) {
             CreateParticleFpsChecked(BITMAP_SMOKE, o->Position, o->Angle, o->Light, 3);
@@ -5608,6 +5619,16 @@ namespace Render::Effects::Behaviors
                 VectorCopy(o->Owner->Position, p);
                 VectorAdd(p, o->StartPosition, p);
 
+                // The homing re-steer is sub-stepped Gravity-1 times per call for a
+                // smooth curved approach. Trail-child spawning used to live inside
+                // this same loop, so as Gravity grew over the projectile's flight
+                // the number of spawn attempts per call grew with it -- right as
+                // the projectile converged on the target, this produced a dense
+                // burst of trail children clustered around it (the reported ring
+                // of discrete meshes). Spawning is now done once per call below,
+                // independent of Gravity, so trail density stays flat and
+                // time-based (via CreateEffectFpsChecked's own FPS scaling) for
+                // the whole flight instead of escalating near the target.
                 float Distance;
                 for (int i = 1; i < o->Gravity; ++i)
                 {
@@ -5629,15 +5650,16 @@ namespace Render::Effects::Behaviors
                     AngleMatrix(o->Angle, Matrix);
                     VectorRotate(o->Direction, Matrix, Position);
                     VectorAddScaled(o->Position, Position, o->Position, FPS_ANIMATION_FACTOR);
-
-                    CreateEffectFpsChecked(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
                 }
+                CreateEffectFpsChecked(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
                 if (Distance < 40 && (int)o->LifeTime == 5)
                 {
                     VectorCopy(o->Position, Position);
                     Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
                 }
                 o->Gravity += (0.1f) * FPS_ANIMATION_FACTOR;
+                if (o->Gravity > 5.f)
+                    o->Gravity = 5.f;
 
                 PlayBuffer(SOUND_ATTACK_FIRE_BUST_EXP);
             }

@@ -1864,6 +1864,11 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
             case MODEL_SKILL_WHEEL2:
                 o->LifeTime = 25;//
                 o->Weapon = CharacterMachine->PacketSerial;
+                // Drive the orbit sweep from its own phase instead of o->Angle[2]
+                // so the blade's render orientation stays fixed while it circles
+                // the caster (see Move_MODEL_SKILL_WHEEL2). StartPosition is
+                // otherwise unused by this effect.
+                o->StartPosition[0] = o->Angle[2];
                 break;
             case MODEL_SKILL_FURY_STRIKE:
             {
@@ -3396,13 +3401,25 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 }
                 else if (o->SubType == 1)
                 {
-                    o->LifeTime = o->Owner->LifeTime;
+                    // Trail children used to inherit the owner projectile's remaining
+                    // lifetime, which ranges from nearly the full 20-tick flight (when
+                    // spawned early) down to almost nothing (when spawned late). Combined
+                    // with the spawn-rate fix in Move_MODEL_PIER_PART, that produced an
+                    // inconsistent, sometimes long-lived trail. Each child now gets a
+                    // short, fixed, time-based lifetime so every trail segment reliably
+                    // fades out quickly regardless of when in the flight it was created.
+                    o->LifeTime = 8.f;
                     o->HiddenMesh = 0;
                     o->Scale = 0.5f;
-                    o->Alpha = (float)((20 - o->LifeTime) / 5.f);
+                    o->Alpha = 1.0f;
                     Vector(0.f, 0.f, 0.f, o->Direction);
 
-                    CreateParticle(BITMAP_FIRE + 1, o->Position, o->Angle, o->Light, 0, 1.f, o);
+                    // Fireburst lays down many trail segments along each projectile.  The
+                    // generic fire particle lives for 12 legacy ticks and expands, so
+                    // repeated casts leave large cards scattered across the viewport.
+                    // Use the existing short flame variant and keep it below the trail
+                    // model's scale so the flames form a compact chain around the cast.
+                    CreateParticle(BITMAP_FIRE + 1, o->Position, o->Angle, o->Light, 1, 0.6f, o);
                 }
                 else if (o->SubType == 2)
                 {
@@ -8684,6 +8701,17 @@ void RenderFuryStrike(OBJECT* o)
 
 void RenderSkillSpear(OBJECT* o)
 {
+    { // DXP temp diagnostic, to be removed
+        static double lastLogTime = -100000.0;
+        extern double WorldTime;
+        if (WorldTime - lastLogTime > 300.0)
+        {
+            lastLogTime = WorldTime;
+            g_ErrorReport.Write(
+                L"DXP-DIAG RenderSkillSpear ENTER SubType=%d Live=%d LifeTime=%d Alpha=%.3f EnableShadow=%d\r\n",
+                o->SubType, (int)o->Live, o->LifeTime, o->Alpha, (int)o->EnableShadow);
+        }
+    }
     BMD* b = &Models[MODEL_SPEARSKILL];
     b->Animation(BoneTransform, o->AnimationFrame, o->PriorAnimationFrame, o->PriorAction, o->Angle, o->HeadAngle, false, false);
     //o->BlendMeshLight = .5f;

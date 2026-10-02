@@ -525,6 +525,19 @@ typedef struct
     bool        m_bCreateTails; // Flag, if tails are created.
     int         NumTails; // The number of currently used tail entries. Usually this gets increased by one in every frame until the maximum is reached.
     int         MaxTails; // The maximum number of tail entries to use.
+    // CreateJoint scales MaxTails by the current FPS_ANIMATION_FACTOR once, at creation, so the
+    // tail count looks the same at any frame rate. If that frame is a stall (e.g. a map load, which
+    // reads as a catastrophically low instantaneous FPS) a single-sample reading is unrepresentative
+    // (and so is the first "sane" frame after it, which is still on the recovery ramp). Such joints
+    // keep their base MaxTails in m_iTailScaleBase, set m_bTailScalePending, and MoveJoint() ratchets
+    // MaxTails upward every frame until it reaches the cap or m_dTailScaleDeadline (WorldTime, ms)
+    // passes. See Render/Effects/TailScaling.h.
+    bool        m_bTailScalePending;
+    int         m_iTailScaleBase;
+    double      m_dTailScaleDeadline;
+    // Set when a stall-created aura joint finishes its MaxTails recovery: MoveJoint then fills its
+    // whole tail chain in one go (see JointOrbit.h) so it does not visibly "grow in" after a load.
+    bool        m_bTailPreRoll;
     vec3_t      Tails[MAX_TAILS][4]; // The tail entries, which are getting moved back by one in every frame.
 } JOINT;
 //character end

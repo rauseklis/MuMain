@@ -28,6 +28,7 @@
 #include "Render/Models/BmdPolygonTopology.h"
 #include "Render/Models/ShadowProjection.h"
 #include "Render/Models/GpuSkinningPath.h"
+#include "Render/Renderer/GraphicsQuality.h" // DXP temp diagnostic, to be removed
 #include "Render/Renderer/MuRenderer.h"
 #include "Render/Renderer/RenderUtils.h"
 #include "Core/Utilities/FrameProfiler.h"
@@ -1331,6 +1332,27 @@ void BMD::RenderMesh(int meshIndex, int renderFlags, float alpha, int blendMeshI
     }
 
     const auto texture = Bitmaps.GetTexture(textureIndex);
+
+    if (this == &Models[MODEL_SPEARSKILL]) // DXP temp diagnostic, to be removed
+    {
+        static double lastLogTime = -100000.0;
+        if (WorldTime - lastLogTime > 300.0)
+        {
+            lastLogTime = WorldTime;
+            const bool enhanced = Render::GraphicsQuality::IsEnhancedTexturePath(texture->FileName);
+            const std::uint32_t mipLevels =
+                enhanced ? Render::GraphicsQuality::CalculateMipLevelCount(
+                               static_cast<std::uint32_t>(texture->Width), static_cast<std::uint32_t>(texture->Height))
+                         : 1u;
+            g_ErrorReport.Write(
+                L"DXP-DIAG SoulBarrierBind WorldActive=%d meshIndex=%d textureIndex=%d BitmapPtr=%p "
+                L"sdlTexture=%p sdlSampler=%p FileName=%ls Width=%.0f Height=%.0f Ref=%u Enhanced=%d MipLevels=%u\r\n",
+                gMapManager.WorldActive, meshIndex, textureIndex, (const void*)texture, (void*)texture->sdlTexture,
+                (void*)texture->sdlSampler, texture->FileName, texture->Width, texture->Height,
+                (unsigned)texture->Ref, enhanced, mipLevels);
+        }
+    }
+
     if (texture->IsSkin && HideSkin)
     {
         return;

@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include <algorithm>
 #include <cstring>
 #include <SDL3/SDL.h>
 #include "Core/Utilities/Log/ErrorReport.h"
@@ -20,6 +21,8 @@
 #include "GameLogic/Pets/CSPetSystem.h"
 #include "Render/Renderer/MuRenderer.h"
 #include "Render/Renderer/RenderUtils.h"
+#include "Render/Effects/TailScaling.h"
+#include "Render/Effects/JointOrbit.h"
 #include "Scenes/MainScene.h"
 #include "GameLogic/Items/ItemCategories.h"
 
@@ -71,6 +74,11 @@ static inline float GetTailDistanceSq(const vec3_t a, const vec3_t b)
     return dx * dx + dy * dy + dz * dz;
 }
 
+// DXP temp diagnostic, to be removed: trace of the hero's first Soul Barrier joint after creation.
+static int g_sbTraceSlot = -1;
+static double g_sbTraceStart = 0.0;
+static double g_sbTraceNext = 0.0;
+
 void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle, int SubType, OBJECT* Target, float Scale, short PKKey,
     WORD SkillIndex, WORD SkillSerialNum, int iChaIndex, const float* vPriorColor, short int sTargetindex)
 {
@@ -92,6 +100,8 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
             o->Velocity = 0.f;
             o->Target = NULL;
             o->m_bCreateTails = true;
+            o->m_bTailScalePending = false;
+            o->m_bTailPreRoll = false;
             o->byOnlyOneRender = 0;
             o->bTileMapping = false;
             o->m_byReverseUV = 0;
@@ -653,6 +663,30 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
                 switch (o->SubType)
                 {
                 case 0:
+                    o->Weapon = CharacterMachine->PacketSerial;
+                    o->Velocity = 70.f;
+                    o->LifeTime = 49;
+                    o->Scale = Scale;
+                    o->MaxTails = 6;
+                    break;
+                case 26: // Evil Spirit (Dark Wizard/Soul Master); recolored to emerald green below in MoveJoint.
+                    // The outer case defaults to RENDER_TYPE_ALPHA_BLEND_MINUS (a subtractive blend:
+                    // result = dst * (1 - src_color), i.e. a HIGHER channel weight makes that channel
+                    // darken MORE, not read as more of that color -- fine for SubType 0's neutral
+                    // grayscale "void" streak, but it can never produce a vivid green: against a dark
+                    // background there is nothing to subtract, so the result is still black regardless
+                    // of tint, and against a bright background a green-weighted tint would remove green
+                    // the hardest of all three channels. Switch to RENDER_TYPE_ALPHA_BLEND instead
+                    // (which, despite the name, is actually an additive "Glow" blend here -- see the
+                    // detailed note in MoveJoint() below), same as every other SubType in this switch
+                    // that wants its Vector(r,g,b,o->Light) tint to actually be visible as that color
+                    // (e.g. SubType 19's identical
+                    // "if (o->Type == BITMAP_JOINT_SPIRIT) o->RenderType = RENDER_TYPE_ALPHA_BLEND;"
+                    // right below, and SubTypes 2/21/3/6/13/18).
+                    if (o->Type == BITMAP_JOINT_SPIRIT)
+                    {
+                        o->RenderType = RENDER_TYPE_ALPHA_BLEND;
+                    }
                     o->Weapon = CharacterMachine->PacketSerial;
                     o->Velocity = 70.f;
                     o->LifeTime = 49;
@@ -2754,16 +2788,47 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
             break;
             }
 
-            // Because the Tails will be too short when FPS is high, we need to
-            // increase the MaxTails.
-            o->MaxTails = static_cast<int>(o->MaxTails / FPS_ANIMATION_FACTOR);
-            if (o->MaxTails > MAX_TAILS)
+            // Because the Tails will be too short when FPS is high, we need to increase the
+            // MaxTails -- but only on a frame whose FPS reading is trustworthy. A frame landing on
+            // a stall (a map/zone load, typically) reports a tiny instantaneous FPS that is not
+            // representative of real play; scaling by it here would bake a corrupted, far-too-small
+            // MaxTails into this joint for its entire lifetime (joints like Soul Barrier's live
+            // effectively forever). On such a frame keep the base MaxTails and let MoveJoint ratchet
+            // it up over a short bounded window as FPS recovers (the first "sane" frame after a
+            // stall is still on the recovery ramp, so a single re-evaluation is not enough). See
+            // TailScaling.h for the unit-tested logic and the full reasoning.
+            extern double FPS;
+            extern double WorldTime;
+            o->m_iTailScaleBase = o->MaxTails;
+            o->MaxTails = Render::Effects::TailScaling::ComputeMaxTails(o->MaxTails, FPS, FPS_ANIMATION_FACTOR, MAX_TAILS,
+                                                                o->m_bTailScalePending);
+            o->m_dTailScaleDeadline = WorldTime + Render::Effects::TailScaling::RecoveryWindowMs;
+
+            if (Type == MODEL_SPEARSKILL && SubType == 0) // DXP temp diagnostic, to be removed
             {
-                o->MaxTails = MAX_TAILS;
+                const bool isHero = (Hero != nullptr) && (o->Target == &Hero->Object);
+                if (isHero && (g_sbTraceSlot < 0 || WorldTime - g_sbTraceStart > 500.0))
+                {
+                    g_sbTraceSlot = static_cast<int>(o - Joints);
+                    g_sbTraceStart = WorldTime;
+                    g_sbTraceNext = WorldTime;
+                }
+                g_ErrorReport.Write(
+                    L"DXP-DIAG CreateJoint SOULBARRIER SubType=0 slot=%p FinalMaxTails=%d Pending=%d "
+                    L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f WorldActive=%d IsHero=%d\r\n",
+                    (void*)o, o->MaxTails, (int)o->m_bTailScalePending, FPS_ANIMATION_FACTOR, FPS,
+                    gMapManager.WorldActive, isHero);
             }
 
             return;
         }
+    }
+
+    if (Type == MODEL_SPEARSKILL) // DXP temp diagnostic, to be removed
+    {
+        g_ErrorReport.Write(L"DXP-DIAG CreateJoint POOL EXHAUSTED Type=MODEL_SPEARSKILL SubType=%d -- no free slot "
+                            L"in Joints[%d], this call created nothing\r\n",
+                            SubType, MAX_JOINTS);
     }
 }
 
@@ -2979,6 +3044,59 @@ else Angle[2] = TurnAngle2(Angle[2],0.f,FarAngle(Angle[2],0.f)*0.5f);
 
 void MoveJoint(JOINT* o, int iIndex)
 {
+    if (iIndex == g_sbTraceSlot && o->Live && o->Type == MODEL_SPEARSKILL && o->SubType == 0) // DXP temp diagnostic
+    {
+        extern double FPS;
+        if (WorldTime - g_sbTraceStart >= 5000.0)
+        {
+            g_sbTraceSlot = -1;
+        }
+        else if (WorldTime >= g_sbTraceNext)
+        {
+            g_sbTraceNext = WorldTime + 250.0;
+            g_ErrorReport.Write(
+                L"DXP-DIAG SoulBarrierTrace slot=%d elapsedMs=%.0f NumTails=%d MaxTails=%d Pending=%d "
+                L"PreRollQueued=%d FPS=%.1f\r\n",
+                iIndex, WorldTime - g_sbTraceStart, o->NumTails, o->MaxTails, (int)o->m_bTailScalePending,
+                (int)o->m_bTailPreRoll, FPS);
+        }
+    }
+
+    if (o->m_bTailScalePending)
+    {
+        // See CreateJoint and TailScaling.h: this joint was created on a stall frame, so its
+        // MaxTails is still the unscaled base. Ratchet it up toward the steady-state value every
+        // frame (never down) until it reaches the cap or the bounded recovery window ends. Raising
+        // MaxTails mid-life is safe: Tails[] is always MAX_TAILS-sized and zeroed at creation, and
+        // NumTails is re-clamped to MaxTails-1 on every tail update, growing by one per update.
+        extern double WorldTime;
+        const int before = o->MaxTails;
+        o->MaxTails = Render::Effects::TailScaling::RatchetMaxTails(o->MaxTails, o->m_iTailScaleBase,
+                                                                    FPS_ANIMATION_FACTOR, MAX_TAILS);
+        const bool done = Render::Effects::TailScaling::IsRecoveryDone(o->MaxTails, MAX_TAILS, WorldTime,
+                                                                       o->m_dTailScaleDeadline);
+        if (done)
+        {
+            o->m_bTailScalePending = false;
+            // A Soul Barrier aura recreated during a stall starts with an empty tail chain and would
+            // visibly grow in over ~1 s; fill it in one go on this frame instead (see below).
+            if (o->Type == MODEL_SPEARSKILL && o->SubType == 0)
+            {
+                o->m_bTailPreRoll = true;
+            }
+        }
+
+        if ((o->MaxTails != before || done) && o->Type == MODEL_SPEARSKILL &&
+            o->SubType == 0) // DXP temp diagnostic, to be removed
+        {
+            extern double FPS;
+            g_ErrorReport.Write(
+                L"DXP-DIAG MoveJoint SOULBARRIER ratchet slot=%p MaxTails %d -> %d Done=%d "
+                L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f\r\n",
+                (void*)o, before, o->MaxTails, (int)done, FPS_ANIMATION_FACTOR, FPS);
+        }
+    }
+
     float Height;
     vec3_t Light;
     float Luminosity;
@@ -3745,7 +3863,7 @@ void MoveJoint(JOINT* o, int iIndex)
     break;
     case BITMAP_JOINT_SPIRIT:
     case BITMAP_JOINT_SPIRIT2:
-        if (0 == o->SubType || o->SubType == 5 || o->SubType == 19)
+        if (0 == o->SubType || o->SubType == 5 || o->SubType == 19 || o->SubType == 26)
         {
             if (o->Scale == 80.f)
             {
@@ -3822,7 +3940,49 @@ void MoveJoint(JOINT* o, int iIndex)
             }
 
             //light
-            if (o->SubType != 19)
+            if (o->SubType == 26)
+            {
+                // Evil Spirit: same brightness envelope as SubType 0's neutral glow, but weighted
+                // toward an emerald-green hue instead of white. This reads as intended (rather than
+                // getting subtracted away to black) only because CreateJoint's SubType 26 setup above
+                // switched this joint's RenderType to RENDER_TYPE_ALPHA_BLEND -- which, despite the
+                // name, actually maps to BlendMode::Glow (SRC=ONE, DST=ONE, op=ADD; see
+                // EnableAlphaBlend() in ZzzOpenglUtil.cpp and the pipeline table in
+                // MuRendererSDLGpu.cpp's CreatePipelines()), i.e. a pure ADDITIVE blend:
+                // result = dst_color + texture_color * o->Light, with no alpha compositing at all
+                // (the vertex alpha PackABGR packs is literally unused by this blend's color_blend_op,
+                // which is why every PackABGR call in this file hardcodes alpha=1.f). So a HIGHER
+                // channel weight means more of that color gets ADDED on top of the background -- same
+                // read ("more weight = more of that color shows") as under normal alpha blending, just
+                // via addition instead of compositing. Red stays low throughout so the trail never
+                // drifts yellow/white; blue is strong enough to add a brief arcane cyan-white flash at
+                // full brightness (early LifeTime) before settling into a saturated green as the joint
+                // fades.
+                //
+                // Dimming: the project owner loved the look at full strength (blue/white flash at spawn
+                // settling into emerald green) and only found it too bright in dark maps, where an
+                // additive effect looks brightest. That flash and the settle into green are produced by
+                // PackABGR's per-channel [0,1] clamp acting on these weights (blue sits at 1 for
+                // LifeTime >= 20, green for LifeTime >= 10, red never), so
+                // the dimming must be applied AFTER that clamp, as one uniform multiplier on the clamped
+                // channels: peak output drops but the shape of the colour curve is unchanged. (Scaling
+                // BEFORE the clamp, as earlier passes with kIntensityScale 0.65/0.4/0.2 did, shifts where
+                // each channel clamps and flattened the hue into a plain green gradient.) Alpha is a no-op
+                // under this additive blend, so the magnitude is the only lever. 0.55 puts peak
+                // per-channel output at ~0.55 of the original; PackABGR's later clamp is harmless since
+                // every value here is already within [0,1]. The only other reader of o->Light for this
+                // joint is the Scale==80 MODEL_LASER spawn above, which uses Light[0] (red, never
+                // clamped, 0.12*Luminosity) and is therefore dimmed by the same 0.55.
+                constexpr float kDimming = 0.55f;
+                Luminosity = o->LifeTime * 0.1f;
+                Vector(std::clamp(Luminosity * 0.12f, 0.f, 1.f) * kDimming,
+                       std::clamp(Luminosity * 1.0f, 0.f, 1.f) * kDimming,
+                       std::clamp(Luminosity * 0.5f, 0.f, 1.f) * kDimming, o->Light);
+                Luminosity = -(float)(rand() % 4 + 4) * 0.01f;
+                Vector(Luminosity, Luminosity, Luminosity, Light);
+                AddTerrainLight(o->Position[0], o->Position[1], Light, 4, PrimaryTerrainLight);
+            }
+            else if (o->SubType != 19)
             {
                 Luminosity = o->LifeTime * 0.1f;
                 Vector(Luminosity, Luminosity, Luminosity, o->Light);
@@ -4497,27 +4657,13 @@ void MoveJoint(JOINT* o, int iIndex)
                         VectorAdd(o->Tails[j][k], o->TargetPosition, o->Tails[j][k]);
                 }
             }
-            int iFrame = static_cast<int>(WorldTime / 40.f);
-
-            iFrame = ((iIndex % 2) ? iFrame : -iFrame) + iIndex * 53731;
-
-            vec3_t vDir, vDirTemp;
-            float fSpeed[3] = { 0.048f, 0.0613f, 0.1113f };
-            if (o->SubType == 1)
-            {
-                fSpeed[0] *= 0.5f;
-                fSpeed[1] *= 0.5f;
-                fSpeed[2] *= 0.5f;
-            }
-            vDirTemp[0] = sinf((float)(iFrame + 55555) * fSpeed[0]) * cosf((float)iFrame * fSpeed[1]);
-            vDirTemp[1] = sinf((float)(iFrame + 55555) * fSpeed[0]) * sinf((float)iFrame * fSpeed[1]);
-            vDirTemp[2] = cosf((float)(iFrame + 55555) * fSpeed[0]);
-
-            float fSinAdd = sinf((float)(iFrame + 11111) * fSpeed[2]);
-            float fCosAdd = cosf((float)(iFrame + 11111) * fSpeed[2]);
-            vDir[2] = vDirTemp[0];
-            vDir[1] = fSinAdd * vDirTemp[1] + fCosAdd * vDirTemp[2];
-            vDir[0] = fCosAdd * vDirTemp[1] - fSinAdd * vDirTemp[2];
+            // Pure function of WorldTime and the pool slot; extracted to JointOrbit.h so the tail
+            // pre-roll below evaluates exactly the same math at earlier times.
+            const Render::Effects::JointOrbit::Direction orbit =
+                Render::Effects::JointOrbit::Evaluate(WorldTime, iIndex, (o->SubType == 1) ? 0.5f : 1.0f);
+            vec3_t vDir;
+            VectorCopy(orbit.dir, vDir);
+            const float fSinAdd = orbit.sinAdd;
             // VectorScale(vDir, FPS_ANIMATION_FACTOR, vDir);
 
             switch (o->SubType)
@@ -4607,6 +4753,43 @@ void MoveJoint(JOINT* o, int iIndex)
                     VectorCopy(o->TargetPosition, o->Position);
                 }
                 break;
+            }
+
+            if (o->m_bTailPreRoll && o->SubType == 0)
+            {
+                // Pre-roll: build the tail chain a joint updated at the steady cadence would have
+                // by now. This joint's position is a pure function of WorldTime (JointOrbit.h), so
+                // tail point k is that function evaluated k+1 frames ago; 40 ms * FPS_ANIMATION_FACTOR
+                // is the frame time (1000 / FPS), the same cadence a natural joint records at. Points
+                // are stored with the same 4-vertex layout CreateTail writes and relative to the
+                // current target, which is how the per-frame tail re-anchoring above keeps them.
+                o->m_bTailPreRoll = false;
+                const int chain = o->MaxTails - 1;
+                if (chain > o->NumTails && chain < MAX_TAILS)
+                {
+                    const double frameMs = 40.0 * FPS_ANIMATION_FACTOR;
+                    for (int k = 0; k < chain; ++k)
+                    {
+                        const Render::Effects::JointOrbit::Direction d = Render::Effects::JointOrbit::Evaluate(
+                            Render::Effects::JointOrbit::PreRollSampleTimeMs(WorldTime, frameMs, k), iIndex, 1.0f);
+                        float off[3];
+                        Render::Effects::JointOrbit::SoulBarrierOffset(d, off);
+                        vec3_t center, v, r;
+                        VectorAdd(o->TargetPosition, off, center);
+                        const float h = o->Scale * 0.5f;
+                        const float local[4][3] = {{-h, 0.f, 0.f}, {h, 0.f, 0.f}, {0.f, 0.f, -h}, {0.f, 0.f, h}};
+                        for (int q = 0; q < 4; ++q)
+                        {
+                            Vector(local[q][0], local[q][1], local[q][2], v);
+                            VectorRotate(v, Matrix, r);
+                            VectorAdd(center, r, o->Tails[k][q]);
+                        }
+                    }
+                    o->NumTails = chain;
+                    g_ErrorReport.Write(L"DXP-DIAG MoveJoint SOULBARRIER tail pre-roll slot=%d filled=%d MaxTails=%d "
+                                        L"frameMs=%.2f\r\n",
+                                        iIndex, chain, o->MaxTails, frameMs);
+                }
             }
         }
         break;

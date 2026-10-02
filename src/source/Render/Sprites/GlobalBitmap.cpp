@@ -47,6 +47,15 @@ constexpr std::uint32_t RangeFor(std::uint32_t begin, std::uint32_t end)
     return (end > begin) ? (end - begin) : 0;
 }
 
+// DXP temp diagnostic, to be removed: flags the Soul Barrier casting texture so its load/cache
+// path can be traced across map transitions without drowning in unrelated texture traffic.
+bool IsDiagTarget(const std::wstring& filename)
+{
+    std::wstring lower = filename;
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](wchar_t c) { return static_cast<wchar_t>(towlower(c)); });
+    return lower.find(L"mmn2") != std::wstring::npos;
+}
+
 class TurboJpegHandle
 {
 public:
@@ -522,6 +531,7 @@ void CGlobalBitmap::Init()
 
 GLuint CGlobalBitmap::LoadImage(const std::wstring& filename, GLuint uiFilter, GLuint uiWrapMode)
 {
+    const bool diag = IsDiagTarget(filename); // DXP temp diagnostic, to be removed
     BITMAP_t* pBitmap = FindTexture(filename);
     if (pBitmap)
     {
@@ -530,6 +540,12 @@ GLuint CGlobalBitmap::LoadImage(const std::wstring& filename, GLuint uiFilter, G
             if (0 == _wcsicmp(pBitmap->FileName, filename.c_str()))
             {
                 pBitmap->Ref++;
+                if (diag)
+                {
+                    g_ErrorReport.Write(
+                        L"DXP-DIAG LoadImage(byname) CACHE-HIT index=%u ptr=%p RefNow=%u sdlTexture=%p\r\n",
+                        pBitmap->BitmapIndex, (void*)pBitmap, (unsigned)pBitmap->Ref, (void*)pBitmap->sdlTexture);
+                }
 
                 return pBitmap->BitmapIndex;
             }
@@ -538,6 +554,11 @@ GLuint CGlobalBitmap::LoadImage(const std::wstring& filename, GLuint uiFilter, G
     else
     {
         GLuint uiNewTextureIndex = GenerateTextureIndex();
+        if (diag)
+        {
+            g_ErrorReport.Write(L"DXP-DIAG LoadImage(byname) MISS, allocating new index=%u for %ls\r\n",
+                                uiNewTextureIndex, filename.c_str());
+        }
         if (true == LoadImage(uiNewTextureIndex, filename, uiFilter, uiWrapMode))
         {
             m_listNonamedIndex.push_back(uiNewTextureIndex);
@@ -566,6 +587,8 @@ bool CGlobalBitmap::LoadImage(GLuint uiBitmapIndex, const std::wstring& filename
 #endif
     }
 
+    const bool diag = IsDiagTarget(filename); // DXP temp diagnostic, to be removed
+
     auto mi = m_mapBitmap.find(uiBitmapIndex);
     if (mi != m_mapBitmap.end())
     {
@@ -575,16 +598,33 @@ bool CGlobalBitmap::LoadImage(GLuint uiBitmapIndex, const std::wstring& filename
             if (0 == _wcsicmp(pBitmap->FileName, filename.c_str()))
             {
                 pBitmap->Ref++;
+                if (diag)
+                {
+                    g_ErrorReport.Write(
+                        L"DXP-DIAG LoadImage(byindex) CACHE-HIT index=%u ptr=%p RefNow=%u sdlTexture=%p\r\n",
+                        uiBitmapIndex, (void*)pBitmap, (unsigned)pBitmap->Ref, (void*)pBitmap->sdlTexture);
+                }
                 return true;
             }
             else
             {
+                if (diag || IsDiagTarget(pBitmap->FileName))
+                {
+                    g_ErrorReport.Write(
+                        L"DXP-DIAG LoadImage(byindex) REPLACE-AND-RELOAD index=%u oldSdlTexture=%p %ls -> %ls\r\n",
+                        uiBitmapIndex, (void*)pBitmap->sdlTexture, pBitmap->FileName, filename.c_str());
+                }
                 mu::log::Get("render")->debug("SDL_gpu -- bitmap id {} replaced: {} -> {}", uiBitmapIndex,
                                               mu_wchar_to_utf8(pBitmap->FileName),
                                               mu_wchar_to_utf8(filename.c_str()));
                 UnloadImage(uiBitmapIndex, true);
             }
         }
+    }
+    else if (diag)
+    {
+        g_ErrorReport.Write(L"DXP-DIAG LoadImage(byindex) FRESH (no existing entry) index=%u %ls\r\n", uiBitmapIndex,
+                            filename.c_str());
     }
 
     std::wstring ext;
@@ -896,11 +936,25 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
     const SDL_GPUFilter filter = Render::UiTextureQuality::IsInterfaceTexturePath(filename)
                                      ? SDL_GPU_FILTER_LINEAR
                                      : MapGLFilterToSDL(uiFilter);
+    const bool enhancedTexture = Render::GraphicsQuality::IsEnhancedTexturePath(filename); // DXP temp diagnostic
     if (!UploadTextureSDLGpu(pNewBitmap.get(), rgbaData.data(), textureWidth, textureHeight, filter,
-                             MapGLWrapToSDL(uiWrapMode), Render::GraphicsQuality::IsEnhancedTexturePath(filename)))
+                             MapGLWrapToSDL(uiWrapMode), enhancedTexture))
     {
         g_ErrorReport.Write(L"SDL texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
         return false;
+    }
+
+    if (IsDiagTarget(filename)) // DXP temp diagnostic, to be removed
+    {
+        const std::uint32_t mipLevels =
+            enhancedTexture ? Render::GraphicsQuality::CalculateMipLevelCount(static_cast<std::uint32_t>(textureWidth),
+                                                                             static_cast<std::uint32_t>(textureHeight))
+                             : 1u;
+        g_ErrorReport.Write(
+            L"DXP-DIAG OpenJpegTurbo UPLOADED index=%u %ls Width=%d Height=%d RequestedFilter=%u ResolvedSdlFilter=%d "
+            L"Enhanced=%d MipLevels=%u sdlTexture=%p sdlSampler=%p\r\n",
+            uiBitmapIndex, filename.c_str(), textureWidth, textureHeight, uiFilter, static_cast<int>(filter),
+            enhancedTexture, mipLevels, (void*)pNewBitmap->sdlTexture, (void*)pNewBitmap->sdlSampler);
     }
 
     SDL_GPUTexture* rawTexture = pNewBitmap->sdlTexture;

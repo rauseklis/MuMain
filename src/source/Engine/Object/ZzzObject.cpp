@@ -8211,6 +8211,19 @@ extern float g_Luminosity;
 
 void RenderPartObjectEffect(OBJECT* o, int Type, vec3_t Light, float Alpha, int ItemLevel, int ExcellentFlags, int ancientDiscriminator, int Select, int RenderType)
 {
+    if (Type == MODEL_SPEARSKILL) // DXP temp diagnostic, to be removed
+    {
+        static double lastLogTime = -100000.0;
+        extern double WorldTime;
+        if (WorldTime - lastLogTime > 300.0)
+        {
+            lastLogTime = WorldTime;
+            g_ErrorReport.Write(
+                L"DXP-DIAG RenderPartObjectEffect ENTER Type=%d Alpha=%.3f RenderType=%d EnableShadow=%d\r\n", Type,
+                Alpha, RenderType, (int)o->EnableShadow);
+        }
+    }
+
     int Level = ItemLevel;
     if (RenderType & RENDER_WAVE)
     {

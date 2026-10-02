@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "PhysicsManager.h"
+#include "ClothSimulationTiming.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "Render/Renderer/MuRenderer.h"
@@ -74,35 +75,35 @@ void CPhysicsVertex::UpdateForce(unsigned int iKey, DWORD dwType, float fWind)
     switch (PCT_MASK_ELASTIC & dwType)	// m_dwType
     {
     case PCT_RUBBER:
-        m_vForce[2] += fRand * (fWind + 0.1f) * 1.f * FPS_ANIMATION_FACTOR;
+        m_vForce[2] += fRand * (fWind + 0.1f) * 1.f;
         break;
     case PCT_RUBBER2:
-        m_vForce[2] += fRand * (fWind) * FPS_ANIMATION_FACTOR;
+        m_vForce[2] += fRand * fWind;
         break;
     }
 
     switch (PCT_MASK_ELASTIC_EXT & dwType)
     {
     case PCT_ELASTIC_HALLOWEEN:
-        m_vForce[0] += -(fRand * fWind * 0.5f * FPS_ANIMATION_FACTOR);
-        m_vForce[2] += fRand * (fWind + 0.1f) * 0.5f * (float)sinf(WorldTime * 0.003f) * 5.0f * FPS_ANIMATION_FACTOR;
-        m_vForce[2] -= s_Gravity * fGravityRate * s_fMass * 50.0f * FPS_ANIMATION_FACTOR;
+        m_vForce[0] += -(fRand * fWind * 0.5f);
+        m_vForce[2] += fRand * (fWind + 0.1f) * 0.5f * (float)sinf(WorldTime * 0.003f) * 5.0f;
+        m_vForce[2] -= s_Gravity * fGravityRate * s_fMass * 50.0f;
         break;
     case PCT_ELASTIC_RAGE_L:
-        m_vForce[0] += -(fRand * fWind * 0.8f * FPS_ANIMATION_FACTOR);
+        m_vForce[0] += -(fRand * fWind * 0.8f);
         break;
     case PCT_ELASTIC_RAGE_R:
-        m_vForce[0] -= -(fRand * fWind * 0.8f * FPS_ANIMATION_FACTOR);
+        m_vForce[0] -= -(fRand * fWind * 0.8f);
         break;
     }
 
     switch (PCT_MASK_WEIGHT & dwType)	// m_dwType
     {
     case PCT_HEAVY:
-        m_vForce[2] -= s_Gravity * fGravityRate * s_fMass * 180.0f * FPS_ANIMATION_FACTOR;
+        m_vForce[2] -= s_Gravity * fGravityRate * s_fMass * 180.0f;
         break;
     default:
-        m_vForce[2] -= s_Gravity * fGravityRate * s_fMass * 100.0f * FPS_ANIMATION_FACTOR;
+        m_vForce[2] -= s_Gravity * fGravityRate * s_fMass * 100.0f;
         break;
     }
 }
@@ -322,6 +323,8 @@ void CPhysicsCloth::Clear(void)
 
     m_byWindMax = 1;
     m_byWindMin = 1;
+    m_fSimulationAccumulator = 0.0f;
+    m_bSimulationStarted = false;
 }
 
 BOOL CPhysicsCloth::Create(OBJECT* o, int iBone, float fxPos, float fyPos, float fzPos, int iNumHor, int iNumVer, float fWidth, float fHeight, int iTexFront, int iTexBack, DWORD dwType)
@@ -571,11 +574,30 @@ void CPhysicsCloth::SetLink(int iLink, int iVertex1, int iVertex2, float fDistan
 
 BOOL CPhysicsCloth::Move2(float fTime, int iCount)
 {
-    for (int i = 0; i < iCount; ++i)
+    if (m_oOwner == NULL)
     {
-        if (!Move(fTime))
+        return (FALSE);
+    }
+
+    const int frameCount = Physics::ClothSimulationTiming::ConsumeLegacyFrames(
+        FPS_ANIMATION_FACTOR,
+        m_fSimulationAccumulator,
+        m_bSimulationStarted);
+
+    if (frameCount == 0)
+    {
+        SetFixedVertices(m_oOwner->BoneTransform[m_iBone]);
+        return (TRUE);
+    }
+
+    for (int iFrame = 0; iFrame < frameCount; ++iFrame)
+    {
+        for (int iStep = 0; iStep < iCount; ++iStep)
         {
-            return (FALSE);
+            if (!Move(fTime))
+            {
+                return (FALSE);
+            }
         }
     }
 
@@ -605,8 +627,6 @@ BOOL CPhysicsCloth::Move(float fTime)
 
     if (m_oOwner == NULL)
         return (FALSE);
-
-    m_fWind *= FPS_ANIMATION_FACTOR;
 
     CPhysicsManager::s_vWind[0] = m_fWind * sinf((180.0f + m_oOwner->Angle[2]) * Q_PI / 180.0f);
     CPhysicsManager::s_vWind[1] = -m_fWind * cosf((180.0f + m_oOwner->Angle[2]) * Q_PI / 180.0f);
@@ -655,7 +675,6 @@ void CPhysicsCloth::MoveVertices(float fTime)
                 for (int i = 0; i < 3; ++i)
                 {
                     vForce[i] = (fDistance - pLink->m_fDistance[1]) * vDistance[i] / fDistance;
-                    vForce[i] *= FPS_ANIMATION_FACTOR;
                     if (PCT_OPT_CORRECTEDFORCE & m_dwType)
                     {
                         vForce[i] *= (pLink->m_fDistance[1] / 32.0f);

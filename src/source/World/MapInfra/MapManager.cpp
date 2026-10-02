@@ -1179,8 +1179,67 @@ void CMapManager::Load() // OK
     }
 }
 
+namespace
+{
+// DXP temp diagnostic, to be removed: proves (or disproves) whether anything during a map/zone
+// transition touches MODEL_SPEARSKILL's model or its bound texture -- logs on every entry and
+// exit of LoadWorld (including early returns) via RAII so no exit path is missed.
+struct SpearSkillLoadWorldDiag
+{
+    int mapArg;
+    explicit SpearSkillLoadWorldDiag(int map) : mapArg(map) { Log(L"ENTER"); }
+    ~SpearSkillLoadWorldDiag() { Log(L"EXIT"); }
+    static void Log(const wchar_t* phase)
+    {
+        BMD& b = Models[MODEL_SPEARSKILL];
+        const GLuint tex0 = (b.NumMeshs > 0 && b.IndexTexture != nullptr) ? b.IndexTexture[0] : 0;
+        const BITMAP_t* bmp = (tex0 != 0) ? Bitmaps.FindTexture(tex0) : nullptr;
+        g_ErrorReport.Write(
+            L"DXP-DIAG LoadWorld %ls NumMeshs=%d IndexTexturePtr=%p tex0=%u bmpPtr=%p sdlTexture=%p\r\n", phase,
+            b.NumMeshs, (void*)b.IndexTexture, tex0, (const void*)bmp, bmp ? (void*)bmp->sdlTexture : nullptr);
+
+        // DXP temp diagnostic, to be removed: real joint/segment counts, per the redirected
+        // investigation (dense-vs-sparse Soul Barrier weave is a segment-count bug, not texture
+        // filtering). Counts every live joint (pool pressure) and every live MODEL_SPEARSKILL
+        // SubType==0 joint (Soul Barrier's own visual), with each one's baked-in MaxTails and
+        // whether it belongs to the Hero.
+        int totalLive = 0;
+        int soulBarrierCount = 0;
+        int soulBarrierHeroCount = 0;
+        int soulBarrierMaxTailsSum = 0;
+        for (int i = 0; i < MAX_JOINTS; ++i)
+        {
+            JOINT* j = &Joints[i];
+            if (!j->Live)
+            {
+                continue;
+            }
+            ++totalLive;
+            if (j->Type == MODEL_SPEARSKILL && j->SubType == 0)
+            {
+                ++soulBarrierCount;
+                soulBarrierMaxTailsSum += j->MaxTails;
+                if (Hero != nullptr && j->Target == &Hero->Object)
+                {
+                    ++soulBarrierHeroCount;
+                    g_ErrorReport.Write(
+                        L"DXP-DIAG LoadWorld %ls   heroSoulBarrierJoint slot=%p MaxTails=%d NumTails=%d\r\n", phase,
+                        (void*)j, j->MaxTails, j->NumTails);
+                }
+            }
+        }
+        g_ErrorReport.Write(
+            L"DXP-DIAG LoadWorld %ls JointPool totalLive=%d/%d soulBarrierJointsTotal=%d "
+            L"soulBarrierJointsHero=%d soulBarrierMaxTailsSum=%d\r\n",
+            phase, totalLive, MAX_JOINTS, soulBarrierCount, soulBarrierHeroCount, soulBarrierMaxTailsSum);
+    }
+};
+} // namespace
+
 void CMapManager::LoadWorld(int Map)
 {
+    SpearSkillLoadWorldDiag spearSkillLoadWorldDiag(Map); // DXP temp diagnostic, to be removed
+
     if (Map == 32 && this->WorldActive == 32)
     {
         Map = this->WorldActive = 9;

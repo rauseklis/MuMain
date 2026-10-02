@@ -4420,6 +4420,9 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
         case AT_SKILL_TWISTING_SLASH_MASTERY:
             o->Weapon = c->Weapon[0].Type - MODEL_SWORD;
             o->WeaponLevel = (BYTE)c->Weapon[0].Level;
+            // A new cast starts before the previous 25-tick orbit can expire.
+            // Keep one current weapon per character instead of overlapping casts.
+            DeleteEffect(MODEL_SKILL_WHEEL2, o);
             CreateEffect(MODEL_SKILL_WHEEL1, o->Position, o->Angle, o->Light, 0, o, o->PKKey, FindHotKey((c->Skill)));
 
             if (SceneFlag != LOG_IN_SCENE)
@@ -4601,8 +4604,11 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
                 Vector(0.f, 0.f, i * 90.f, Angle);
 
                 int SkillIndex = FindHotKey((c->Skill));
-                CreateJoint(BITMAP_JOINT_SPIRIT, Position, o->Position, Angle, 0, o, 80.f, o->PKKey, SkillIndex, o->m_bySkillSerialNum);
-                CreateJoint(BITMAP_JOINT_SPIRIT, Position, o->Position, Angle, 0, o, 20.f);
+                // SubType 26 is Evil Spirit's own joint subtype (distinct from the shared SubType 0
+                // used by GM_Kanturu_2nd's MODEL_PERSONA attack2), so its color can be recolored
+                // without affecting that unrelated monster effect.
+                CreateJoint(BITMAP_JOINT_SPIRIT, Position, o->Position, Angle, 26, o, 80.f, o->PKKey, SkillIndex, o->m_bySkillSerialNum);
+                CreateJoint(BITMAP_JOINT_SPIRIT, Position, o->Position, Angle, 26, o, 20.f);
             }
             if (c == Hero)
             {
