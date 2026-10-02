@@ -2784,8 +2784,27 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
                 o->MaxTails = MAX_TAILS;
             }
 
+            if (Type == MODEL_SPEARSKILL && SubType == 0) // DXP temp diagnostic, to be removed
+            {
+                extern double FPS;
+                extern double WorldTime;
+                (void)WorldTime;
+                const bool isHero = (Hero != nullptr) && (o->Target == &Hero->Object);
+                g_ErrorReport.Write(
+                    L"DXP-DIAG CreateJoint SOULBARRIER SubType=0 slot=%p FinalMaxTails=%d "
+                    L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f WorldActive=%d IsHero=%d\r\n",
+                    (void*)o, o->MaxTails, FPS_ANIMATION_FACTOR, FPS, gMapManager.WorldActive, isHero);
+            }
+
             return;
         }
+    }
+
+    if (Type == MODEL_SPEARSKILL) // DXP temp diagnostic, to be removed
+    {
+        g_ErrorReport.Write(L"DXP-DIAG CreateJoint POOL EXHAUSTED Type=MODEL_SPEARSKILL SubType=%d -- no free slot "
+                            L"in Joints[%d], this call created nothing\r\n",
+                            SubType, MAX_JOINTS);
     }
 }
 
