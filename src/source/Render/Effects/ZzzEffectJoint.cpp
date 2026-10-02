@@ -74,11 +74,6 @@ static inline float GetTailDistanceSq(const vec3_t a, const vec3_t b)
     return dx * dx + dy * dy + dz * dz;
 }
 
-// DXP temp diagnostic, to be removed: trace of the hero's first Soul Barrier joint after creation.
-static int g_sbTraceSlot = -1;
-static double g_sbTraceStart = 0.0;
-static double g_sbTraceNext = 0.0;
-
 void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle, int SubType, OBJECT* Target, float Scale, short PKKey,
     WORD SkillIndex, WORD SkillSerialNum, int iChaIndex, const float* vPriorColor, short int sTargetindex)
 {
@@ -2804,31 +2799,8 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
                                                                 o->m_bTailScalePending);
             o->m_dTailScaleDeadline = WorldTime + Render::Effects::TailScaling::RecoveryWindowMs;
 
-            if (Type == MODEL_SPEARSKILL && SubType == 0) // DXP temp diagnostic, to be removed
-            {
-                const bool isHero = (Hero != nullptr) && (o->Target == &Hero->Object);
-                if (isHero && (g_sbTraceSlot < 0 || WorldTime - g_sbTraceStart > 500.0))
-                {
-                    g_sbTraceSlot = static_cast<int>(o - Joints);
-                    g_sbTraceStart = WorldTime;
-                    g_sbTraceNext = WorldTime;
-                }
-                g_ErrorReport.Write(
-                    L"DXP-DIAG CreateJoint SOULBARRIER SubType=0 slot=%p FinalMaxTails=%d Pending=%d "
-                    L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f WorldActive=%d IsHero=%d\r\n",
-                    (void*)o, o->MaxTails, (int)o->m_bTailScalePending, FPS_ANIMATION_FACTOR, FPS,
-                    gMapManager.WorldActive, isHero);
-            }
-
             return;
         }
-    }
-
-    if (Type == MODEL_SPEARSKILL) // DXP temp diagnostic, to be removed
-    {
-        g_ErrorReport.Write(L"DXP-DIAG CreateJoint POOL EXHAUSTED Type=MODEL_SPEARSKILL SubType=%d -- no free slot "
-                            L"in Joints[%d], this call created nothing\r\n",
-                            SubType, MAX_JOINTS);
     }
 }
 
@@ -3044,24 +3016,6 @@ else Angle[2] = TurnAngle2(Angle[2],0.f,FarAngle(Angle[2],0.f)*0.5f);
 
 void MoveJoint(JOINT* o, int iIndex)
 {
-    if (iIndex == g_sbTraceSlot && o->Live && o->Type == MODEL_SPEARSKILL && o->SubType == 0) // DXP temp diagnostic
-    {
-        extern double FPS;
-        if (WorldTime - g_sbTraceStart >= 5000.0)
-        {
-            g_sbTraceSlot = -1;
-        }
-        else if (WorldTime >= g_sbTraceNext)
-        {
-            g_sbTraceNext = WorldTime + 250.0;
-            g_ErrorReport.Write(
-                L"DXP-DIAG SoulBarrierTrace slot=%d elapsedMs=%.0f NumTails=%d MaxTails=%d Pending=%d "
-                L"PreRollQueued=%d FPS=%.1f\r\n",
-                iIndex, WorldTime - g_sbTraceStart, o->NumTails, o->MaxTails, (int)o->m_bTailScalePending,
-                (int)o->m_bTailPreRoll, FPS);
-        }
-    }
-
     if (o->m_bTailScalePending)
     {
         // See CreateJoint and TailScaling.h: this joint was created on a stall frame, so its
@@ -3084,16 +3038,6 @@ void MoveJoint(JOINT* o, int iIndex)
             {
                 o->m_bTailPreRoll = true;
             }
-        }
-
-        if ((o->MaxTails != before || done) && o->Type == MODEL_SPEARSKILL &&
-            o->SubType == 0) // DXP temp diagnostic, to be removed
-        {
-            extern double FPS;
-            g_ErrorReport.Write(
-                L"DXP-DIAG MoveJoint SOULBARRIER ratchet slot=%p MaxTails %d -> %d Done=%d "
-                L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f\r\n",
-                (void*)o, before, o->MaxTails, (int)done, FPS_ANIMATION_FACTOR, FPS);
         }
     }
 
@@ -4786,9 +4730,6 @@ void MoveJoint(JOINT* o, int iIndex)
                         }
                     }
                     o->NumTails = chain;
-                    g_ErrorReport.Write(L"DXP-DIAG MoveJoint SOULBARRIER tail pre-roll slot=%d filled=%d MaxTails=%d "
-                                        L"frameMs=%.2f\r\n",
-                                        iIndex, chain, o->MaxTails, frameMs);
                 }
             }
         }

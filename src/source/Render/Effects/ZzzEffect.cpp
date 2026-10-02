@@ -8701,17 +8701,6 @@ void RenderFuryStrike(OBJECT* o)
 
 void RenderSkillSpear(OBJECT* o)
 {
-    { // DXP temp diagnostic, to be removed
-        static double lastLogTime = -100000.0;
-        extern double WorldTime;
-        if (WorldTime - lastLogTime > 300.0)
-        {
-            lastLogTime = WorldTime;
-            g_ErrorReport.Write(
-                L"DXP-DIAG RenderSkillSpear ENTER SubType=%d Live=%d LifeTime=%d Alpha=%.3f EnableShadow=%d\r\n",
-                o->SubType, (int)o->Live, o->LifeTime, o->Alpha, (int)o->EnableShadow);
-        }
-    }
     BMD* b = &Models[MODEL_SPEARSKILL];
     b->Animation(BoneTransform, o->AnimationFrame, o->PriorAnimationFrame, o->PriorAction, o->Angle, o->HeadAngle, false, false);
     //o->BlendMeshLight = .5f;
