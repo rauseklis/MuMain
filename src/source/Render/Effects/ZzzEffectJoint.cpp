@@ -653,6 +653,7 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
                 switch (o->SubType)
                 {
                 case 0:
+                case 26: // Evil Spirit (Dark Wizard/Soul Master); recolored to emerald green below in MoveJoint
                     o->Weapon = CharacterMachine->PacketSerial;
                     o->Velocity = 70.f;
                     o->LifeTime = 49;
@@ -3745,7 +3746,7 @@ void MoveJoint(JOINT* o, int iIndex)
     break;
     case BITMAP_JOINT_SPIRIT:
     case BITMAP_JOINT_SPIRIT2:
-        if (0 == o->SubType || o->SubType == 5 || o->SubType == 19)
+        if (0 == o->SubType || o->SubType == 5 || o->SubType == 19 || o->SubType == 26)
         {
             if (o->Scale == 80.f)
             {
@@ -3822,7 +3823,21 @@ void MoveJoint(JOINT* o, int iIndex)
             }
 
             //light
-            if (o->SubType != 19)
+            if (o->SubType == 26)
+            {
+                // Evil Spirit: same brightness envelope as SubType 0's neutral glow, but weighted
+                // toward an emerald-green hue instead of white. Red stays low throughout so the
+                // trail never drifts yellow/white; blue is strong enough to add a brief arcane
+                // cyan-white flash at full brightness (early LifeTime) before settling into a
+                // saturated green as the joint fades (PackABGR clamps each channel to [0,1]
+                // independently, so the differing weights are what produces the hue shift).
+                Luminosity = o->LifeTime * 0.1f;
+                Vector(Luminosity * 0.12f, Luminosity * 1.0f, Luminosity * 0.5f, o->Light);
+                Luminosity = -(float)(rand() % 4 + 4) * 0.01f;
+                Vector(Luminosity, Luminosity, Luminosity, Light);
+                AddTerrainLight(o->Position[0], o->Position[1], Light, 4, PrimaryTerrainLight);
+            }
+            else if (o->SubType != 19)
             {
                 Luminosity = o->LifeTime * 0.1f;
                 Vector(Luminosity, Luminosity, Luminosity, o->Light);
