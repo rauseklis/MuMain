@@ -535,6 +535,9 @@ typedef struct
     bool        m_bTailScalePending;
     int         m_iTailScaleBase;
     double      m_dTailScaleDeadline;
+    // Set when a stall-created aura joint finishes its MaxTails recovery: MoveJoint then fills its
+    // whole tail chain in one go (see JointOrbit.h) so it does not visibly "grow in" after a load.
+    bool        m_bTailPreRoll;
     vec3_t      Tails[MAX_TAILS][4]; // The tail entries, which are getting moved back by one in every frame.
 } JOINT;
 //character end

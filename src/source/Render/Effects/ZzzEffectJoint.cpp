@@ -21,6 +21,7 @@
 #include "Render/Renderer/MuRenderer.h"
 #include "Render/Renderer/RenderUtils.h"
 #include "Render/Effects/TailScaling.h"
+#include "Render/Effects/JointOrbit.h"
 #include "Scenes/MainScene.h"
 #include "GameLogic/Items/ItemCategories.h"
 
@@ -72,6 +73,11 @@ static inline float GetTailDistanceSq(const vec3_t a, const vec3_t b)
     return dx * dx + dy * dy + dz * dz;
 }
 
+// DXP temp diagnostic, to be removed: trace of the hero's first Soul Barrier joint after creation.
+static int g_sbTraceSlot = -1;
+static double g_sbTraceStart = 0.0;
+static double g_sbTraceNext = 0.0;
+
 void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle, int SubType, OBJECT* Target, float Scale, short PKKey,
     WORD SkillIndex, WORD SkillSerialNum, int iChaIndex, const float* vPriorColor, short int sTargetindex)
 {
@@ -94,6 +100,7 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
             o->Target = NULL;
             o->m_bCreateTails = true;
             o->m_bTailScalePending = false;
+            o->m_bTailPreRoll = false;
             o->byOnlyOneRender = 0;
             o->bTileMapping = false;
             o->m_byReverseUV = 0;
@@ -2799,6 +2806,12 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
             if (Type == MODEL_SPEARSKILL && SubType == 0) // DXP temp diagnostic, to be removed
             {
                 const bool isHero = (Hero != nullptr) && (o->Target == &Hero->Object);
+                if (isHero && (g_sbTraceSlot < 0 || WorldTime - g_sbTraceStart > 500.0))
+                {
+                    g_sbTraceSlot = static_cast<int>(o - Joints);
+                    g_sbTraceStart = WorldTime;
+                    g_sbTraceNext = WorldTime;
+                }
                 g_ErrorReport.Write(
                     L"DXP-DIAG CreateJoint SOULBARRIER SubType=0 slot=%p FinalMaxTails=%d Pending=%d "
                     L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f WorldActive=%d IsHero=%d\r\n",
@@ -3030,6 +3043,24 @@ else Angle[2] = TurnAngle2(Angle[2],0.f,FarAngle(Angle[2],0.f)*0.5f);
 
 void MoveJoint(JOINT* o, int iIndex)
 {
+    if (iIndex == g_sbTraceSlot && o->Live && o->Type == MODEL_SPEARSKILL && o->SubType == 0) // DXP temp diagnostic
+    {
+        extern double FPS;
+        if (WorldTime - g_sbTraceStart >= 5000.0)
+        {
+            g_sbTraceSlot = -1;
+        }
+        else if (WorldTime >= g_sbTraceNext)
+        {
+            g_sbTraceNext = WorldTime + 250.0;
+            g_ErrorReport.Write(
+                L"DXP-DIAG SoulBarrierTrace slot=%d elapsedMs=%.0f NumTails=%d MaxTails=%d Pending=%d "
+                L"PreRollQueued=%d FPS=%.1f\r\n",
+                iIndex, WorldTime - g_sbTraceStart, o->NumTails, o->MaxTails, (int)o->m_bTailScalePending,
+                (int)o->m_bTailPreRoll, FPS);
+        }
+    }
+
     if (o->m_bTailScalePending)
     {
         // See CreateJoint and TailScaling.h: this joint was created on a stall frame, so its
@@ -3046,6 +3077,12 @@ void MoveJoint(JOINT* o, int iIndex)
         if (done)
         {
             o->m_bTailScalePending = false;
+            // A Soul Barrier aura recreated during a stall starts with an empty tail chain and would
+            // visibly grow in over ~1 s; fill it in one go on this frame instead (see below).
+            if (o->Type == MODEL_SPEARSKILL && o->SubType == 0)
+            {
+                o->m_bTailPreRoll = true;
+            }
         }
 
         if ((o->MaxTails != before || done) && o->Type == MODEL_SPEARSKILL &&
@@ -4619,27 +4656,13 @@ void MoveJoint(JOINT* o, int iIndex)
                         VectorAdd(o->Tails[j][k], o->TargetPosition, o->Tails[j][k]);
                 }
             }
-            int iFrame = static_cast<int>(WorldTime / 40.f);
-
-            iFrame = ((iIndex % 2) ? iFrame : -iFrame) + iIndex * 53731;
-
-            vec3_t vDir, vDirTemp;
-            float fSpeed[3] = { 0.048f, 0.0613f, 0.1113f };
-            if (o->SubType == 1)
-            {
-                fSpeed[0] *= 0.5f;
-                fSpeed[1] *= 0.5f;
-                fSpeed[2] *= 0.5f;
-            }
-            vDirTemp[0] = sinf((float)(iFrame + 55555) * fSpeed[0]) * cosf((float)iFrame * fSpeed[1]);
-            vDirTemp[1] = sinf((float)(iFrame + 55555) * fSpeed[0]) * sinf((float)iFrame * fSpeed[1]);
-            vDirTemp[2] = cosf((float)(iFrame + 55555) * fSpeed[0]);
-
-            float fSinAdd = sinf((float)(iFrame + 11111) * fSpeed[2]);
-            float fCosAdd = cosf((float)(iFrame + 11111) * fSpeed[2]);
-            vDir[2] = vDirTemp[0];
-            vDir[1] = fSinAdd * vDirTemp[1] + fCosAdd * vDirTemp[2];
-            vDir[0] = fCosAdd * vDirTemp[1] - fSinAdd * vDirTemp[2];
+            // Pure function of WorldTime and the pool slot; extracted to JointOrbit.h so the tail
+            // pre-roll below evaluates exactly the same math at earlier times.
+            const Render::Effects::JointOrbit::Direction orbit =
+                Render::Effects::JointOrbit::Evaluate(WorldTime, iIndex, (o->SubType == 1) ? 0.5f : 1.0f);
+            vec3_t vDir;
+            VectorCopy(orbit.dir, vDir);
+            const float fSinAdd = orbit.sinAdd;
             // VectorScale(vDir, FPS_ANIMATION_FACTOR, vDir);
 
             switch (o->SubType)
@@ -4729,6 +4752,43 @@ void MoveJoint(JOINT* o, int iIndex)
                     VectorCopy(o->TargetPosition, o->Position);
                 }
                 break;
+            }
+
+            if (o->m_bTailPreRoll && o->SubType == 0)
+            {
+                // Pre-roll: build the tail chain a joint updated at the steady cadence would have
+                // by now. This joint's position is a pure function of WorldTime (JointOrbit.h), so
+                // tail point k is that function evaluated k+1 frames ago; 40 ms * FPS_ANIMATION_FACTOR
+                // is the frame time (1000 / FPS), the same cadence a natural joint records at. Points
+                // are stored with the same 4-vertex layout CreateTail writes and relative to the
+                // current target, which is how the per-frame tail re-anchoring above keeps them.
+                o->m_bTailPreRoll = false;
+                const int chain = o->MaxTails - 1;
+                if (chain > o->NumTails && chain < MAX_TAILS)
+                {
+                    const double frameMs = 40.0 * FPS_ANIMATION_FACTOR;
+                    for (int k = 0; k < chain; ++k)
+                    {
+                        const Render::Effects::JointOrbit::Direction d = Render::Effects::JointOrbit::Evaluate(
+                            Render::Effects::JointOrbit::PreRollSampleTimeMs(WorldTime, frameMs, k), iIndex, 1.0f);
+                        float off[3];
+                        Render::Effects::JointOrbit::SoulBarrierOffset(d, off);
+                        vec3_t center, v, r;
+                        VectorAdd(o->TargetPosition, off, center);
+                        const float h = o->Scale * 0.5f;
+                        const float local[4][3] = {{-h, 0.f, 0.f}, {h, 0.f, 0.f}, {0.f, 0.f, -h}, {0.f, 0.f, h}};
+                        for (int q = 0; q < 4; ++q)
+                        {
+                            Vector(local[q][0], local[q][1], local[q][2], v);
+                            VectorRotate(v, Matrix, r);
+                            VectorAdd(center, r, o->Tails[k][q]);
+                        }
+                    }
+                    o->NumTails = chain;
+                    g_ErrorReport.Write(L"DXP-DIAG MoveJoint SOULBARRIER tail pre-roll slot=%d filled=%d MaxTails=%d "
+                                        L"frameMs=%.2f\r\n",
+                                        iIndex, chain, o->MaxTails, frameMs);
+                }
             }
         }
         break;

@@ -1,8 +1,10 @@
 #include "doctest.h"
 
 #include "Render/Effects/TailScaling.h"
+#include "Render/Effects/JointOrbit.h"
 
 #include <cmath>
+#include <vector>
 
 using Render::Effects::TailScaling::ComputeMaxTails;
 using Render::Effects::TailScaling::MinReliableFps;
@@ -170,4 +172,75 @@ TEST_CASE("recovery finishes at the cap or when the bounded window elapses")
     CHECK_FALSE(IsRecoveryDone(130, 200, 100.0, 2100.0));   // still ramping, window open
     CHECK(IsRecoveryDone(130, 200, 2100.0, 2100.0));        // window elapsed, keep what it reached
     CHECK(RecoveryWindowMs > 0.0);
+}
+
+TEST_CASE("the joint orbit is a pure function of world time, quantised to 40 ms steps")
+{
+    using namespace Render::Effects::JointOrbit;
+
+    const Direction a = Evaluate(10000.0, 7, 1.0f);
+    const Direction b = Evaluate(10000.0, 7, 1.0f);
+    CHECK(a.dir[0] == b.dir[0]);
+    CHECK(a.dir[1] == b.dir[1]);
+    CHECK(a.dir[2] == b.dir[2]);
+
+    // Everything inside one 40 ms bucket maps to the same position (why a 250 FPS chain contains
+    // runs of identical points), the next bucket differs.
+    const Direction sameBucket = Evaluate(10039.0, 7, 1.0f);
+    CHECK(sameBucket.dir[0] == a.dir[0]);
+    const Direction nextBucket = Evaluate(10040.0, 7, 1.0f);
+    CHECK(nextBucket.dir[0] != a.dir[0]);
+}
+
+TEST_CASE("a Soul Barrier orbit stays inside its 80/80/120 radius around the target")
+{
+    using namespace Render::Effects::JointOrbit;
+
+    for (int slot = 0; slot < 6; ++slot)
+    {
+        for (double t = 0.0; t < 60000.0; t += 137.0)
+        {
+            float off[3];
+            SoulBarrierOffset(Evaluate(t, slot, 1.0f), off);
+            CHECK(std::fabs(off[0]) <= 80.01f);
+            CHECK(std::fabs(off[1]) <= 80.01f);
+            CHECK(off[2] >= 110.0f - 120.01f);
+            CHECK(off[2] <= 110.0f + 120.01f);
+        }
+    }
+}
+
+TEST_CASE("a pre-rolled tail chain equals one grown naturally at the same cadence")
+{
+    using namespace Render::Effects::JointOrbit;
+
+    const double frameMs = 4.0; // 250 FPS, exact in binary
+    const int slot = 3;
+    const int chain = 199;      // MaxTails 200 -> NumTails tops out at 199
+    const double start = 100000.0;
+
+    // Natural growth: one tail point per update, newest first, capped at `chain`.
+    std::vector<Direction> natural;
+    double now = start;
+    for (int frame = 0; frame < 400; ++frame)
+    {
+        now = start + frame * frameMs;
+        natural.insert(natural.begin(), Evaluate(now, slot, 1.0f));
+        if (static_cast<int>(natural.size()) > chain + 1)
+        {
+            natural.pop_back();
+        }
+    }
+    REQUIRE(static_cast<int>(natural.size()) == chain + 1);
+
+    // Pre-roll evaluated at the final frame: points 1..chain of the chain (point 0 is the one the
+    // frame's own update adds).
+    for (int k = 0; k < chain; ++k)
+    {
+        const Direction rolled = Evaluate(PreRollSampleTimeMs(now, frameMs, k), slot, 1.0f);
+        const Direction& grown = natural[k + 1];
+        CHECK(rolled.dir[0] == grown.dir[0]);
+        CHECK(rolled.dir[1] == grown.dir[1]);
+        CHECK(rolled.dir[2] == grown.dir[2]);
+    }
 }
