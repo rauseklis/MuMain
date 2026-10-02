@@ -3918,7 +3918,16 @@ void MoveJoint(JOINT* o, int iIndex)
                 // the added color's own magnitude, i.e. this scale on o->Light. Applied uniformly to
                 // all three channels so the R:G:B ratio (and therefore the hue and the bright-flash-
                 // fading-to-green envelope) is unchanged -- only the overall intensity is turned down.
-                constexpr float kIntensityScale = 0.65f;
+                // First pass used 0.65f; a second live test asked for noticeably more transparency
+                // still, so this was lowered further to 0.4f. At the green channel's full 1.0 weight,
+                // Luminosity (o->LifeTime * 0.1f, peaking at 4.9) only clamps PackABGR's [0,1] ceiling
+                // while Luminosity * 0.4f >= 1, i.e. LifeTime >= 25 -- roughly the first half of each
+                // joint's 49-tick LifeTime -- versus almost the whole LifeTime at the original
+                // uncorrected weight of 1.0. The back half of the fade is therefore a genuine, highly
+                // visible brightness gradient (translucent) rather than a flat maximum, while the first
+                // half still reaches full green brightness so the effect stays clearly legible, including
+                // against bright backgrounds.
+                constexpr float kIntensityScale = 0.4f;
                 Luminosity = o->LifeTime * 0.1f;
                 Vector(Luminosity * 0.12f * kIntensityScale, Luminosity * 1.0f * kIntensityScale,
                        Luminosity * 0.5f * kIntensityScale, o->Light);
