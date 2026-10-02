@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include <algorithm>
 #include <cstring>
 #include <SDL3/SDL.h>
 #include "Core/Utilities/Log/ErrorReport.h"
@@ -3865,25 +3866,25 @@ void MoveJoint(JOINT* o, int iIndex)
                 // full brightness (early LifeTime) before settling into a saturated green as the joint
                 // fades.
                 //
-                // kIntensityScale: live feedback said the colors "pop too much" and asked for a bit
-                // more translucency. Since this is an additive blend, there is no real alpha/opacity
-                // control to turn down (confirmed above -- PackABGR's alpha argument is a no-op here);
-                // the only lever that actually reduces how much the effect overpowers the background is
-                // the added color's own magnitude, i.e. this scale on o->Light. Applied uniformly to
-                // all three channels so the R:G:B ratio (and therefore the hue and the bright-flash-
-                // fading-to-green envelope) is unchanged -- only the overall intensity is turned down.
-                // History: 0.65f -> 0.4f -> 0.2f, each step in response to live feedback that the glow
-                // was still too solid. At 0.4f the green channel (full 1.0 weight; Luminosity =
-                // o->LifeTime * 0.1f peaks at 4.9) still sat clamped at PackABGR's [0,1] ceiling for
-                // LifeTime >= 25, and Evil Spirit stacks 8 additive joints (4 angles x 2 CreateJoint
-                // calls) each with a tail ribbon, so perceived opacity is the SUM of many layers and a
-                // modest per-joint cut barely reads as transparent. At 0.2f the peak is
-                // 4.9 * 0.2 = 0.98 < 1, so the green channel never reaches the clamp at all: the whole
-                // LifeTime is an unclamped gradient and each layer contributes far less to the sum.
-                constexpr float kIntensityScale = 0.2f;
+                // Dimming: the project owner loved the look at full strength (blue/white flash at spawn
+                // settling into emerald green) and only found it too bright in dark maps, where an
+                // additive effect looks brightest. That flash and the settle into green are produced by
+                // PackABGR's per-channel [0,1] clamp acting on these weights (blue sits at 1 for
+                // LifeTime >= 20, green for LifeTime >= 10, red never), so
+                // the dimming must be applied AFTER that clamp, as one uniform multiplier on the clamped
+                // channels: peak output drops but the shape of the colour curve is unchanged. (Scaling
+                // BEFORE the clamp, as earlier passes with kIntensityScale 0.65/0.4/0.2 did, shifts where
+                // each channel clamps and flattened the hue into a plain green gradient.) Alpha is a no-op
+                // under this additive blend, so the magnitude is the only lever. 0.55 puts peak
+                // per-channel output at ~0.55 of the original; PackABGR's later clamp is harmless since
+                // every value here is already within [0,1]. The only other reader of o->Light for this
+                // joint is the Scale==80 MODEL_LASER spawn above, which uses Light[0] (red, never
+                // clamped, 0.12*Luminosity) and is therefore dimmed by the same 0.55.
+                constexpr float kDimming = 0.55f;
                 Luminosity = o->LifeTime * 0.1f;
-                Vector(Luminosity * 0.12f * kIntensityScale, Luminosity * 1.0f * kIntensityScale,
-                       Luminosity * 0.5f * kIntensityScale, o->Light);
+                Vector(std::clamp(Luminosity * 0.12f, 0.f, 1.f) * kDimming,
+                       std::clamp(Luminosity * 1.0f, 0.f, 1.f) * kDimming,
+                       std::clamp(Luminosity * 0.5f, 0.f, 1.f) * kDimming, o->Light);
                 Luminosity = -(float)(rand() % 4 + 4) * 0.01f;
                 Vector(Luminosity, Luminosity, Luminosity, Light);
                 AddTerrainLight(o->Position[0], o->Position[1], Light, 4, PrimaryTerrainLight);
