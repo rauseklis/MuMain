@@ -653,7 +653,28 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
                 switch (o->SubType)
                 {
                 case 0:
-                case 26: // Evil Spirit (Dark Wizard/Soul Master); recolored to emerald green below in MoveJoint
+                    o->Weapon = CharacterMachine->PacketSerial;
+                    o->Velocity = 70.f;
+                    o->LifeTime = 49;
+                    o->Scale = Scale;
+                    o->MaxTails = 6;
+                    break;
+                case 26: // Evil Spirit (Dark Wizard/Soul Master); recolored to emerald green below in MoveJoint.
+                    // The outer case defaults to RENDER_TYPE_ALPHA_BLEND_MINUS (a subtractive blend:
+                    // result = dst * (1 - src_color), i.e. a HIGHER channel weight makes that channel
+                    // darken MORE, not read as more of that color -- fine for SubType 0's neutral
+                    // grayscale "void" streak, but it can never produce a vivid green: against a dark
+                    // background there is nothing to subtract, so the result is still black regardless
+                    // of tint, and against a bright background a green-weighted tint would remove green
+                    // the hardest of all three channels. Switch to a normal alpha blend instead, same as
+                    // every other SubType in this switch that wants its Vector(r,g,b,o->Light) tint to
+                    // actually be visible as that color (e.g. SubType 19's identical
+                    // "if (o->Type == BITMAP_JOINT_SPIRIT) o->RenderType = RENDER_TYPE_ALPHA_BLEND;"
+                    // right below, and SubTypes 2/21/3/6/13/18).
+                    if (o->Type == BITMAP_JOINT_SPIRIT)
+                    {
+                        o->RenderType = RENDER_TYPE_ALPHA_BLEND;
+                    }
                     o->Weapon = CharacterMachine->PacketSerial;
                     o->Velocity = 70.f;
                     o->LifeTime = 49;
@@ -3826,11 +3847,15 @@ void MoveJoint(JOINT* o, int iIndex)
             if (o->SubType == 26)
             {
                 // Evil Spirit: same brightness envelope as SubType 0's neutral glow, but weighted
-                // toward an emerald-green hue instead of white. Red stays low throughout so the
-                // trail never drifts yellow/white; blue is strong enough to add a brief arcane
-                // cyan-white flash at full brightness (early LifeTime) before settling into a
-                // saturated green as the joint fades (PackABGR clamps each channel to [0,1]
-                // independently, so the differing weights are what produces the hue shift).
+                // toward an emerald-green hue instead of white. This reads as intended (rather than
+                // getting subtracted away to black) only because CreateJoint's SubType 26 setup above
+                // switched this joint's RenderType to RENDER_TYPE_ALPHA_BLEND -- with that normal
+                // alpha blend, o->Light is a direct multiplicative tint on the texture (PackABGR
+                // clamps each channel to [0,1] independently), so a HIGHER channel weight means MORE
+                // of that color shows, same as every other colored SubType in this switch. Red stays
+                // low throughout so the trail never drifts yellow/white; blue is strong enough to add
+                // a brief arcane cyan-white flash at full brightness (early LifeTime) before settling
+                // into a saturated green as the joint fades.
                 Luminosity = o->LifeTime * 0.1f;
                 Vector(Luminosity * 0.12f, Luminosity * 1.0f, Luminosity * 0.5f, o->Light);
                 Luminosity = -(float)(rand() % 4 + 4) * 0.01f;
