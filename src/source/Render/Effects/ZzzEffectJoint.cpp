@@ -2785,13 +2785,16 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
             // a stall (a map/zone load, typically) reports a tiny instantaneous FPS that is not
             // representative of real play; scaling by it here would bake a corrupted, far-too-small
             // MaxTails into this joint for its entire lifetime (joints like Soul Barrier's live
-            // effectively forever). Skip the scaling on such a frame and let MoveJoint retry it on
-            // this joint's first subsequent update once real per-frame timing resumes, instead of
-            // guessing a substitute value for a frame rate we don't actually know yet. See
-            // TailScaling.h for the extracted, unit-tested logic and the full reasoning.
+            // effectively forever). On such a frame keep the base MaxTails and let MoveJoint ratchet
+            // it up over a short bounded window as FPS recovers (the first "sane" frame after a
+            // stall is still on the recovery ramp, so a single re-evaluation is not enough). See
+            // TailScaling.h for the unit-tested logic and the full reasoning.
             extern double FPS;
+            extern double WorldTime;
+            o->m_iTailScaleBase = o->MaxTails;
             o->MaxTails = Render::Effects::TailScaling::ComputeMaxTails(o->MaxTails, FPS, FPS_ANIMATION_FACTOR, MAX_TAILS,
                                                                 o->m_bTailScalePending);
+            o->m_dTailScaleDeadline = WorldTime + Render::Effects::TailScaling::RecoveryWindowMs;
 
             if (Type == MODEL_SPEARSKILL && SubType == 0) // DXP temp diagnostic, to be removed
             {
@@ -3029,23 +3032,30 @@ void MoveJoint(JOINT* o, int iIndex)
 {
     if (o->m_bTailScalePending)
     {
-        // See CreateJoint and TailScaling.h: the FPS-based MaxTails scaling was skipped there
-        // because that frame's timing was a stall, not real gameplay. Retry it here on the first
-        // subsequent frame whose timing looks sane, so the joint still ends up with the correctly
-        // scaled MaxTails instead of being stuck at its small, unscaled base value for its whole
-        // lifetime.
-        extern double FPS;
-        const bool wasPending = o->m_bTailScalePending;
-        o->MaxTails = Render::Effects::TailScaling::ComputeMaxTails(o->MaxTails, FPS, FPS_ANIMATION_FACTOR, MAX_TAILS,
-                                                            o->m_bTailScalePending);
+        // See CreateJoint and TailScaling.h: this joint was created on a stall frame, so its
+        // MaxTails is still the unscaled base. Ratchet it up toward the steady-state value every
+        // frame (never down) until it reaches the cap or the bounded recovery window ends. Raising
+        // MaxTails mid-life is safe: Tails[] is always MAX_TAILS-sized and zeroed at creation, and
+        // NumTails is re-clamped to MaxTails-1 on every tail update, growing by one per update.
+        extern double WorldTime;
+        const int before = o->MaxTails;
+        o->MaxTails = Render::Effects::TailScaling::RatchetMaxTails(o->MaxTails, o->m_iTailScaleBase,
+                                                                    FPS_ANIMATION_FACTOR, MAX_TAILS);
+        const bool done = Render::Effects::TailScaling::IsRecoveryDone(o->MaxTails, MAX_TAILS, WorldTime,
+                                                                       o->m_dTailScaleDeadline);
+        if (done)
+        {
+            o->m_bTailScalePending = false;
+        }
 
-        if (wasPending && !o->m_bTailScalePending && o->Type == MODEL_SPEARSKILL &&
+        if ((o->MaxTails != before || done) && o->Type == MODEL_SPEARSKILL &&
             o->SubType == 0) // DXP temp diagnostic, to be removed
         {
+            extern double FPS;
             g_ErrorReport.Write(
-                L"DXP-DIAG MoveJoint SOULBARRIER deferred scaling applied slot=%p FinalMaxTails=%d "
+                L"DXP-DIAG MoveJoint SOULBARRIER ratchet slot=%p MaxTails %d -> %d Done=%d "
                 L"FPS_ANIMATION_FACTOR=%.4f FPS=%.1f\r\n",
-                (void*)o, o->MaxTails, FPS_ANIMATION_FACTOR, FPS);
+                (void*)o, before, o->MaxTails, (int)done, FPS_ANIMATION_FACTOR, FPS);
         }
     }
 

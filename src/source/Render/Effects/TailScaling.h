@@ -37,4 +37,28 @@ inline int ComputeMaxTails(int baseMaxTails, double fps, float fpsAnimationFacto
     const int scaled = static_cast<int>(baseMaxTails / fpsAnimationFactor);
     return std::min(scaled, maxTailsCap);
 }
+
+// How long after creation a joint that was created during a stall keeps re-evaluating its MaxTails.
+// A stall is followed by a recovery ramp (measured live: the FPS counter reads ~1, 29, 60, 108, then
+// the steady ~250 over the next several frames), so the first "reliable" reading is still not
+// representative -- applying the scaling once on it bakes in a partial value (35/72/130 instead of
+// 200). Re-evaluating every frame for a short bounded window lets the value converge instead.
+constexpr double RecoveryWindowMs = 2000.0;
+
+// Ratchet: the MaxTails a pending joint should have this frame. Only ever raises `current` toward
+// min(cap, base / factor), never lowers it, so a transient dip during the ramp (or one more slow
+// frame) cannot pull an already-reached value back down. A player who genuinely sits at a low frame
+// rate converges to their real, lower target (factor 1.0 -> base) and simply stays there.
+inline int RatchetMaxTails(int current, int baseMaxTails, float fpsAnimationFactor, int maxTailsCap)
+{
+    const int target = std::min(static_cast<int>(baseMaxTails / fpsAnimationFactor), maxTailsCap);
+    return std::max(current, target);
+}
+
+// A pending joint is finished once it reached the cap (nothing left to gain) or its bounded
+// recovery window has elapsed.
+inline bool IsRecoveryDone(int current, int maxTailsCap, double nowMs, double deadlineMs)
+{
+    return current >= maxTailsCap || nowMs >= deadlineMs;
+}
 } // namespace Render::Effects::TailScaling
