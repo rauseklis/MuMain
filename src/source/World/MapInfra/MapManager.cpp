@@ -1179,8 +1179,32 @@ void CMapManager::Load() // OK
     }
 }
 
+namespace
+{
+// DXP temp diagnostic, to be removed: proves (or disproves) whether anything during a map/zone
+// transition touches MODEL_SPEARSKILL's model or its bound texture -- logs on every entry and
+// exit of LoadWorld (including early returns) via RAII so no exit path is missed.
+struct SpearSkillLoadWorldDiag
+{
+    int mapArg;
+    explicit SpearSkillLoadWorldDiag(int map) : mapArg(map) { Log(L"ENTER"); }
+    ~SpearSkillLoadWorldDiag() { Log(L"EXIT"); }
+    static void Log(const wchar_t* phase)
+    {
+        BMD& b = Models[MODEL_SPEARSKILL];
+        const GLuint tex0 = (b.NumMeshs > 0 && b.IndexTexture != nullptr) ? b.IndexTexture[0] : 0;
+        const BITMAP_t* bmp = (tex0 != 0) ? Bitmaps.FindTexture(tex0) : nullptr;
+        g_ErrorReport.Write(
+            L"DXP-DIAG LoadWorld %ls NumMeshs=%d IndexTexturePtr=%p tex0=%u bmpPtr=%p sdlTexture=%p\r\n", phase,
+            b.NumMeshs, (void*)b.IndexTexture, tex0, (const void*)bmp, bmp ? (void*)bmp->sdlTexture : nullptr);
+    }
+};
+} // namespace
+
 void CMapManager::LoadWorld(int Map)
 {
+    SpearSkillLoadWorldDiag spearSkillLoadWorldDiag(Map); // DXP temp diagnostic, to be removed
+
     if (Map == 32 && this->WorldActive == 32)
     {
         Map = this->WorldActive = 9;
