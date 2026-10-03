@@ -53,6 +53,7 @@ BOOL CSkillEffectMgr::IsSkillEffect(int Type, vec3_t Position, vec3_t Angle, vec
             return TRUE;
         break;
     case BITMAP_FLAME:
+    case BITMAP_FLAME_VOID:
         if (SubType == 0)
             return TRUE;
         break;

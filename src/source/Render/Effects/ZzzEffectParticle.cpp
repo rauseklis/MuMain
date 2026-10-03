@@ -577,6 +577,7 @@ int CreateParticle(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Su
                 o->Rotation = (float)(rand() % 360);
                 break;
             case BITMAP_FLAME:
+            case BITMAP_FLAME_VOID:
                 switch (o->SubType)
                 {
                 case 0:
@@ -4777,6 +4778,7 @@ void MoveParticles()
                 }
                 break;
             case BITMAP_FLAME:
+            case BITMAP_FLAME_VOID:
                 if (o->LifeTime <= 0)
                 {
                     o->Live = false;
@@ -9286,6 +9288,7 @@ void RenderParticles(BYTE byRenderOneMore)
                 RenderSprite(o->TexType, o->Position, Width, Height, o->Light, o->Rotation);
                 break;
             case BITMAP_FLAME:
+            case BITMAP_FLAME_VOID:
                 if (o->SubType == 11)
                 {
                     RenderSprite(o->TexType, o->Position, Width, Height, o->Light, o->Rotation);

@@ -55,6 +55,7 @@ namespace Render::Effects::Behaviors
     bool Move_BITMAP_JOINT_THUNDER(OBJECT* o, int index, float Luminosity);
     bool Move_BITMAP_IMPACT(OBJECT* o, int index, float Luminosity);
     bool Move_BITMAP_FLAME(OBJECT* o, int index, float Luminosity);
+    bool Move_BITMAP_FLAME_VOID(OBJECT* o, int index, float Luminosity);
     bool Move_MODEL_RAKLION_BOSS_CRACKEFFECT(OBJECT* o, int index, float Luminosity);
     bool Move_MODEL_RAKLION_BOSS_MAGIC(OBJECT* o, int index, float Luminosity);
     bool Move_BITMAP_FIRE_HIK2_MONO(OBJECT* o, int index, float Luminosity);

@@ -1080,6 +1080,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
                 break;
             case BITMAP_FLAME:
+            case BITMAP_FLAME_VOID:
                 if (o->SubType == 0)
                 {
                     o->LifeTime = 40;

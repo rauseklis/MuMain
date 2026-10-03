@@ -4492,7 +4492,7 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
             Position[0] = (float)(c->SkillX + 0.5f) * TERRAIN_SCALE;
             Position[1] = (float)(c->SkillY + 0.5f) * TERRAIN_SCALE;
             Position[2] = RequestTerrainHeight(Position[0], Position[1]);
-            CreateEffect(BITMAP_FLAME, Position, o->Angle, o->Light, 0, o, o->PKKey, FindHotKey(AT_SKILL_FLAME));
+            CreateEffect(BITMAP_FLAME_VOID, Position, o->Angle, o->Light, 0, o, o->PKKey, FindHotKey(AT_SKILL_FLAME));
 
             if (c == Hero)
             {
@@ -5051,7 +5051,7 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
                 Position[0] = to->Position[0];
                 Position[1] = to->Position[1];
                 Position[2] = RequestTerrainHeight(Position[0], Position[1]);
-                CreateEffect(BITMAP_FLAME, Position, o->Angle, o->Light, 5, o, o->PKKey, FindHotKey(AT_SKILL_FLAME));
+                CreateEffect(BITMAP_FLAME_VOID, Position, o->Angle, o->Light, 5, o, o->PKKey, FindHotKey(AT_SKILL_FLAME));
                 PlayBuffer(SOUND_FLAME);
                 break;
             case AT_SKILL_POWERWAVE:

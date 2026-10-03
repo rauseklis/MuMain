@@ -3976,6 +3976,7 @@ void OpenBasicData(HDC hDC)
     LoadBitmap(L"Player\\kaa.tga", BITMAP_DARK_LOAD_SKIRT, GL_LINEAR, GL_CLAMP_TO_EDGE);
     LoadBitmap(L"Effect\\ShockWave.jpg", BITMAP_SHOCK_WAVE, GL_LINEAR);
     LoadBitmap(L"Effect\\Flame01.jpg", BITMAP_FLAME, GL_LINEAR, GL_CLAMP_TO_EDGE);
+    LoadBitmap(L"Effect\\FlameVoid01.jpg", BITMAP_FLAME_VOID, GL_LINEAR, GL_CLAMP_TO_EDGE);
     LoadBitmap(L"Effect\\flare01.jpg", BITMAP_LIGHT, GL_LINEAR, GL_CLAMP_TO_EDGE);
     LoadBitmap(L"Effect\\Magic_Ground1.jpg", BITMAP_MAGIC, GL_LINEAR, GL_CLAMP_TO_EDGE);
     LoadBitmap(L"Effect\\Magic_Ground2.jpg", BITMAP_MAGIC + 1, GL_LINEAR, GL_CLAMP_TO_EDGE);

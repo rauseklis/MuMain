@@ -1895,6 +1895,42 @@ namespace Render::Effects::Behaviors
         return true;
     }
 
+    // BITMAP_FLAME_VOID (Scroll of Flame skill)
+    bool Move_BITMAP_FLAME_VOID(OBJECT* o, int index, float Luminosity)
+    {
+        vec3_t Light;
+        Vector(1.f, 1.f, 1.f, Light);
+        vec3_t Position;
+        if (o->SubType == 0)
+        {
+            for (int j = 0; j < 6; j++)
+            {
+                Vector((float)(rand() % 50 - 25), (float)(rand() % 50 - 25), 0.f, Position);
+                VectorAdd(Position, o->Position, Position);
+                CreateParticleFpsChecked(BITMAP_FLAME_VOID, Position, o->Angle, Light);
+            }
+            if (rand_fps_check(8))
+            {
+                CreateEffectFpsChecked(MODEL_STONE1 + rand() % 2, o->Position, o->Angle, o->Light);
+            }
+
+            Vector(Luminosity * 1.f, Luminosity * 0.4f, Luminosity * 0.f, Light);
+            AddTerrainLight(o->Position[0], o->Position[1], Light, 3, PrimaryTerrainLight);
+            if (o->Owner == &Hero->Object && (int)o->LifeTime % 20 == 0)
+            {
+                o->LifeTime = ((int)o->LifeTime / 20) * 19.9f;
+                AttackCharacterRange(o->Skill, o->Position, 150.f, o->Weapon, o->PKKey);
+            }
+        }
+        else if (o->SubType == 5)
+        {
+            Vector((float)(rand() % 32 - 16), (float)(rand() % 32 - 16), 0.f, Position);
+            VectorAdd(Position, o->Position, Position);
+            CreateParticleFpsChecked(BITMAP_FLAME_VOID, Position, o->Angle, Light, 0, o->Scale);
+        }
+        return true;
+    }
+
     // MODEL_RAKLION_BOSS_CRACKEFFECT
     bool Move_MODEL_RAKLION_BOSS_CRACKEFFECT(OBJECT* o, int index, float Luminosity)
     {
@@ -10313,6 +10349,7 @@ namespace Render::Effects::Behaviors
             { BITMAP_JOINT_THUNDER, &Move_BITMAP_JOINT_THUNDER },
             { BITMAP_IMPACT, &Move_BITMAP_IMPACT },
             { BITMAP_FLAME, &Move_BITMAP_FLAME },
+            { BITMAP_FLAME_VOID, &Move_BITMAP_FLAME_VOID },
             { MODEL_RAKLION_BOSS_CRACKEFFECT, &Move_MODEL_RAKLION_BOSS_CRACKEFFECT },
             { MODEL_RAKLION_BOSS_MAGIC, &Move_MODEL_RAKLION_BOSS_MAGIC },
             { BITMAP_FIRE_HIK2_MONO, &Move_BITMAP_FIRE_HIK2_MONO },
