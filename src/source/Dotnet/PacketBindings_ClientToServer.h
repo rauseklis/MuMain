@@ -104,13 +104,13 @@ typedef void(CORECLR_DELEGATE_CALLTYPE* SendCastleSiegeDefenseUpgradeRequest)(in
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendCastleSiegeTaxInfoRequest)(int32_t);
 
-typedef void(CORECLR_DELEGATE_CALLTYPE* SendCastleSiegeTaxChangeRequest)(int32_t, BYTE , uint32_t );
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendCastleSiegeTaxChangeRequest)(int32_t, CastleSiegeTaxType , uint32_t );
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendCastleSiegeTaxMoneyWithdraw)(int32_t, uint32_t );
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendToggleCastleGateRequest)(int32_t, BYTE , uint16_t );
 
-typedef void(CORECLR_DELEGATE_CALLTYPE* SendCastleGuildCommand)(int32_t, BYTE , BYTE , BYTE , BYTE );
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendCastleGuildCommand)(int32_t, BYTE , BYTE , BYTE , CastleSiegeGuildCommandType );
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendCastleSiegeHuntingZoneEntranceSetting)(int32_t, BYTE );
 
@@ -403,3 +403,23 @@ typedef void(CORECLR_DELEGATE_CALLTYPE* SendDuelChannelJoinRequest)(int32_t, BYT
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendDuelChannelQuitRequest)(int32_t);
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendChatCommandListRequest)(int32_t);
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionOpenRequest)(int32_t, uint32_t );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBrowseRequest)(int32_t, uint32_t , uint16_t , BYTE , AuctionCurrencyMode , AuctionSort , uint32_t , BYTE , BYTE , uint16_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint16_t , BYTE , const BYTE* , uint32_t);
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionDetailRequest)(int32_t, uint32_t , uint64_t );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionCreateRequest)(int32_t, const BYTE* , uint32_t, BYTE , AuctionCurrencyMode , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , BYTE , BYTE , const BYTE* , uint32_t);
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBidRequest)(int32_t, const BYTE* , uint32_t, uint64_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBuyoutRequest)(int32_t, const BYTE* , uint32_t, uint64_t , uint32_t );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionCancelRequest)(int32_t, const BYTE* , uint32_t, uint64_t , uint32_t );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionMyListingsRequest)(int32_t, uint32_t , uint16_t , BYTE );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionMailboxRequest)(int32_t, uint32_t , uint16_t , BYTE );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionCollectRequest)(int32_t, const BYTE* , uint32_t, uint64_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t );

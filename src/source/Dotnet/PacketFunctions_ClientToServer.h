@@ -514,13 +514,13 @@ public:
     /// <summary>
     /// Sends a CastleSiegeTaxChangeRequest to this connection.
     /// </summary>
-    /// <param name="taxType">0=Undefined, 1=ChaosMachine, 2 = Normal, 3 = EntranceFeeLandOfTrials</param>
-    /// <param name="taxRate">The tax rate.</param>
+    /// <param name="taxType">The tax type.</param>
+    /// <param name="taxValue">The percentage rate for shop and Chaos Machine taxes, or the entrance fee amount for the hunting zone.</param>
     /// <remarks>
     /// Is sent by the client when: The guild master wants to change the tax rate in the castle npc.
     /// Causes reaction on server side: The server changes the tax rates accordingly.
     /// </remarks>
-    void SendCastleSiegeTaxChangeRequest(BYTE taxType, uint32_t taxRate);
+    void SendCastleSiegeTaxChangeRequest(CastleSiegeTaxType taxType, uint32_t taxValue);
 
     /// <summary>
     /// Sends a CastleSiegeTaxMoneyWithdraw to this connection.
@@ -535,13 +535,13 @@ public:
     /// <summary>
     /// Sends a ToggleCastleGateRequest to this connection.
     /// </summary>
-    /// <param name="closeState">The close state.</param>
+    /// <param name="isOpen">The is open.</param>
     /// <param name="gateId">The gate id.</param>
     /// <remarks>
     /// Is sent by the client when: The guild member of the castle owner wants to toggle the gate switch.
     /// Causes reaction on server side: The castle gate is getting opened or closed.
     /// </remarks>
-    void SendToggleCastleGateRequest(BYTE closeState, uint16_t gateId);
+    void SendToggleCastleGateRequest(BYTE isOpen, uint16_t gateId);
 
     /// <summary>
     /// Sends a CastleGuildCommand to this connection.
@@ -549,12 +549,12 @@ public:
     /// <param name="team">Team Number 0 to 7.</param>
     /// <param name="positionX">The position x.</param>
     /// <param name="positionY">The position y.</param>
-    /// <param name="command">0 = Attack, 1 = Defend, 2 = Wait</param>
+    /// <param name="command">The command.</param>
     /// <remarks>
     /// Is sent by the client when: The guild master sent a command to his guild during the castle siege event.
     /// Causes reaction on server side: The command is shown on the mini map of the guild members.
     /// </remarks>
-    void SendCastleGuildCommand(BYTE team, BYTE positionX, BYTE positionY, BYTE command);
+    void SendCastleGuildCommand(BYTE team, BYTE positionX, BYTE positionY, CastleSiegeGuildCommandType command);
 
     /// <summary>
     /// Sends a CastleSiegeHuntingZoneEntranceSetting to this connection.
@@ -2080,4 +2080,176 @@ public:
     /// Causes reaction on server side: The server sends an AvailableChatCommand message for each available chat command.
     /// </remarks>
     void SendChatCommandListRequest();
+
+    /// <summary>
+    /// Sends a AuctionOpenRequest to this connection.
+    /// </summary>
+    /// <param name="requestId">The request id.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionOpenRequest (sub 00).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionOpenRequest(uint32_t requestId);
+
+    /// <summary>
+    /// Sends a AuctionBrowseRequest to this connection.
+    /// </summary>
+    /// <param name="requestId">The request id.</param>
+    /// <param name="page">The page.</param>
+    /// <param name="category">The category.</param>
+    /// <param name="currencyMode">The currency mode.</param>
+    /// <param name="sort">The sort.</param>
+    /// <param name="classMask">The class mask.</param>
+    /// <param name="levelMinimum">The level minimum.</param>
+    /// <param name="levelMaximum">The level maximum.</param>
+    /// <param name="optionFlags">The option flags.</param>
+    /// <param name="minimumScalar">The minimum scalar.</param>
+    /// <param name="minimumStrength">The minimum strength.</param>
+    /// <param name="minimumAgility">The minimum agility.</param>
+    /// <param name="minimumVitality">The minimum vitality.</param>
+    /// <param name="minimumEnergy">The minimum energy.</param>
+    /// <param name="minimumCommand">The minimum command.</param>
+    /// <param name="maximumScalar">The maximum scalar.</param>
+    /// <param name="maximumStrength">The maximum strength.</param>
+    /// <param name="maximumAgility">The maximum agility.</param>
+    /// <param name="maximumVitality">The maximum vitality.</param>
+    /// <param name="maximumEnergy">The maximum energy.</param>
+    /// <param name="maximumCommand">The maximum command.</param>
+    /// <param name="maxRemainingHours">The max remaining hours.</param>
+    /// <param name="nameLength">The name length.</param>
+    /// <param name="name">The name.</param>
+    /// <param name="nameByteLength">The length of <paramref name="name"/> in bytes.
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionBrowseRequest (sub 01).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionBrowseRequest(uint32_t requestId, uint16_t page, BYTE category, AuctionCurrencyMode currencyMode, AuctionSort sort, uint32_t classMask, BYTE levelMinimum, BYTE levelMaximum, uint16_t optionFlags, uint32_t minimumScalar, uint32_t minimumStrength, uint32_t minimumAgility, uint32_t minimumVitality, uint32_t minimumEnergy, uint32_t minimumCommand, uint32_t maximumScalar, uint32_t maximumStrength, uint32_t maximumAgility, uint32_t maximumVitality, uint32_t maximumEnergy, uint32_t maximumCommand, uint16_t maxRemainingHours, BYTE nameLength, const BYTE* name, uint32_t nameByteLength);
+
+    /// <summary>
+    /// Sends a AuctionDetailRequest to this connection.
+    /// </summary>
+    /// <param name="requestId">The request id.</param>
+    /// <param name="listingId">The listing id.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionDetailRequest (sub 02).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionDetailRequest(uint32_t requestId, uint64_t listingId);
+
+    /// <summary>
+    /// Sends a AuctionCreateRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="inventorySlot">The inventory slot.</param>
+    /// <param name="currencyMode">The currency mode.</param>
+    /// <param name="startingScalar">The starting scalar.</param>
+    /// <param name="startingStrength">The starting strength.</param>
+    /// <param name="startingAgility">The starting agility.</param>
+    /// <param name="startingVitality">The starting vitality.</param>
+    /// <param name="startingEnergy">The starting energy.</param>
+    /// <param name="startingCommand">The starting command.</param>
+    /// <param name="buyoutScalar">The buyout scalar.</param>
+    /// <param name="buyoutStrength">The buyout strength.</param>
+    /// <param name="buyoutAgility">The buyout agility.</param>
+    /// <param name="buyoutVitality">The buyout vitality.</param>
+    /// <param name="buyoutEnergy">The buyout energy.</param>
+    /// <param name="buyoutCommand">The buyout command.</param>
+    /// <param name="durationHours">The duration hours.</param>
+    /// <param name="noteLength">The note length.</param>
+    /// <param name="note">The note.</param>
+    /// <param name="noteByteLength">The length of <paramref name="note"/> in bytes.
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionCreateRequest (sub 03).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionCreateRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE inventorySlot, AuctionCurrencyMode currencyMode, uint32_t startingScalar, uint32_t startingStrength, uint32_t startingAgility, uint32_t startingVitality, uint32_t startingEnergy, uint32_t startingCommand, uint32_t buyoutScalar, uint32_t buyoutStrength, uint32_t buyoutAgility, uint32_t buyoutVitality, uint32_t buyoutEnergy, uint32_t buyoutCommand, BYTE durationHours, BYTE noteLength, const BYTE* note, uint32_t noteByteLength);
+
+    /// <summary>
+    /// Sends a AuctionBidRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="listingId">The listing id.</param>
+    /// <param name="expectedVersion">The expected version.</param>
+    /// <param name="bidScalar">The bid scalar.</param>
+    /// <param name="bidStrength">The bid strength.</param>
+    /// <param name="bidAgility">The bid agility.</param>
+    /// <param name="bidVitality">The bid vitality.</param>
+    /// <param name="bidEnergy">The bid energy.</param>
+    /// <param name="bidCommand">The bid command.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionBidRequest (sub 04).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionBidRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion, uint32_t bidScalar, uint32_t bidStrength, uint32_t bidAgility, uint32_t bidVitality, uint32_t bidEnergy, uint32_t bidCommand);
+
+    /// <summary>
+    /// Sends a AuctionBuyoutRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="listingId">The listing id.</param>
+    /// <param name="expectedVersion">The expected version.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionBuyoutRequest (sub 05).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionBuyoutRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion);
+
+    /// <summary>
+    /// Sends a AuctionCancelRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="listingId">The listing id.</param>
+    /// <param name="expectedVersion">The expected version.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionCancelRequest (sub 06).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionCancelRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion);
+
+    /// <summary>
+    /// Sends a AuctionMyListingsRequest to this connection.
+    /// </summary>
+    /// <param name="requestId">The request id.</param>
+    /// <param name="page">The page.</param>
+    /// <param name="statusFilter">The status filter.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionMyListingsRequest (sub 07).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionMyListingsRequest(uint32_t requestId, uint16_t page, BYTE statusFilter);
+
+    /// <summary>
+    /// Sends a AuctionMailboxRequest to this connection.
+    /// </summary>
+    /// <param name="requestId">The request id.</param>
+    /// <param name="page">The page.</param>
+    /// <param name="kindFilter">The kind filter.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionMailboxRequest (sub 08).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionMailboxRequest(uint32_t requestId, uint16_t page, BYTE kindFilter);
+
+    /// <summary>
+    /// Sends a AuctionCollectRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="collectionId">The collection id.</param>
+    /// <param name="expectedVersion">The expected version.</param>
+    /// <param name="requestedScalar">The requested scalar.</param>
+    /// <param name="requestedStrength">The requested strength.</param>
+    /// <param name="requestedAgility">The requested agility.</param>
+    /// <param name="requestedVitality">The requested vitality.</param>
+    /// <param name="requestedEnergy">The requested energy.</param>
+    /// <param name="requestedCommand">The requested command.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionCollectRequest (sub 09).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    void SendAuctionCollectRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t collectionId, uint32_t expectedVersion, uint32_t requestedScalar, uint32_t requestedStrength, uint32_t requestedAgility, uint32_t requestedVitality, uint32_t requestedEnergy, uint32_t requestedCommand);
 };

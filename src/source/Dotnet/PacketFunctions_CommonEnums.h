@@ -100,3 +100,118 @@ IllusionTemple = 5, ///< The illusion temple mini game.
 Doppelganger = 6, ///< The doppelgänger mini game.
 };
 
+enum class AuctionResult : uint32_t
+{
+Success = 0, ///< Success.
+Disabled = 1, ///< Disabled.
+NotAuthenticated = 2, ///< NotAuthenticated.
+StateRestricted = 3, ///< StateRestricted.
+LevelTooLow = 4, ///< LevelTooLow.
+AccountTooNew = 5, ///< AccountTooNew.
+AccountRestricted = 6, ///< AccountRestricted.
+RateLimited = 7, ///< RateLimited.
+InvalidRequest = 8, ///< InvalidRequest.
+UnsupportedCurrency = 9, ///< UnsupportedCurrency.
+CurrencyConfigurationInvalid = 10, ///< CurrencyConfigurationInvalid.
+InvalidDuration = 11, ///< InvalidDuration.
+InvalidPrice = 12, ///< InvalidPrice.
+InvalidFruitBasket = 13, ///< InvalidFruitBasket.
+ItemNotFound = 14, ///< ItemNotFound.
+ItemNotEligible = 15, ///< ItemNotEligible.
+ListingLimitReached = 16, ///< ListingLimitReached.
+InsufficientCurrency = 17, ///< InsufficientCurrency.
+ListingNotFound = 18, ///< ListingNotFound.
+ListingNotActive = 19, ///< ListingNotActive.
+ListingExpired = 20, ///< ListingExpired.
+StaleListing = 21, ///< StaleListing.
+SelfTrade = 22, ///< SelfTrade.
+AlreadyHighestBidder = 23, ///< AlreadyHighestBidder.
+BidTooLow = 24, ///< BidTooLow.
+BuyoutUnavailable = 25, ///< BuyoutUnavailable.
+CannotCancelWithBid = 26, ///< CannotCancelWithBid.
+CollectionNotFound = 27, ///< CollectionNotFound.
+InvalidClaimQuantity = 28, ///< InvalidClaimQuantity.
+InventoryFull = 29, ///< InventoryFull.
+MoneyLimit = 30, ///< MoneyLimit.
+AlreadyProcessed = 31, ///< AlreadyProcessed.
+ServiceUnavailable = 32, ///< ServiceUnavailable.
+};
+
+enum class AuctionCurrencyMode : uint32_t
+{
+Zen = 0, ///< Zen.
+Chaos = 1, ///< Chaos.
+Bless = 2, ///< Bless.
+Soul = 3, ///< Soul.
+Life = 4, ///< Life.
+Creation = 5, ///< Creation.
+Guardian = 6, ///< Guardian.
+Harmony = 7, ///< Harmony.
+Fruits = 8, ///< Fruits.
+};
+
+enum class AuctionCategory : uint32_t
+{
+Weapon = 0, ///< Weapon.
+Armor = 1, ///< Armor.
+Wing = 2, ///< Wing.
+PetHelper = 3, ///< PetHelper.
+JewelMaterial = 4, ///< JewelMaterial.
+Consumable = 5, ///< Consumable.
+Miscellaneous = 6, ///< Miscellaneous.
+};
+
+enum class AuctionSort : uint32_t
+{
+PriceAscending = 0, ///< PriceAscending.
+PriceDescending = 1, ///< PriceDescending.
+EndingSoonest = 2, ///< EndingSoonest.
+Newest = 3, ///< Newest.
+};
+
+enum class AuctionListingStatus : uint32_t
+{
+Active = 0, ///< Active.
+Sold = 1, ///< Sold.
+Expired = 2, ///< Expired.
+Cancelled = 3, ///< Cancelled.
+AdminRemoved = 4, ///< AdminRemoved.
+};
+
+enum class AuctionCollectionKind : uint32_t
+{
+PurchasedItem = 0, ///< PurchasedItem.
+ReturnedItem = 1, ///< ReturnedItem.
+SaleProceeds = 2, ///< SaleProceeds.
+OutbidRefund = 3, ///< OutbidRefund.
+TenderChange = 4, ///< TenderChange.
+AdminRefund = 5, ///< AdminRefund.
+};
+
+enum class AuctionCollectionStatus : uint32_t
+{
+Pending = 0, ///< Pending.
+PartiallyClaimed = 1, ///< PartiallyClaimed.
+Claimed = 2, ///< Claimed.
+};
+
+enum class AuctionOperationType : uint32_t
+{
+Create = 0, ///< Create.
+Bid = 1, ///< Bid.
+Buyout = 2, ///< Buyout.
+Cancel = 3, ///< Cancel.
+Collect = 4, ///< Collect.
+};
+
+enum class AuctionNotificationKind : uint32_t
+{
+Outbid = 0, ///< Outbid.
+Sold = 1, ///< Sold.
+Bought = 2, ///< Bought.
+Expired = 3, ///< Expired.
+Returned = 4, ///< Returned.
+Collected = 5, ///< Collected.
+AdminAdjusted = 6, ///< AdminAdjusted.
+};
+

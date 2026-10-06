@@ -1570,14 +1570,14 @@ public unsafe partial class ConnectionManager
     /// Sends a <see cref="CastleSiegeTaxChangeRequest" /> to this connection.
     /// </summary>
     /// <param name="handle">The handle of the connection.</param>
-    /// <param name="taxType">0=Undefined, 1=ChaosMachine, 2 = Normal, 3 = EntranceFeeLandOfTrials</param>
-    /// <param name="taxRate">The tax rate.</param>
+    /// <param name="taxType">The tax type.</param>
+    /// <param name="taxValue">The percentage rate for shop and Chaos Machine taxes, or the entrance fee amount for the hunting zone.</param>
     /// <remarks>
     /// Is sent by the client when: The guild master wants to change the tax rate in the castle npc.
     /// Causes reaction on server side: The server changes the tax rates accordingly.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendCastleSiegeTaxChangeRequest")]
-    public static void SendCastleSiegeTaxChangeRequest(int handle, byte @taxType, uint @taxRate)
+    public static void SendCastleSiegeTaxChangeRequest(int handle, CastleSiegeTaxType @taxType, uint @taxValue)
     {
         if (!Connections.TryGetValue(handle, out var connection))
         {
@@ -1591,7 +1591,7 @@ public unsafe partial class ConnectionManager
                 var length = CastleSiegeTaxChangeRequestRef.Length;
                 var packet = new CastleSiegeTaxChangeRequestRef(pipeWriter.GetSpan(length)[..length]);
                 packet.TaxType = @taxType;
-                packet.TaxRate = @taxRate;
+                packet.TaxValue = @taxValue;
 
                 return length;
             });
@@ -1640,14 +1640,14 @@ public unsafe partial class ConnectionManager
     /// Sends a <see cref="ToggleCastleGateRequest" /> to this connection.
     /// </summary>
     /// <param name="handle">The handle of the connection.</param>
-    /// <param name="closeState">The close state.</param>
+    /// <param name="isOpen">The is open.</param>
     /// <param name="gateId">The gate id.</param>
     /// <remarks>
     /// Is sent by the client when: The guild member of the castle owner wants to toggle the gate switch.
     /// Causes reaction on server side: The castle gate is getting opened or closed.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendToggleCastleGateRequest")]
-    public static void SendToggleCastleGateRequest(int handle, byte @closeState, ushort @gateId)
+    public static void SendToggleCastleGateRequest(int handle, byte @isOpen, ushort @gateId)
     {
         if (!Connections.TryGetValue(handle, out var connection))
         {
@@ -1660,7 +1660,7 @@ public unsafe partial class ConnectionManager
             {
                 var length = ToggleCastleGateRequestRef.Length;
                 var packet = new ToggleCastleGateRequestRef(pipeWriter.GetSpan(length)[..length]);
-                packet.CloseState = @closeState == 1;
+                packet.IsOpen = @isOpen == 1;
                 packet.GateId = @gateId;
 
                 return length;
@@ -1679,13 +1679,13 @@ public unsafe partial class ConnectionManager
     /// <param name="team">Team Number 0 to 7.</param>
     /// <param name="positionX">The position x.</param>
     /// <param name="positionY">The position y.</param>
-    /// <param name="command">0 = Attack, 1 = Defend, 2 = Wait</param>
+    /// <param name="command">The command.</param>
     /// <remarks>
     /// Is sent by the client when: The guild master sent a command to his guild during the castle siege event.
     /// Causes reaction on server side: The command is shown on the mini map of the guild members.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendCastleGuildCommand")]
-    public static void SendCastleGuildCommand(int handle, byte @team, byte @positionX, byte @positionY, byte @command)
+    public static void SendCastleGuildCommand(int handle, byte @team, byte @positionX, byte @positionY, CastleSiegeGuildCommandType @command)
     {
         if (!Connections.TryGetValue(handle, out var connection))
         {
@@ -6746,6 +6746,483 @@ public unsafe partial class ConnectionManager
             {
                 var length = ChatCommandListRequestRef.Length;
                 var packet = new ChatCommandListRequestRef(pipeWriter.GetSpan(length)[..length]);
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionOpenRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="requestId">The request id.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionOpenRequest (sub 00).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionOpenRequest")]
+    public static void SendAuctionOpenRequest(int handle, uint @requestId)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionOpenRequestRef.Length;
+                var packet = new AuctionOpenRequestRef(pipeWriter.GetSpan(length)[..length]);
+                packet.RequestId = @requestId;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionBrowseRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="requestId">The request id.</param>
+    /// <param name="page">The page.</param>
+    /// <param name="category">The category.</param>
+    /// <param name="currencyMode">The currency mode.</param>
+    /// <param name="sort">The sort.</param>
+    /// <param name="classMask">The class mask.</param>
+    /// <param name="levelMinimum">The level minimum.</param>
+    /// <param name="levelMaximum">The level maximum.</param>
+    /// <param name="optionFlags">The option flags.</param>
+    /// <param name="minimumScalar">The minimum scalar.</param>
+    /// <param name="minimumStrength">The minimum strength.</param>
+    /// <param name="minimumAgility">The minimum agility.</param>
+    /// <param name="minimumVitality">The minimum vitality.</param>
+    /// <param name="minimumEnergy">The minimum energy.</param>
+    /// <param name="minimumCommand">The minimum command.</param>
+    /// <param name="maximumScalar">The maximum scalar.</param>
+    /// <param name="maximumStrength">The maximum strength.</param>
+    /// <param name="maximumAgility">The maximum agility.</param>
+    /// <param name="maximumVitality">The maximum vitality.</param>
+    /// <param name="maximumEnergy">The maximum energy.</param>
+    /// <param name="maximumCommand">The maximum command.</param>
+    /// <param name="maxRemainingHours">The max remaining hours.</param>
+    /// <param name="nameLength">The name length.</param>
+    /// <param name="name">The name.</param>
+    /// <param name="nameByteLength">The length of <paramref name="name"/>.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionBrowseRequest (sub 01).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionBrowseRequest")]
+    public static void SendAuctionBrowseRequest(int handle, uint @requestId, ushort @page, byte @category, AuctionCurrencyMode @currencyMode, AuctionSort @sort, uint @classMask, byte @levelMinimum, byte @levelMaximum, ushort @optionFlags, uint @minimumScalar, uint @minimumStrength, uint @minimumAgility, uint @minimumVitality, uint @minimumEnergy, uint @minimumCommand, uint @maximumScalar, uint @maximumStrength, uint @maximumAgility, uint @maximumVitality, uint @maximumEnergy, uint @maximumCommand, ushort @maxRemainingHours, byte @nameLength, byte* @name, uint nameByteLength)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionBrowseRequestRef.Length;
+                var packet = new AuctionBrowseRequestRef(pipeWriter.GetSpan(length)[..length]);
+                packet.RequestId = @requestId;
+                packet.Page = @page;
+                packet.Category = @category;
+                packet.CurrencyMode = @currencyMode;
+                packet.Sort = @sort;
+                packet.ClassMask = @classMask;
+                packet.LevelMinimum = @levelMinimum;
+                packet.LevelMaximum = @levelMaximum;
+                packet.OptionFlags = @optionFlags;
+                packet.MinimumScalar = @minimumScalar;
+                packet.MinimumStrength = @minimumStrength;
+                packet.MinimumAgility = @minimumAgility;
+                packet.MinimumVitality = @minimumVitality;
+                packet.MinimumEnergy = @minimumEnergy;
+                packet.MinimumCommand = @minimumCommand;
+                packet.MaximumScalar = @maximumScalar;
+                packet.MaximumStrength = @maximumStrength;
+                packet.MaximumAgility = @maximumAgility;
+                packet.MaximumVitality = @maximumVitality;
+                packet.MaximumEnergy = @maximumEnergy;
+                packet.MaximumCommand = @maximumCommand;
+                packet.MaxRemainingHours = @maxRemainingHours;
+                packet.NameLength = @nameLength;
+                new Span<byte>(@name, (int)nameByteLength).CopyTo(packet.Name);
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionDetailRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="requestId">The request id.</param>
+    /// <param name="listingId">The listing id.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionDetailRequest (sub 02).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionDetailRequest")]
+    public static void SendAuctionDetailRequest(int handle, uint @requestId, ulong @listingId)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionDetailRequestRef.Length;
+                var packet = new AuctionDetailRequestRef(pipeWriter.GetSpan(length)[..length]);
+                packet.RequestId = @requestId;
+                packet.ListingId = @listingId;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionCreateRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
+    /// <param name="inventorySlot">The inventory slot.</param>
+    /// <param name="currencyMode">The currency mode.</param>
+    /// <param name="startingScalar">The starting scalar.</param>
+    /// <param name="startingStrength">The starting strength.</param>
+    /// <param name="startingAgility">The starting agility.</param>
+    /// <param name="startingVitality">The starting vitality.</param>
+    /// <param name="startingEnergy">The starting energy.</param>
+    /// <param name="startingCommand">The starting command.</param>
+    /// <param name="buyoutScalar">The buyout scalar.</param>
+    /// <param name="buyoutStrength">The buyout strength.</param>
+    /// <param name="buyoutAgility">The buyout agility.</param>
+    /// <param name="buyoutVitality">The buyout vitality.</param>
+    /// <param name="buyoutEnergy">The buyout energy.</param>
+    /// <param name="buyoutCommand">The buyout command.</param>
+    /// <param name="durationHours">The duration hours.</param>
+    /// <param name="noteLength">The note length.</param>
+    /// <param name="note">The note.</param>
+    /// <param name="noteByteLength">The length of <paramref name="note"/>.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionCreateRequest (sub 03).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionCreateRequest")]
+    public static void SendAuctionCreateRequest(int handle, byte* @operationId, uint operationIdByteLength, byte @inventorySlot, AuctionCurrencyMode @currencyMode, uint @startingScalar, uint @startingStrength, uint @startingAgility, uint @startingVitality, uint @startingEnergy, uint @startingCommand, uint @buyoutScalar, uint @buyoutStrength, uint @buyoutAgility, uint @buyoutVitality, uint @buyoutEnergy, uint @buyoutCommand, byte @durationHours, byte @noteLength, byte* @note, uint noteByteLength)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionCreateRequestRef.Length;
+                var packet = new AuctionCreateRequestRef(pipeWriter.GetSpan(length)[..length]);
+                new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
+                packet.InventorySlot = @inventorySlot;
+                packet.CurrencyMode = @currencyMode;
+                packet.StartingScalar = @startingScalar;
+                packet.StartingStrength = @startingStrength;
+                packet.StartingAgility = @startingAgility;
+                packet.StartingVitality = @startingVitality;
+                packet.StartingEnergy = @startingEnergy;
+                packet.StartingCommand = @startingCommand;
+                packet.BuyoutScalar = @buyoutScalar;
+                packet.BuyoutStrength = @buyoutStrength;
+                packet.BuyoutAgility = @buyoutAgility;
+                packet.BuyoutVitality = @buyoutVitality;
+                packet.BuyoutEnergy = @buyoutEnergy;
+                packet.BuyoutCommand = @buyoutCommand;
+                packet.DurationHours = @durationHours;
+                packet.NoteLength = @noteLength;
+                new Span<byte>(@note, (int)noteByteLength).CopyTo(packet.Note);
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionBidRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
+    /// <param name="listingId">The listing id.</param>
+    /// <param name="expectedVersion">The expected version.</param>
+    /// <param name="bidScalar">The bid scalar.</param>
+    /// <param name="bidStrength">The bid strength.</param>
+    /// <param name="bidAgility">The bid agility.</param>
+    /// <param name="bidVitality">The bid vitality.</param>
+    /// <param name="bidEnergy">The bid energy.</param>
+    /// <param name="bidCommand">The bid command.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionBidRequest (sub 04).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionBidRequest")]
+    public static void SendAuctionBidRequest(int handle, byte* @operationId, uint operationIdByteLength, ulong @listingId, uint @expectedVersion, uint @bidScalar, uint @bidStrength, uint @bidAgility, uint @bidVitality, uint @bidEnergy, uint @bidCommand)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionBidRequestRef.Length;
+                var packet = new AuctionBidRequestRef(pipeWriter.GetSpan(length)[..length]);
+                new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
+                packet.ListingId = @listingId;
+                packet.ExpectedVersion = @expectedVersion;
+                packet.BidScalar = @bidScalar;
+                packet.BidStrength = @bidStrength;
+                packet.BidAgility = @bidAgility;
+                packet.BidVitality = @bidVitality;
+                packet.BidEnergy = @bidEnergy;
+                packet.BidCommand = @bidCommand;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionBuyoutRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
+    /// <param name="listingId">The listing id.</param>
+    /// <param name="expectedVersion">The expected version.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionBuyoutRequest (sub 05).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionBuyoutRequest")]
+    public static void SendAuctionBuyoutRequest(int handle, byte* @operationId, uint operationIdByteLength, ulong @listingId, uint @expectedVersion)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionBuyoutRequestRef.Length;
+                var packet = new AuctionBuyoutRequestRef(pipeWriter.GetSpan(length)[..length]);
+                new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
+                packet.ListingId = @listingId;
+                packet.ExpectedVersion = @expectedVersion;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionCancelRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
+    /// <param name="listingId">The listing id.</param>
+    /// <param name="expectedVersion">The expected version.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionCancelRequest (sub 06).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionCancelRequest")]
+    public static void SendAuctionCancelRequest(int handle, byte* @operationId, uint operationIdByteLength, ulong @listingId, uint @expectedVersion)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionCancelRequestRef.Length;
+                var packet = new AuctionCancelRequestRef(pipeWriter.GetSpan(length)[..length]);
+                new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
+                packet.ListingId = @listingId;
+                packet.ExpectedVersion = @expectedVersion;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionMyListingsRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="requestId">The request id.</param>
+    /// <param name="page">The page.</param>
+    /// <param name="statusFilter">The status filter.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionMyListingsRequest (sub 07).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionMyListingsRequest")]
+    public static void SendAuctionMyListingsRequest(int handle, uint @requestId, ushort @page, byte @statusFilter)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionMyListingsRequestRef.Length;
+                var packet = new AuctionMyListingsRequestRef(pipeWriter.GetSpan(length)[..length]);
+                packet.RequestId = @requestId;
+                packet.Page = @page;
+                packet.StatusFilter = @statusFilter;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionMailboxRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="requestId">The request id.</param>
+    /// <param name="page">The page.</param>
+    /// <param name="kindFilter">The kind filter.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionMailboxRequest (sub 08).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionMailboxRequest")]
+    public static void SendAuctionMailboxRequest(int handle, uint @requestId, ushort @page, byte @kindFilter)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionMailboxRequestRef.Length;
+                var packet = new AuctionMailboxRequestRef(pipeWriter.GetSpan(length)[..length]);
+                packet.RequestId = @requestId;
+                packet.Page = @page;
+                packet.KindFilter = @kindFilter;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="AuctionCollectRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
+    /// <param name="collectionId">The collection id.</param>
+    /// <param name="expectedVersion">The expected version.</param>
+    /// <param name="requestedScalar">The requested scalar.</param>
+    /// <param name="requestedStrength">The requested strength.</param>
+    /// <param name="requestedAgility">The requested agility.</param>
+    /// <param name="requestedVitality">The requested vitality.</param>
+    /// <param name="requestedEnergy">The requested energy.</param>
+    /// <param name="requestedCommand">The requested command.</param>
+    /// <remarks>
+    /// Is sent by the client when: Auction House request AuctionCollectRequest (sub 09).
+    /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendAuctionCollectRequest")]
+    public static void SendAuctionCollectRequest(int handle, byte* @operationId, uint operationIdByteLength, ulong @collectionId, uint @expectedVersion, uint @requestedScalar, uint @requestedStrength, uint @requestedAgility, uint @requestedVitality, uint @requestedEnergy, uint @requestedCommand)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = AuctionCollectRequestRef.Length;
+                var packet = new AuctionCollectRequestRef(pipeWriter.GetSpan(length)[..length]);
+                new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
+                packet.CollectionId = @collectionId;
+                packet.ExpectedVersion = @expectedVersion;
+                packet.RequestedScalar = @requestedScalar;
+                packet.RequestedStrength = @requestedStrength;
+                packet.RequestedAgility = @requestedAgility;
+                packet.RequestedVitality = @requestedVitality;
+                packet.RequestedEnergy = @requestedEnergy;
+                packet.RequestedCommand = @requestedCommand;
+
                 return length;
             });
         }

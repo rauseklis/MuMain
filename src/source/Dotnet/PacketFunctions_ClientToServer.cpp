@@ -480,7 +480,7 @@ void PacketFunctions_ClientToServer::SendCastleSiegeTaxInfoRequest()
     dotnet_SendCastleSiegeTaxInfoRequest(this->GetHandle());
 }
 
-void PacketFunctions_ClientToServer::SendCastleSiegeTaxChangeRequest(BYTE taxType, uint32_t taxRate)
+void PacketFunctions_ClientToServer::SendCastleSiegeTaxChangeRequest(CastleSiegeTaxType taxType, uint32_t taxValue)
 {
     static const auto dotnet_SendCastleSiegeTaxChangeRequest = LoadManagedSymbol<::SendCastleSiegeTaxChangeRequest>("SendCastleSiegeTaxChangeRequest");
     if (!dotnet_SendCastleSiegeTaxChangeRequest)
@@ -488,7 +488,7 @@ void PacketFunctions_ClientToServer::SendCastleSiegeTaxChangeRequest(BYTE taxTyp
         return;
     }
 
-    dotnet_SendCastleSiegeTaxChangeRequest(this->GetHandle(), taxType, taxRate);
+    dotnet_SendCastleSiegeTaxChangeRequest(this->GetHandle(), taxType, taxValue);
 }
 
 void PacketFunctions_ClientToServer::SendCastleSiegeTaxMoneyWithdraw(uint32_t amount)
@@ -502,7 +502,7 @@ void PacketFunctions_ClientToServer::SendCastleSiegeTaxMoneyWithdraw(uint32_t am
     dotnet_SendCastleSiegeTaxMoneyWithdraw(this->GetHandle(), amount);
 }
 
-void PacketFunctions_ClientToServer::SendToggleCastleGateRequest(BYTE closeState, uint16_t gateId)
+void PacketFunctions_ClientToServer::SendToggleCastleGateRequest(BYTE isOpen, uint16_t gateId)
 {
     static const auto dotnet_SendToggleCastleGateRequest = LoadManagedSymbol<::SendToggleCastleGateRequest>("SendToggleCastleGateRequest");
     if (!dotnet_SendToggleCastleGateRequest)
@@ -510,10 +510,10 @@ void PacketFunctions_ClientToServer::SendToggleCastleGateRequest(BYTE closeState
         return;
     }
 
-    dotnet_SendToggleCastleGateRequest(this->GetHandle(), closeState, gateId);
+    dotnet_SendToggleCastleGateRequest(this->GetHandle(), isOpen, gateId);
 }
 
-void PacketFunctions_ClientToServer::SendCastleGuildCommand(BYTE team, BYTE positionX, BYTE positionY, BYTE command)
+void PacketFunctions_ClientToServer::SendCastleGuildCommand(BYTE team, BYTE positionX, BYTE positionY, CastleSiegeGuildCommandType command)
 {
     static const auto dotnet_SendCastleGuildCommand = LoadManagedSymbol<::SendCastleGuildCommand>("SendCastleGuildCommand");
     if (!dotnet_SendCastleGuildCommand)
@@ -2128,4 +2128,114 @@ void PacketFunctions_ClientToServer::SendChatCommandListRequest()
     }
 
     dotnet_SendChatCommandListRequest(this->GetHandle());
+}
+
+void PacketFunctions_ClientToServer::SendAuctionOpenRequest(uint32_t requestId)
+{
+    static const auto dotnet_SendAuctionOpenRequest = LoadManagedSymbol<::SendAuctionOpenRequest>("SendAuctionOpenRequest");
+    if (!dotnet_SendAuctionOpenRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionOpenRequest(this->GetHandle(), requestId);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionBrowseRequest(uint32_t requestId, uint16_t page, BYTE category, AuctionCurrencyMode currencyMode, AuctionSort sort, uint32_t classMask, BYTE levelMinimum, BYTE levelMaximum, uint16_t optionFlags, uint32_t minimumScalar, uint32_t minimumStrength, uint32_t minimumAgility, uint32_t minimumVitality, uint32_t minimumEnergy, uint32_t minimumCommand, uint32_t maximumScalar, uint32_t maximumStrength, uint32_t maximumAgility, uint32_t maximumVitality, uint32_t maximumEnergy, uint32_t maximumCommand, uint16_t maxRemainingHours, BYTE nameLength, const BYTE* name, uint32_t nameByteLength)
+{
+    static const auto dotnet_SendAuctionBrowseRequest = LoadManagedSymbol<::SendAuctionBrowseRequest>("SendAuctionBrowseRequest");
+    if (!dotnet_SendAuctionBrowseRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionBrowseRequest(this->GetHandle(), requestId, page, category, currencyMode, sort, classMask, levelMinimum, levelMaximum, optionFlags, minimumScalar, minimumStrength, minimumAgility, minimumVitality, minimumEnergy, minimumCommand, maximumScalar, maximumStrength, maximumAgility, maximumVitality, maximumEnergy, maximumCommand, maxRemainingHours, nameLength, name, nameByteLength);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionDetailRequest(uint32_t requestId, uint64_t listingId)
+{
+    static const auto dotnet_SendAuctionDetailRequest = LoadManagedSymbol<::SendAuctionDetailRequest>("SendAuctionDetailRequest");
+    if (!dotnet_SendAuctionDetailRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionDetailRequest(this->GetHandle(), requestId, listingId);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionCreateRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE inventorySlot, AuctionCurrencyMode currencyMode, uint32_t startingScalar, uint32_t startingStrength, uint32_t startingAgility, uint32_t startingVitality, uint32_t startingEnergy, uint32_t startingCommand, uint32_t buyoutScalar, uint32_t buyoutStrength, uint32_t buyoutAgility, uint32_t buyoutVitality, uint32_t buyoutEnergy, uint32_t buyoutCommand, BYTE durationHours, BYTE noteLength, const BYTE* note, uint32_t noteByteLength)
+{
+    static const auto dotnet_SendAuctionCreateRequest = LoadManagedSymbol<::SendAuctionCreateRequest>("SendAuctionCreateRequest");
+    if (!dotnet_SendAuctionCreateRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionCreateRequest(this->GetHandle(), operationId, operationIdByteLength, inventorySlot, currencyMode, startingScalar, startingStrength, startingAgility, startingVitality, startingEnergy, startingCommand, buyoutScalar, buyoutStrength, buyoutAgility, buyoutVitality, buyoutEnergy, buyoutCommand, durationHours, noteLength, note, noteByteLength);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionBidRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion, uint32_t bidScalar, uint32_t bidStrength, uint32_t bidAgility, uint32_t bidVitality, uint32_t bidEnergy, uint32_t bidCommand)
+{
+    static const auto dotnet_SendAuctionBidRequest = LoadManagedSymbol<::SendAuctionBidRequest>("SendAuctionBidRequest");
+    if (!dotnet_SendAuctionBidRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionBidRequest(this->GetHandle(), operationId, operationIdByteLength, listingId, expectedVersion, bidScalar, bidStrength, bidAgility, bidVitality, bidEnergy, bidCommand);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionBuyoutRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion)
+{
+    static const auto dotnet_SendAuctionBuyoutRequest = LoadManagedSymbol<::SendAuctionBuyoutRequest>("SendAuctionBuyoutRequest");
+    if (!dotnet_SendAuctionBuyoutRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionBuyoutRequest(this->GetHandle(), operationId, operationIdByteLength, listingId, expectedVersion);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionCancelRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion)
+{
+    static const auto dotnet_SendAuctionCancelRequest = LoadManagedSymbol<::SendAuctionCancelRequest>("SendAuctionCancelRequest");
+    if (!dotnet_SendAuctionCancelRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionCancelRequest(this->GetHandle(), operationId, operationIdByteLength, listingId, expectedVersion);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionMyListingsRequest(uint32_t requestId, uint16_t page, BYTE statusFilter)
+{
+    static const auto dotnet_SendAuctionMyListingsRequest = LoadManagedSymbol<::SendAuctionMyListingsRequest>("SendAuctionMyListingsRequest");
+    if (!dotnet_SendAuctionMyListingsRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionMyListingsRequest(this->GetHandle(), requestId, page, statusFilter);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionMailboxRequest(uint32_t requestId, uint16_t page, BYTE kindFilter)
+{
+    static const auto dotnet_SendAuctionMailboxRequest = LoadManagedSymbol<::SendAuctionMailboxRequest>("SendAuctionMailboxRequest");
+    if (!dotnet_SendAuctionMailboxRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionMailboxRequest(this->GetHandle(), requestId, page, kindFilter);
+}
+
+void PacketFunctions_ClientToServer::SendAuctionCollectRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t collectionId, uint32_t expectedVersion, uint32_t requestedScalar, uint32_t requestedStrength, uint32_t requestedAgility, uint32_t requestedVitality, uint32_t requestedEnergy, uint32_t requestedCommand)
+{
+    static const auto dotnet_SendAuctionCollectRequest = LoadManagedSymbol<::SendAuctionCollectRequest>("SendAuctionCollectRequest");
+    if (!dotnet_SendAuctionCollectRequest)
+    {
+        return;
+    }
+
+    dotnet_SendAuctionCollectRequest(this->GetHandle(), operationId, operationIdByteLength, collectionId, expectedVersion, requestedScalar, requestedStrength, requestedAgility, requestedVitality, requestedEnergy, requestedCommand);
 }
