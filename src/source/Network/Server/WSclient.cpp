@@ -6100,6 +6100,13 @@ void ReceiveCreateItemViewportExtended(std::span<const BYTE> ReceiveBuffer)
         itemData = itemData.subspan(0, length);
 
         auto params = ParseItemData(itemData);
+        if (!params.IsValid)
+        {
+            // Malformed drop data: skip it, but still advance past it to keep the packet stream aligned.
+            Offset += length;
+            continue;
+        }
+
         vec3_t Position;
         Position[0] = (float)(itemStartData->PositionX + 0.5f) * TERRAIN_SCALE;
         Position[1] = (float)(itemStartData->PositionY + 0.5f) * TERRAIN_SCALE;

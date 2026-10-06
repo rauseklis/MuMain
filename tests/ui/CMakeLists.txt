@@ -69,3 +69,10 @@ mu_add_test(
     SOURCES test_character_name_lifecycle.cpp
     LINK_LIBS MuClient
 )
+
+mu_add_test(
+    NAME item_creation_params_tests
+    SOURCES
+        test_item_creation_params.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/Inventory/ItemDataParser.cpp
+)
