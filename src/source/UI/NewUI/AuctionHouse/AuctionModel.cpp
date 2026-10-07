@@ -4,11 +4,51 @@
 
 #include "AuctionModel.h"
 
+#include <algorithm>
 #include <atomic>
 #include <random>
 
 namespace AuctionHouse
 {
+    namespace
+    {
+        // ceil(value * 5 / 100) using only integer arithmetic, since prices are whole units and this must
+        // match the server's own rounding exactly (no floating point).
+        int64_t CeilFivePercent(int64_t value) noexcept
+        {
+            return (value * 5 + 99) / 100;
+        }
+    }
+
+    AuctionAmount ComputeMinimumNextBid(AuctionCurrencyMode mode, const AuctionAmount& currentPrice, uint16_t bidCount) noexcept
+    {
+        if (bidCount == 0)
+        {
+            return currentPrice;
+        }
+
+        if (mode == AuctionCurrencyMode::Fruits)
+        {
+            const auto& current = currentPrice.Fruits();
+            const auto bump = [](int64_t component) noexcept -> int64_t
+            {
+                return component == 0 ? 0 : component + std::max<int64_t>(1, CeilFivePercent(component));
+            };
+
+            return AuctionAmount::FromFruits(FruitBasket{
+                bump(current.Strength),
+                bump(current.Agility),
+                bump(current.Vitality),
+                bump(current.Energy),
+                bump(current.Command),
+            });
+        }
+
+        const int64_t minimumFloor = (mode == AuctionCurrencyMode::Zen) ? 1000 : 1;
+        const int64_t current = currentPrice.Scalar();
+        return AuctionAmount::FromScalar(current + std::max(minimumFloor, CeilFivePercent(current)));
+    }
+
     std::wstring FormatAuctionCountdown(std::chrono::seconds remaining)
     {
         if (remaining <= std::chrono::seconds::zero())

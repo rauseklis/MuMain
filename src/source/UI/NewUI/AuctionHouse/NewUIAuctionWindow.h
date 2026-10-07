@@ -70,6 +70,10 @@ namespace SEASON3B
         // does not match the currently pending detail request.
         void SetDetailResponse(const AuctionHouse::AuctionDetailResponse& response);
 
+        // Called from the network dispatch when an AuctionOperationResponse (a bid or buyout result) arrives.
+        // Ignored if its OperationId does not match the currently pending mutation.
+        void SetOperationResponse(const AuctionHouse::AuctionOperationResponse& response);
+
         bool Render() override;
         void Render3D() override;
         bool IsVisible() const override;
@@ -96,6 +100,9 @@ namespace SEASON3B
         void ReleaseDetailItem();
         void RenderDetailPanel();
         void RenderDetailItemTooltip() const;
+        void SendBidRequest();
+        void SendBuyoutRequest();
+        void RenderOperationButtons();
 
         CNewUIManager* m_pNewUIMng;
         CNewUI3DRenderMng* m_pNewUI3DRenderMng;
@@ -171,5 +178,15 @@ namespace SEASON3B
         // correct even if the underlying Browse page is refreshed while the panel is open.
         ITEM* m_DetailItem;
         bool m_bPointingDetailItem;
+
+        // Bid/Buyout mutation state. Correlated by the 16-byte OperationId (not a RequestId, unlike every
+        // query above), matching the design spec's own AuctionOperationResponse shape. ComputeMinimumNextBid
+        // is advisory client-side guidance for the quick-bid button; the server independently re-validates.
+        CNewUIButton m_BtnBid;
+        CNewUIButton m_BtnBuyout;
+        bool m_bOperationRequestPending;
+        std::array<uint8_t, 16> m_PendingOperationId;
+        bool m_bHasOperationResult;
+        AuctionResult m_LastOperationResult;
     };
 }

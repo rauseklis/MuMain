@@ -89,6 +89,14 @@ namespace AuctionHouse
         return mode == AuctionCurrencyMode::Fruits;
     }
 
+    // The minimum amount a new bid on `currentPrice` must reach to be valid, mirroring the server's own
+    // bidding rule (design spec: a first bid must meet the starting price; a later Zen bid must add at least
+    // max(1000, ceil(5%)); a later jewel bid must add at least max(1, ceil(5%)); a later fruit bid must add at
+    // least max(1, ceil(5%)) to every already-nonzero component, never introducing or removing one). This is
+    // advisory only, for a quick-bid control to offer a correct starting value — the server independently
+    // re-validates every bid, so duplicating this formula client-side is not a trust boundary.
+    [[nodiscard]] AuctionAmount ComputeMinimumNextBid(AuctionCurrencyMode mode, const AuctionAmount& currentPrice, uint16_t bidCount) noexcept;
+
     // Formats the time remaining on a listing for the countdown display: "Ended" once it has reached zero, otherwise the two
     // most significant units ("1d 1h", "1h 1m", "2m 5s", or "45s" under a minute).
     [[nodiscard]] std::wstring FormatAuctionCountdown(std::chrono::seconds remaining);

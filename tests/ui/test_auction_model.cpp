@@ -147,3 +147,54 @@ TEST_CASE("a server clock's estimate survives a local tick-count wraparound [ui]
     // 26ms after the sync point, wrapped around past the uint32_t tick-count maximum.
     CHECK(clock.EstimatedServerTime(10u) == 1000);
 }
+
+TEST_CASE("the minimum next bid with no existing bids is the current (starting) price [ui][auction_model]")
+{
+    const auto current = AuctionAmount::FromScalar(500);
+    const auto minimum = ComputeMinimumNextBid(AuctionCurrencyMode::Zen, current, 0);
+
+    CHECK_FALSE(minimum.IsFruitBasket());
+    CHECK(minimum.Scalar() == 500);
+}
+
+TEST_CASE("a later Zen bid adds at least 1000 units when 5 percent is smaller [ui][auction_model]")
+{
+    const auto current = AuctionAmount::FromScalar(100);
+    const auto minimum = ComputeMinimumNextBid(AuctionCurrencyMode::Zen, current, 1);
+
+    CHECK(minimum.Scalar() == 1100);
+}
+
+TEST_CASE("a later Zen bid adds 5 percent when that exceeds the 1000-unit floor [ui][auction_model]")
+{
+    const auto current = AuctionAmount::FromScalar(100000);
+    const auto minimum = ComputeMinimumNextBid(AuctionCurrencyMode::Zen, current, 1);
+
+    CHECK(minimum.Scalar() == 105000);
+}
+
+TEST_CASE("a later jewel bid adds at least 1 unit [ui][auction_model]")
+{
+    const auto current = AuctionAmount::FromScalar(10);
+    const auto minimum = ComputeMinimumNextBid(AuctionCurrencyMode::Chaos, current, 1);
+
+    CHECK(minimum.Scalar() == 11);
+}
+
+TEST_CASE("a later fruit bid increases only the nonzero components, each by at least 5 percent [ui][auction_model]")
+{
+    const auto current = AuctionAmount::FromFruits(FruitBasket{ .Strength = 100, .Agility = 0, .Command = 50 });
+    const auto minimum = ComputeMinimumNextBid(AuctionCurrencyMode::Fruits, current, 1);
+
+    CHECK(minimum.IsFruitBasket());
+    CHECK(minimum.Fruits() == FruitBasket{ .Strength = 105, .Agility = 0, .Command = 53 });
+}
+
+TEST_CASE("the first fruit bid is the starting basket unchanged [ui][auction_model]")
+{
+    const FruitBasket basket{ .Vitality = 7, .Energy = 3 };
+    const auto current = AuctionAmount::FromFruits(basket);
+    const auto minimum = ComputeMinimumNextBid(AuctionCurrencyMode::Fruits, current, 0);
+
+    CHECK(minimum.Fruits() == basket);
+}

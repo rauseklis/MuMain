@@ -13018,4 +13018,13 @@
   <data name="Bidder" xml:space="preserve">
     <value>Bidder</value>
   </data>
+  <data name="Bid" xml:space="preserve">
+    <value>Bid</value>
+  </data>
+  <data name="Buyout" xml:space="preserve">
+    <value>Buyout</value>
+  </data>
+  <data name="Success" xml:space="preserve">
+    <value>Success</value>
+  </data>
 </root>

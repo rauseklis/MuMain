@@ -45,6 +45,7 @@ namespace
     constexpr int DETAIL_LINE_HEIGHT = 18;
     constexpr int BACK_BTN_WIDTH = 53;
     constexpr int BACK_BTN_HEIGHT = 23;
+    constexpr int OPERATION_RESULT_Y_OFFSET = PAGE_BTN_Y_OFFSET - DETAIL_LINE_HEIGHT - 2;
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
@@ -54,7 +55,9 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasBrowseResponse(false),
       m_iPointedRow(-1),
       m_bShowingDetail(false), m_bDetailRequestPending(false), m_PendingDetailRequestId(0),
-      m_bHasDetailResponse(false), m_DetailItem(nullptr), m_bPointingDetailItem(false)
+      m_bHasDetailResponse(false), m_DetailItem(nullptr), m_bPointingDetailItem(false),
+      m_bOperationRequestPending(false), m_PendingOperationId{}, m_bHasOperationResult(false),
+      m_LastOperationResult(AuctionResult::Success)
 {
     std::fill(std::begin(m_RowItems), std::end(m_RowItems), nullptr);
 }
@@ -112,6 +115,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     InitPageButton(&m_BtnPrevPage, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
     InitPageButton(&m_BtnNextPage, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
     InitPageButton(&m_BtnBack, m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, I18N::Game::Back);
+    InitPageButton(&m_BtnBid, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Bid);
+    InitPageButton(&m_BtnBuyout, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Buyout);
 
     Show(false);
 
@@ -164,6 +169,8 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
 
     m_bShowingDetail = false;
     ReleaseDetailItem();
+    m_bHasOperationResult = false;
+    m_bOperationRequestPending = false;
 
     m_bHasOpenResponse = false;
     m_PendingOpenRequestId = AuctionHouse::NextAuctionRequestId();
@@ -221,6 +228,8 @@ void SEASON3B::CNewUIAuctionWindow::SendDetailRequest(uint64_t listingId)
     m_bHasDetailResponse = false;
     m_PendingDetailRequestId = AuctionHouse::NextAuctionRequestId();
     m_bDetailRequestPending = true;
+    m_bHasOperationResult = false;
+    m_bOperationRequestPending = false;
     SocketClient->ToGameServer()->SendAuctionDetailRequest(m_PendingDetailRequestId, listingId);
 }
 
@@ -236,6 +245,70 @@ void SEASON3B::CNewUIAuctionWindow::SetDetailResponse(const AuctionHouse::Auctio
     m_DetailResponse = response;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     RebuildDetailItem();
+}
+
+void SEASON3B::CNewUIAuctionWindow::SendBidRequest()
+{
+    // Defensive bounds re-check, same reasoning as the page buttons: the button's own Lock() state is only
+    // refreshed once per Render() call and could in principle be one frame stale.
+    if (!m_bHasDetailResponse || m_bOperationRequestPending)
+    {
+        return;
+    }
+
+    const auto minimumBid = AuctionHouse::ComputeMinimumNextBid(m_DetailResponse.CurrencyMode, m_DetailResponse.CurrentPrice, m_DetailResponse.BidCount);
+
+    m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
+    m_bOperationRequestPending = true;
+    m_bHasOperationResult = false;
+
+    const auto& fruits = minimumBid.Fruits();
+    SocketClient->ToGameServer()->SendAuctionBidRequest(
+        m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()),
+        m_DetailResponse.ListingId, m_DetailResponse.Version,
+        static_cast<uint32_t>(minimumBid.Scalar()),
+        static_cast<uint32_t>(fruits.Strength), static_cast<uint32_t>(fruits.Agility),
+        static_cast<uint32_t>(fruits.Vitality), static_cast<uint32_t>(fruits.Energy), static_cast<uint32_t>(fruits.Command));
+}
+
+void SEASON3B::CNewUIAuctionWindow::SendBuyoutRequest()
+{
+    if (!m_bHasDetailResponse || m_bOperationRequestPending || m_DetailResponse.BuyoutPrice.IsZero())
+    {
+        return;
+    }
+
+    m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
+    m_bOperationRequestPending = true;
+    m_bHasOperationResult = false;
+
+    SocketClient->ToGameServer()->SendAuctionBuyoutRequest(
+        m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()),
+        m_DetailResponse.ListingId, m_DetailResponse.Version);
+}
+
+void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::AuctionOperationResponse& response)
+{
+    if (!m_bOperationRequestPending || response.OperationId != m_PendingOperationId)
+    {
+        return;
+    }
+
+    m_bOperationRequestPending = false;
+    m_ServerClock.Sync(response.ServerTime, GetTickCount());
+    const AuctionResult result = response.Result;
+
+    // The listing's price/version/bidder changed (win or lose), so refresh the detail panel from the server
+    // rather than guessing the new state locally. Only while still looking at the same listing/tab — the
+    // player may have already backed out or switched tabs by the time this reply arrives. SendDetailRequest
+    // resets m_bHasOperationResult, so the result is (re-)applied after it, not before.
+    if (m_bShowingDetail && m_iCurrentTab == TAB_BROWSE)
+    {
+        SendDetailRequest(response.ListingId);
+    }
+
+    m_bHasOperationResult = true;
+    m_LastOperationResult = result;
 }
 
 void SEASON3B::CNewUIAuctionWindow::ReleaseRowItems()
@@ -400,6 +473,20 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             return true;
         }
 
+        if (m_BtnBid.UpdateMouseEvent() == true)
+        {
+            SendBidRequest();
+            PlayBuffer(SOUND_CLICK01);
+            return true;
+        }
+
+        if (m_BtnBuyout.UpdateMouseEvent() == true)
+        {
+            SendBuyoutRequest();
+            PlayBuffer(SOUND_CLICK01);
+            return true;
+        }
+
         return false;
     }
 
@@ -522,6 +609,7 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     {
         RenderDetailPanel();
         m_BtnBack.Render();
+        RenderOperationButtons();
     }
     else if (m_iCurrentTab == TAB_BROWSE)
     {
@@ -585,6 +673,55 @@ void SEASON3B::CNewUIAuctionWindow::RenderDetailPanel()
         mu_swprintf(line, L"%ls: %ls", I18N::Game::Bidder, detail.CurrentBidderName.c_str());
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, line, (float)BodyWidth, 0, RT3_SORT_LEFT);
         textY += DETAIL_LINE_HEIGHT;
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderOperationButtons()
+{
+    // Locked (and grayed) while no detail response has arrived yet, while a mutation is already in flight, or
+    // (Buyout only) when the listing has no buyout price. The server independently re-validates every other
+    // rule (self-trade, stale version, already-highest-bidder, etc.) — this is guidance, not enforcement, the
+    // same relationship the page buttons have with their own boundary check.
+    const bool canBid = m_bHasDetailResponse && !m_bOperationRequestPending;
+    const bool canBuyout = canBid && !m_DetailResponse.BuyoutPrice.IsZero();
+
+    if (canBid)
+    {
+        m_BtnBid.UnLock();
+        m_BtnBid.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
+        m_BtnBid.ChangeTextColor(RGBA(255, 255, 255, 255));
+    }
+    else
+    {
+        m_BtnBid.Lock();
+        m_BtnBid.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
+        m_BtnBid.ChangeTextColor(RGBA(100, 100, 100, 255));
+    }
+
+    if (canBuyout)
+    {
+        m_BtnBuyout.UnLock();
+        m_BtnBuyout.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
+        m_BtnBuyout.ChangeTextColor(RGBA(255, 255, 255, 255));
+    }
+    else
+    {
+        m_BtnBuyout.Lock();
+        m_BtnBuyout.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
+        m_BtnBuyout.ChangeTextColor(RGBA(100, 100, 100, 255));
+    }
+
+    m_BtnBid.Render();
+    m_BtnBuyout.Render();
+
+    if (m_bHasOperationResult)
+    {
+        const bool succeeded = m_LastOperationResult == AuctionResult::Success;
+        g_pRenderText->SetFont(g_hFont);
+        g_pRenderText->SetTextColor(succeeded ? 120 : 255, succeeded ? 220 : 90, 120, 255);
+        g_pRenderText->SetBgColor(0, 0, 0, 0);
+        g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + OPERATION_RESULT_Y_OFFSET),
+            succeeded ? I18N::Game::Success : I18N::Game::Failed, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
     }
 }
 
