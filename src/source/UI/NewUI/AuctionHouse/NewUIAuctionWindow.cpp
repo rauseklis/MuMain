@@ -9,6 +9,7 @@
 #include "I18N/All.h"
 #include "Audio/DSPlaySound.h"
 #include "Network/Server/WSclient.h"
+#include "Network/Server/SocketSystem.h"
 
 #include <algorithm>
 
@@ -76,6 +77,32 @@ namespace
     constexpr int BACK_BTN_WIDTH = 53;
     constexpr int BACK_BTN_HEIGHT = 23;
     constexpr int OPERATION_RESULT_Y_OFFSET = PAGE_BTN_Y_OFFSET - DETAIL_LINE_HEIGHT - 2;
+
+    void SetBrowseItemNameColor(const ITEM* item)
+    {
+        if (item == nullptr)
+        {
+            g_pRenderText->SetTextColor(255, 255, 255, 255);
+        }
+        else if (item->AncientDiscriminator > 0)
+        {
+            // Matches RenderItemInfo's ancient-name foreground (its blue tooltip background is not suitable
+            // inside a table cell).
+            g_pRenderText->SetTextColor(0, 255, 0, 255);
+        }
+        else if (g_SocketItemMgr.IsSocketItem(item))
+        {
+            g_pRenderText->SetTextColor(179, 102, 255, 255);
+        }
+        else if (item->SpecialNum > 0 && item->ExcellentFlags > 0)
+        {
+            g_pRenderText->SetTextColor(26, 255, 128, 255);
+        }
+        else
+        {
+            g_pRenderText->SetTextColor(255, 255, 255, 255);
+        }
+    }
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
@@ -1120,7 +1147,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         const float textY = static_cast<float>(rowY + 9);
 
         g_pRenderText->SetFont(g_hFontBold);
-        g_pRenderText->SetTextColor(255, 255, 255, 255);
+        SetBrowseItemNameColor(m_RowItems[row]);
         g_pRenderText->RenderText((float)textX, textY, itemName.c_str(), (float)textWidth, 0, RT3_SORT_LEFT);
 
         g_pRenderText->SetFont(g_hFont);
