@@ -279,5 +279,6 @@ namespace SEASON3B
         std::array<uint8_t, 16> m_PendingOperationId;
         bool m_bHasOperationResult;
         AuctionResult m_LastOperationResult;
+        std::wstring m_LastOperationMessage;
     };
 }

@@ -454,6 +454,7 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     SetCollectionClaimInputsVisible(false);
     ReleaseDetailItem();
     m_bHasOperationResult = false;
+    m_LastOperationMessage.clear();
     m_bOperationRequestPending = false;
     m_SearchInput.SetText(L"");
     m_SearchInput.SetState(UISTATE_NORMAL);
@@ -673,6 +674,7 @@ void SEASON3B::CNewUIAuctionWindow::SendDetailRequest(uint64_t listingId)
     m_PendingDetailRequestId = AuctionHouse::NextAuctionRequestId();
     m_bDetailRequestPending = true;
     m_bHasOperationResult = false;
+    m_LastOperationMessage.clear();
     m_bOperationRequestPending = false;
     SocketClient->ToGameServer()->SendAuctionDetailRequest(m_PendingDetailRequestId, listingId);
 }
@@ -860,12 +862,14 @@ void SEASON3B::CNewUIAuctionWindow::SendCollectRequest()
     {
         m_bHasOperationResult = true;
         m_LastOperationResult = AuctionResult::InvalidClaimQuantity;
+        m_LastOperationMessage = I18N::Game::AuctionInvalidClaim;
         return;
     }
 
     m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
     m_bOperationRequestPending = true;
     m_bHasOperationResult = false;
+    m_LastOperationMessage.clear();
     const auto& fruits = requested.Fruits();
     SocketClient->ToGameServer()->SendAuctionCollectRequest(
         m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()),
@@ -891,6 +895,38 @@ void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::Auc
     {
         m_bHasOperationResult = true;
         m_LastOperationResult = response.Result;
+        switch (response.Result)
+        {
+        case AuctionResult::Success:
+            if (m_bHasSelectedCollection && m_SelectedCollection.HasItem)
+            {
+                m_LastOperationMessage = I18N::Game::AuctionNotificationCollected;
+            }
+            else
+            {
+                const auto claimed = AuctionAmountText(response.CurrencyMode, response.Claimed);
+                const auto remaining = AuctionAmountText(response.CurrencyMode, response.Remaining);
+                wchar_t message[320];
+                mu_swprintf(message, I18N::Game::AuctionCollectionResult, claimed.c_str(), remaining.c_str());
+                m_LastOperationMessage = message;
+            }
+            break;
+        case AuctionResult::InventoryFull:
+            m_LastOperationMessage = I18N::Game::AuctionCollectionInventoryFull;
+            break;
+        case AuctionResult::MoneyLimit:
+            m_LastOperationMessage = I18N::Game::AuctionCollectionMoneyLimit;
+            break;
+        case AuctionResult::StaleListing:
+            m_LastOperationMessage = I18N::Game::AuctionCollectionStale;
+            break;
+        case AuctionResult::InvalidClaimQuantity:
+            m_LastOperationMessage = I18N::Game::AuctionCollectionInvalidQuantity;
+            break;
+        default:
+            m_LastOperationMessage = I18N::Game::Failed;
+            break;
+        }
         if (m_iCurrentTab == TAB_MAILBOX)
         {
             // Success removes or reduces the durable collection; a stale version or full inventory can also
@@ -1353,6 +1389,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
                 m_bHasSelectedCollection = true;
                 m_bShowingDetail = true;
                 m_bHasOperationResult = false;
+                m_LastOperationMessage.clear();
                 RebuildDetailItem();
                 PopulateCollectionClaimInputs();
             }
@@ -1432,6 +1469,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             m_bHasSelectedCollection = false;
             SetCollectionClaimInputsVisible(false);
             m_bHasOperationResult = false;
+            m_LastOperationMessage.clear();
             ReleaseDetailItem();
             m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
             if (m_iCurrentTab != TAB_BROWSE && m_SearchInput.HaveFocus())
@@ -1815,8 +1853,11 @@ void SEASON3B::CNewUIAuctionWindow::RenderOperationButtons()
         g_pRenderText->SetFont(g_hFont);
         g_pRenderText->SetTextColor(succeeded ? 120 : 255, succeeded ? 220 : 90, 120, 255);
         g_pRenderText->SetBgColor(0, 0, 0, 0);
+        const wchar_t* message = m_LastOperationMessage.empty()
+            ? (succeeded ? I18N::Game::Success : I18N::Game::Failed)
+            : m_LastOperationMessage.c_str();
         g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + OPERATION_RESULT_Y_OFFSET),
-            succeeded ? I18N::Game::Success : I18N::Game::Failed, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
+            message, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
     }
 }
 
@@ -2113,6 +2154,16 @@ void SEASON3B::CNewUIAuctionWindow::RenderMailboxTab()
         g_pRenderText->SetBgColor(0, 0, 0, 0);
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y + 8),
             I18N::Game::AuctionNoCollections, (float)BROWSE_CONTENT_WIDTH, 0, RT3_SORT_CENTER);
+        if (m_bHasOperationResult)
+        {
+            const bool succeeded = m_LastOperationResult == AuctionResult::Success;
+            g_pRenderText->SetTextColor(succeeded ? 120 : 255, succeeded ? 220 : 90, 120, 255);
+            const wchar_t* message = m_LastOperationMessage.empty()
+                ? (succeeded ? I18N::Game::Success : I18N::Game::Failed)
+                : m_LastOperationMessage.c_str();
+            g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + OPERATION_RESULT_Y_OFFSET),
+                message, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
+        }
         return;
     }
 
@@ -2150,8 +2201,11 @@ void SEASON3B::CNewUIAuctionWindow::RenderMailboxTab()
     {
         const bool succeeded = m_LastOperationResult == AuctionResult::Success;
         g_pRenderText->SetTextColor(succeeded ? 120 : 255, succeeded ? 220 : 90, 120, 255);
+        const wchar_t* message = m_LastOperationMessage.empty()
+            ? (succeeded ? I18N::Game::Success : I18N::Game::Failed)
+            : m_LastOperationMessage.c_str();
         g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + OPERATION_RESULT_Y_OFFSET),
-            succeeded ? I18N::Game::Success : I18N::Game::Failed, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
+            message, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
     }
 }
 

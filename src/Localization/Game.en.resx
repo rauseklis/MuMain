@@ -13111,6 +13111,21 @@
   <data name="Auction Notification Admin Adjusted" xml:space="preserve">
     <value>An administrator adjusted an auction. Check your Auction House Mailbox.</value>
   </data>
+  <data name="Auction Collection Result" xml:space="preserve">
+    <value>Collected %ls. Remaining: %ls.</value>
+  </data>
+  <data name="Auction Collection Inventory Full" xml:space="preserve">
+    <value>Not enough inventory space for this collection.</value>
+  </data>
+  <data name="Auction Collection Money Limit" xml:space="preserve">
+    <value>Collecting this Zen would exceed your character's money limit.</value>
+  </data>
+  <data name="Auction Collection Stale" xml:space="preserve">
+    <value>This collection changed. The Mailbox has been refreshed.</value>
+  </data>
+  <data name="Auction Collection Invalid Quantity" xml:space="preserve">
+    <value>The server rejected the requested collection quantity.</value>
+  </data>
   <data name="Auction No Collections" xml:space="preserve">
     <value>No collections found</value>
   </data>
