@@ -29,6 +29,11 @@ namespace
         std::memcpy(buffer.data() + offset, &value, sizeof(value));
     }
 
+    void PutAscii(std::vector<uint8_t>& buffer, size_t offset, const char* text)
+    {
+        std::memcpy(buffer.data() + offset, text, std::strlen(text));
+    }
+
     // Builds a scalar-currency AuctionOperationResponse packet (currency != Fruits: only the *Scalar fields are set).
     std::vector<uint8_t> ScalarOperationPacket()
     {
@@ -136,4 +141,100 @@ TEST_CASE("a truncated notification fails to parse [ui][auction_wire]")
     std::vector<uint8_t> packet(AuctionNotification::FullWireLength - 1, 0);
 
     CHECK_FALSE(AuctionNotification::Parse(packet).has_value());
+}
+
+namespace
+{
+    // Writes one 95-byte AuctionListingSummary entry at offset into buffer, which must already be at least
+    // offset + AuctionListingSummary::WireLength bytes long.
+    void PutListingSummary(std::vector<uint8_t>& buffer, size_t offset, uint64_t listingId, const char* sellerName)
+    {
+        PutU64(buffer, offset + 0, listingId);
+        PutU32(buffer, offset + 8, 3U); // version
+        PutU8(buffer, offset + 12, static_cast<uint8_t>(AuctionListingStatus::Active));
+        PutU8(buffer, offset + 13, static_cast<uint8_t>(AuctionCurrencyMode::Zen));
+        PutU8(buffer, offset + 14, static_cast<uint8_t>(AuctionCategory::Weapon));
+        PutU32(buffer, offset + 15, 1000U); // current price scalar
+        PutU32(buffer, offset + 39, 5000U); // buyout price scalar
+        PutU16(buffer, offset + 63, 2U); // bid count
+        PutU32(buffer, offset + 65, 1700000000U); // ends at
+        PutAscii(buffer, offset + 69, sellerName);
+        PutU8(buffer, offset + 79, 15U); // item data length
+        PutU8(buffer, offset + 80, 0xAB); // first byte of item data, just to check it round-trips
+    }
+}
+
+TEST_CASE("a listing summary reads its identifiers, prices, seller and item data [ui][auction_wire]")
+{
+    std::vector<uint8_t> entry(AuctionListingSummary::WireLength, 0);
+    PutListingSummary(entry, 0, 777ULL, "Seller1");
+
+    const auto summary = AuctionListingSummary::Parse(entry);
+
+    REQUIRE(summary.has_value());
+    CHECK(summary->ListingId == 777ULL);
+    CHECK(summary->Version == 3U);
+    CHECK(summary->Status == AuctionListingStatus::Active);
+    CHECK(summary->CurrencyMode == AuctionCurrencyMode::Zen);
+    CHECK(summary->Category == AuctionCategory::Weapon);
+    CHECK(summary->CurrentPrice.Scalar() == 1000U);
+    CHECK(summary->BuyoutPrice.Scalar() == 5000U);
+    CHECK(summary->BidCount == 2U);
+    CHECK(summary->EndsAt == 1700000000U);
+    CHECK(summary->SellerName == L"Seller1");
+    CHECK(summary->ItemDataLength == 15U);
+    CHECK(summary->ItemData[0] == 0xAB);
+}
+
+TEST_CASE("a truncated listing summary fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> entry(AuctionListingSummary::WireLength - 1, 0);
+
+    CHECK_FALSE(AuctionListingSummary::Parse(entry).has_value());
+}
+
+TEST_CASE("a browse response reads its header and every listing row [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionBrowseResponse::FixedWireLength + 2 * AuctionListingSummary::WireLength, 0);
+    PutU32(packet, 5, 4242U); // request id
+    PutU8(packet, 9, static_cast<uint8_t>(AuctionResult::Success));
+    PutU16(packet, 10, 1U); // page
+    PutU16(packet, 12, 3U); // total pages
+    PutU32(packet, 14, 25U); // total count
+    PutU32(packet, 18, 1700000500U); // server time
+    PutU8(packet, 22, 2U); // listing count
+    PutListingSummary(packet, 23, 1001ULL, "Alice");
+    PutListingSummary(packet, 23 + AuctionListingSummary::WireLength, 1002ULL, "Bob");
+
+    const auto response = AuctionBrowseResponse::Parse(packet);
+
+    REQUIRE(response.has_value());
+    CHECK(response->RequestId == 4242U);
+    CHECK(response->Result == AuctionResult::Success);
+    CHECK(response->Page == 1U);
+    CHECK(response->TotalPages == 3U);
+    CHECK(response->TotalCount == 25U);
+    CHECK(response->ServerTime == 1700000500U);
+    REQUIRE(response->Listings.size() == 2U);
+    CHECK(response->Listings[0].ListingId == 1001ULL);
+    CHECK(response->Listings[0].SellerName == L"Alice");
+    CHECK(response->Listings[1].ListingId == 1002ULL);
+    CHECK(response->Listings[1].SellerName == L"Bob");
+}
+
+TEST_CASE("a browse response truncated mid-entry fails to parse [ui][auction_wire]")
+{
+    // Fixed header claims 2 listings, but the buffer only holds one full entry.
+    std::vector<uint8_t> packet(AuctionBrowseResponse::FixedWireLength + AuctionListingSummary::WireLength, 0);
+    PutU8(packet, 22, 2U);
+    PutListingSummary(packet, 23, 1ULL, "Only");
+
+    CHECK_FALSE(AuctionBrowseResponse::Parse(packet).has_value());
+}
+
+TEST_CASE("a browse response shorter than its own fixed header fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionBrowseResponse::FixedWireLength - 1, 0);
+
+    CHECK_FALSE(AuctionBrowseResponse::Parse(packet).has_value());
 }

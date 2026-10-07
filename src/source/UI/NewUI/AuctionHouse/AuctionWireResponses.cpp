@@ -50,6 +50,54 @@ namespace AuctionHouse
                 static_cast<int64_t>(ReadU32(packet, offset + 20)),
             });
         }
+
+        // Reads up to length raw ASCII bytes as a wide string, stopping at the first NUL (the field may be
+        // shorter than its fixed width and zero-padded, same convention as the legacy character name fields).
+        std::wstring ReadFixedAscii(std::span<const uint8_t> packet, size_t offset, size_t length)
+        {
+            std::wstring text;
+            text.reserve(length);
+            for (size_t i = 0; i < length; ++i)
+            {
+                const auto byte = packet[offset + i];
+                if (byte == 0)
+                {
+                    break;
+                }
+
+                text.push_back(static_cast<wchar_t>(byte));
+            }
+
+            return text;
+        }
+    }
+
+    namespace
+    {
+        constexpr size_t SellerNameLength = 10;
+
+        std::optional<AuctionListingSummary> ParseListingSummaryAt(std::span<const uint8_t> packet, size_t offset)
+        {
+            if (packet.size() < offset + AuctionListingSummary::WireLength)
+            {
+                return std::nullopt;
+            }
+
+            AuctionListingSummary summary;
+            summary.ListingId = ReadU64(packet, offset + 0);
+            summary.Version = ReadU32(packet, offset + 8);
+            summary.Status = static_cast<AuctionListingStatus>(packet[offset + 12]);
+            summary.CurrencyMode = static_cast<AuctionCurrencyMode>(packet[offset + 13]);
+            summary.Category = static_cast<AuctionCategory>(packet[offset + 14]);
+            summary.CurrentPrice = ReadAmount(packet, offset + 15, summary.CurrencyMode);
+            summary.BuyoutPrice = ReadAmount(packet, offset + 39, summary.CurrencyMode);
+            summary.BidCount = ReadU16(packet, offset + 63);
+            summary.EndsAt = ReadU32(packet, offset + 65);
+            summary.SellerName = ReadFixedAscii(packet, offset + 69, SellerNameLength);
+            summary.ItemDataLength = packet[offset + 79];
+            std::memcpy(summary.ItemData.data(), packet.data() + offset + 80, summary.ItemData.size());
+            return summary;
+        }
     }
 
     std::optional<AuctionOperationResponse> AuctionOperationResponse::Parse(std::span<const uint8_t> packet)
@@ -89,5 +137,41 @@ namespace AuctionHouse
         notification.Amount = ReadAmount(packet, 14, notification.CurrencyMode);
         notification.PendingMailboxCount = ReadU16(packet, 38);
         return notification;
+    }
+
+    std::optional<AuctionListingSummary> AuctionListingSummary::Parse(std::span<const uint8_t> entry)
+    {
+        return ParseListingSummaryAt(entry, 0);
+    }
+
+    std::optional<AuctionBrowseResponse> AuctionBrowseResponse::Parse(std::span<const uint8_t> packet)
+    {
+        if (packet.size() < FixedWireLength)
+        {
+            return std::nullopt;
+        }
+
+        AuctionBrowseResponse response;
+        response.RequestId = ReadU32(packet, 5);
+        response.Result = static_cast<AuctionResult>(packet[9]);
+        response.Page = ReadU16(packet, 10);
+        response.TotalPages = ReadU16(packet, 12);
+        response.TotalCount = ReadU32(packet, 14);
+        response.ServerTime = ReadU32(packet, 18);
+
+        const auto listingCount = packet[22];
+        response.Listings.reserve(listingCount);
+        for (uint8_t i = 0; i < listingCount; ++i)
+        {
+            auto summary = ParseListingSummaryAt(packet, FixedWireLength + static_cast<size_t>(i) * AuctionListingSummary::WireLength);
+            if (!summary)
+            {
+                return std::nullopt;
+            }
+
+            response.Listings.push_back(std::move(*summary));
+        }
+
+        return response;
     }
 }
