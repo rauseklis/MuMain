@@ -200,12 +200,14 @@ namespace AuctionHouse
     };
 
     // One currency's rules and the player's spendable units in it, mirroring the server's
-    // AuctionCurrencyDescriptorRef. Always exactly 39 bytes. Byte layout: CurrencyMode(u8)@0,
+    // AuctionCurrencyDescriptorRef. Version 2 is 45 bytes (version 1 was 39). Byte layout: CurrencyMode(u8)@0,
     // Enabled(bool)@1, MinimumStartingPrice(u32)@2, MaximumStartingPrice(u32)@6, MinimumIncrement(u32)@10,
-    // IncrementPercent(u8)@14, Spendable{Scalar,Str,Agi,Vit,Ene,Cmd}(u32x6)@15.
+    // IncrementPercent(u8)@14, Spendable{Scalar,Str,Agi,Vit,Ene,Cmd}(u32x6)@15, then the server-authoritative
+    // small/medium/large packed-jewel denominations (u16x3)@39. Legacy descriptors default these to zero.
     struct AuctionCurrencyDescriptor
     {
-        static constexpr size_t WireLength = 39;
+        static constexpr size_t LegacyWireLength = 39;
+        static constexpr size_t WireLength = 45;
 
         AuctionCurrencyMode CurrencyMode = AuctionCurrencyMode::Zen;
         bool Enabled = false;
@@ -214,6 +216,7 @@ namespace AuctionHouse
         uint32_t MinimumIncrement = 0;
         uint8_t IncrementPercent = 0;
         AuctionAmount Spendable = AuctionAmount::FromScalar(0);
+        std::array<uint16_t, 3> PackUnits{};
 
         [[nodiscard]] static std::optional<AuctionCurrencyDescriptor> Parse(std::span<const uint8_t> entry);
     };

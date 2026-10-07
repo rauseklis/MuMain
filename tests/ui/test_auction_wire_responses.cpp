@@ -397,6 +397,9 @@ namespace
         PutU32(buffer, offset + 10, 1000U); // minimum increment
         PutU8(buffer, offset + 14, 5U); // increment percent
         PutU32(buffer, offset + 15, 50000U); // spendable scalar
+        PutU16(buffer, offset + 39, 10U); // small packed-jewel denomination
+        PutU16(buffer, offset + 41, 20U); // medium packed-jewel denomination
+        PutU16(buffer, offset + 43, 30U); // large packed-jewel denomination
     }
 }
 
@@ -416,11 +419,12 @@ TEST_CASE("a currency descriptor reads its rules and spendable units [ui][auctio
     CHECK(descriptor->IncrementPercent == 5U);
     CHECK_FALSE(descriptor->Spendable.IsFruitBasket());
     CHECK(descriptor->Spendable.Scalar() == 50000U);
+    CHECK(descriptor->PackUnits == std::array<uint16_t, 3>{10U, 20U, 30U});
 }
 
 TEST_CASE("a truncated currency descriptor fails to parse [ui][auction_wire]")
 {
-    std::vector<uint8_t> entry(AuctionCurrencyDescriptor::WireLength - 1, 0);
+    std::vector<uint8_t> entry(AuctionCurrencyDescriptor::LegacyWireLength - 1, 0);
 
     CHECK_FALSE(AuctionCurrencyDescriptor::Parse(entry).has_value());
 }
@@ -431,7 +435,7 @@ TEST_CASE("an open response reads its fees, duration rules and every currency de
     PutU32(packet, 5, 7U); // request id
     PutU8(packet, 9, static_cast<uint8_t>(AuctionResult::Success));
     PutU32(packet, 10, 1700001000U); // server time
-    PutU32(packet, 14, 1U); // configuration version
+    PutU32(packet, 14, 2U); // configuration version with packed-jewel metadata
     PutU16(packet, 18, 100U); // listing fee basis points
     PutU16(packet, 20, 500U); // success fee basis points
     PutU8(packet, 22, 0x0F); // duration mask
@@ -447,7 +451,7 @@ TEST_CASE("an open response reads its fees, duration rules and every currency de
     REQUIRE(response.has_value());
     CHECK(response->RequestId == 7U);
     CHECK(response->ServerTime == 1700001000U);
-    CHECK(response->ConfigurationVersion == 1U);
+    CHECK(response->ConfigurationVersion == 2U);
     CHECK(response->ListingFeeBasisPoints == 100U);
     CHECK(response->SuccessFeeBasisPoints == 500U);
     CHECK(response->DurationMask == 0x0F);
@@ -464,10 +468,27 @@ TEST_CASE("an open response reads its fees, duration rules and every currency de
 TEST_CASE("an open response truncated mid-descriptor fails to parse [ui][auction_wire]")
 {
     std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength + AuctionCurrencyDescriptor::WireLength, 0);
+    PutU32(packet, 14, 2U);
     PutU8(packet, 27, 2U);
     PutCurrencyDescriptor(packet, 28, AuctionCurrencyMode::Zen, true);
 
     CHECK_FALSE(AuctionOpenResponse::Parse(packet).has_value());
+}
+
+TEST_CASE("an open response accepts legacy currency descriptors without packed-jewel metadata [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength + AuctionCurrencyDescriptor::LegacyWireLength, 0);
+    PutU8(packet, 27, 1U);
+    PutU8(packet, 28, static_cast<uint8_t>(AuctionCurrencyMode::Chaos));
+    PutU8(packet, 29, 1U);
+    PutU32(packet, 30, 1U);
+
+    const auto response = AuctionOpenResponse::Parse(packet);
+
+    REQUIRE(response.has_value());
+    REQUIRE(response->Currencies.size() == 1U);
+    CHECK(response->Currencies[0].CurrencyMode == AuctionCurrencyMode::Chaos);
+    CHECK(response->Currencies[0].PackUnits == std::array<uint16_t, 3>{0U, 0U, 0U});
 }
 
 TEST_CASE("an open response shorter than its own fixed header fails to parse [ui][auction_wire]")

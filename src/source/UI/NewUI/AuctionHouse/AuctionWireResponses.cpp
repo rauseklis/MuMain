@@ -270,7 +270,7 @@ namespace AuctionHouse
 
     std::optional<AuctionCurrencyDescriptor> AuctionCurrencyDescriptor::Parse(std::span<const uint8_t> entry)
     {
-        if (entry.size() < WireLength)
+        if (entry.size() < LegacyWireLength)
         {
             return std::nullopt;
         }
@@ -283,6 +283,11 @@ namespace AuctionHouse
         descriptor.MinimumIncrement = ReadU32(entry, 10);
         descriptor.IncrementPercent = entry[14];
         descriptor.Spendable = ReadAmount(entry, 15, descriptor.CurrencyMode);
+        if (entry.size() >= WireLength)
+        {
+            descriptor.PackUnits = {ReadU16(entry, 39), ReadU16(entry, 41), ReadU16(entry, 43)};
+        }
+
         return descriptor;
     }
 
@@ -306,16 +311,19 @@ namespace AuctionHouse
         response.PendingMailboxCount = ReadU16(packet, 25);
 
         const auto currencyCount = packet[27];
+        const auto descriptorWireLength = response.ConfigurationVersion >= 2
+            ? AuctionCurrencyDescriptor::WireLength
+            : AuctionCurrencyDescriptor::LegacyWireLength;
         response.Currencies.reserve(currencyCount);
         for (uint8_t i = 0; i < currencyCount; ++i)
         {
-            const auto offset = FixedWireLength + static_cast<size_t>(i) * AuctionCurrencyDescriptor::WireLength;
-            if (packet.size() < offset + AuctionCurrencyDescriptor::WireLength)
+            const auto offset = FixedWireLength + static_cast<size_t>(i) * descriptorWireLength;
+            if (packet.size() < offset + descriptorWireLength)
             {
                 return std::nullopt;
             }
 
-            auto descriptor = AuctionCurrencyDescriptor::Parse(packet.subspan(offset));
+            auto descriptor = AuctionCurrencyDescriptor::Parse(packet.subspan(offset, descriptorWireLength));
             if (!descriptor)
             {
                 return std::nullopt;
