@@ -13048,6 +13048,51 @@
   <data name="Auction Cancel Confirmation" xml:space="preserve">
     <value>Cancel this listing? The listing fee will not be refunded, and the item will be returned through your Mailbox.</value>
   </data>
+  <data name="Auction All Collections" xml:space="preserve">
+    <value>All Collections</value>
+  </data>
+  <data name="Auction Purchased Item" xml:space="preserve">
+    <value>Purchased Item</value>
+  </data>
+  <data name="Auction Returned Item" xml:space="preserve">
+    <value>Returned Item</value>
+  </data>
+  <data name="Auction Sale Proceeds" xml:space="preserve">
+    <value>Sale Proceeds</value>
+  </data>
+  <data name="Auction Outbid Refund" xml:space="preserve">
+    <value>Outbid Refund</value>
+  </data>
+  <data name="Auction Tender Change" xml:space="preserve">
+    <value>Tender Change</value>
+  </data>
+  <data name="Auction Admin Refund" xml:space="preserve">
+    <value>Admin Refund</value>
+  </data>
+  <data name="Auction Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Auction Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Auction Partially Claimed" xml:space="preserve">
+    <value>Partially Claimed</value>
+  </data>
+  <data name="Auction Claimed" xml:space="preserve">
+    <value>Claimed</value>
+  </data>
+  <data name="Auction Collect" xml:space="preserve">
+    <value>Collect</value>
+  </data>
+  <data name="Auction No Collections" xml:space="preserve">
+    <value>No collections found</value>
+  </data>
+  <data name="Auction Contents" xml:space="preserve">
+    <value>Contents</value>
+  </data>
+  <data name="Auction Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
   <data name="Success" xml:space="preserve">
     <value>Success</value>
   </data>

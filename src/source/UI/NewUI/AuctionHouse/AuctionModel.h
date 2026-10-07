@@ -37,6 +37,9 @@ namespace AuctionHouse
     // contiguous AuctionListingStatus values in display order.
     [[nodiscard]] uint8_t EncodeListingStatusFilter(int selectedIndex) noexcept;
 
+    // Index zero is the Mailbox UI's "all kinds" sentinel; following entries match the contiguous wire enum.
+    [[nodiscard]] uint8_t EncodeCollectionKindFilter(int selectedIndex) noexcept;
+
     // Mirrors the design's seller-side cancellation eligibility for UI guidance. The server remains
     // authoritative and re-checks status, ownership, version and bid count under the listing lock.
     [[nodiscard]] bool CanCancelOwnedListing(AuctionListingStatus status, uint16_t bidCount) noexcept;

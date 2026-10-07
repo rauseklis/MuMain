@@ -260,3 +260,10 @@ TEST_CASE("only an active owned listing without bids may be cancelled [ui][aucti
     CHECK_FALSE(CanCancelOwnedListing(AuctionListingStatus::Cancelled, 0));
     CHECK_FALSE(CanCancelOwnedListing(AuctionListingStatus::AdminRemoved, 0));
 }
+
+TEST_CASE("mailbox kind combo maps all and concrete collection kinds to the wire [ui][auction_model]")
+{
+    CHECK(EncodeCollectionKindFilter(0) == 0xFF);
+    CHECK(EncodeCollectionKindFilter(1) == static_cast<uint8_t>(AuctionCollectionKind::PurchasedItem));
+    CHECK(EncodeCollectionKindFilter(6) == static_cast<uint8_t>(AuctionCollectionKind::AdminRefund));
+}

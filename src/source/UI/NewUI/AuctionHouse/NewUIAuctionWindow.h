@@ -16,8 +16,8 @@
 
 namespace SEASON3B
 {
-    // The standalone Auction House window. Four tabs: Browse, Sell, My Listings, Mailbox. Browse is implemented
-    // incrementally; the other tab bodies are filled in by the design spec's later tasks 4.4-4.5.
+    // The standalone Auction House window. Browse, My Listings, and the first Mailbox collection slice are
+    // implemented incrementally; Sell and partial Mailbox collection controls remain later tasks.
     class CNewUIAuctionWindow : public CNewUIObj, public INewUI3DRenderObj
     {
     public:
@@ -73,6 +73,10 @@ namespace SEASON3B
         // correlation is independent so a late response from another tab cannot replace the visible rows.
         void SetMyListingsResponse(const AuctionHouse::AuctionMyListingsResponse& response);
 
+        // Called for the account-wide durable collection page. Correlated independently from listing queries
+        // so a late Mailbox response cannot replace another tab's rows.
+        void SetMailboxResponse(const AuctionHouse::AuctionMailboxResponse& response);
+
         // Called from the network dispatch when an AuctionDetailResponse arrives. Ignored if its RequestId
         // does not match the currently pending detail request.
         void SetDetailResponse(const AuctionHouse::AuctionDetailResponse& response);
@@ -100,10 +104,13 @@ namespace SEASON3B
         bool BtnProcess();
         void SendBrowseRequest();
         void SendMyListingsRequest();
-        void SendCurrentListingRequest();
+        void SendMailboxRequest();
+        void SendCurrentPageRequest();
         void SubmitSearch();
         void RenderBrowseHeader();
         void RenderBrowseTab();
+        void RenderMailboxHeader();
+        void RenderMailboxTab();
         void RebuildRowItems();
         void ReleaseRowItems();
         void RenderRowItemTooltip(int row) const;
@@ -114,10 +121,12 @@ namespace SEASON3B
         void RebuildDetailItem();
         void ReleaseDetailItem();
         void RenderDetailPanel();
+        void RenderMailboxDetailPanel();
         void RenderDetailItemTooltip() const;
         void SendBidRequest();
         void SendBuyoutRequest();
         void RequestCancelConfirmation();
+        void SendCollectRequest();
         void RenderOperationButtons();
         void RepositionChildren();
 
@@ -168,6 +177,16 @@ namespace SEASON3B
         bool m_bMyListingsRequestPending;
         uint32_t m_PendingMyListingsRequestId;
 
+        // Mailbox queries and rows have their own response state. The page number and viewport scrollbar are
+        // shared with the other tabs because only one tab can be visible at a time.
+        int m_SelectedCollectionKindIndex;
+        bool m_bMailboxRequestPending;
+        uint32_t m_PendingMailboxRequestId;
+        bool m_bHasMailboxResponse;
+        AuctionHouse::AuctionMailboxResponse m_MailboxResponse;
+        bool m_bHasSelectedCollection;
+        AuctionHouse::AuctionMailboxEntry m_SelectedCollection;
+
         // Prev/Next page buttons for the Browse tab. Locked (and grayed) at page 1 and at the last known page;
         // clicking either re-sends the browse request for m_CurrentPage, same as a currency change does.
         CNewUIButton m_BtnPrevPage;
@@ -213,6 +232,10 @@ namespace SEASON3B
         const wchar_t* m_StatusLabels[6];
         CNewUIComboBox m_StatusCombo;
 
+        // All collections followed by AuctionCollectionKind's six wire values in declaration order.
+        const wchar_t* m_CollectionKindLabels[7];
+        CNewUIComboBox m_CollectionKindCombo;
+
         // Single-line UTF-16 edit field converted to the browse packet's fixed 32-byte UTF-8 name field on
         // submit. The adjacent Search button and Enter both call SubmitSearch().
         CUITextInputBox m_SearchInput;
@@ -239,6 +262,7 @@ namespace SEASON3B
         CNewUIButton m_BtnBid;
         CNewUIButton m_BtnBuyout;
         CNewUIButton m_BtnCancelListing;
+        CNewUIButton m_BtnCollect;
         bool m_bOperationRequestPending;
         std::array<uint8_t, 16> m_PendingOperationId;
         bool m_bHasOperationResult;

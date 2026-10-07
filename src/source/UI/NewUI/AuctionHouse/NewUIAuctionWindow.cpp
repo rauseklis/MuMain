@@ -73,6 +73,13 @@ namespace
     constexpr int BROWSE_PRICE_COLUMN_WIDTH = 70;
     constexpr int BROWSE_BUYOUT_COLUMN_X = BROWSE_PRICE_COLUMN_X + BROWSE_PRICE_COLUMN_WIDTH;
     constexpr int BROWSE_BUYOUT_COLUMN_WIDTH = BROWSE_CONTENT_WIDTH - BROWSE_BUYOUT_COLUMN_X;
+    constexpr int MAILBOX_KIND_COLUMN_WIDTH = 145;
+    constexpr int MAILBOX_CONTENT_COLUMN_X = MAILBOX_KIND_COLUMN_WIDTH;
+    constexpr int MAILBOX_CONTENT_COLUMN_WIDTH = 245;
+    constexpr int MAILBOX_SOURCE_COLUMN_X = MAILBOX_CONTENT_COLUMN_X + MAILBOX_CONTENT_COLUMN_WIDTH;
+    constexpr int MAILBOX_SOURCE_COLUMN_WIDTH = 80;
+    constexpr int MAILBOX_STATUS_COLUMN_X = MAILBOX_SOURCE_COLUMN_X + MAILBOX_SOURCE_COLUMN_WIDTH;
+    constexpr int MAILBOX_STATUS_COLUMN_WIDTH = BROWSE_CONTENT_WIDTH - MAILBOX_STATUS_COLUMN_X;
     static_assert(BROWSE_BUYOUT_COLUMN_WIDTH > 0, "Auction browse columns exceed their content region");
     // A visible panel behind every row, so each listing reads as a distinct card rather than bare text
     // floating on the window background — the same idea as WoW's Auction House row cards, built from plain
@@ -91,6 +98,48 @@ namespace
     constexpr int BACK_BTN_WIDTH = 53;
     constexpr int BACK_BTN_HEIGHT = 23;
     constexpr int OPERATION_RESULT_Y_OFFSET = PAGE_BTN_Y_OFFSET - DETAIL_LINE_HEIGHT - 2;
+
+    const wchar_t* CollectionKindText(AuctionCollectionKind kind)
+    {
+        switch (kind)
+        {
+        case AuctionCollectionKind::PurchasedItem: return I18N::Game::AuctionPurchasedItem;
+        case AuctionCollectionKind::ReturnedItem: return I18N::Game::AuctionReturnedItem;
+        case AuctionCollectionKind::SaleProceeds: return I18N::Game::AuctionSaleProceeds;
+        case AuctionCollectionKind::OutbidRefund: return I18N::Game::AuctionOutbidRefund;
+        case AuctionCollectionKind::TenderChange: return I18N::Game::AuctionTenderChange;
+        case AuctionCollectionKind::AdminRefund: return I18N::Game::AuctionAdminRefund;
+        default: return L"-";
+        }
+    }
+
+    const wchar_t* CollectionStatusText(AuctionCollectionStatus status)
+    {
+        switch (status)
+        {
+        case AuctionCollectionStatus::Pending: return I18N::Game::AuctionPending;
+        case AuctionCollectionStatus::PartiallyClaimed: return I18N::Game::AuctionPartiallyClaimed;
+        case AuctionCollectionStatus::Claimed: return I18N::Game::AuctionClaimed;
+        default: return L"-";
+        }
+    }
+
+    std::wstring AuctionAmountText(AuctionCurrencyMode currency, const AuctionHouse::AuctionAmount& amount)
+    {
+        if (amount.IsFruitBasket())
+        {
+            const auto& f = amount.Fruits();
+            wchar_t text[128];
+            mu_swprintf(text, L"Str %lld  Agi %lld  Vit %lld  Ene %lld  Cmd %lld",
+                f.Strength, f.Agility, f.Vitality, f.Energy, f.Command);
+            return text;
+        }
+
+        static const wchar_t* names[] = { L"Zen", L"Chaos", L"Bless", L"Soul", L"Life", L"Creation", L"Guardian", L"Harmony" };
+        const auto index = static_cast<size_t>(currency);
+        const wchar_t* name = index < std::size(names) ? names[index] : L"Units";
+        return std::to_wstring(amount.Scalar()) + L" " + name;
+    }
 
     void SetBrowseItemNameColor(const ITEM* item)
     {
@@ -177,6 +226,8 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_SelectedCurrency(AuctionCurrencyMode::Zen), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasListingResponse(false),
       m_SelectedStatusIndex(0), m_bMyListingsRequestPending(false), m_PendingMyListingsRequestId(0),
+      m_SelectedCollectionKindIndex(0), m_bMailboxRequestPending(false), m_PendingMailboxRequestId(0),
+      m_bHasMailboxResponse(false), m_bHasSelectedCollection(false),
       m_BrowseScrollOffset(0), m_iPointedRow(-1),
       m_bShowingDetail(false), m_bDetailRequestPending(false), m_PendingDetailRequestId(0),
       m_bHasDetailResponse(false), m_DetailItem(nullptr), m_bPointingDetailItem(false),
@@ -259,6 +310,16 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_StatusCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH,
         CURRENCY_COMBO_ITEM_HEIGHT, m_StatusLabels, 6, m_SelectedStatusIndex);
 
+    m_CollectionKindLabels[0] = I18N::Game::AuctionAllCollections;
+    m_CollectionKindLabels[1] = I18N::Game::AuctionPurchasedItem;
+    m_CollectionKindLabels[2] = I18N::Game::AuctionReturnedItem;
+    m_CollectionKindLabels[3] = I18N::Game::AuctionSaleProceeds;
+    m_CollectionKindLabels[4] = I18N::Game::AuctionOutbidRefund;
+    m_CollectionKindLabels[5] = I18N::Game::AuctionTenderChange;
+    m_CollectionKindLabels[6] = I18N::Game::AuctionAdminRefund;
+    m_CollectionKindCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH,
+        CURRENCY_COMBO_ITEM_HEIGHT, m_CollectionKindLabels, 7, m_SelectedCollectionKindIndex);
+
     m_SearchInput.Init(g_hWnd, SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT, 32, false);
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_SearchInput.SetTextColor(255, 255, 230, 210);
@@ -275,6 +336,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     InitPageButton(&m_BtnBuyout, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Buyout);
     InitPageButton(&m_BtnCancelListing, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
         m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Cancel);
+    InitPageButton(&m_BtnCollect, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
+        m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::AuctionCollect);
     InitPageButton(&m_BtnSearch, m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, I18N::Game::AuctionSearch);
     m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y, BROWSE_SCROLLBAR_HEIGHT);
     m_BrowseScrollBar.Show(false);
@@ -335,6 +398,7 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_CurrencyCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_CategoryCombo.SetPos(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
     m_StatusCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
+    m_CollectionKindCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
@@ -343,6 +407,8 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_BtnBid.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBuyout.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnCancelListing.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
+        m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnCollect.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
         m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BrowseScrollBar.SetPos(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y);
     m_BrowseScrollBar.UpdateScrolling();
@@ -358,6 +424,7 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     m_TabBtn.ChangeFrame(m_iCurrentTab);
 
     m_bShowingDetail = false;
+    m_bHasSelectedCollection = false;
     ReleaseDetailItem();
     m_bHasOperationResult = false;
     m_bOperationRequestPending = false;
@@ -462,7 +529,22 @@ void SEASON3B::CNewUIAuctionWindow::SendMyListingsRequest()
         AuctionHouse::EncodeListingStatusFilter(m_SelectedStatusIndex));
 }
 
-void SEASON3B::CNewUIAuctionWindow::SendCurrentListingRequest()
+void SEASON3B::CNewUIAuctionWindow::SendMailboxRequest()
+{
+    m_bHasMailboxResponse = false;
+    m_bHasSelectedCollection = false;
+    m_BrowseScrollOffset = 0;
+    m_BrowseScrollBar.SetCurPos(0);
+    m_BrowseScrollBar.Show(false);
+    ReleaseRowItems();
+    m_PendingMailboxRequestId = AuctionHouse::NextAuctionRequestId();
+    m_bMailboxRequestPending = true;
+    SocketClient->ToGameServer()->SendAuctionMailboxRequest(
+        m_PendingMailboxRequestId, m_CurrentPage,
+        AuctionHouse::EncodeCollectionKindFilter(m_SelectedCollectionKindIndex));
+}
+
+void SEASON3B::CNewUIAuctionWindow::SendCurrentPageRequest()
 {
     if (m_iCurrentTab == TAB_BROWSE)
     {
@@ -471,6 +553,10 @@ void SEASON3B::CNewUIAuctionWindow::SendCurrentListingRequest()
     else if (m_iCurrentTab == TAB_MY_LISTINGS)
     {
         SendMyListingsRequest();
+    }
+    else if (m_iCurrentTab == TAB_MAILBOX)
+    {
+        SendMailboxRequest();
     }
 }
 
@@ -492,6 +578,30 @@ void SEASON3B::CNewUIAuctionWindow::SetMyListingsResponse(const AuctionHouse::Au
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     m_BrowseScrollOffset = 0;
     const auto maximumOffset = AuctionHouse::MaximumBrowseScrollOffset(m_ListingResponse.Listings.size(), MaxBrowseRows);
+    m_BrowseScrollBar.SetMaxPos(static_cast<int>(maximumOffset));
+    m_BrowseScrollBar.SetCurPos(0);
+    m_BrowseScrollBar.Show(maximumOffset > 0);
+    RebuildRowItems();
+}
+
+void SEASON3B::CNewUIAuctionWindow::SetMailboxResponse(const AuctionHouse::AuctionMailboxResponse& response)
+{
+    if (!m_bMailboxRequestPending || response.RequestId != m_PendingMailboxRequestId)
+    {
+        return;
+    }
+
+    m_bMailboxRequestPending = false;
+    if (m_iCurrentTab != TAB_MAILBOX)
+    {
+        return;
+    }
+
+    m_bHasMailboxResponse = true;
+    m_MailboxResponse = response;
+    m_ServerClock.Sync(response.ServerTime, GetTickCount());
+    m_BrowseScrollOffset = 0;
+    const auto maximumOffset = AuctionHouse::MaximumBrowseScrollOffset(m_MailboxResponse.Entries.size(), MaxBrowseRows);
     m_BrowseScrollBar.SetMaxPos(static_cast<int>(maximumOffset));
     m_BrowseScrollBar.SetCurPos(0);
     m_BrowseScrollBar.Show(maximumOffset > 0);
@@ -594,6 +704,24 @@ void SEASON3B::CNewUIAuctionWindow::ConfirmCancelListing()
         m_DetailResponse.ListingId, m_DetailResponse.Version);
 }
 
+void SEASON3B::CNewUIAuctionWindow::SendCollectRequest()
+{
+    if (m_iCurrentTab != TAB_MAILBOX || !m_bShowingDetail || !m_bHasSelectedCollection
+        || m_bOperationRequestPending || m_SelectedCollection.CollectionStatus == AuctionCollectionStatus::Claimed)
+    {
+        return;
+    }
+
+    m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
+    m_bOperationRequestPending = true;
+    m_bHasOperationResult = false;
+    // The protocol defines an all-zero requested amount as "collect everything remaining" for both items and
+    // currency. Partial jewel/fruit controls are a separate UI increment; this button is intentionally full.
+    SocketClient->ToGameServer()->SendAuctionCollectRequest(
+        m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()),
+        m_SelectedCollection.CollectionId, m_SelectedCollection.Version, 0, 0, 0, 0, 0, 0);
+}
+
 void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::AuctionOperationResponse& response)
 {
     if (!m_bOperationRequestPending || response.OperationId != m_PendingOperationId)
@@ -604,6 +732,24 @@ void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::Auc
     m_bOperationRequestPending = false;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     const AuctionResult result = response.Result;
+
+    if (response.OperationType == AuctionOperationType::Collect)
+    {
+        m_bHasOperationResult = true;
+        m_LastOperationResult = response.Result;
+        if (m_iCurrentTab == TAB_MAILBOX)
+        {
+            // Success removes or reduces the durable collection; a stale version or full inventory can also
+            // change its authoritative state. In every case return to and refresh the server-owned page.
+            m_bShowingDetail = false;
+            m_bHasSelectedCollection = false;
+            ReleaseDetailItem();
+            SendMailboxRequest();
+            m_bHasOperationResult = true;
+            m_LastOperationResult = response.Result;
+        }
+        return;
+    }
 
     if (response.OperationType == AuctionOperationType::Cancel)
     {
@@ -664,6 +810,23 @@ void SEASON3B::CNewUIAuctionWindow::RebuildRowItems()
         return;
     }
 
+    if (m_iCurrentTab == TAB_MAILBOX)
+    {
+        const auto remainingRows = m_MailboxResponse.Entries.size() - std::min(m_BrowseScrollOffset, m_MailboxResponse.Entries.size());
+        const auto rowCount = std::min(MaxBrowseRows, remainingRows);
+        for (size_t row = 0; row < rowCount; ++row)
+        {
+            const auto& entry = m_MailboxResponse.Entries[m_BrowseScrollOffset + row];
+            if (!entry.HasItem || entry.ItemDataLength == 0)
+            {
+                continue;
+            }
+            const size_t length = std::min<size_t>(entry.ItemDataLength, entry.ItemData.size());
+            m_RowItems[row] = g_pNewItemMng->CreateItem(std::span<const BYTE>(entry.ItemData.data(), length));
+        }
+        return;
+    }
+
     const auto remainingRows = m_ListingResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_ListingResponse.Listings.size());
     const auto rowCount = std::min(MaxBrowseRows, remainingRows);
     for (size_t row = 0; row < rowCount; ++row)
@@ -686,7 +849,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderRowItemTooltip(int row) const
         return;
     }
 
-    const int iconX = m_Pos.x + BROWSE_BODY_X;
+    const int iconX = m_Pos.x + BROWSE_BODY_X
+        + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0);
     const int iconY = m_Pos.y + BROWSE_BODY_Y + row * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
     RenderItemInfo(iconX + BROWSE_ICON_SIZE / 2, iconY + BROWSE_ICON_SIZE / 2, m_RowItems[row], false);
 }
@@ -708,7 +872,23 @@ void SEASON3B::CNewUIAuctionWindow::RebuildDetailItem()
     // paged away from, while a detail request is in flight).
     ReleaseDetailItem();
 
-    if (g_pNewItemMng == nullptr || m_DetailResponse.ItemDataLength == 0)
+    if (g_pNewItemMng == nullptr)
+    {
+        return;
+    }
+
+    if (m_iCurrentTab == TAB_MAILBOX)
+    {
+        if (!m_bHasSelectedCollection || !m_SelectedCollection.HasItem || m_SelectedCollection.ItemDataLength == 0)
+        {
+            return;
+        }
+        const size_t length = std::min<size_t>(m_SelectedCollection.ItemDataLength, m_SelectedCollection.ItemData.size());
+        m_DetailItem = g_pNewItemMng->CreateItem(std::span<const BYTE>(m_SelectedCollection.ItemData.data(), length));
+        return;
+    }
+
+    if (m_DetailResponse.ItemDataLength == 0)
     {
         return;
     }
@@ -829,11 +1009,12 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         return true;
     }
 
-    if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bShowingDetail)
+    if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX) && m_bShowingDetail)
     {
         if (m_BtnBack.UpdateMouseEvent() == true)
         {
             m_bShowingDetail = false;
+            m_bHasSelectedCollection = false;
             m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
             ReleaseDetailItem();
             PlayBuffer(SOUND_CLICK01);
@@ -861,6 +1042,13 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             return true;
         }
 
+        if (m_iCurrentTab == TAB_MAILBOX && m_BtnCollect.UpdateMouseEvent() == true)
+        {
+            SendCollectRequest();
+            PlayBuffer(SOUND_CLICK01);
+            return true;
+        }
+
         return false;
     }
 
@@ -884,7 +1072,12 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         return true;
     }
 
-    if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
+    if (m_iCurrentTab == TAB_MAILBOX && m_CollectionKindCombo.IsMouseOverWidget())
+    {
+        return true;
+    }
+
+    if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX)
     {
         if (m_iCurrentTab == TAB_BROWSE)
         {
@@ -957,7 +1150,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             if (m_CurrentPage > 1)
             {
                 --m_CurrentPage;
-                SendCurrentListingRequest();
+                SendCurrentPageRequest();
             }
             PlayBuffer(SOUND_CLICK01);
             return true;
@@ -965,18 +1158,32 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
         if (m_BtnNextPage.UpdateMouseEvent() == true)
         {
-            if (m_bHasListingResponse && m_CurrentPage < m_ListingResponse.TotalPages)
+            const uint16_t totalPages = m_iCurrentTab == TAB_MAILBOX
+                ? (m_bHasMailboxResponse ? m_MailboxResponse.TotalPages : 0)
+                : (m_bHasListingResponse ? m_ListingResponse.TotalPages : 0);
+            if (m_CurrentPage < totalPages)
             {
                 ++m_CurrentPage;
-                SendCurrentListingRequest();
+                SendCurrentPageRequest();
             }
             PlayBuffer(SOUND_CLICK01);
             return true;
         }
 
-        if (m_iPointedRow != -1 && !m_bDetailRequestPending && IsRelease(VK_LBUTTON))
+        if (m_iPointedRow != -1 && IsRelease(VK_LBUTTON))
         {
-            SendDetailRequest(m_ListingResponse.Listings[m_BrowseScrollOffset + m_iPointedRow].ListingId);
+            if (m_iCurrentTab == TAB_MAILBOX)
+            {
+                m_SelectedCollection = m_MailboxResponse.Entries[m_BrowseScrollOffset + m_iPointedRow];
+                m_bHasSelectedCollection = true;
+                m_bShowingDetail = true;
+                m_bHasOperationResult = false;
+                RebuildDetailItem();
+            }
+            else if (!m_bDetailRequestPending)
+            {
+                SendDetailRequest(m_ListingResponse.Listings[m_BrowseScrollOffset + m_iPointedRow].ListingId);
+            }
             PlayBuffer(SOUND_CLICK01);
             return true;
         }
@@ -1028,6 +1235,8 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         {
             m_iCurrentTab = selected;
             m_bShowingDetail = false;
+            m_bHasSelectedCollection = false;
+            m_bHasOperationResult = false;
             ReleaseDetailItem();
             m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
             if (m_iCurrentTab != TAB_BROWSE && m_SearchInput.HaveFocus())
@@ -1038,9 +1247,9 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
 
             m_CurrentPage = 1;
             m_BrowseScrollOffset = 0;
-            if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
+            if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX)
             {
-                SendCurrentListingRequest();
+                SendCurrentPageRequest();
             }
             else
             {
@@ -1072,8 +1281,17 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             SendMyListingsRequest();
         }
 
-        if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
-            && !m_bShowingDetail && m_bHasListingResponse)
+
+        if (m_iCurrentTab == TAB_MAILBOX && !m_bShowingDetail && m_CollectionKindCombo.UpdateMouseEvent())
+        {
+            m_SelectedCollectionKindIndex = m_CollectionKindCombo.GetSelectedIndex();
+            m_CurrentPage = 1;
+            SendMailboxRequest();
+        }
+
+        if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX)
+            && !m_bShowingDetail
+            && (m_iCurrentTab == TAB_MAILBOX ? m_bHasMailboxResponse : m_bHasListingResponse))
         {
             m_BrowseScrollBar.Update();
             const auto newOffset = static_cast<size_t>(m_BrowseScrollBar.GetCurPos());
@@ -1086,7 +1304,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
 
         m_iPointedRow = -1;
         m_bPointingDetailItem = false;
-        if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bShowingDetail)
+        if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX) && m_bShowingDetail)
         {
             m_bPointingDetailItem = CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y, DETAIL_ICON_SIZE, DETAIL_ICON_SIZE);
         }
@@ -1098,6 +1316,20 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             {
                 if (CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT,
                     WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH, BROWSE_ROW_HEIGHT))
+                {
+                    m_iPointedRow = static_cast<int>(row);
+                    break;
+                }
+            }
+        }
+        else if (m_iCurrentTab == TAB_MAILBOX && m_bHasMailboxResponse)
+        {
+            const auto remainingRows = m_MailboxResponse.Entries.size() - std::min(m_BrowseScrollOffset, m_MailboxResponse.Entries.size());
+            const auto rowCount = std::min(MaxBrowseRows, remainingRows);
+            for (size_t row = 0; row < rowCount; ++row)
+            {
+                if (CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT,
+                    BROWSE_CONTENT_WIDTH, BROWSE_ROW_HEIGHT))
                 {
                     m_iPointedRow = static_cast<int>(row);
                     break;
@@ -1150,6 +1382,23 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
         {
             m_StatusCombo.Render();
         }
+    }
+    else if (m_iCurrentTab == TAB_MAILBOX && m_bShowingDetail)
+    {
+        RenderMailboxDetailPanel();
+        m_BtnBack.Render();
+        m_BtnCollect.Render();
+    }
+    else if (m_iCurrentTab == TAB_MAILBOX)
+    {
+        RenderMailboxHeader();
+        RenderMailboxTab();
+        RenderPageControls();
+        if (m_BrowseScrollBar.IsVisible())
+        {
+            m_BrowseScrollBar.Render();
+        }
+        m_CollectionKindCombo.Render();
     }
 
     DisableAlphaBlend();
@@ -1205,6 +1454,55 @@ void SEASON3B::CNewUIAuctionWindow::RenderDetailPanel()
         mu_swprintf(line, L"%ls: %ls", I18N::Game::Bidder, detail.CurrentBidderName.c_str());
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, line, (float)BodyWidth, 0, RT3_SORT_LEFT);
         textY += DETAIL_LINE_HEIGHT;
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderMailboxDetailPanel()
+{
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X;
+
+    if (!m_bHasSelectedCollection)
+    {
+        return;
+    }
+
+    const auto& entry = m_SelectedCollection;
+    const int textX = m_Pos.x + BROWSE_BODY_X + (entry.HasItem ? DETAIL_TEXT_X_OFFSET : 0);
+    int textY = m_Pos.y + BROWSE_BODY_Y;
+    const int textWidth = BodyWidth - (entry.HasItem ? DETAIL_TEXT_X_OFFSET : 0);
+    g_pRenderText->RenderText((float)textX, (float)textY, CollectionKindText(entry.CollectionKind),
+        (float)textWidth, 0, RT3_SORT_LEFT);
+    textY += DETAIL_ICON_SIZE + 6;
+
+    const auto amount = entry.HasItem ? std::wstring(I18N::Game::Item)
+        : AuctionAmountText(entry.CurrencyMode, entry.Remaining);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, amount.c_str(),
+        (float)BodyWidth, 0, RT3_SORT_LEFT);
+    textY += DETAIL_LINE_HEIGHT;
+
+    wchar_t line[160];
+    mu_swprintf(line, L"%ls: %llu", I18N::Game::AuctionSource, entry.SourceListingId);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, line,
+        (float)BodyWidth, 0, RT3_SORT_LEFT);
+    textY += DETAIL_LINE_HEIGHT;
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY,
+        CollectionStatusText(entry.CollectionStatus), (float)BodyWidth, 0, RT3_SORT_LEFT);
+
+    const bool canCollect = !m_bOperationRequestPending && entry.CollectionStatus != AuctionCollectionStatus::Claimed;
+    if (canCollect)
+    {
+        m_BtnCollect.UnLock();
+        m_BtnCollect.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
+        m_BtnCollect.ChangeTextColor(RGBA(255, 255, 255, 255));
+    }
+    else
+    {
+        m_BtnCollect.Lock();
+        m_BtnCollect.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
+        m_BtnCollect.ChangeTextColor(RGBA(100, 100, 100, 255));
     }
 }
 
@@ -1293,7 +1591,10 @@ void SEASON3B::CNewUIAuctionWindow::RenderPageControls()
     // Locked (and grayed, matching CNewUIUnitedMarketPlaceWindow's own locked-button treatment) at page 1 and
     // once the last known page is reached. Without a response yet, both read as "at the only known page".
     const bool atFirstPage = m_CurrentPage <= 1;
-    const bool atLastPage = !m_bHasListingResponse || m_CurrentPage >= m_ListingResponse.TotalPages;
+    const bool hasResponse = m_iCurrentTab == TAB_MAILBOX ? m_bHasMailboxResponse : m_bHasListingResponse;
+    const uint16_t knownTotalPages = m_iCurrentTab == TAB_MAILBOX
+        ? m_MailboxResponse.TotalPages : m_ListingResponse.TotalPages;
+    const bool atLastPage = !hasResponse || m_CurrentPage >= knownTotalPages;
 
     if (atFirstPage)
     {
@@ -1324,7 +1625,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderPageControls()
     m_BtnPrevPage.Render();
     m_BtnNextPage.Render();
 
-    const uint16_t totalPages = m_bHasListingResponse ? std::max<uint16_t>(m_ListingResponse.TotalPages, 1) : 1;
+    const uint16_t totalPages = hasResponse ? std::max<uint16_t>(knownTotalPages, 1) : 1;
     wchar_t pageText[32];
     mu_swprintf(pageText, L"%d / %d", m_CurrentPage, totalPages);
 
@@ -1341,7 +1642,7 @@ bool SEASON3B::CNewUIAuctionWindow::IsVisible() const
 
 void SEASON3B::CNewUIAuctionWindow::Render3D()
 {
-    if (m_iCurrentTab != TAB_BROWSE && m_iCurrentTab != TAB_MY_LISTINGS)
+    if (m_iCurrentTab != TAB_BROWSE && m_iCurrentTab != TAB_MY_LISTINGS && m_iCurrentTab != TAB_MAILBOX)
     {
         return;
     }
@@ -1364,12 +1665,15 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         return;
     }
 
-    if (!m_bHasListingResponse)
+    const bool hasResponse = m_iCurrentTab == TAB_MAILBOX ? m_bHasMailboxResponse : m_bHasListingResponse;
+    if (!hasResponse)
     {
         return;
     }
 
-    const auto remainingRows = m_ListingResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_ListingResponse.Listings.size());
+    const size_t entryCount = m_iCurrentTab == TAB_MAILBOX
+        ? m_MailboxResponse.Entries.size() : m_ListingResponse.Listings.size();
+    const auto remainingRows = entryCount - std::min(m_BrowseScrollOffset, entryCount);
     const auto rowCount = std::min(MaxBrowseRows, remainingRows);
     for (size_t row = 0; row < rowCount; ++row)
     {
@@ -1379,7 +1683,8 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
             continue;
         }
 
-        const int iconX = m_Pos.x + BROWSE_BODY_X;
+        const int iconX = m_Pos.x + BROWSE_BODY_X
+            + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0);
         const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
         RenderItem3D((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
             item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, false);
@@ -1526,6 +1831,94 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
             buyoutText.c_str(), (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
     }
 
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderMailboxHeader()
+{
+    EnableAlphaTest();
+    RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y,
+        BROWSE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT, BROWSE_HEADER_COLOR);
+    const int separators[] = { MAILBOX_CONTENT_COLUMN_X, MAILBOX_SOURCE_COLUMN_X, MAILBOX_STATUS_COLUMN_X };
+    for (const int separator : separators)
+    {
+        RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X + separator, m_Pos.y + BROWSE_HEADER_Y,
+            1, BROWSE_HEADER_HEIGHT + BROWSE_SCROLLBAR_HEIGHT, BROWSE_GRID_COLOR);
+    }
+    EndRenderColor();
+
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetTextColor(218, 186, 104, 255);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    const float y = static_cast<float>(m_Pos.y + BROWSE_HEADER_Y + 5);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + 5), y, I18N::Game::Mailbox,
+        (float)(MAILBOX_KIND_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_CONTENT_COLUMN_X + 5), y,
+        I18N::Game::AuctionContents, (float)(MAILBOX_CONTENT_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_SOURCE_COLUMN_X), y,
+        I18N::Game::AuctionSource, (float)MAILBOX_SOURCE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_STATUS_COLUMN_X), y,
+        I18N::Game::AuctionStatus, (float)MAILBOX_STATUS_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderMailboxTab()
+{
+    if (!m_bHasMailboxResponse)
+    {
+        g_pRenderText->SetFont(g_hFont);
+        g_pRenderText->SetTextColor(255, 255, 255, 255);
+        g_pRenderText->SetBgColor(0, 0, 0, 0);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y + 8),
+            I18N::Game::PleaseWait, (float)BROWSE_CONTENT_WIDTH, 0, RT3_SORT_CENTER);
+        return;
+    }
+
+    if (m_MailboxResponse.Entries.empty())
+    {
+        g_pRenderText->SetFont(g_hFont);
+        g_pRenderText->SetTextColor(190, 190, 190, 255);
+        g_pRenderText->SetBgColor(0, 0, 0, 0);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y + 8),
+            I18N::Game::AuctionNoCollections, (float)BROWSE_CONTENT_WIDTH, 0, RT3_SORT_CENTER);
+        return;
+    }
+
+    const auto remainingRows = m_MailboxResponse.Entries.size() - std::min(m_BrowseScrollOffset, m_MailboxResponse.Entries.size());
+    const auto rowCount = std::min(MaxBrowseRows, remainingRows);
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    for (size_t row = 0; row < rowCount; ++row)
+    {
+        const auto& entry = m_MailboxResponse.Entries[m_BrowseScrollOffset + row];
+        const int y = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
+        EnableAlphaTest();
+        RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, y, BROWSE_CONTENT_WIDTH, BROWSE_ROW_HEIGHT - BROWSE_ROW_PADDING,
+            m_iPointedRow == static_cast<int>(row) ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
+        EndRenderColor();
+
+        g_pRenderText->SetTextColor(220, 220, 220, 255);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + 5), (float)(y + 10),
+            CollectionKindText(entry.CollectionKind), (float)(MAILBOX_KIND_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
+        const auto contents = entry.HasItem ? std::wstring(I18N::Game::Item)
+            : AuctionAmountText(entry.CurrencyMode, entry.Remaining);
+        const int contentTextX = m_Pos.x + BROWSE_BODY_X + MAILBOX_CONTENT_COLUMN_X
+            + (entry.HasItem ? BROWSE_TEXT_X_OFFSET : 5);
+        g_pRenderText->RenderText((float)contentTextX, (float)(y + 10), contents.c_str(),
+            (float)(MAILBOX_CONTENT_COLUMN_WIDTH - (entry.HasItem ? BROWSE_TEXT_X_OFFSET : 10)), 0, RT3_SORT_LEFT);
+        wchar_t source[32];
+        mu_swprintf(source, L"%llu", entry.SourceListingId);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_SOURCE_COLUMN_X), (float)(y + 10),
+            source, (float)MAILBOX_SOURCE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_STATUS_COLUMN_X), (float)(y + 10),
+            CollectionStatusText(entry.CollectionStatus), (float)MAILBOX_STATUS_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+    }
+
+    if (m_bHasOperationResult)
+    {
+        const bool succeeded = m_LastOperationResult == AuctionResult::Success;
+        g_pRenderText->SetTextColor(succeeded ? 120 : 255, succeeded ? 220 : 90, 120, 255);
+        g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + OPERATION_RESULT_Y_OFFSET),
+            succeeded ? I18N::Game::Success : I18N::Game::Failed, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
+    }
 }
 
 float SEASON3B::CNewUIAuctionWindow::GetLayerDepth()
