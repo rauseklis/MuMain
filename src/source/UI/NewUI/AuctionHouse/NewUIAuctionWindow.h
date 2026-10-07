@@ -99,6 +99,11 @@ namespace SEASON3B
         bool m_bHasOpenResponse;
         AuctionHouse::AuctionOpenResponse m_OpenResponse;
 
+        // Synced from whichever response arrives most recently (Open or Browse both carry ServerTime), so the
+        // Browse tab's countdown can tick down locally between responses instead of only updating on the next
+        // reply.
+        AuctionHouse::AuctionServerClock m_ServerClock;
+
         // The Browse tab's selected currency, page and sort. V1 scope: the server only honors currency,
         // category, sort and page (confirmed by reading AuctionBrowseHandlerPlugIn.cs server-side); the
         // remaining wire fields (name search, class mask, level range, option flags, price range, max

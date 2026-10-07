@@ -181,6 +181,7 @@ void SEASON3B::CNewUIAuctionWindow::SetBrowseResponse(const AuctionHouse::Auctio
     m_bBrowseRequestPending = false;
     m_bHasBrowseResponse = true;
     m_BrowseResponse = response;
+    m_ServerClock.Sync(response.ServerTime, GetTickCount());
     RebuildRowItems();
 }
 
@@ -252,6 +253,7 @@ void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionO
     m_bOpenRequestPending = false;
     m_bHasOpenResponse = true;
     m_OpenResponse = response;
+    m_ServerClock.Sync(response.ServerTime, GetTickCount());
 }
 
 void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
@@ -413,9 +415,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
     // Main body region per the design spec's shared layout table (4.2): x 31-409, y 137-416 in the 640x480
     // logical canvas, i.e. local offset (11, 112) from this window's own (20, 25) origin. Eight rows. Each
     // row's item icon is drawn in Render3D() (the engine's 3D pass, same as inventory slots), so the text
-    // columns here start after BROWSE_TEXT_X_OFFSET to leave room for it. The countdown is a snapshot from the
-    // last response rather than ticking live (that needs the server-time-offset tracking the design spec calls
-    // for, not built yet).
+    // columns here start after BROWSE_TEXT_X_OFFSET to leave room for it. The countdown uses m_ServerClock's
+    // live estimate, not the frozen ServerTime the last response carried, so it ticks down between responses.
     constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X;
 
     g_pRenderText->SetFont(g_hFont);
@@ -434,11 +435,12 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         return;
     }
 
+    const uint32_t estimatedServerTime = m_ServerClock.EstimatedServerTime(GetTickCount());
     const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
     for (size_t row = 0; row < rowCount; ++row)
     {
         const auto& listing = m_BrowseResponse.Listings[row];
-        const auto remainingSeconds = listing.EndsAt > m_BrowseResponse.ServerTime ? (listing.EndsAt - m_BrowseResponse.ServerTime) : 0;
+        const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
         const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
         const std::wstring priceText = listing.CurrentPrice.IsFruitBasket()
             ? L"(fruits)"

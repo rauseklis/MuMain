@@ -104,3 +104,46 @@ TEST_CASE("two generated operation ids are not the same [ui][auction_model]")
 
     CHECK_FALSE(first == second);
 }
+
+TEST_CASE("an unsynced server clock estimates zero [ui][auction_model]")
+{
+    const AuctionServerClock clock;
+
+    CHECK_FALSE(clock.HasSynced());
+    CHECK(clock.EstimatedServerTime(12345) == 0);
+}
+
+TEST_CASE("a synced server clock estimates the exact server time at the moment of sync [ui][auction_model]")
+{
+    AuctionServerClock clock;
+    clock.Sync(1000, 50000);
+
+    CHECK(clock.HasSynced());
+    CHECK(clock.EstimatedServerTime(50000) == 1000);
+}
+
+TEST_CASE("a synced server clock advances its estimate with local ticks [ui][auction_model]")
+{
+    AuctionServerClock clock;
+    clock.Sync(1000, 50000);
+
+    CHECK(clock.EstimatedServerTime(52500) == 1002);
+}
+
+TEST_CASE("resyncing replaces the previous server clock reading [ui][auction_model]")
+{
+    AuctionServerClock clock;
+    clock.Sync(1000, 50000);
+    clock.Sync(5000, 90000);
+
+    CHECK(clock.EstimatedServerTime(91000) == 5001);
+}
+
+TEST_CASE("a server clock's estimate survives a local tick-count wraparound [ui][auction_model]")
+{
+    AuctionServerClock clock;
+    clock.Sync(1000, 0xFFFFFFF0u);
+
+    // 26ms after the sync point, wrapped around past the uint32_t tick-count maximum.
+    CHECK(clock.EstimatedServerTime(10u) == 1000);
+}

@@ -93,6 +93,43 @@ namespace AuctionHouse
     // most significant units ("1d 1h", "1h 1m", "2m 5s", or "45s" under a minute).
     [[nodiscard]] std::wstring FormatAuctionCountdown(std::chrono::seconds remaining);
 
+    // Tracks the offset between the server's reported time (seconds, from a response's ServerTime field) and
+    // this client's own GetTickCount()-style local tick clock, so a listing's remaining time can tick down
+    // locally between responses instead of only updating on the next server reply. Local tick values are
+    // expected to be unsigned milliseconds that wrap on overflow, the same contract GetTickCount() itself has;
+    // unsigned subtraction keeps the estimate correct across that wraparound, the same property every
+    // GetTickCount() caller elsewhere in this codebase already relies on.
+    class AuctionServerClock
+    {
+    public:
+        // Call whenever a response carrying ServerTime arrives, with the client's own tick count at that moment.
+        void Sync(uint32_t serverTimeSeconds, uint32_t localTickMs) noexcept
+        {
+            this->_serverTimeSeconds = serverTimeSeconds;
+            this->_syncTickMs = localTickMs;
+            this->_hasSynced = true;
+        }
+
+        [[nodiscard]] bool HasSynced() const noexcept { return this->_hasSynced; }
+
+        // Estimates the current server time given the client's current tick count. Zero if never synced.
+        [[nodiscard]] uint32_t EstimatedServerTime(uint32_t localTickMs) const noexcept
+        {
+            if (!this->_hasSynced)
+            {
+                return 0;
+            }
+
+            const uint32_t elapsedMs = localTickMs - this->_syncTickMs;
+            return this->_serverTimeSeconds + elapsedMs / 1000;
+        }
+
+    private:
+        bool _hasSynced = false;
+        uint32_t _serverTimeSeconds = 0;
+        uint32_t _syncTickMs = 0;
+    };
+
     // Returns the next request id for correlating a query request (open/browse/detail/my-listings/mailbox)
     // with its response. Monotonically increasing within one process run; not persisted, not thread-safe
     // (this client's network/UI code runs on a single thread, same as the rest of NewUI).
