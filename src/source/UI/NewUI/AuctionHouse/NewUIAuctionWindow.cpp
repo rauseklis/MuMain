@@ -24,6 +24,10 @@ namespace
     constexpr int CLOSE_BTN_WIDTH = 36;
     constexpr int CLOSE_BTN_HEIGHT = 29;
     constexpr int CLOSE_BTN_MARGIN = 8;
+    constexpr int TOOLBAR_X = 11;
+    constexpr int TOOLBAR_Y = 69;
+    constexpr int CURRENCY_COMBO_WIDTH = 150;
+    constexpr int CURRENCY_COMBO_ITEM_HEIGHT = 22;
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
@@ -66,6 +70,20 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, int x, int 
     m_BtnClose.ChangeButtonImgState(true, IMAGE_AUCTION_CLOSE_BTN, false);
     m_BtnClose.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
     m_BtnClose.ChangeToolTipText(&I18N::Game::Close388);
+
+    // Labels in AuctionCurrencyMode wire order (0 Zen .. 8 Fruits), so the combo's selected index is the
+    // currency's wire value directly, no lookup table needed.
+    m_CurrencyLabels[0] = I18N::Game::Zen;
+    m_CurrencyLabels[1] = I18N::Game::JewelOfChaos;
+    m_CurrencyLabels[2] = I18N::Game::JewelOfBless;
+    m_CurrencyLabels[3] = I18N::Game::JewelOfSoul;
+    m_CurrencyLabels[4] = I18N::Game::JewelOfLife;
+    m_CurrencyLabels[5] = I18N::Game::JewelOfCreation;
+    m_CurrencyLabels[6] = I18N::Game::JewelOfGuardian;
+    m_CurrencyLabels[7] = I18N::Game::JewelOfHarmony;
+    m_CurrencyLabels[8] = I18N::Game::FruitBasket;
+    m_CurrencyCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
+        m_CurrencyLabels, 9, static_cast<int>(m_SelectedCurrency));
 
     Show(false);
 
@@ -187,6 +205,13 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         return true;
     }
 
+    // The combo's own contract: its expanded dropdown can extend past this widget's own small hit box, so
+    // the owner must separately treat IsMouseOverWidget() as a consumed click.
+    if (m_iCurrentTab == TAB_BROWSE && m_CurrencyCombo.IsMouseOverWidget())
+    {
+        return true;
+    }
+
     return false;
 }
 
@@ -215,6 +240,13 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         {
             m_iCurrentTab = selected;
         }
+
+        if (m_iCurrentTab == TAB_BROWSE && m_CurrencyCombo.UpdateMouseEvent())
+        {
+            m_SelectedCurrency = static_cast<AuctionCurrencyMode>(m_CurrencyCombo.GetSelectedIndex());
+            m_CurrentPage = 1;
+            SendBrowseRequest();
+        }
     }
 
     return true;
@@ -237,6 +269,9 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     if (m_iCurrentTab == TAB_BROWSE)
     {
         RenderBrowseTab();
+
+        // Rendered last, per CNewUIComboBox's own contract, so its expanded dropdown draws on top of the row text.
+        m_CurrencyCombo.Render();
     }
 
     DisableAlphaBlend();

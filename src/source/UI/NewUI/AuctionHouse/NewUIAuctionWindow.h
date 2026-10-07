@@ -5,6 +5,7 @@
 
 #include "UI/NewUI/NewUIBase.h"
 #include "UI/NewUI/Widgets/NewUIButton.h"
+#include "UI/NewUI/Widgets/NewUIComboBox.h"
 #include "UI/NewUI/Dialogs/NewUIMessageBox.h"
 #include "UI/NewUI/Inventory/NewUIMyInventory.h"
 #include "Guild/NewUIGuildInfoWindow.h"
@@ -101,5 +102,12 @@ namespace SEASON3B
         uint32_t m_PendingBrowseRequestId;
         bool m_bHasBrowseResponse;
         AuctionHouse::AuctionBrowseResponse m_BrowseResponse;
+
+        // One label per AuctionCurrencyMode value, in wire order, so GetSelectedIndex() doubles as the mode's
+        // wire value. CNewUIComboBox keeps only the pointers, not a locale-change "slot" like CNewUIButton
+        // does, so these labels will not refresh if the player changes language while this window is open —
+        // a known limitation of this widget, not fixed here.
+        const wchar_t* m_CurrencyLabels[9];
+        CNewUIComboBox m_CurrencyCombo;
     };
 }
