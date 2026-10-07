@@ -13084,6 +13084,12 @@
   <data name="Auction Collect" xml:space="preserve">
     <value>Collect</value>
   </data>
+  <data name="Auction Claim Amount" xml:space="preserve">
+    <value>Amount to collect</value>
+  </data>
+  <data name="Auction Invalid Claim" xml:space="preserve">
+    <value>Enter an amount within the remaining balance.</value>
+  </data>
   <data name="Auction No Collections" xml:space="preserve">
     <value>No collections found</value>
   </data>

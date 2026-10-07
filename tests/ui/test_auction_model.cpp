@@ -267,3 +267,22 @@ TEST_CASE("mailbox kind combo maps all and concrete collection kinds to the wire
     CHECK(EncodeCollectionKindFilter(1) == static_cast<uint8_t>(AuctionCollectionKind::PurchasedItem));
     CHECK(EncodeCollectionKindFilter(6) == static_cast<uint8_t>(AuctionCollectionKind::AdminRefund));
 }
+
+TEST_CASE("partial mailbox claims stay within the remaining obligation [ui][auction_model]")
+{
+    const auto jewels = AuctionAmount::FromScalar(25);
+    CHECK(IsValidCollectionClaim(AuctionCurrencyMode::Bless, jewels, AuctionAmount::FromScalar(1)));
+    CHECK(IsValidCollectionClaim(AuctionCurrencyMode::Bless, jewels, AuctionAmount::FromScalar(25)));
+    CHECK_FALSE(IsValidCollectionClaim(AuctionCurrencyMode::Bless, jewels, AuctionAmount::FromScalar(0)));
+    CHECK_FALSE(IsValidCollectionClaim(AuctionCurrencyMode::Bless, jewels, AuctionAmount::FromScalar(26)));
+
+    const auto remaining = AuctionAmount::FromFruits(FruitBasket{ 3, 0, 4, 2, 0 });
+    CHECK(IsValidCollectionClaim(AuctionCurrencyMode::Fruits, remaining,
+        AuctionAmount::FromFruits(FruitBasket{ 1, 0, 0, 2, 0 })));
+    CHECK_FALSE(IsValidCollectionClaim(AuctionCurrencyMode::Fruits, remaining,
+        AuctionAmount::FromFruits(FruitBasket{})));
+    CHECK_FALSE(IsValidCollectionClaim(AuctionCurrencyMode::Fruits, remaining,
+        AuctionAmount::FromFruits(FruitBasket{ 4, 0, 0, 0, 0 })));
+    CHECK_FALSE(IsValidCollectionClaim(AuctionCurrencyMode::Fruits, remaining,
+        AuctionAmount::FromFruits(FruitBasket{ 1, 1, 0, 0, 0 })));
+}

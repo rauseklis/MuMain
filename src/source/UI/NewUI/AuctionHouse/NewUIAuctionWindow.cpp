@@ -98,6 +98,10 @@ namespace
     constexpr int BACK_BTN_WIDTH = 53;
     constexpr int BACK_BTN_HEIGHT = 23;
     constexpr int OPERATION_RESULT_Y_OFFSET = PAGE_BTN_Y_OFFSET - DETAIL_LINE_HEIGHT - 2;
+    constexpr int CLAIM_INPUT_Y_OFFSET = BROWSE_BODY_Y + 108;
+    constexpr int CLAIM_INPUT_WIDTH = 58;
+    constexpr int CLAIM_INPUT_HEIGHT = 16;
+    constexpr int CLAIM_INPUT_COLUMN_WIDTH = 105;
 
     const wchar_t* CollectionKindText(AuctionCollectionKind kind)
     {
@@ -329,6 +333,21 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_SearchInput.SetParentUIID(SEASON3B::INTERFACE_AUCTION_HOUSE);
     m_SearchInput.SetState(UISTATE_NORMAL);
 
+    for (size_t i = 0; i < std::size(m_CollectionClaimInputs); ++i)
+    {
+        auto& input = m_CollectionClaimInputs[i];
+        input.Init(g_hWnd, CLAIM_INPUT_WIDTH, CLAIM_INPUT_HEIGHT, 10, false);
+        input.SetPosition(m_Pos.x + TOOLBAR_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH,
+            m_Pos.y + CLAIM_INPUT_Y_OFFSET + 15);
+        input.SetTextColor(255, 255, 230, 210);
+        input.SetBackColor(210, 20, 14, 8);
+        input.SetSelectBackColor(255, 95, 68, 24);
+        input.SetFont(g_hFont);
+        input.SetParentUIID(SEASON3B::INTERFACE_AUCTION_HOUSE);
+        input.SetOption(UIOPTION_NUMBERONLY);
+        input.SetState(UISTATE_HIDE);
+    }
+
     InitPageButton(&m_BtnPrevPage, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
     InitPageButton(&m_BtnNextPage, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
     InitPageButton(&m_BtnBack, m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, I18N::Game::Back);
@@ -350,6 +369,7 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
 void SEASON3B::CNewUIAuctionWindow::Release()
 {
     m_SearchInput.SetState(UISTATE_HIDE);
+    SetCollectionClaimInputsVisible(false);
     if (m_SearchInput.HaveFocus())
     {
         CUITextInputBox::ReleaseFocus();
@@ -399,6 +419,12 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_CategoryCombo.SetPos(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
     m_StatusCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_CollectionKindCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
+    for (size_t i = 0; i < std::size(m_CollectionClaimInputs); ++i)
+    {
+        m_CollectionClaimInputs[i].SetPosition(
+            m_Pos.x + TOOLBAR_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH,
+            m_Pos.y + CLAIM_INPUT_Y_OFFSET + 15);
+    }
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
@@ -425,6 +451,7 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
 
     m_bShowingDetail = false;
     m_bHasSelectedCollection = false;
+    SetCollectionClaimInputsVisible(false);
     ReleaseDetailItem();
     m_bHasOperationResult = false;
     m_bOperationRequestPending = false;
@@ -704,6 +731,94 @@ void SEASON3B::CNewUIAuctionWindow::ConfirmCancelListing()
         m_DetailResponse.ListingId, m_DetailResponse.Version);
 }
 
+void SEASON3B::CNewUIAuctionWindow::SetCollectionClaimInputsVisible(bool visible)
+{
+    const bool isFruit = visible && m_bHasSelectedCollection && !m_SelectedCollection.HasItem
+        && m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Fruits;
+    const bool isJewel = visible && m_bHasSelectedCollection && !m_SelectedCollection.HasItem
+        && m_SelectedCollection.CurrencyMode > AuctionCurrencyMode::Zen
+        && m_SelectedCollection.CurrencyMode < AuctionCurrencyMode::Fruits;
+    for (size_t i = 0; i < std::size(m_CollectionClaimInputs); ++i)
+    {
+        const bool show = isFruit || (isJewel && i == 0);
+        m_CollectionClaimInputs[i].SetState(show ? UISTATE_NORMAL : UISTATE_HIDE);
+    }
+    if (!visible && HasCollectionClaimInputFocus())
+    {
+        CUITextInputBox::ReleaseFocus();
+        SetRelatedWnd(g_hWnd);
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::PopulateCollectionClaimInputs()
+{
+    SetCollectionClaimInputsVisible(false);
+    if (!m_bHasSelectedCollection || m_SelectedCollection.HasItem
+        || m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Zen)
+    {
+        return;
+    }
+
+    int64_t values[5]{};
+    if (m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Fruits)
+    {
+        const auto& fruit = m_SelectedCollection.Remaining.Fruits();
+        values[0] = fruit.Strength;
+        values[1] = fruit.Agility;
+        values[2] = fruit.Vitality;
+        values[3] = fruit.Energy;
+        values[4] = fruit.Command;
+    }
+    else
+    {
+        values[0] = m_SelectedCollection.Remaining.Scalar();
+    }
+
+    for (size_t i = 0; i < std::size(values); ++i)
+    {
+        wchar_t value[16];
+        mu_swprintf(value, L"%lld", values[i]);
+        m_CollectionClaimInputs[i].SetText(value);
+    }
+    SetCollectionClaimInputsVisible(true);
+}
+
+bool SEASON3B::CNewUIAuctionWindow::HasCollectionClaimInputFocus()
+{
+    return std::any_of(std::begin(m_CollectionClaimInputs), std::end(m_CollectionClaimInputs),
+        [](CUITextInputBox& input) { return input.HaveFocus(); });
+}
+
+bool SEASON3B::CNewUIAuctionWindow::TryGetRequestedCollectionAmount(AuctionHouse::AuctionAmount& amount)
+{
+    // The wire's all-zero sentinel is the correct all-or-nothing request for lots and Zen.
+    if (m_SelectedCollection.HasItem || m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Zen)
+    {
+        amount = AuctionHouse::AuctionAmount::FromScalar(0);
+        return true;
+    }
+
+    int64_t values[5]{};
+    const size_t valueCount = m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Fruits ? 5 : 1;
+    for (size_t i = 0; i < valueCount; ++i)
+    {
+        wchar_t text[16]{};
+        m_CollectionClaimInputs[i].GetText(text, static_cast<int>(std::size(text)));
+        wchar_t* end = nullptr;
+        const unsigned long long parsed = std::wcstoull(text, &end, 10);
+        if (end == text || *end != L'\0' || parsed > UINT32_MAX)
+        {
+            return false;
+        }
+        values[i] = static_cast<int64_t>(parsed);
+    }
+
+    amount = m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Fruits
+        ? AuctionHouse::AuctionAmount::FromFruits(AuctionHouse::FruitBasket{ values[0], values[1], values[2], values[3], values[4] })
+        : AuctionHouse::AuctionAmount::FromScalar(values[0]);
+    return AuctionHouse::IsValidCollectionClaim(m_SelectedCollection.CurrencyMode, m_SelectedCollection.Remaining, amount);
+}
+
 void SEASON3B::CNewUIAuctionWindow::SendCollectRequest()
 {
     if (m_iCurrentTab != TAB_MAILBOX || !m_bShowingDetail || !m_bHasSelectedCollection
@@ -712,14 +827,25 @@ void SEASON3B::CNewUIAuctionWindow::SendCollectRequest()
         return;
     }
 
+    AuctionHouse::AuctionAmount requested = AuctionHouse::AuctionAmount::FromScalar(0);
+    if (!TryGetRequestedCollectionAmount(requested))
+    {
+        m_bHasOperationResult = true;
+        m_LastOperationResult = AuctionResult::InvalidClaimQuantity;
+        return;
+    }
+
     m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
     m_bOperationRequestPending = true;
     m_bHasOperationResult = false;
-    // The protocol defines an all-zero requested amount as "collect everything remaining" for both items and
-    // currency. Partial jewel/fruit controls are a separate UI increment; this button is intentionally full.
+    const auto& fruits = requested.Fruits();
     SocketClient->ToGameServer()->SendAuctionCollectRequest(
         m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()),
-        m_SelectedCollection.CollectionId, m_SelectedCollection.Version, 0, 0, 0, 0, 0, 0);
+        m_SelectedCollection.CollectionId, m_SelectedCollection.Version,
+        static_cast<uint32_t>(requested.Scalar()),
+        static_cast<uint32_t>(fruits.Strength), static_cast<uint32_t>(fruits.Agility),
+        static_cast<uint32_t>(fruits.Vitality), static_cast<uint32_t>(fruits.Energy),
+        static_cast<uint32_t>(fruits.Command));
 }
 
 void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::AuctionOperationResponse& response)
@@ -743,6 +869,7 @@ void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::Auc
             // change its authoritative state. In every case return to and refresh the server-owned page.
             m_bShowingDetail = false;
             m_bHasSelectedCollection = false;
+            SetCollectionClaimInputsVisible(false);
             ReleaseDetailItem();
             SendMailboxRequest();
             m_bHasOperationResult = true;
@@ -949,6 +1076,7 @@ void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
     // nothing to release yet since the Sell tab has no content.
     m_bDragging = false;
     m_SearchInput.SetState(UISTATE_HIDE);
+    SetCollectionClaimInputsVisible(false);
     if (m_SearchInput.HaveFocus())
     {
         CUITextInputBox::ReleaseFocus();
@@ -1015,10 +1143,28 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         {
             m_bShowingDetail = false;
             m_bHasSelectedCollection = false;
+            SetCollectionClaimInputsVisible(false);
             m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
             ReleaseDetailItem();
             PlayBuffer(SOUND_CLICK01);
             return true;
+        }
+
+        if (m_iCurrentTab == TAB_MAILBOX)
+        {
+            for (auto& input : m_CollectionClaimInputs)
+            {
+                input.DoAction();
+                if (input.HaveFocus())
+                {
+                    SetRelatedWnd(input.GetHandle());
+                }
+                if (input.GetState() == UISTATE_NORMAL
+                    && CheckMouseIn(input.GetPosition_x(), input.GetPosition_y(), CLAIM_INPUT_WIDTH, CLAIM_INPUT_HEIGHT))
+                {
+                    return true;
+                }
+            }
         }
 
         if (m_iCurrentTab == TAB_BROWSE && m_BtnBid.UpdateMouseEvent() == true)
@@ -1179,6 +1325,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
                 m_bShowingDetail = true;
                 m_bHasOperationResult = false;
                 RebuildDetailItem();
+                PopulateCollectionClaimInputs();
             }
             else if (!m_bDetailRequestPending)
             {
@@ -1196,6 +1343,24 @@ bool SEASON3B::CNewUIAuctionWindow::UpdateKeyEvent()
 {
     if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_AUCTION_HOUSE) == true)
     {
+        if (HasCollectionClaimInputFocus())
+        {
+            if (SEASON3B::IsPress(VK_RETURN) == true)
+            {
+                SendCollectRequest();
+                CUITextInputBox::ReleaseFocus();
+                SetRelatedWnd(g_hWnd);
+                return false;
+            }
+            if (SEASON3B::IsPress(VK_ESCAPE) == true)
+            {
+                CUITextInputBox::ReleaseFocus();
+                SetRelatedWnd(g_hWnd);
+                return false;
+            }
+            return true;
+        }
+
         if (m_SearchInput.HaveFocus())
         {
             if (SEASON3B::IsPress(VK_RETURN) == true)
@@ -1236,6 +1401,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             m_iCurrentTab = selected;
             m_bShowingDetail = false;
             m_bHasSelectedCollection = false;
+            SetCollectionClaimInputsVisible(false);
             m_bHasOperationResult = false;
             ReleaseDetailItem();
             m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
@@ -1491,7 +1657,26 @@ void SEASON3B::CNewUIAuctionWindow::RenderMailboxDetailPanel()
     g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY,
         CollectionStatusText(entry.CollectionStatus), (float)BodyWidth, 0, RT3_SORT_LEFT);
 
-    const bool canCollect = !m_bOperationRequestPending && entry.CollectionStatus != AuctionCollectionStatus::Claimed;
+    const wchar_t* fruitLabels[] = {
+        I18N::Game::Strength, I18N::Game::Agility, I18N::Game::Vitality, I18N::Game::Energy, I18N::Game::Command
+    };
+    if (!entry.HasItem && entry.CurrencyMode != AuctionCurrencyMode::Zen)
+    {
+        const size_t inputCount = entry.CurrencyMode == AuctionCurrencyMode::Fruits ? 5 : 1;
+        for (size_t i = 0; i < inputCount; ++i)
+        {
+            const int x = m_Pos.x + TOOLBAR_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH;
+            const wchar_t* label = inputCount == 1 ? I18N::Game::AuctionClaimAmount : fruitLabels[i];
+            g_pRenderText->RenderText((float)x, (float)(m_Pos.y + CLAIM_INPUT_Y_OFFSET), label,
+                (float)CLAIM_INPUT_COLUMN_WIDTH, 0, RT3_SORT_LEFT);
+            m_CollectionClaimInputs[i].Render();
+        }
+    }
+
+    AuctionHouse::AuctionAmount requested = AuctionHouse::AuctionAmount::FromScalar(0);
+    const bool validClaim = TryGetRequestedCollectionAmount(requested);
+    const bool canCollect = !m_bOperationRequestPending && validClaim
+        && entry.CollectionStatus != AuctionCollectionStatus::Claimed;
     if (canCollect)
     {
         m_BtnCollect.UnLock();
@@ -1503,6 +1688,14 @@ void SEASON3B::CNewUIAuctionWindow::RenderMailboxDetailPanel()
         m_BtnCollect.Lock();
         m_BtnCollect.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
         m_BtnCollect.ChangeTextColor(RGBA(100, 100, 100, 255));
+    }
+
+    if (!validClaim)
+    {
+        g_pRenderText->SetTextColor(255, 90, 90, 255);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X),
+            (float)(m_Pos.y + CLAIM_INPUT_Y_OFFSET + CLAIM_INPUT_HEIGHT + 20),
+            I18N::Game::AuctionInvalidClaim, (float)BodyWidth, 0, RT3_SORT_LEFT);
     }
 }
 

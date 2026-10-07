@@ -118,6 +118,12 @@ namespace AuctionHouse
         FruitBasket _fruits{};
     };
 
+    // Client-side guidance for partial Mailbox claims. Jewel quantities must be within the remaining scalar;
+    // fruit requests may omit components but must request at least one and never exceed any remaining part.
+    // The server independently validates the same invariant under the collection lock.
+    [[nodiscard]] bool IsValidCollectionClaim(AuctionCurrencyMode currency, const AuctionAmount& remaining,
+        const AuctionAmount& requested) noexcept;
+
     // Whether a currency mode settles in a fruit basket rather than a single scalar unit count.
     [[nodiscard]] inline bool IsFruitCurrency(AuctionCurrencyMode mode) noexcept
     {

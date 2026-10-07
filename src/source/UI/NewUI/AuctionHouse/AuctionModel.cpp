@@ -57,6 +57,29 @@ namespace AuctionHouse
         return selectedIndex <= 0 ? 0xFFu : static_cast<uint8_t>(selectedIndex - 1);
     }
 
+    bool IsValidCollectionClaim(AuctionCurrencyMode currency, const AuctionAmount& remaining,
+        const AuctionAmount& requested) noexcept
+    {
+        if (currency != AuctionCurrencyMode::Fruits)
+        {
+            return !remaining.IsFruitBasket() && !requested.IsFruitBasket()
+                && requested.Scalar() >= 1 && requested.Scalar() <= remaining.Scalar();
+        }
+
+        if (!remaining.IsFruitBasket() || !requested.IsFruitBasket() || requested.IsZero())
+        {
+            return false;
+        }
+
+        const auto& available = remaining.Fruits();
+        const auto& claim = requested.Fruits();
+        return claim.Strength >= 0 && claim.Strength <= available.Strength
+            && claim.Agility >= 0 && claim.Agility <= available.Agility
+            && claim.Vitality >= 0 && claim.Vitality <= available.Vitality
+            && claim.Energy >= 0 && claim.Energy <= available.Energy
+            && claim.Command >= 0 && claim.Command <= available.Command;
+    }
+
     bool CanCancelOwnedListing(AuctionListingStatus status, uint16_t bidCount) noexcept
     {
         return status == AuctionListingStatus::Active && bidCount == 0;

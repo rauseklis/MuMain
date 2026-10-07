@@ -122,6 +122,10 @@ namespace SEASON3B
         void ReleaseDetailItem();
         void RenderDetailPanel();
         void RenderMailboxDetailPanel();
+        void PopulateCollectionClaimInputs();
+        void SetCollectionClaimInputsVisible(bool visible);
+        bool TryGetRequestedCollectionAmount(AuctionHouse::AuctionAmount& amount);
+        bool HasCollectionClaimInputFocus();
         void RenderDetailItemTooltip() const;
         void SendBidRequest();
         void SendBuyoutRequest();
@@ -263,6 +267,9 @@ namespace SEASON3B
         CNewUIButton m_BtnBuyout;
         CNewUIButton m_BtnCancelListing;
         CNewUIButton m_BtnCollect;
+        // One numeric field for jewel claims, or five fields for a fruit vector. Item and Zen collection stay
+        // all-or-nothing and therefore show no quantity input.
+        CUITextInputBox m_CollectionClaimInputs[5];
         bool m_bOperationRequestPending;
         std::array<uint8_t, 16> m_PendingOperationId;
         bool m_bHasOperationResult;
