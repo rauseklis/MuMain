@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <string>
@@ -91,4 +92,16 @@ namespace AuctionHouse
     // Formats the time remaining on a listing for the countdown display: "Ended" once it has reached zero, otherwise the two
     // most significant units ("1d 1h", "1h 1m", "2m 5s", or "45s" under a minute).
     [[nodiscard]] std::wstring FormatAuctionCountdown(std::chrono::seconds remaining);
+
+    // Returns the next request id for correlating a query request (open/browse/detail/my-listings/mailbox)
+    // with its response. Monotonically increasing within one process run; not persisted, not thread-safe
+    // (this client's network/UI code runs on a single thread, same as the rest of NewUI).
+    [[nodiscard]] uint32_t NextAuctionRequestId() noexcept;
+
+    // Generates a new 16-byte operation id for a mutation request (create/bid/buyout/cancel/collect), echoed
+    // back by the server on the matching AuctionOperationResponse so a reply can be matched to its request and
+    // a retried request recognized as a duplicate. Not a spec-compliant RFC 4122 UUID (no version/variant bits
+    // are set) since the server only needs practical per-account uniqueness, not interoperability with other
+    // UUID consumers.
+    [[nodiscard]] std::array<uint8_t, 16> GenerateAuctionOperationId();
 }

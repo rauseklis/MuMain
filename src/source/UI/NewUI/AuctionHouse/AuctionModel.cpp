@@ -4,6 +4,9 @@
 
 #include "AuctionModel.h"
 
+#include <atomic>
+#include <random>
+
 namespace AuctionHouse
 {
     std::wstring FormatAuctionCountdown(std::chrono::seconds remaining)
@@ -34,5 +37,29 @@ namespace AuctionHouse
         }
 
         return std::to_wstring(total) + L"s";
+    }
+
+    uint32_t NextAuctionRequestId() noexcept
+    {
+        // Starts at 1 so a default-constructed/zeroed request id never collides with a real one.
+        static std::atomic<uint32_t> counter{ 1 };
+        return counter.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    std::array<uint8_t, 16> GenerateAuctionOperationId()
+    {
+        // Seeded once per process from std::random_device, matching the project's own Random::GetThreadEngine
+        // seeding approach (Core/Utilities/Random.cpp) but kept self-contained here: that file includes the
+        // engine's precompiled header, which this pure-logic translation unit deliberately does not.
+        static std::mt19937_64 engine{ std::random_device{}() };
+        static std::uniform_int_distribution<int> byteDistribution(0, 255);
+
+        std::array<uint8_t, 16> id{};
+        for (auto& byte : id)
+        {
+            byte = static_cast<uint8_t>(byteDistribution(engine));
+        }
+
+        return id;
     }
 }

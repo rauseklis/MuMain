@@ -86,3 +86,21 @@ TEST_CASE("a countdown of a day or more shows days and hours [ui][auction_model]
 {
     CHECK(FormatAuctionCountdown(std::chrono::seconds(90000)) == L"1d 1h");
 }
+
+TEST_CASE("successive request ids strictly increase [ui][auction_model]")
+{
+    const auto first = NextAuctionRequestId();
+    const auto second = NextAuctionRequestId();
+    const auto third = NextAuctionRequestId();
+
+    CHECK(second > first);
+    CHECK(third > second);
+}
+
+TEST_CASE("two generated operation ids are not the same [ui][auction_model]")
+{
+    const auto first = GenerateAuctionOperationId();
+    const auto second = GenerateAuctionOperationId();
+
+    CHECK_FALSE(first == second);
+}
