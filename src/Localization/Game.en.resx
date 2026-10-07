@@ -13090,6 +13090,27 @@
   <data name="Auction Invalid Claim" xml:space="preserve">
     <value>Enter an amount within the remaining balance.</value>
   </data>
+  <data name="Auction Notification Outbid" xml:space="preserve">
+    <value>You were outbid. Your refund is waiting in the Auction House Mailbox.</value>
+  </data>
+  <data name="Auction Notification Sold" xml:space="preserve">
+    <value>Your auction sold. The proceeds are waiting in the Auction House Mailbox.</value>
+  </data>
+  <data name="Auction Notification Bought" xml:space="preserve">
+    <value>Auction purchase complete. The item is waiting in the Auction House Mailbox.</value>
+  </data>
+  <data name="Auction Notification Expired" xml:space="preserve">
+    <value>Your auction expired. The item is waiting in the Auction House Mailbox.</value>
+  </data>
+  <data name="Auction Notification Returned" xml:space="preserve">
+    <value>An auction item was returned to your Auction House Mailbox.</value>
+  </data>
+  <data name="Auction Notification Collected" xml:space="preserve">
+    <value>Auction House collection completed.</value>
+  </data>
+  <data name="Auction Notification Admin Adjusted" xml:space="preserve">
+    <value>An administrator adjusted an auction. Check your Auction House Mailbox.</value>
+  </data>
   <data name="Auction No Collections" xml:space="preserve">
     <value>No collections found</value>
   </data>

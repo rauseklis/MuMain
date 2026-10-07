@@ -77,6 +77,10 @@ namespace SEASON3B
         // so a late Mailbox response cannot replace another tab's rows.
         void SetMailboxResponse(const AuctionHouse::AuctionMailboxResponse& response);
 
+        // Real-time best-effort notification. Durable Mailbox state remains authoritative; this updates the
+        // badge/message immediately and refreshes a visible Mailbox page.
+        void SetNotification(const AuctionHouse::AuctionNotification& notification);
+
         // Called from the network dispatch when an AuctionDetailResponse arrives. Ignored if its RequestId
         // does not match the currently pending detail request.
         void SetDetailResponse(const AuctionHouse::AuctionDetailResponse& response);
@@ -188,6 +192,7 @@ namespace SEASON3B
         uint32_t m_PendingMailboxRequestId;
         bool m_bHasMailboxResponse;
         AuctionHouse::AuctionMailboxResponse m_MailboxResponse;
+        uint16_t m_PendingMailboxCount;
         bool m_bHasSelectedCollection;
         AuctionHouse::AuctionMailboxEntry m_SelectedCollection;
 

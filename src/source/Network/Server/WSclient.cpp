@@ -15117,6 +15117,15 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
                 }
             }
             break;
+        case 0x86: // AuctionNotification
+            if (auto notification = AuctionHouse::AuctionNotification::Parse(received_span))
+            {
+                if (g_pAuctionWindow)
+                {
+                    g_pAuctionWindow->SetNotification(*notification);
+                }
+            }
+            break;
         default:
             break;
         }

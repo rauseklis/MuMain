@@ -231,7 +231,7 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasListingResponse(false),
       m_SelectedStatusIndex(0), m_bMyListingsRequestPending(false), m_PendingMyListingsRequestId(0),
       m_SelectedCollectionKindIndex(0), m_bMailboxRequestPending(false), m_PendingMailboxRequestId(0),
-      m_bHasMailboxResponse(false), m_bHasSelectedCollection(false),
+      m_bHasMailboxResponse(false), m_PendingMailboxCount(0), m_bHasSelectedCollection(false),
       m_BrowseScrollOffset(0), m_iPointedRow(-1),
       m_bShowingDetail(false), m_bDetailRequestPending(false), m_PendingDetailRequestId(0),
       m_bHasDetailResponse(false), m_DetailItem(nullptr), m_bPointingDetailItem(false),
@@ -626,6 +626,7 @@ void SEASON3B::CNewUIAuctionWindow::SetMailboxResponse(const AuctionHouse::Aucti
 
     m_bHasMailboxResponse = true;
     m_MailboxResponse = response;
+    m_PendingMailboxCount = static_cast<uint16_t>(std::min<uint32_t>(response.TotalCount, UINT16_MAX));
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     m_BrowseScrollOffset = 0;
     const auto maximumOffset = AuctionHouse::MaximumBrowseScrollOffset(m_MailboxResponse.Entries.size(), MaxBrowseRows);
@@ -633,6 +634,33 @@ void SEASON3B::CNewUIAuctionWindow::SetMailboxResponse(const AuctionHouse::Aucti
     m_BrowseScrollBar.SetCurPos(0);
     m_BrowseScrollBar.Show(maximumOffset > 0);
     RebuildRowItems();
+}
+
+void SEASON3B::CNewUIAuctionWindow::SetNotification(const AuctionHouse::AuctionNotification& notification)
+{
+    m_PendingMailboxCount = notification.PendingMailboxCount;
+    const wchar_t* message = nullptr;
+    switch (notification.NotificationKind)
+    {
+    case AuctionNotificationKind::Outbid: message = I18N::Game::AuctionNotificationOutbid; break;
+    case AuctionNotificationKind::Sold: message = I18N::Game::AuctionNotificationSold; break;
+    case AuctionNotificationKind::Bought: message = I18N::Game::AuctionNotificationBought; break;
+    case AuctionNotificationKind::Expired: message = I18N::Game::AuctionNotificationExpired; break;
+    case AuctionNotificationKind::Returned: message = I18N::Game::AuctionNotificationReturned; break;
+    case AuctionNotificationKind::Collected: message = I18N::Game::AuctionNotificationCollected; break;
+    case AuctionNotificationKind::AdminAdjusted: message = I18N::Game::AuctionNotificationAdminAdjusted; break;
+    default: break;
+    }
+    if (message != nullptr && g_pSystemLogBox != nullptr)
+    {
+        g_pSystemLogBox->AddText(message, SEASON3B::TYPE_SYSTEM_MESSAGE);
+    }
+
+    if (m_iCurrentTab == TAB_MAILBOX && !m_bShowingDetail)
+    {
+        m_CurrentPage = 1;
+        SendMailboxRequest();
+    }
 }
 
 void SEASON3B::CNewUIAuctionWindow::SendDetailRequest(uint64_t listingId)
@@ -1067,6 +1095,7 @@ void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionO
     m_bOpenRequestPending = false;
     m_bHasOpenResponse = true;
     m_OpenResponse = response;
+    m_PendingMailboxCount = response.PendingMailboxCount;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
 }
 
@@ -1515,6 +1544,18 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
     m_TabBtn.Render();
     m_BtnClose.Render();
+
+    if (m_PendingMailboxCount > 0)
+    {
+        wchar_t badge[16];
+        mu_swprintf(badge, L"[%d]", m_PendingMailboxCount);
+        g_pRenderText->SetFont(g_hFontBold);
+        g_pRenderText->SetTextColor(255, 190, 70, 255);
+        g_pRenderText->SetBgColor(0, 0, 0, 0);
+        g_pRenderText->RenderText(
+            (float)(m_Pos.x + TAB_REGION_X + 3 * TAB_WIDTH + TAB_WIDTH - 38),
+            (float)(m_Pos.y + TAB_REGION_Y + 8), badge, 34.0f, 0, RT3_SORT_CENTER);
+    }
 
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetTextColor(220, 220, 220, 255);
