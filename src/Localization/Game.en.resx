@@ -13006,4 +13006,7 @@
   <data name="Mailbox" xml:space="preserve">
     <value>Mailbox</value>
   </data>
+  <data name="No listings found" xml:space="preserve">
+    <value>No listings found</value>
+  </data>
 </root>

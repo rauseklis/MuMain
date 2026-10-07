@@ -8,6 +8,8 @@
 #include "Audio/DSPlaySound.h"
 #include "Network/Server/WSclient.h"
 
+#include <algorithm>
+
 using namespace SEASON3B;
 
 namespace
@@ -232,9 +234,60 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     g_pRenderText->RenderText((float)(m_Pos.x + 15), (float)(m_Pos.y + 13), I18N::Game::AuctionHouse, (float)(WINDOW_WIDTH - 30), 0, RT3_SORT_CENTER);
 
+    if (m_iCurrentTab == TAB_BROWSE)
+    {
+        RenderBrowseTab();
+    }
+
     DisableAlphaBlend();
 
     return true;
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
+{
+    // Main body region per the design spec's shared layout table (4.2): x 31-409, y 137-416 in the 640x480
+    // logical canvas, i.e. local offset (11, 112) from this window's own (20, 25) origin. Eight rows, text
+    // only for now: no item icon or tooltip yet (that needs the existing inventory item-render/tooltip path,
+    // a separate piece of work), and the countdown is a snapshot from the last response rather than ticking
+    // live (that needs the server-time-offset tracking the design spec calls for, not built yet either).
+    constexpr int BodyX = 11;
+    constexpr int BodyY = 112;
+    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BodyX;
+    constexpr int RowHeight = 32;
+    constexpr size_t MaxRows = 8;
+
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+
+    if (!m_bHasBrowseResponse)
+    {
+        g_pRenderText->RenderText((float)(m_Pos.x + BodyX), (float)(m_Pos.y + BodyY), I18N::Game::PleaseWait, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        return;
+    }
+
+    if (m_BrowseResponse.Listings.empty())
+    {
+        g_pRenderText->RenderText((float)(m_Pos.x + BodyX), (float)(m_Pos.y + BodyY), I18N::Game::NoListingsFound, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        return;
+    }
+
+    const auto rowCount = std::min(MaxRows, m_BrowseResponse.Listings.size());
+    for (size_t row = 0; row < rowCount; ++row)
+    {
+        const auto& listing = m_BrowseResponse.Listings[row];
+        const auto remainingSeconds = listing.EndsAt > m_BrowseResponse.ServerTime ? (listing.EndsAt - m_BrowseResponse.ServerTime) : 0;
+        const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
+        const std::wstring priceText = listing.CurrentPrice.IsFruitBasket()
+            ? L"(fruits)"
+            : std::to_wstring(listing.CurrentPrice.Scalar());
+
+        wchar_t line[256];
+        mu_swprintf(line, L"%ls   %ls   x%d   %ls", priceText.c_str(), countdown.c_str(), listing.BidCount, listing.SellerName.c_str());
+
+        g_pRenderText->RenderText((float)(m_Pos.x + BodyX), (float)(m_Pos.y + BodyY + static_cast<int>(row) * RowHeight), line, (float)BodyWidth, 0, RT3_SORT_LEFT);
+    }
 }
 
 float SEASON3B::CNewUIAuctionWindow::GetLayerDepth()

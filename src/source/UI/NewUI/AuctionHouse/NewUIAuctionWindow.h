@@ -75,6 +75,7 @@ namespace SEASON3B
         void RenderFrame();
         bool BtnProcess();
         void SendBrowseRequest();
+        void RenderBrowseTab();
 
         CNewUIManager* m_pNewUIMng;
         POINT m_Pos;
