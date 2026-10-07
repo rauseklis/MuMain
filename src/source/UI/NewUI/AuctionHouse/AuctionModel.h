@@ -33,6 +33,10 @@ namespace AuctionHouse
     // clamp it without leaving a partial multi-byte code point at the end of the packet field.
     [[nodiscard]] std::string ClampUtf8ToByteCapacity(std::string_view utf8, size_t capacity);
 
+    // Combo index zero means every status (the protocol's 0xFF sentinel); the remaining entries are the
+    // contiguous AuctionListingStatus values in display order.
+    [[nodiscard]] uint8_t EncodeListingStatusFilter(int selectedIndex) noexcept;
+
     // Returns the number of rows hidden above an eight-row-style Browse viewport when scrolled fully to the
     // bottom. The result is zero when every listing already fits, avoiding unsigned underflow for short pages.
     [[nodiscard]] size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept;

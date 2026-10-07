@@ -112,6 +112,19 @@ namespace
             g_pRenderText->SetTextColor(255, 255, 255, 255);
         }
     }
+
+    const wchar_t* ListingStatusText(AuctionListingStatus status)
+    {
+        switch (status)
+        {
+        case AuctionListingStatus::Active: return I18N::Game::AuctionActive;
+        case AuctionListingStatus::Sold: return I18N::Game::AuctionSold;
+        case AuctionListingStatus::Expired: return I18N::Game::AuctionExpired;
+        case AuctionListingStatus::Cancelled: return I18N::Game::Cancelled;
+        case AuctionListingStatus::AdminRemoved: return I18N::Game::AuctionAdminRemoved;
+        default: return L"-";
+        }
+    }
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
@@ -119,7 +132,8 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_iCurrentTab(TAB_BROWSE),
       m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false),
       m_SelectedCurrency(AuctionCurrencyMode::Zen), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
-      m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasBrowseResponse(false),
+      m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasListingResponse(false),
+      m_SelectedStatusIndex(0), m_bMyListingsRequestPending(false), m_PendingMyListingsRequestId(0),
       m_BrowseScrollOffset(0), m_iPointedRow(-1),
       m_bShowingDetail(false), m_bDetailRequestPending(false), m_PendingDetailRequestId(0),
       m_bHasDetailResponse(false), m_DetailItem(nullptr), m_bPointingDetailItem(false),
@@ -192,6 +206,15 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CategoryLabels[7] = I18N::Game::Miscellaneous;
     m_CategoryCombo.Setup(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
         m_CategoryLabels, 8, m_SelectedCategoryIndex);
+
+    m_StatusLabels[0] = I18N::Game::AuctionAllStatuses;
+    m_StatusLabels[1] = I18N::Game::AuctionActive;
+    m_StatusLabels[2] = I18N::Game::AuctionSold;
+    m_StatusLabels[3] = I18N::Game::AuctionExpired;
+    m_StatusLabels[4] = I18N::Game::Cancelled;
+    m_StatusLabels[5] = I18N::Game::AuctionAdminRemoved;
+    m_StatusCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH,
+        CURRENCY_COMBO_ITEM_HEIGHT, m_StatusLabels, 6, m_SelectedStatusIndex);
 
     m_SearchInput.Init(g_hWnd, SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT, 32, false);
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
@@ -266,6 +289,7 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_BtnClose.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
     m_CurrencyCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_CategoryCombo.SetPos(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
+    m_StatusCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
@@ -318,7 +342,7 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
     wchar_t searchText[33]{};
     m_SearchInput.GetText(searchText, static_cast<int>(std::size(searchText)));
     const std::string searchUtf8 = AuctionHouse::ClampUtf8ToByteCapacity(Core::Text::ToUtf8(searchText), SEARCH_PACKET_CAPACITY);
-    m_bHasBrowseResponse = false;
+    m_bHasListingResponse = false;
     m_BrowseScrollOffset = 0;
     m_BrowseScrollBar.SetCurPos(0);
     m_BrowseScrollBar.Show(false);
@@ -360,11 +384,67 @@ void SEASON3B::CNewUIAuctionWindow::SetBrowseResponse(const AuctionHouse::Auctio
     }
 
     m_bBrowseRequestPending = false;
-    m_bHasBrowseResponse = true;
-    m_BrowseResponse = response;
+    if (m_iCurrentTab != TAB_BROWSE)
+    {
+        return;
+    }
+
+    m_bHasListingResponse = true;
+    m_ListingResponse = response;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     m_BrowseScrollOffset = 0;
-    const auto maximumOffset = AuctionHouse::MaximumBrowseScrollOffset(m_BrowseResponse.Listings.size(), MaxBrowseRows);
+    const auto maximumOffset = AuctionHouse::MaximumBrowseScrollOffset(m_ListingResponse.Listings.size(), MaxBrowseRows);
+    m_BrowseScrollBar.SetMaxPos(static_cast<int>(maximumOffset));
+    m_BrowseScrollBar.SetCurPos(0);
+    m_BrowseScrollBar.Show(maximumOffset > 0);
+    RebuildRowItems();
+}
+
+void SEASON3B::CNewUIAuctionWindow::SendMyListingsRequest()
+{
+    m_bHasListingResponse = false;
+    m_BrowseScrollOffset = 0;
+    m_BrowseScrollBar.SetCurPos(0);
+    m_BrowseScrollBar.Show(false);
+    ReleaseRowItems();
+    m_PendingMyListingsRequestId = AuctionHouse::NextAuctionRequestId();
+    m_bMyListingsRequestPending = true;
+    SocketClient->ToGameServer()->SendAuctionMyListingsRequest(
+        m_PendingMyListingsRequestId,
+        m_CurrentPage,
+        AuctionHouse::EncodeListingStatusFilter(m_SelectedStatusIndex));
+}
+
+void SEASON3B::CNewUIAuctionWindow::SendCurrentListingRequest()
+{
+    if (m_iCurrentTab == TAB_BROWSE)
+    {
+        SendBrowseRequest();
+    }
+    else if (m_iCurrentTab == TAB_MY_LISTINGS)
+    {
+        SendMyListingsRequest();
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::SetMyListingsResponse(const AuctionHouse::AuctionMyListingsResponse& response)
+{
+    if (!m_bMyListingsRequestPending || response.RequestId != m_PendingMyListingsRequestId)
+    {
+        return;
+    }
+
+    m_bMyListingsRequestPending = false;
+    if (m_iCurrentTab != TAB_MY_LISTINGS)
+    {
+        return;
+    }
+
+    m_bHasListingResponse = true;
+    m_ListingResponse = response;
+    m_ServerClock.Sync(response.ServerTime, GetTickCount());
+    m_BrowseScrollOffset = 0;
+    const auto maximumOffset = AuctionHouse::MaximumBrowseScrollOffset(m_ListingResponse.Listings.size(), MaxBrowseRows);
     m_BrowseScrollBar.SetMaxPos(static_cast<int>(maximumOffset));
     m_BrowseScrollBar.SetCurPos(0);
     m_BrowseScrollBar.Show(maximumOffset > 0);
@@ -487,11 +567,11 @@ void SEASON3B::CNewUIAuctionWindow::RebuildRowItems()
         return;
     }
 
-    const auto remainingRows = m_BrowseResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_BrowseResponse.Listings.size());
+    const auto remainingRows = m_ListingResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_ListingResponse.Listings.size());
     const auto rowCount = std::min(MaxBrowseRows, remainingRows);
     for (size_t row = 0; row < rowCount; ++row)
     {
-        const auto& listing = m_BrowseResponse.Listings[m_BrowseScrollOffset + row];
+        const auto& listing = m_ListingResponse.Listings[m_BrowseScrollOffset + row];
         if (listing.ItemDataLength == 0)
         {
             continue;
@@ -652,25 +732,25 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         return true;
     }
 
-    if (m_iCurrentTab == TAB_BROWSE && m_bShowingDetail)
+    if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bShowingDetail)
     {
         if (m_BtnBack.UpdateMouseEvent() == true)
         {
             m_bShowingDetail = false;
-            m_SearchInput.SetState(UISTATE_NORMAL);
+            m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
             ReleaseDetailItem();
             PlayBuffer(SOUND_CLICK01);
             return true;
         }
 
-        if (m_BtnBid.UpdateMouseEvent() == true)
+        if (m_iCurrentTab == TAB_BROWSE && m_BtnBid.UpdateMouseEvent() == true)
         {
             SendBidRequest();
             PlayBuffer(SOUND_CLICK01);
             return true;
         }
 
-        if (m_BtnBuyout.UpdateMouseEvent() == true)
+        if (m_iCurrentTab == TAB_BROWSE && m_BtnBuyout.UpdateMouseEvent() == true)
         {
             SendBuyoutRequest();
             PlayBuffer(SOUND_CLICK01);
@@ -695,23 +775,31 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         return true;
     }
 
-    if (m_iCurrentTab == TAB_BROWSE)
+    if (m_iCurrentTab == TAB_MY_LISTINGS && m_StatusCombo.IsMouseOverWidget())
     {
-        m_SearchInput.DoAction();
-        if (m_SearchInput.HaveFocus())
-        {
-            SetRelatedWnd(m_SearchInput.GetHandle());
-        }
-        if (CheckMouseIn(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-            SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
-        {
-            return true;
-        }
+        return true;
+    }
 
-        if (m_BtnSearch.UpdateMouseEvent() == true)
+    if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
+    {
+        if (m_iCurrentTab == TAB_BROWSE)
         {
-            SubmitSearch();
-            return true;
+            m_SearchInput.DoAction();
+            if (m_SearchInput.HaveFocus())
+            {
+                SetRelatedWnd(m_SearchInput.GetHandle());
+            }
+            if (CheckMouseIn(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
+                SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
+            {
+                return true;
+            }
+
+            if (m_BtnSearch.UpdateMouseEvent() == true)
+            {
+                SubmitSearch();
+                return true;
+            }
         }
 
         if (m_BrowseScrollBar.IsVisible())
@@ -734,7 +822,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             return true;
         }
 
-        if (IsRelease(VK_LBUTTON)
+        if (m_iCurrentTab == TAB_BROWSE && IsRelease(VK_LBUTTON)
             && CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y,
                 BROWSE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT))
         {
@@ -765,7 +853,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             if (m_CurrentPage > 1)
             {
                 --m_CurrentPage;
-                SendBrowseRequest();
+                SendCurrentListingRequest();
             }
             PlayBuffer(SOUND_CLICK01);
             return true;
@@ -773,10 +861,10 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
         if (m_BtnNextPage.UpdateMouseEvent() == true)
         {
-            if (m_bHasBrowseResponse && m_CurrentPage < m_BrowseResponse.TotalPages)
+            if (m_bHasListingResponse && m_CurrentPage < m_ListingResponse.TotalPages)
             {
                 ++m_CurrentPage;
-                SendBrowseRequest();
+                SendCurrentListingRequest();
             }
             PlayBuffer(SOUND_CLICK01);
             return true;
@@ -784,7 +872,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
         if (m_iPointedRow != -1 && !m_bDetailRequestPending && IsRelease(VK_LBUTTON))
         {
-            SendDetailRequest(m_BrowseResponse.Listings[m_BrowseScrollOffset + m_iPointedRow].ListingId);
+            SendDetailRequest(m_ListingResponse.Listings[m_BrowseScrollOffset + m_iPointedRow].ListingId);
             PlayBuffer(SOUND_CLICK01);
             return true;
         }
@@ -843,6 +931,19 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
                 CUITextInputBox::ReleaseFocus();
                 SetRelatedWnd(g_hWnd);
             }
+
+            m_CurrentPage = 1;
+            m_BrowseScrollOffset = 0;
+            if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
+            {
+                SendCurrentListingRequest();
+            }
+            else
+            {
+                m_bHasListingResponse = false;
+                m_BrowseScrollBar.Show(false);
+                ReleaseRowItems();
+            }
         }
 
         if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CurrencyCombo.UpdateMouseEvent())
@@ -860,7 +961,15 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             SendBrowseRequest();
         }
 
-        if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_bHasBrowseResponse)
+        if (m_iCurrentTab == TAB_MY_LISTINGS && !m_bShowingDetail && m_StatusCombo.UpdateMouseEvent())
+        {
+            m_SelectedStatusIndex = m_StatusCombo.GetSelectedIndex();
+            m_CurrentPage = 1;
+            SendMyListingsRequest();
+        }
+
+        if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
+            && !m_bShowingDetail && m_bHasListingResponse)
         {
             m_BrowseScrollBar.Update();
             const auto newOffset = static_cast<size_t>(m_BrowseScrollBar.GetCurPos());
@@ -873,13 +982,13 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
 
         m_iPointedRow = -1;
         m_bPointingDetailItem = false;
-        if (m_iCurrentTab == TAB_BROWSE && m_bShowingDetail)
+        if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bShowingDetail)
         {
             m_bPointingDetailItem = CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y, DETAIL_ICON_SIZE, DETAIL_ICON_SIZE);
         }
-        else if (m_iCurrentTab == TAB_BROWSE && m_bHasBrowseResponse)
+        else if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bHasListingResponse)
         {
-            const auto remainingRows = m_BrowseResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_BrowseResponse.Listings.size());
+            const auto remainingRows = m_ListingResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_ListingResponse.Listings.size());
             const auto rowCount = std::min(MaxBrowseRows, remainingRows);
             for (size_t row = 0; row < rowCount; ++row)
             {
@@ -910,13 +1019,16 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     g_pRenderText->RenderText((float)(m_Pos.x + 15), (float)(m_Pos.y + 13), I18N::Game::AuctionHouse, (float)(WINDOW_WIDTH - 30), 0, RT3_SORT_CENTER);
 
-    if (m_iCurrentTab == TAB_BROWSE && m_bShowingDetail)
+    if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bShowingDetail)
     {
         RenderDetailPanel();
         m_BtnBack.Render();
-        RenderOperationButtons();
+        if (m_iCurrentTab == TAB_BROWSE)
+        {
+            RenderOperationButtons();
+        }
     }
-    else if (m_iCurrentTab == TAB_BROWSE)
+    else if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
     {
         RenderBrowseHeader();
         RenderBrowseTab();
@@ -926,13 +1038,17 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
             m_BrowseScrollBar.Render();
         }
 
-        m_SearchInput.Render();
-        m_BtnSearch.Render();
-
-        // Rendered last, per CNewUIComboBox's own contract, so an expanded dropdown draws on top of every
-        // other toolbar control and the row text.
-        m_CurrencyCombo.Render();
-        m_CategoryCombo.Render();
+        if (m_iCurrentTab == TAB_BROWSE)
+        {
+            m_SearchInput.Render();
+            m_BtnSearch.Render();
+            m_CurrencyCombo.Render();
+            m_CategoryCombo.Render();
+        }
+        else
+        {
+            m_StatusCombo.Render();
+        }
     }
 
     DisableAlphaBlend();
@@ -1045,7 +1161,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderPageControls()
     // Locked (and grayed, matching CNewUIUnitedMarketPlaceWindow's own locked-button treatment) at page 1 and
     // once the last known page is reached. Without a response yet, both read as "at the only known page".
     const bool atFirstPage = m_CurrentPage <= 1;
-    const bool atLastPage = !m_bHasBrowseResponse || m_CurrentPage >= m_BrowseResponse.TotalPages;
+    const bool atLastPage = !m_bHasListingResponse || m_CurrentPage >= m_ListingResponse.TotalPages;
 
     if (atFirstPage)
     {
@@ -1076,7 +1192,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderPageControls()
     m_BtnPrevPage.Render();
     m_BtnNextPage.Render();
 
-    const uint16_t totalPages = m_bHasBrowseResponse ? std::max<uint16_t>(m_BrowseResponse.TotalPages, 1) : 1;
+    const uint16_t totalPages = m_bHasListingResponse ? std::max<uint16_t>(m_ListingResponse.TotalPages, 1) : 1;
     wchar_t pageText[32];
     mu_swprintf(pageText, L"%d / %d", m_CurrentPage, totalPages);
 
@@ -1093,7 +1209,7 @@ bool SEASON3B::CNewUIAuctionWindow::IsVisible() const
 
 void SEASON3B::CNewUIAuctionWindow::Render3D()
 {
-    if (m_iCurrentTab != TAB_BROWSE)
+    if (m_iCurrentTab != TAB_BROWSE && m_iCurrentTab != TAB_MY_LISTINGS)
     {
         return;
     }
@@ -1116,12 +1232,12 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         return;
     }
 
-    if (!m_bHasBrowseResponse)
+    if (!m_bHasListingResponse)
     {
         return;
     }
 
-    const auto remainingRows = m_BrowseResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_BrowseResponse.Listings.size());
+    const auto remainingRows = m_ListingResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_ListingResponse.Listings.size());
     const auto rowCount = std::min(MaxBrowseRows, remainingRows);
     for (size_t row = 0; row < rowCount; ++row)
     {
@@ -1174,25 +1290,26 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
         I18N::Game::Level, (float)BROWSE_LEVEL_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 
     std::wstring timeHeader = I18N::Game::TimeLeft;
-    if (m_SelectedSort == AuctionSort::EndingSoonest)
+    if (m_iCurrentTab == TAB_BROWSE && m_SelectedSort == AuctionSort::EndingSoonest)
     {
         timeHeader += L" ^";
     }
     g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_TIME_COLUMN_X), headerY,
         timeHeader.c_str(), (float)BROWSE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
     g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_SELLER_COLUMN_X), headerY,
-        I18N::Game::Seller, (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        m_iCurrentTab == TAB_MY_LISTINGS ? I18N::Game::Status : I18N::Game::Seller,
+        (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 
     std::wstring priceHeader = I18N::Game::AuctionPrice;
-    if (m_SelectedSort == AuctionSort::PriceAscending)
+    if (m_iCurrentTab == TAB_BROWSE && m_SelectedSort == AuctionSort::PriceAscending)
     {
         priceHeader += L" ^";
     }
-    else if (m_SelectedSort == AuctionSort::PriceDescending)
+    else if (m_iCurrentTab == TAB_BROWSE && m_SelectedSort == AuctionSort::PriceDescending)
     {
         priceHeader += L" v";
     }
-    if (m_SelectedCurrency == AuctionCurrencyMode::Fruits)
+    if (m_iCurrentTab == TAB_BROWSE && m_SelectedCurrency == AuctionCurrencyMode::Fruits)
     {
         g_pRenderText->SetTextColor(110, 110, 110, 255);
     }
@@ -1213,24 +1330,24 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
     g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
 
-    if (!m_bHasBrowseResponse)
+    if (!m_bHasListingResponse)
     {
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::PleaseWait, (float)BodyWidth, 0, RT3_SORT_LEFT);
         return;
     }
 
-    if (m_BrowseResponse.Listings.empty())
+    if (m_ListingResponse.Listings.empty())
     {
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::NoListingsFound, (float)BodyWidth, 0, RT3_SORT_LEFT);
         return;
     }
 
     const uint32_t estimatedServerTime = m_ServerClock.EstimatedServerTime(GetTickCount());
-    const auto remainingRows = m_BrowseResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_BrowseResponse.Listings.size());
+    const auto remainingRows = m_ListingResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_ListingResponse.Listings.size());
     const auto rowCount = std::min(MaxBrowseRows, remainingRows);
     for (size_t row = 0; row < rowCount; ++row)
     {
-        const auto& listing = m_BrowseResponse.Listings[m_BrowseScrollOffset + row];
+        const auto& listing = m_ListingResponse.Listings[m_BrowseScrollOffset + row];
         const int rowY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
         const bool isHovered = static_cast<int>(row) == m_iPointedRow;
 
@@ -1265,7 +1382,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_TIME_COLUMN_X), textY,
             countdown.c_str(), (float)BROWSE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_SELLER_COLUMN_X), textY,
-            listing.SellerName.c_str(), (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+            m_iCurrentTab == TAB_MY_LISTINGS ? ListingStatusText(listing.Status) : listing.SellerName.c_str(),
+            (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_PRICE_COLUMN_X), textY,
             priceText.c_str(), (float)BROWSE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_BUYOUT_COLUMN_X), textY,

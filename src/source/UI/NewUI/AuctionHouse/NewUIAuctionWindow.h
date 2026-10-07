@@ -69,6 +69,10 @@ namespace SEASON3B
         // does not match the currently pending browse request.
         void SetBrowseResponse(const AuctionHouse::AuctionBrowseResponse& response);
 
+        // Called for the account's owned-listing page. The wire layout is identical to Browse, but request
+        // correlation is independent so a late response from another tab cannot replace the visible rows.
+        void SetMyListingsResponse(const AuctionHouse::AuctionMyListingsResponse& response);
+
         // Called from the network dispatch when an AuctionDetailResponse arrives. Ignored if its RequestId
         // does not match the currently pending detail request.
         void SetDetailResponse(const AuctionHouse::AuctionDetailResponse& response);
@@ -91,6 +95,8 @@ namespace SEASON3B
         void RenderFrame();
         bool BtnProcess();
         void SendBrowseRequest();
+        void SendMyListingsRequest();
+        void SendCurrentListingRequest();
         void SubmitSearch();
         void RenderBrowseHeader();
         void RenderBrowseTab();
@@ -150,8 +156,12 @@ namespace SEASON3B
         AuctionSort m_SelectedSort;
         bool m_bBrowseRequestPending;
         uint32_t m_PendingBrowseRequestId;
-        bool m_bHasBrowseResponse;
-        AuctionHouse::AuctionBrowseResponse m_BrowseResponse;
+        bool m_bHasListingResponse;
+        AuctionHouse::AuctionBrowseResponse m_ListingResponse;
+
+        int m_SelectedStatusIndex;
+        bool m_bMyListingsRequestPending;
+        uint32_t m_PendingMyListingsRequestId;
 
         // Prev/Next page buttons for the Browse tab. Locked (and grayed) at page 1 and at the last known page;
         // clicking either re-sends the browse request for m_CurrentPage, same as a currency change does.
@@ -170,7 +180,8 @@ namespace SEASON3B
         // One owned ITEM* per rendered row, created from that row's AuctionListingSummary::ItemData via
         // g_pNewItemMng (the same manager the rest of NewUI uses), so the Browse tab can reuse RenderItem3D and
         // RenderItemInfo exactly as the inventory window does. Null for a row with no listing or no item data.
-        // Rebuilt whenever m_BrowseResponse is replaced; always released through g_pNewItemMng, never deleted
+        // Rebuilt whenever the current Browse/My Listings page is replaced; always released through
+        // g_pNewItemMng, never deleted
         // directly, since CNewUIItemMng ref-counts and owns the underlying allocation.
         ITEM* m_RowItems[MaxBrowseRows];
 
@@ -191,6 +202,11 @@ namespace SEASON3B
         // category value whenever a specific category is selected.
         const wchar_t* m_CategoryLabels[8];
         CNewUIComboBox m_CategoryCombo;
+
+        // All statuses followed by Active/Sold/Expired/Cancelled/Admin Removed, matching the status-filter
+        // mapping tested in AuctionModel.
+        const wchar_t* m_StatusLabels[6];
+        CNewUIComboBox m_StatusCombo;
 
         // Single-line UTF-16 edit field converted to the browse packet's fixed 32-byte UTF-8 name field on
         // submit. The adjacent Search button and Enter both call SubmitSearch().

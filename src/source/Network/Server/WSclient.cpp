@@ -15059,8 +15059,8 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
         // offset 3; a C2-with-subcode packet (bigger payloads: open/browse/detail/my-listings/mailbox) puts
         // it at offset 4, since its length field is two bytes instead of one. bIsC1C3 was already computed
         // above from the header type byte. Open, browse, detail, and mutation results have a consumer so far
-        // (the window itself); the rest parse into AuctionHouse::Auction*Response but nothing reads them yet
-        // (no My Listings/Mailbox tab exists, task 4.5).
+        // (the window itself). Mailbox is the remaining parsed response without a consumer; My Listings now
+        // reuses the Browse table through its own independently correlated request path.
         const BYTE auctionSubCode = bIsC1C3 ? ReceiveBuffer[3] : ReceiveBuffer[4];
         switch (auctionSubCode)
         {
@@ -15097,6 +15097,15 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
                 if (g_pAuctionWindow)
                 {
                     g_pAuctionWindow->SetOperationResponse(*response);
+                }
+            }
+            break;
+        case 0x84: // AuctionMyListingsResponse
+            if (auto response = AuctionHouse::AuctionMyListingsResponse::Parse(received_span))
+            {
+                if (g_pAuctionWindow)
+                {
+                    g_pAuctionWindow->SetMyListingsResponse(*response);
                 }
             }
             break;

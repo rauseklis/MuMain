@@ -13030,6 +13030,21 @@
   <data name="Auction Search" xml:space="preserve">
     <value>Search</value>
   </data>
+  <data name="Auction All Statuses" xml:space="preserve">
+    <value>All Statuses</value>
+  </data>
+  <data name="Auction Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Auction Sold" xml:space="preserve">
+    <value>Sold</value>
+  </data>
+  <data name="Auction Expired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Auction Admin Removed" xml:space="preserve">
+    <value>Admin Removed</value>
+  </data>
   <data name="Success" xml:space="preserve">
     <value>Success</value>
   </data>

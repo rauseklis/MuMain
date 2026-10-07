@@ -47,6 +47,11 @@ namespace AuctionHouse
         return std::string(utf8.substr(0, length));
     }
 
+    uint8_t EncodeListingStatusFilter(int selectedIndex) noexcept
+    {
+        return selectedIndex <= 0 ? 0xFFu : static_cast<uint8_t>(selectedIndex - 1);
+    }
+
     size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept
     {
         return listingCount > visibleRows ? listingCount - visibleRows : 0;

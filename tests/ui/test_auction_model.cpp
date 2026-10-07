@@ -243,3 +243,10 @@ TEST_CASE("auction search truncation never splits a UTF-8 character [ui][auction
 {
     CHECK(ClampUtf8ToByteCapacity(std::string(30, 'a') + "\xE2\x82\xAC", 32) == std::string(30, 'a'));
 }
+
+TEST_CASE("my listings status combo maps all and concrete statuses to the wire [ui][auction_model]")
+{
+    CHECK(EncodeListingStatusFilter(0) == 0xFF);
+    CHECK(EncodeListingStatusFilter(1) == static_cast<uint8_t>(AuctionListingStatus::Active));
+    CHECK(EncodeListingStatusFilter(5) == static_cast<uint8_t>(AuctionListingStatus::AdminRemoved));
+}
