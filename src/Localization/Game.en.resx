@@ -12991,4 +12991,19 @@
   <data name="KeepFlightEquipmentInIcarus" xml:space="preserve">
     <value>In Icarus you cannot take off your last wings or flying mount.</value>
   </data>
+  <data name="Auction House" xml:space="preserve">
+    <value>Auction House</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="Sell" xml:space="preserve">
+    <value>Sell</value>
+  </data>
+  <data name="My Listings" xml:space="preserve">
+    <value>My Listings</value>
+  </data>
+  <data name="Mailbox" xml:space="preserve">
+    <value>Mailbox</value>
+  </data>
 </root>

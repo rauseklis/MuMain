@@ -95,6 +95,7 @@ CNewUISystem::CNewUISystem()
     m_pNewBuffWindow = nullptr;
     m_pNewCryWolfInterface = nullptr;
     m_pNewMaster_Level_Interface = nullptr;
+    m_pNewAuctionWindow = nullptr;
     m_pNewCursedTempleResultWindow = nullptr;
     m_pNewCursedTempleWindow = nullptr;
     m_pNewCursedTempleEnterWindow = nullptr;
@@ -463,6 +464,10 @@ bool CNewUISystem::LoadMainSceneInterface()
     if (m_pNewMaster_Level_Interface->Create(m_pNewUIMng) == false)
         return false;
 
+    m_pNewAuctionWindow = new CNewUIAuctionWindow;
+    if (m_pNewAuctionWindow->Create(m_pNewUIMng, 20, 25) == false)
+        return false;
+
     m_pNewMiniMap = new CNewUIMiniMap;
     if (m_pNewMiniMap->Create(m_pNewUIMng, 0, 0) == false)
         return false;
@@ -619,6 +624,7 @@ void CNewUISystem::UnloadMainSceneInterface()
     SAFE_DELETE(m_pNewCursedTempleEnterWindow);
     SAFE_DELETE(m_pNewCryWolfInterface);
     SAFE_DELETE(m_pNewMaster_Level_Interface);
+    SAFE_DELETE(m_pNewAuctionWindow);
     SAFE_DELETE(m_pNewGoldBowman);
     SAFE_DELETE(m_pNewGoldBowmanLena);
     SAFE_DELETE(m_pNewLuckyCoinRegistration);
@@ -984,6 +990,11 @@ void CNewUISystem::Show(DWORD dwKey)
     else if (dwKey == INTERFACE_MASTER_LEVEL)
     {
         HideAllGroupA();
+    }
+    else if (dwKey == INTERFACE_AUCTION_HOUSE)
+    {
+        HideAllGroupA();
+        m_pNewAuctionWindow->OpeningProcess();
     }
     else if (dwKey == INTERFACE_KANTURU2ND_ENTERNPC)
     {
@@ -1382,6 +1393,10 @@ void CNewUISystem::Hide(DWORD dwKey)
     else if (dwKey == INTERFACE_GUARDSMAN)
     {
         m_pNewGuardWindow->ClosingProcess();
+    }
+    else if (dwKey == INTERFACE_AUCTION_HOUSE)
+    {
+        m_pNewAuctionWindow->ClosingProcess();
     }
     else if (dwKey == INTERFACE_GATEKEEPER)
     {
@@ -2279,6 +2294,11 @@ CNewUICryWolf* CNewUISystem::GetUI_NewCryWolfInterface() const
 CNewUIMasterLevel* CNewUISystem::GetUI_NewMasterLevelInterface() const
 {
     return m_pNewMaster_Level_Interface;
+}
+
+CNewUIAuctionWindow* CNewUISystem::GetUI_NewAuctionWindow() const
+{
+    return m_pNewAuctionWindow;
 }
 
 CNewUIMyShopInventory* CNewUISystem::GetUI_NewMyShopInventory() const

@@ -465,7 +465,11 @@ bool SEASON3B::CNewUIMasterLevel::UpdateMouseEvent()
 
 bool SEASON3B::CNewUIMasterLevel::UpdateKeyEvent()
 {
-    if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_MASTER_LEVEL) == false || SEASON3B::IsPress(VK_ESCAPE) == false && SEASON3B::IsPress('A') == false)
+    // 'A' alone now opens the Auction House (see CNewUIHotKey); Master Level only responds to the
+    // Shift+A chord it was opened with, so a plain 'A' press while this window is open no longer
+    // closes it out from under the Auction House hotkey.
+    const bool shiftACloseChord = SEASON3B::IsPress('A') == true && SEASON3B::IsRepeat(VK_SHIFT) == true;
+    if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_MASTER_LEVEL) == false || SEASON3B::IsPress(VK_ESCAPE) == false && shiftACloseChord == false)
     {
         return true;
     }

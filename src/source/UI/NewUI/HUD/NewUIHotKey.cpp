@@ -230,13 +230,20 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
     }
     else if (SEASON3B::IsPress('A'))
     {
-        if (gCharacterManager.IsMasterLevel(Hero->Class) == true
-            && Hero->Class != CLASS_TEMPLENIGHT)
+        if (SEASON3B::IsRepeat(VK_SHIFT))
         {
-            g_pNewUISystem->Toggle(SEASON3B::INTERFACE_MASTER_LEVEL);
+            if (gCharacterManager.IsMasterLevel(Hero->Class) == true
+                && Hero->Class != CLASS_TEMPLENIGHT)
+            {
+                g_pNewUISystem->Toggle(SEASON3B::INTERFACE_MASTER_LEVEL);
+                PlayBuffer(SOUND_CLICK01);
+            }
         }
-
-        PlayBuffer(SOUND_CLICK01);
+        else
+        {
+            g_pNewUISystem->Toggle(SEASON3B::INTERFACE_AUCTION_HOUSE);
+            PlayBuffer(SOUND_CLICK01);
+        }
 
         return false;
     }
