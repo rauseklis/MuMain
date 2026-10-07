@@ -13024,6 +13024,9 @@
   <data name="Buyout" xml:space="preserve">
     <value>Buyout</value>
   </data>
+  <data name="Auction Price" xml:space="preserve">
+    <value>Price</value>
+  </data>
   <data name="Success" xml:space="preserve">
     <value>Success</value>
   </data>

@@ -14,6 +14,20 @@
 
 namespace AuctionHouse
 {
+    enum class AuctionBrowseSortColumn
+    {
+        TimeLeft,
+        Price,
+    };
+
+    // Maps the two sortable Browse headers onto the four sort values approved by the wire protocol. Price
+    // toggles in both directions; Time Left always restores the truthful earliest-expiry-first order.
+    [[nodiscard]] AuctionSort NextBrowseSort(AuctionBrowseSortColumn column, AuctionSort current) noexcept;
+
+    // Scalar price ordering is undefined for component-wise fruit baskets and the server rejects it. Switching
+    // currency therefore restores the safe time sort before the next request is sent.
+    [[nodiscard]] AuctionSort NormalizeBrowseSort(AuctionCurrencyMode currency, AuctionSort sort) noexcept;
+
     // Returns the number of rows hidden above an eight-row-style Browse viewport when scrolled fully to the
     // bottom. The result is zero when every listing already fits, avoiding unsigned underflow for short pages.
     [[nodiscard]] size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept;

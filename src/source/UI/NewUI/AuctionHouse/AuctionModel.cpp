@@ -10,6 +10,27 @@
 
 namespace AuctionHouse
 {
+    AuctionSort NextBrowseSort(AuctionBrowseSortColumn column, AuctionSort current) noexcept
+    {
+        if (column == AuctionBrowseSortColumn::TimeLeft)
+        {
+            return AuctionSort::EndingSoonest;
+        }
+
+        return current == AuctionSort::PriceAscending ? AuctionSort::PriceDescending : AuctionSort::PriceAscending;
+    }
+
+    AuctionSort NormalizeBrowseSort(AuctionCurrencyMode currency, AuctionSort sort) noexcept
+    {
+        if (currency == AuctionCurrencyMode::Fruits
+            && (sort == AuctionSort::PriceAscending || sort == AuctionSort::PriceDescending))
+        {
+            return AuctionSort::EndingSoonest;
+        }
+
+        return sort;
+    }
+
     size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept
     {
         return listingCount > visibleRows ? listingCount - visibleRows : 0;

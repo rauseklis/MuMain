@@ -34,21 +34,38 @@ namespace
     constexpr int CATEGORY_COMBO_X_OFFSET = CURRENCY_COMBO_WIDTH + 8;
     constexpr int CATEGORY_COMBO_WIDTH = 210;
     constexpr int BROWSE_BODY_X = 11;
-    constexpr int BROWSE_BODY_Y = 112;
-    constexpr int BROWSE_ROW_HEIGHT = 34;
+    constexpr int BROWSE_HEADER_Y = 105;
+    constexpr int BROWSE_HEADER_HEIGHT = 21;
+    constexpr int BROWSE_BODY_Y = BROWSE_HEADER_Y + BROWSE_HEADER_HEIGHT;
+    constexpr int BROWSE_ROW_HEIGHT = 32;
     constexpr int BROWSE_ROW_PADDING = 1;
-    constexpr int BROWSE_ICON_SIZE = 28;
+    constexpr int BROWSE_ICON_SIZE = 26;
     constexpr int BROWSE_ICON_MARGIN = 3;
     constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_SIZE + 6 + BROWSE_ICON_MARGIN;
-    constexpr int BROWSE_LINE_HEIGHT = 15;
     constexpr int BROWSE_SCROLLBAR_RIGHT_MARGIN = 14;
     constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_ROW_HEIGHT * 8;
     constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 18;
+    constexpr int BROWSE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
+    constexpr int BROWSE_ITEM_COLUMN_X = 0;
+    constexpr int BROWSE_ITEM_COLUMN_WIDTH = 224;
+    constexpr int BROWSE_LEVEL_COLUMN_X = BROWSE_ITEM_COLUMN_X + BROWSE_ITEM_COLUMN_WIDTH;
+    constexpr int BROWSE_LEVEL_COLUMN_WIDTH = 42;
+    constexpr int BROWSE_TIME_COLUMN_X = BROWSE_LEVEL_COLUMN_X + BROWSE_LEVEL_COLUMN_WIDTH;
+    constexpr int BROWSE_TIME_COLUMN_WIDTH = 76;
+    constexpr int BROWSE_SELLER_COLUMN_X = BROWSE_TIME_COLUMN_X + BROWSE_TIME_COLUMN_WIDTH;
+    constexpr int BROWSE_SELLER_COLUMN_WIDTH = 82;
+    constexpr int BROWSE_PRICE_COLUMN_X = BROWSE_SELLER_COLUMN_X + BROWSE_SELLER_COLUMN_WIDTH;
+    constexpr int BROWSE_PRICE_COLUMN_WIDTH = 70;
+    constexpr int BROWSE_BUYOUT_COLUMN_X = BROWSE_PRICE_COLUMN_X + BROWSE_PRICE_COLUMN_WIDTH;
+    constexpr int BROWSE_BUYOUT_COLUMN_WIDTH = BROWSE_CONTENT_WIDTH - BROWSE_BUYOUT_COLUMN_X;
+    static_assert(BROWSE_BUYOUT_COLUMN_WIDTH > 0, "Auction browse columns exceed their content region");
     // A visible panel behind every row, so each listing reads as a distinct card rather than bare text
     // floating on the window background — the same idea as WoW's Auction House row cards, built from plain
     // colored quads since no card-panel texture exists in this project's asset set.
     constexpr unsigned int BROWSE_CARD_COLOR = 0x30FFFFFFu;
     constexpr unsigned int BROWSE_CARD_HOVER_COLOR = 0x50FFD700u;
+    constexpr unsigned int BROWSE_HEADER_COLOR = 0xA018120Au;
+    constexpr unsigned int BROWSE_GRID_COLOR = 0x50C8A45Au;
     constexpr int PAGE_BTN_WIDTH = 53;
     constexpr int PAGE_BTN_HEIGHT = 23;
     constexpr int PAGE_BTN_MARGIN_X = 20;
@@ -611,6 +628,32 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             return true;
         }
 
+        if (IsRelease(VK_LBUTTON)
+            && CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y,
+                BROWSE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT))
+        {
+            const int localX = MouseX - (m_Pos.x + BROWSE_BODY_X);
+            AuctionSort requestedSort = m_SelectedSort;
+            if (localX >= BROWSE_TIME_COLUMN_X && localX < BROWSE_TIME_COLUMN_X + BROWSE_TIME_COLUMN_WIDTH)
+            {
+                requestedSort = AuctionHouse::NextBrowseSort(AuctionHouse::AuctionBrowseSortColumn::TimeLeft, m_SelectedSort);
+            }
+            else if (m_SelectedCurrency != AuctionCurrencyMode::Fruits
+                && localX >= BROWSE_PRICE_COLUMN_X && localX < BROWSE_PRICE_COLUMN_X + BROWSE_PRICE_COLUMN_WIDTH)
+            {
+                requestedSort = AuctionHouse::NextBrowseSort(AuctionHouse::AuctionBrowseSortColumn::Price, m_SelectedSort);
+            }
+
+            if (requestedSort != m_SelectedSort)
+            {
+                m_SelectedSort = requestedSort;
+                m_CurrentPage = 1;
+                SendBrowseRequest();
+                PlayBuffer(SOUND_CLICK01);
+                return true;
+            }
+        }
+
         if (m_BtnPrevPage.UpdateMouseEvent() == true)
         {
             if (m_CurrentPage > 1)
@@ -675,6 +718,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CurrencyCombo.UpdateMouseEvent())
         {
             m_SelectedCurrency = static_cast<AuctionCurrencyMode>(m_CurrencyCombo.GetSelectedIndex());
+            m_SelectedSort = AuctionHouse::NormalizeBrowseSort(m_SelectedCurrency, m_SelectedSort);
             m_CurrentPage = 1;
             SendBrowseRequest();
         }
@@ -744,6 +788,7 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     }
     else if (m_iCurrentTab == TAB_BROWSE)
     {
+        RenderBrowseHeader();
         RenderBrowseTab();
         RenderPageControls();
         if (m_BrowseScrollBar.IsVisible())
@@ -966,15 +1011,69 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
     }
 }
 
+void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
+{
+    EnableAlphaBlend();
+    RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y,
+        BROWSE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT, BROWSE_HEADER_COLOR);
+
+    const int separators[] = {
+        BROWSE_LEVEL_COLUMN_X,
+        BROWSE_TIME_COLUMN_X,
+        BROWSE_SELLER_COLUMN_X,
+        BROWSE_PRICE_COLUMN_X,
+        BROWSE_BUYOUT_COLUMN_X,
+    };
+    for (const int separator : separators)
+    {
+        RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X + separator, m_Pos.y + BROWSE_HEADER_Y,
+            1, BROWSE_HEADER_HEIGHT + BROWSE_SCROLLBAR_HEIGHT, BROWSE_GRID_COLOR);
+    }
+
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetTextColor(218, 186, 104, 255);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    const float headerY = static_cast<float>(m_Pos.y + BROWSE_HEADER_Y + 5);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_ITEM_COLUMN_X + 5), headerY,
+        I18N::Game::Item, (float)(BROWSE_ITEM_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_LEVEL_COLUMN_X), headerY,
+        I18N::Game::Level, (float)BROWSE_LEVEL_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+
+    std::wstring timeHeader = I18N::Game::TimeLeft;
+    if (m_SelectedSort == AuctionSort::EndingSoonest)
+    {
+        timeHeader += L" ^";
+    }
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_TIME_COLUMN_X), headerY,
+        timeHeader.c_str(), (float)BROWSE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_SELLER_COLUMN_X), headerY,
+        I18N::Game::Seller, (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+
+    std::wstring priceHeader = I18N::Game::AuctionPrice;
+    if (m_SelectedSort == AuctionSort::PriceAscending)
+    {
+        priceHeader += L" ^";
+    }
+    else if (m_SelectedSort == AuctionSort::PriceDescending)
+    {
+        priceHeader += L" v";
+    }
+    if (m_SelectedCurrency == AuctionCurrencyMode::Fruits)
+    {
+        g_pRenderText->SetTextColor(110, 110, 110, 255);
+    }
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_PRICE_COLUMN_X), headerY,
+        priceHeader.c_str(), (float)BROWSE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->SetTextColor(218, 186, 104, 255);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_BUYOUT_COLUMN_X), headerY,
+        I18N::Game::Buyout, (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+}
+
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 {
-    // Main body region per the design spec's shared layout table (4.2): x 31-409, y 137-416 in the 640x480
-    // logical canvas, i.e. local offset (11, 112) from this window's own (20, 25) origin. Eight card-style
-    // rows: a translucent panel per row (gold-tinted when hovered), the item icon drawn separately in
-    // Render3D() (the engine's 3D pass, same as inventory slots), the item's own display name on the first
-    // text line, and price/buyout/time/bids on the second. The countdown uses m_ServerClock's live estimate,
-    // not the frozen ServerTime the last response carried, so it ticks down between responses.
-    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
+    // Eight compact table rows. Item icons remain in the engine's 3D pass; the text columns and grid are
+    // ordinary UI rendering. The countdown uses m_ServerClock's live estimate, not the frozen response time.
+    constexpr int BodyWidth = BROWSE_CONTENT_WIDTH;
 
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
@@ -1009,22 +1108,34 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
         const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
         const std::wstring priceText = listing.CurrentPrice.IsFruitBasket()
-            ? L"(fruits)"
+            ? I18N::Game::FruitBasket
             : std::to_wstring(listing.CurrentPrice.Scalar());
+        const std::wstring buyoutText = listing.BuyoutPrice.IsZero()
+            ? L"-"
+            : (listing.BuyoutPrice.IsFruitBasket() ? I18N::Game::FruitBasket : std::to_wstring(listing.BuyoutPrice.Scalar()));
         const std::wstring itemName = m_RowItems[row] != nullptr ? GetItemDisplayName(m_RowItems[row]) : std::wstring();
 
         const int textX = m_Pos.x + BROWSE_BODY_X + BROWSE_TEXT_X_OFFSET;
-        const int textWidth = BodyWidth - BROWSE_TEXT_X_OFFSET - 4;
+        const int textWidth = BROWSE_ITEM_COLUMN_WIDTH - BROWSE_TEXT_X_OFFSET - 4;
+        const float textY = static_cast<float>(rowY + 9);
 
         g_pRenderText->SetFont(g_hFontBold);
         g_pRenderText->SetTextColor(255, 255, 255, 255);
-        g_pRenderText->RenderText((float)textX, (float)(rowY + 2), itemName.c_str(), (float)textWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)textX, textY, itemName.c_str(), (float)textWidth, 0, RT3_SORT_LEFT);
 
-        wchar_t secondLine[256];
-        mu_swprintf(secondLine, L"%ls   x%d   %ls   %ls", priceText.c_str(), listing.BidCount, countdown.c_str(), listing.SellerName.c_str());
         g_pRenderText->SetFont(g_hFont);
         g_pRenderText->SetTextColor(200, 200, 200, 255);
-        g_pRenderText->RenderText((float)textX, (float)(rowY + 2 + BROWSE_LINE_HEIGHT), secondLine, (float)textWidth, 0, RT3_SORT_LEFT);
+        const std::wstring levelText = L"+" + std::to_wstring(m_RowItems[row] != nullptr ? m_RowItems[row]->Level : 0);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_LEVEL_COLUMN_X), textY,
+            levelText.c_str(), (float)BROWSE_LEVEL_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_TIME_COLUMN_X), textY,
+            countdown.c_str(), (float)BROWSE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_SELLER_COLUMN_X), textY,
+            listing.SellerName.c_str(), (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_PRICE_COLUMN_X), textY,
+            priceText.c_str(), (float)BROWSE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_BUYOUT_COLUMN_X), textY,
+            buyoutText.c_str(), (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
     }
 
     DisableAlphaBlend();

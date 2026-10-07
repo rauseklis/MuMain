@@ -90,6 +90,7 @@ namespace SEASON3B
         void RenderFrame();
         bool BtnProcess();
         void SendBrowseRequest();
+        void RenderBrowseHeader();
         void RenderBrowseTab();
         void RebuildRowItems();
         void ReleaseRowItems();

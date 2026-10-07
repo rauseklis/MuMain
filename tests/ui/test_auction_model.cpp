@@ -211,3 +211,23 @@ TEST_CASE("browse scrolling stays at the top when all rows fit [ui][auction_mode
     CHECK(MaximumBrowseScrollOffset(3, 8) == 0);
     CHECK(MaximumBrowseScrollOffset(0, 8) == 0);
 }
+
+TEST_CASE("clicking the price header toggles ascending and descending server sorts [ui][auction_model]")
+{
+    CHECK(NextBrowseSort(AuctionBrowseSortColumn::Price, AuctionSort::EndingSoonest) == AuctionSort::PriceAscending);
+    CHECK(NextBrowseSort(AuctionBrowseSortColumn::Price, AuctionSort::PriceAscending) == AuctionSort::PriceDescending);
+    CHECK(NextBrowseSort(AuctionBrowseSortColumn::Price, AuctionSort::PriceDescending) == AuctionSort::PriceAscending);
+}
+
+TEST_CASE("clicking time left restores the server's ending-soonest sort [ui][auction_model]")
+{
+    CHECK(NextBrowseSort(AuctionBrowseSortColumn::TimeLeft, AuctionSort::PriceAscending) == AuctionSort::EndingSoonest);
+    CHECK(NextBrowseSort(AuctionBrowseSortColumn::TimeLeft, AuctionSort::Newest) == AuctionSort::EndingSoonest);
+}
+
+TEST_CASE("fruit browsing falls back from unsupported scalar price sorting [ui][auction_model]")
+{
+    CHECK(NormalizeBrowseSort(AuctionCurrencyMode::Fruits, AuctionSort::PriceAscending) == AuctionSort::EndingSoonest);
+    CHECK(NormalizeBrowseSort(AuctionCurrencyMode::Fruits, AuctionSort::PriceDescending) == AuctionSort::EndingSoonest);
+    CHECK(NormalizeBrowseSort(AuctionCurrencyMode::Chaos, AuctionSort::PriceAscending) == AuctionSort::PriceAscending);
+}
