@@ -18,7 +18,8 @@ namespace
 {
     constexpr int TAB_REGION_X = 10;
     constexpr int TAB_REGION_Y = 40;
-    constexpr int TAB_WIDTH = 92;
+    // Four equal tabs span the wider window while preserving the existing 10-pixel side margins.
+    constexpr int TAB_WIDTH = (SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * TAB_REGION_X) / 4;
     constexpr int TAB_HEIGHT = 26;
     constexpr int TOP_BAND_HEIGHT = 64;
     constexpr int BOTTOM_BAND_HEIGHT = 45;

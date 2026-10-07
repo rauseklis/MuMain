@@ -14,9 +14,8 @@
 
 namespace SEASON3B
 {
-    // The standalone Auction House window. Four tabs: Browse, Sell, My Listings, Mailbox. This slice wires the
-    // frame, the tab chrome, and the open/close lifecycle; the tab bodies are filled in by later work (the
-    // design spec's tasks 4.3-4.5) and are empty placeholders here.
+    // The standalone Auction House window. Four tabs: Browse, Sell, My Listings, Mailbox. Browse is implemented
+    // incrementally; the other tab bodies are filled in by the design spec's later tasks 4.4-4.5.
     class CNewUIAuctionWindow : public CNewUIObj, public INewUI3DRenderObj
     {
     public:
@@ -41,7 +40,9 @@ namespace SEASON3B
             IMAGE_AUCTION_PAGE_BTN = CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_EMPTY_VERY_SMALL, // newui_btn_empty_very_small.tga
         };
 
-        static constexpr int WINDOW_WIDTH = 400;
+        // The original 400-pixel design could not fit the owner-approved search/filter bar and six-column
+        // results table. At x=20, 600 logical pixels preserve a 20-pixel margin on the 640-wide base canvas.
+        static constexpr int WINDOW_WIDTH = 600;
         static constexpr int WINDOW_HEIGHT = 429;
 
         CNewUIAuctionWindow();
