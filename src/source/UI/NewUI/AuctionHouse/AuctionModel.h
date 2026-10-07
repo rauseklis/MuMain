@@ -6,6 +6,7 @@
 
 #include <array>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -13,6 +14,10 @@
 
 namespace AuctionHouse
 {
+    // Returns the number of rows hidden above an eight-row-style Browse viewport when scrolled fully to the
+    // bottom. The result is zero when every listing already fits, avoiding unsigned underflow for short pages.
+    [[nodiscard]] size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept;
+
     // The five fruit components of a Fruits-currency listing or bid. Zero in every field means "no fruits set".
     struct FruitBasket
     {

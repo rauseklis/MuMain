@@ -41,6 +41,9 @@ namespace
     constexpr int BROWSE_ICON_MARGIN = 3;
     constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_SIZE + 6 + BROWSE_ICON_MARGIN;
     constexpr int BROWSE_LINE_HEIGHT = 15;
+    constexpr int BROWSE_SCROLLBAR_RIGHT_MARGIN = 14;
+    constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_ROW_HEIGHT * 8;
+    constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 18;
     // A visible panel behind every row, so each listing reads as a distinct card rather than bare text
     // floating on the window background — the same idea as WoW's Auction House row cards, built from plain
     // colored quads since no card-panel texture exists in this project's asset set.
@@ -64,7 +67,7 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false),
       m_SelectedCurrency(AuctionCurrencyMode::Zen), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasBrowseResponse(false),
-      m_iPointedRow(-1),
+      m_BrowseScrollOffset(0), m_iPointedRow(-1),
       m_bShowingDetail(false), m_bDetailRequestPending(false), m_PendingDetailRequestId(0),
       m_bHasDetailResponse(false), m_DetailItem(nullptr), m_bPointingDetailItem(false),
       m_bOperationRequestPending(false), m_PendingOperationId{}, m_bHasOperationResult(false),
@@ -142,6 +145,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     InitPageButton(&m_BtnBack, m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, I18N::Game::Back);
     InitPageButton(&m_BtnBid, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Bid);
     InitPageButton(&m_BtnBuyout, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Buyout);
+    m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y, BROWSE_SCROLLBAR_HEIGHT);
+    m_BrowseScrollBar.Show(false);
 
     Show(false);
 
@@ -197,6 +202,8 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_BtnBack.ChangeButtonInfo(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBid.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBuyout.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BrowseScrollBar.SetPos(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y);
+    m_BrowseScrollBar.UpdateScrolling();
 }
 
 void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
@@ -219,6 +226,8 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     SocketClient->ToGameServer()->SendAuctionOpenRequest(m_PendingOpenRequestId);
 
     m_CurrentPage = 1;
+    m_BrowseScrollOffset = 0;
+    m_BrowseScrollBar.SetCurPos(0);
     SendBrowseRequest();
 }
 
@@ -233,6 +242,10 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
     constexpr BYTE AllCategories = 0xFF;
     const BYTE category = m_SelectedCategoryIndex == 0 ? AllCategories : static_cast<BYTE>(m_SelectedCategoryIndex - 1);
     m_bHasBrowseResponse = false;
+    m_BrowseScrollOffset = 0;
+    m_BrowseScrollBar.SetCurPos(0);
+    m_BrowseScrollBar.Show(false);
+    ReleaseRowItems();
     m_PendingBrowseRequestId = AuctionHouse::NextAuctionRequestId();
     m_bBrowseRequestPending = true;
     SocketClient->ToGameServer()->SendAuctionBrowseRequest(
@@ -262,6 +275,11 @@ void SEASON3B::CNewUIAuctionWindow::SetBrowseResponse(const AuctionHouse::Auctio
     m_bHasBrowseResponse = true;
     m_BrowseResponse = response;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
+    m_BrowseScrollOffset = 0;
+    const auto maximumOffset = AuctionHouse::MaximumBrowseScrollOffset(m_BrowseResponse.Listings.size(), MaxBrowseRows);
+    m_BrowseScrollBar.SetMaxPos(static_cast<int>(maximumOffset));
+    m_BrowseScrollBar.SetCurPos(0);
+    m_BrowseScrollBar.Show(maximumOffset > 0);
     RebuildRowItems();
 }
 
@@ -378,10 +396,11 @@ void SEASON3B::CNewUIAuctionWindow::RebuildRowItems()
         return;
     }
 
-    const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
+    const auto remainingRows = m_BrowseResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_BrowseResponse.Listings.size());
+    const auto rowCount = std::min(MaxBrowseRows, remainingRows);
     for (size_t row = 0; row < rowCount; ++row)
     {
-        const auto& listing = m_BrowseResponse.Listings[row];
+        const auto& listing = m_BrowseResponse.Listings[m_BrowseScrollOffset + row];
         if (listing.ItemDataLength == 0)
         {
             continue;
@@ -572,6 +591,26 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
     if (m_iCurrentTab == TAB_BROWSE)
     {
+        if (m_BrowseScrollBar.IsVisible())
+        {
+            m_BrowseScrollBar.UpdateMouseEvent();
+        }
+
+        if (m_BrowseScrollBar.IsVisible()
+            && CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y,
+            WINDOW_WIDTH - 2 * BROWSE_BODY_X, BROWSE_SCROLLBAR_HEIGHT) && MouseWheel != 0)
+        {
+            m_BrowseScrollBar.SetCurPos(m_BrowseScrollBar.GetCurPos() - MouseWheel);
+            MouseWheel = 0;
+            const auto newOffset = static_cast<size_t>(m_BrowseScrollBar.GetCurPos());
+            if (newOffset != m_BrowseScrollOffset)
+            {
+                m_BrowseScrollOffset = newOffset;
+                RebuildRowItems();
+            }
+            return true;
+        }
+
         if (m_BtnPrevPage.UpdateMouseEvent() == true)
         {
             if (m_CurrentPage > 1)
@@ -596,7 +635,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
         if (m_iPointedRow != -1 && !m_bDetailRequestPending && IsRelease(VK_LBUTTON))
         {
-            SendDetailRequest(m_BrowseResponse.Listings[m_iPointedRow].ListingId);
+            SendDetailRequest(m_BrowseResponse.Listings[m_BrowseScrollOffset + m_iPointedRow].ListingId);
             PlayBuffer(SOUND_CLICK01);
             return true;
         }
@@ -647,6 +686,17 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             SendBrowseRequest();
         }
 
+        if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_bHasBrowseResponse)
+        {
+            m_BrowseScrollBar.Update();
+            const auto newOffset = static_cast<size_t>(m_BrowseScrollBar.GetCurPos());
+            if (newOffset != m_BrowseScrollOffset)
+            {
+                m_BrowseScrollOffset = newOffset;
+                RebuildRowItems();
+            }
+        }
+
         m_iPointedRow = -1;
         m_bPointingDetailItem = false;
         if (m_iCurrentTab == TAB_BROWSE && m_bShowingDetail)
@@ -655,11 +705,12 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         }
         else if (m_iCurrentTab == TAB_BROWSE && m_bHasBrowseResponse)
         {
-            const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
+            const auto remainingRows = m_BrowseResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_BrowseResponse.Listings.size());
+            const auto rowCount = std::min(MaxBrowseRows, remainingRows);
             for (size_t row = 0; row < rowCount; ++row)
             {
                 if (CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT,
-                    WINDOW_WIDTH - 2 * BROWSE_BODY_X, BROWSE_ROW_HEIGHT))
+                    WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH, BROWSE_ROW_HEIGHT))
                 {
                     m_iPointedRow = static_cast<int>(row);
                     break;
@@ -695,6 +746,10 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     {
         RenderBrowseTab();
         RenderPageControls();
+        if (m_BrowseScrollBar.IsVisible())
+        {
+            m_BrowseScrollBar.Render();
+        }
 
         // Rendered last, per CNewUIComboBox's own contract, so its expanded dropdown draws on top of the row text.
         m_CurrencyCombo.Render();
@@ -887,7 +942,8 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         return;
     }
 
-    const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
+    const auto remainingRows = m_BrowseResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_BrowseResponse.Listings.size());
+    const auto rowCount = std::min(MaxBrowseRows, remainingRows);
     for (size_t row = 0; row < rowCount; ++row)
     {
         const ITEM* item = m_RowItems[row];
@@ -918,7 +974,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
     // Render3D() (the engine's 3D pass, same as inventory slots), the item's own display name on the first
     // text line, and price/buyout/time/bids on the second. The countdown uses m_ServerClock's live estimate,
     // not the frozen ServerTime the last response carried, so it ticks down between responses.
-    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X;
+    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
 
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
@@ -937,10 +993,11 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
     }
 
     const uint32_t estimatedServerTime = m_ServerClock.EstimatedServerTime(GetTickCount());
-    const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
+    const auto remainingRows = m_BrowseResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_BrowseResponse.Listings.size());
+    const auto rowCount = std::min(MaxBrowseRows, remainingRows);
     for (size_t row = 0; row < rowCount; ++row)
     {
-        const auto& listing = m_BrowseResponse.Listings[row];
+        const auto& listing = m_BrowseResponse.Listings[m_BrowseScrollOffset + row];
         const int rowY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
         const bool isHovered = static_cast<int>(row) == m_iPointedRow;
 

@@ -7,6 +7,7 @@
 #include "UI/NewUI/NewUI3DRenderMng.h"
 #include "UI/NewUI/Widgets/NewUIButton.h"
 #include "UI/NewUI/Widgets/NewUIComboBox.h"
+#include "UI/NewUI/Widgets/NewUIScrollBar.h"
 #include "UI/NewUI/Dialogs/NewUIMessageBox.h"
 #include "UI/NewUI/Inventory/NewUIMyInventory.h"
 #include "Guild/NewUIGuildInfoWindow.h"
@@ -157,6 +158,11 @@ namespace SEASON3B
         // At most this many rows are ever rendered or hit-tested at once (RenderBrowseTab's own constant, which
         // this array and the hover/icon logic must agree with).
         static constexpr size_t MaxBrowseRows = 8;
+
+        // The server returns up to three viewports per page. This widget scrolls within that received page;
+        // Prev/Next still move between server pages when more than 24 matching listings exist.
+        CNewUIScrollBar m_BrowseScrollBar;
+        size_t m_BrowseScrollOffset;
 
         // One owned ITEM* per rendered row, created from that row's AuctionListingSummary::ItemData via
         // g_pNewItemMng (the same manager the rest of NewUI uses), so the Browse tab can reuse RenderItem3D and

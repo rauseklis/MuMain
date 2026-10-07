@@ -10,6 +10,11 @@
 
 namespace AuctionHouse
 {
+    size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept
+    {
+        return listingCount > visibleRows ? listingCount - visibleRows : 0;
+    }
+
     namespace
     {
         // ceil(value * 5 / 100) using only integer arithmetic, since prices are whole units and this must

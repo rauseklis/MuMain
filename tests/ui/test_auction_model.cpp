@@ -198,3 +198,16 @@ TEST_CASE("the first fruit bid is the starting basket unchanged [ui][auction_mod
 
     CHECK(minimum.Fruits() == basket);
 }
+
+TEST_CASE("browse scrolling exposes every row beyond the visible viewport [ui][auction_model]")
+{
+    CHECK(MaximumBrowseScrollOffset(24, 8) == 16);
+    CHECK(MaximumBrowseScrollOffset(9, 8) == 1);
+}
+
+TEST_CASE("browse scrolling stays at the top when all rows fit [ui][auction_model]")
+{
+    CHECK(MaximumBrowseScrollOffset(8, 8) == 0);
+    CHECK(MaximumBrowseScrollOffset(3, 8) == 0);
+    CHECK(MaximumBrowseScrollOffset(0, 8) == 0);
+}
