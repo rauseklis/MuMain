@@ -208,4 +208,63 @@ namespace AuctionHouse
         std::memcpy(response.ItemData.data(), packet.data() + 189, response.ItemData.size());
         return response;
     }
+
+    std::optional<AuctionMailboxEntry> AuctionMailboxEntry::Parse(std::span<const uint8_t> entry)
+    {
+        if (entry.size() < WireLength)
+        {
+            return std::nullopt;
+        }
+
+        AuctionMailboxEntry parsed;
+        parsed.CollectionId = ReadU64(entry, 0);
+        parsed.CollectionKind = static_cast<AuctionCollectionKind>(entry[8]);
+        parsed.CollectionStatus = static_cast<AuctionCollectionStatus>(entry[9]);
+        parsed.CurrencyMode = static_cast<AuctionCurrencyMode>(entry[10]);
+        parsed.Original = ReadAmount(entry, 11, parsed.CurrencyMode);
+        parsed.Remaining = ReadAmount(entry, 35, parsed.CurrencyMode);
+        parsed.SourceListingId = ReadU64(entry, 59);
+        parsed.HasItem = entry[67] != 0;
+        parsed.ItemDataLength = entry[68];
+        std::memcpy(parsed.ItemData.data(), entry.data() + 69, parsed.ItemData.size());
+        parsed.Version = ReadU32(entry, 84);
+        return parsed;
+    }
+
+    std::optional<AuctionMailboxResponse> AuctionMailboxResponse::Parse(std::span<const uint8_t> packet)
+    {
+        if (packet.size() < FixedWireLength)
+        {
+            return std::nullopt;
+        }
+
+        AuctionMailboxResponse response;
+        response.RequestId = ReadU32(packet, 5);
+        response.Result = static_cast<AuctionResult>(packet[9]);
+        response.Page = ReadU16(packet, 10);
+        response.TotalPages = ReadU16(packet, 12);
+        response.TotalCount = ReadU32(packet, 14);
+        response.ServerTime = ReadU32(packet, 18);
+
+        const auto entryCount = packet[22];
+        response.Entries.reserve(entryCount);
+        for (uint8_t i = 0; i < entryCount; ++i)
+        {
+            const auto offset = FixedWireLength + static_cast<size_t>(i) * AuctionMailboxEntry::WireLength;
+            if (packet.size() < offset + AuctionMailboxEntry::WireLength)
+            {
+                return std::nullopt;
+            }
+
+            auto parsedEntry = AuctionMailboxEntry::Parse(packet.subspan(offset));
+            if (!parsedEntry)
+            {
+                return std::nullopt;
+            }
+
+            response.Entries.push_back(std::move(*parsedEntry));
+        }
+
+        return response;
+    }
 }

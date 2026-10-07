@@ -303,3 +303,85 @@ TEST_CASE("a truncated detail response fails to parse [ui][auction_wire]")
 
     CHECK_FALSE(AuctionDetailResponse::Parse(packet).has_value());
 }
+
+namespace
+{
+    void PutMailboxEntry(std::vector<uint8_t>& buffer, size_t offset, uint64_t collectionId)
+    {
+        PutU64(buffer, offset + 0, collectionId);
+        PutU8(buffer, offset + 8, static_cast<uint8_t>(AuctionCollectionKind::SaleProceeds));
+        PutU8(buffer, offset + 9, static_cast<uint8_t>(AuctionCollectionStatus::Pending));
+        PutU8(buffer, offset + 10, static_cast<uint8_t>(AuctionCurrencyMode::Zen));
+        PutU32(buffer, offset + 11, 4000U); // original scalar
+        PutU32(buffer, offset + 35, 4000U); // remaining scalar
+        PutU64(buffer, offset + 59, 321ULL); // source listing id
+        PutU8(buffer, offset + 67, 0U); // has item: false
+        PutU8(buffer, offset + 68, 0U); // item data length
+        PutU32(buffer, offset + 84, 2U); // version
+    }
+}
+
+TEST_CASE("a mailbox entry reads its identifiers, amounts and source listing [ui][auction_wire]")
+{
+    std::vector<uint8_t> entry(AuctionMailboxEntry::WireLength, 0);
+    PutMailboxEntry(entry, 0, 909ULL);
+
+    const auto parsed = AuctionMailboxEntry::Parse(entry);
+
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->CollectionId == 909ULL);
+    CHECK(parsed->CollectionKind == AuctionCollectionKind::SaleProceeds);
+    CHECK(parsed->CollectionStatus == AuctionCollectionStatus::Pending);
+    CHECK_FALSE(parsed->Original.IsFruitBasket());
+    CHECK(parsed->Original.Scalar() == 4000U);
+    CHECK(parsed->Remaining.Scalar() == 4000U);
+    CHECK(parsed->SourceListingId == 321ULL);
+    CHECK_FALSE(parsed->HasItem);
+    CHECK(parsed->Version == 2U);
+}
+
+TEST_CASE("a truncated mailbox entry fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> entry(AuctionMailboxEntry::WireLength - 1, 0);
+
+    CHECK_FALSE(AuctionMailboxEntry::Parse(entry).has_value());
+}
+
+TEST_CASE("a mailbox response reads its header and every entry [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionMailboxResponse::FixedWireLength + 2 * AuctionMailboxEntry::WireLength, 0);
+    PutU32(packet, 5, 11U); // request id
+    PutU8(packet, 9, static_cast<uint8_t>(AuctionResult::Success));
+    PutU16(packet, 10, 1U); // page
+    PutU16(packet, 12, 1U); // total pages
+    PutU32(packet, 14, 2U); // total count
+    PutU32(packet, 18, 1700000900U); // server time
+    PutU8(packet, 22, 2U); // entry count
+    PutMailboxEntry(packet, 23, 1ULL);
+    PutMailboxEntry(packet, 23 + AuctionMailboxEntry::WireLength, 2ULL);
+
+    const auto response = AuctionMailboxResponse::Parse(packet);
+
+    REQUIRE(response.has_value());
+    CHECK(response->RequestId == 11U);
+    CHECK(response->TotalCount == 2U);
+    REQUIRE(response->Entries.size() == 2U);
+    CHECK(response->Entries[0].CollectionId == 1ULL);
+    CHECK(response->Entries[1].CollectionId == 2ULL);
+}
+
+TEST_CASE("a mailbox response truncated mid-entry fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionMailboxResponse::FixedWireLength + AuctionMailboxEntry::WireLength, 0);
+    PutU8(packet, 22, 2U);
+    PutMailboxEntry(packet, 23, 1ULL);
+
+    CHECK_FALSE(AuctionMailboxResponse::Parse(packet).has_value());
+}
+
+TEST_CASE("a mailbox response shorter than its own fixed header fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionMailboxResponse::FixedWireLength - 1, 0);
+
+    CHECK_FALSE(AuctionMailboxResponse::Parse(packet).has_value());
+}

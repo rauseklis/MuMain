@@ -155,4 +155,47 @@ namespace AuctionHouse
 
         [[nodiscard]] static std::optional<AuctionDetailResponse> Parse(std::span<const uint8_t> packet);
     };
+
+    // One pending Mailbox row, mirroring the server's AuctionMailboxEntryRef. Always exactly 88 bytes.
+    // Byte layout: CollectionId(u64)@0, CollectionKind(u8)@8, CollectionStatus(u8)@9, CurrencyMode(u8)@10,
+    // Original{Scalar,Str,Agi,Vit,Ene,Cmd}(u32x6)@11 (the full amount this collection was created with),
+    // Remaining{...same 6}(u32x6)@35 (what is left to claim; equal to Original until partially claimed),
+    // SourceListingId(u64)@59, HasItem(bool)@67, ItemDataLength(u8)@68, ItemData(15 bytes)@69, Version(u32)@84.
+    struct AuctionMailboxEntry
+    {
+        static constexpr size_t WireLength = 88;
+
+        uint64_t CollectionId = 0;
+        AuctionCollectionKind CollectionKind = AuctionCollectionKind::PurchasedItem;
+        AuctionCollectionStatus CollectionStatus = AuctionCollectionStatus::Pending;
+        AuctionCurrencyMode CurrencyMode = AuctionCurrencyMode::Zen;
+        AuctionAmount Original = AuctionAmount::FromScalar(0);
+        AuctionAmount Remaining = AuctionAmount::FromScalar(0);
+        uint64_t SourceListingId = 0;
+        bool HasItem = false;
+        uint8_t ItemDataLength = 0;
+        std::array<uint8_t, 15> ItemData{};
+        uint32_t Version = 0;
+
+        [[nodiscard]] static std::optional<AuctionMailboxEntry> Parse(std::span<const uint8_t> entry);
+    };
+
+    // A page of pending Mailbox entries, mirroring the server's AuctionMailboxResponse (0xD5 sub 0x85, a
+    // C2-with-subcode packet). Byte layout (absolute offsets): RequestId(u32)@5, Result(u8)@9, Page(u16)@10,
+    // TotalPages(u16)@12, TotalCount(u32)@14, ServerTime(u32)@18, EntryCount(u8)@22, then EntryCount
+    // AuctionMailboxEntry entries starting at 23.
+    struct AuctionMailboxResponse
+    {
+        static constexpr size_t FixedWireLength = 23;
+
+        uint32_t RequestId = 0;
+        AuctionResult Result = AuctionResult::Success;
+        uint16_t Page = 0;
+        uint16_t TotalPages = 0;
+        uint32_t TotalCount = 0;
+        uint32_t ServerTime = 0;
+        std::vector<AuctionMailboxEntry> Entries;
+
+        [[nodiscard]] static std::optional<AuctionMailboxResponse> Parse(std::span<const uint8_t> packet);
+    };
 }
