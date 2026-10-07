@@ -4,6 +4,7 @@
 
 #include "AuctionWireResponses.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace AuctionHouse
@@ -172,6 +173,39 @@ namespace AuctionHouse
             response.Listings.push_back(std::move(*summary));
         }
 
+        return response;
+    }
+
+    std::optional<AuctionDetailResponse> AuctionDetailResponse::Parse(std::span<const uint8_t> packet)
+    {
+        if (packet.size() < FullWireLength)
+        {
+            return std::nullopt;
+        }
+
+        AuctionDetailResponse response;
+        response.RequestId = ReadU32(packet, 5);
+        response.Result = static_cast<AuctionResult>(packet[9]);
+        response.ServerTime = ReadU32(packet, 10);
+        response.ListingId = ReadU64(packet, 14);
+        response.Version = ReadU32(packet, 22);
+        response.Status = static_cast<AuctionListingStatus>(packet[26]);
+        response.CurrencyMode = static_cast<AuctionCurrencyMode>(packet[27]);
+        response.Category = static_cast<AuctionCategory>(packet[28]);
+        response.CurrentPrice = ReadAmount(packet, 29, response.CurrencyMode);
+        response.BuyoutPrice = ReadAmount(packet, 53, response.CurrencyMode);
+        response.BidCount = ReadU16(packet, 77);
+        response.OriginalEndsAt = ReadU32(packet, 79);
+        response.EndsAt = ReadU32(packet, 83);
+        response.SellerName = ReadFixedAscii(packet, 87, SellerNameLength);
+        response.CurrentBidderName = ReadFixedAscii(packet, 97, SellerNameLength);
+        response.NoteLength = packet[107];
+        // Clamp to the field's actual 80-byte width: NoteLength is a server-supplied byte and must not be
+        // trusted to stay within bounds on its own.
+        constexpr size_t NoteFieldWidth = 80;
+        response.Note = ReadFixedAscii(packet, 108, std::min<size_t>(response.NoteLength, NoteFieldWidth));
+        response.ItemDataLength = packet[188];
+        std::memcpy(response.ItemData.data(), packet.data() + 189, response.ItemData.size());
         return response;
     }
 }

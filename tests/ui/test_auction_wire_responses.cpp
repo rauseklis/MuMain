@@ -238,3 +238,68 @@ TEST_CASE("a browse response shorter than its own fixed header fails to parse [u
 
     CHECK_FALSE(AuctionBrowseResponse::Parse(packet).has_value());
 }
+
+TEST_CASE("a detail response reads every field, including seller, bidder, note and item data [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionDetailResponse::FullWireLength, 0);
+    PutU32(packet, 5, 99U); // request id
+    PutU8(packet, 9, static_cast<uint8_t>(AuctionResult::Success));
+    PutU32(packet, 10, 1700000600U); // server time
+    PutU64(packet, 14, 555ULL); // listing id
+    PutU32(packet, 22, 4U); // version
+    PutU8(packet, 26, static_cast<uint8_t>(AuctionListingStatus::Active));
+    PutU8(packet, 27, static_cast<uint8_t>(AuctionCurrencyMode::Zen));
+    PutU8(packet, 28, static_cast<uint8_t>(AuctionCategory::Armor));
+    PutU32(packet, 29, 2000U); // current price scalar
+    PutU32(packet, 53, 9000U); // buyout price scalar
+    PutU16(packet, 77, 4U); // bid count
+    PutU32(packet, 79, 1700000000U); // original ends at
+    PutU32(packet, 83, 1700003600U); // ends at
+    PutAscii(packet, 87, "Seller1");
+    PutAscii(packet, 97, "Bidder1");
+    PutU8(packet, 107, 5U); // note length
+    PutAscii(packet, 108, "Hello");
+    PutU8(packet, 188, 15U); // item data length
+    PutU8(packet, 189, 0xCD); // first item data byte
+
+    const auto detail = AuctionDetailResponse::Parse(packet);
+
+    REQUIRE(detail.has_value());
+    CHECK(detail->RequestId == 99U);
+    CHECK(detail->ListingId == 555ULL);
+    CHECK(detail->Version == 4U);
+    CHECK(detail->Category == AuctionCategory::Armor);
+    CHECK(detail->CurrentPrice.Scalar() == 2000U);
+    CHECK(detail->BuyoutPrice.Scalar() == 9000U);
+    CHECK(detail->BidCount == 4U);
+    CHECK(detail->OriginalEndsAt == 1700000000U);
+    CHECK(detail->EndsAt == 1700003600U);
+    CHECK(detail->SellerName == L"Seller1");
+    CHECK(detail->CurrentBidderName == L"Bidder1");
+    CHECK(detail->NoteLength == 5U);
+    CHECK(detail->Note == L"Hello");
+    CHECK(detail->ItemDataLength == 15U);
+    CHECK(detail->ItemData[0] == 0xCD);
+}
+
+TEST_CASE("a detail response clamps an out-of-range note length to the field width [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionDetailResponse::FullWireLength, 0);
+    PutU8(packet, 107, 255U); // claims far more than the 80-byte note field actually holds
+    PutAscii(packet, 108, "Short");
+
+    const auto detail = AuctionDetailResponse::Parse(packet);
+
+    REQUIRE(detail.has_value());
+    CHECK(detail->NoteLength == 255U);
+    // Reading clamps to 80 bytes; the note field is zero-filled past "Short" in this packet, so the
+    // trailing zero byte stops the read right after it rather than reading garbage or going out of bounds.
+    CHECK(detail->Note == L"Short");
+}
+
+TEST_CASE("a truncated detail response fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionDetailResponse::FullWireLength - 1, 0);
+
+    CHECK_FALSE(AuctionDetailResponse::Parse(packet).has_value());
+}

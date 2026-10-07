@@ -117,4 +117,42 @@ namespace AuctionHouse
     // Byte-for-byte identical shape to AuctionBrowseResponse (same fixed header, same AuctionListingSummary
     // entries) — only the sub-code and the server-side query differ, so this reuses the same parser.
     using AuctionMyListingsResponse = AuctionBrowseResponse;
+
+    // The full detail of one listing, mirroring the server's AuctionDetailResponse (0xD5 sub 0x82, a
+    // C2-with-subcode packet). Fixed 204 bytes. Byte layout (absolute offsets): RequestId(u32)@5,
+    // Result(u8)@9, ServerTime(u32)@10, ListingId(u64)@14, Version(u32)@22, Status(u8)@26,
+    // CurrencyMode(u8)@27, Category(u8)@28, CurrentPrice{6}(u32x6)@29, BuyoutPrice{6}(u32x6)@53,
+    // BidCount(u16)@77, OriginalEndsAt(u32)@79, EndsAt(u32)@83, SellerName(10 bytes)@87,
+    // CurrentBidderName(10 bytes)@97, NoteLength(u8)@107, Note(80 bytes)@108, ItemDataLength(u8)@188,
+    // ItemData(15 bytes)@189.
+    struct AuctionDetailResponse
+    {
+        static constexpr size_t FullWireLength = 204;
+
+        uint32_t RequestId = 0;
+        AuctionResult Result = AuctionResult::Success;
+        uint32_t ServerTime = 0;
+        uint64_t ListingId = 0;
+        uint32_t Version = 0;
+        AuctionListingStatus Status = AuctionListingStatus::Active;
+        AuctionCurrencyMode CurrencyMode = AuctionCurrencyMode::Zen;
+        AuctionCategory Category = AuctionCategory::Miscellaneous;
+        AuctionAmount CurrentPrice = AuctionAmount::FromScalar(0);
+        AuctionAmount BuyoutPrice = AuctionAmount::FromScalar(0);
+        uint16_t BidCount = 0;
+        uint32_t OriginalEndsAt = 0;
+        uint32_t EndsAt = 0;
+        std::wstring SellerName;
+        std::wstring CurrentBidderName;
+        uint8_t NoteLength = 0;
+        // Widened byte-for-byte (Latin-1), not UTF-8 decoded: no UI consumes this field yet (the Sell/Detail
+        // tabs are tasks 4.3/4.4), and that UI will run inside the engine's own translation unit, where the
+        // existing CMultiLanguage::ConvertFromUtf8 (MultiLanguage.cpp) is reachable. Revisit then if notes
+        // should round-trip non-ASCII text.
+        std::wstring Note;
+        uint8_t ItemDataLength = 0;
+        std::array<uint8_t, 15> ItemData{};
+
+        [[nodiscard]] static std::optional<AuctionDetailResponse> Parse(std::span<const uint8_t> packet);
+    };
 }
