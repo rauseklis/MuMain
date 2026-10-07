@@ -31,6 +31,22 @@ namespace AuctionHouse
         return sort;
     }
 
+    std::string ClampUtf8ToByteCapacity(std::string_view utf8, size_t capacity)
+    {
+        if (utf8.size() <= capacity)
+        {
+            return std::string(utf8);
+        }
+
+        size_t length = capacity;
+        while (length > 0 && (static_cast<unsigned char>(utf8[length]) & 0xC0u) == 0x80u)
+        {
+            --length;
+        }
+
+        return std::string(utf8.substr(0, length));
+    }
+
     size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept
     {
         return listingCount > visibleRows ? listingCount - visibleRows : 0;

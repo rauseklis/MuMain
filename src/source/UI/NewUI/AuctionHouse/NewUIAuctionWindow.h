@@ -10,6 +10,7 @@
 #include "UI/NewUI/Widgets/NewUIScrollBar.h"
 #include "UI/NewUI/Dialogs/NewUIMessageBox.h"
 #include "UI/NewUI/Inventory/NewUIMyInventory.h"
+#include "UI/Legacy/UIControls.h"
 #include "Guild/NewUIGuildInfoWindow.h"
 #include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
 
@@ -90,6 +91,7 @@ namespace SEASON3B
         void RenderFrame();
         bool BtnProcess();
         void SendBrowseRequest();
+        void SubmitSearch();
         void RenderBrowseHeader();
         void RenderBrowseTab();
         void RebuildRowItems();
@@ -138,9 +140,9 @@ namespace SEASON3B
 
         // The Browse tab's selected currency, page and sort. The server now honors every filter field in the
         // request packet (confirmed by reading AuctionBrowseHandlerPlugIn.cs/AuctionHouseRepository.cs after
-        // the 2026-10-07 browse-filter work); the remaining wire fields (name search, class mask, level range,
-        // option flags, price range, max remaining time) are still sent as "no filter" because they have no UI
-        // control yet, not because the server would ignore them.
+        // the 2026-10-07 browse-filter work). Name search has a toolbar control; class mask, level range,
+        // option flags, price range, and max remaining time are still sent as "no filter" because they have no
+        // UI control yet, not because the server would ignore them.
         AuctionCurrencyMode m_SelectedCurrency;
         // 0 = "All Categories"; 1-7 map to AuctionCategory's seven wire values (index - 1).
         int m_SelectedCategoryIndex;
@@ -189,6 +191,11 @@ namespace SEASON3B
         // category value whenever a specific category is selected.
         const wchar_t* m_CategoryLabels[8];
         CNewUIComboBox m_CategoryCombo;
+
+        // Single-line UTF-16 edit field converted to the browse packet's fixed 32-byte UTF-8 name field on
+        // submit. The adjacent Search button and Enter both call SubmitSearch().
+        CUITextInputBox m_SearchInput;
+        CNewUIButton m_BtnSearch;
 
         // Selected-listing detail (design spec 4.2's main body swaps between "rows" and "detail panel"). True
         // while the detail panel replaces the row list; cleared on any tab switch, Back, or window re-open.

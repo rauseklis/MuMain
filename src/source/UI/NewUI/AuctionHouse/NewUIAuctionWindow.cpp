@@ -10,6 +10,7 @@
 #include "Audio/DSPlaySound.h"
 #include "Network/Server/WSclient.h"
 #include "Network/Server/SocketSystem.h"
+#include "Core/Text/Utf8.h"
 
 #include <algorithm>
 
@@ -34,6 +35,14 @@ namespace
     constexpr int CURRENCY_COMBO_ITEM_HEIGHT = 22;
     constexpr int CATEGORY_COMBO_X_OFFSET = CURRENCY_COMBO_WIDTH + 8;
     constexpr int CATEGORY_COMBO_WIDTH = 210;
+    constexpr int SEARCH_INPUT_X_OFFSET = CATEGORY_COMBO_X_OFFSET + CATEGORY_COMBO_WIDTH + 8;
+    constexpr int SEARCH_INPUT_Y_OFFSET = TOOLBAR_Y + 3;
+    constexpr int SEARCH_INPUT_HEIGHT = 16;
+    constexpr int SEARCH_BUTTON_WIDTH = 53;
+    constexpr int SEARCH_BUTTON_X_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * TOOLBAR_X - SEARCH_BUTTON_WIDTH;
+    constexpr int SEARCH_INPUT_WIDTH = SEARCH_BUTTON_X_OFFSET - SEARCH_INPUT_X_OFFSET - 7;
+    constexpr size_t SEARCH_PACKET_CAPACITY = 32;
+    static_assert(SEARCH_INPUT_WIDTH > 0, "Auction search controls exceed the toolbar width");
     constexpr int BROWSE_BODY_X = 11;
     constexpr int BROWSE_HEADER_Y = 105;
     constexpr int BROWSE_HEADER_HEIGHT = 21;
@@ -184,11 +193,21 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CategoryCombo.Setup(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
         m_CategoryLabels, 8, m_SelectedCategoryIndex);
 
+    m_SearchInput.Init(g_hWnd, SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT, 32, false);
+    m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_SearchInput.SetTextColor(255, 255, 230, 210);
+    m_SearchInput.SetBackColor(210, 20, 14, 8);
+    m_SearchInput.SetSelectBackColor(255, 95, 68, 24);
+    m_SearchInput.SetFont(g_hFont);
+    m_SearchInput.SetParentUIID(SEASON3B::INTERFACE_AUCTION_HOUSE);
+    m_SearchInput.SetState(UISTATE_NORMAL);
+
     InitPageButton(&m_BtnPrevPage, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
     InitPageButton(&m_BtnNextPage, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
     InitPageButton(&m_BtnBack, m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, I18N::Game::Back);
     InitPageButton(&m_BtnBid, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Bid);
     InitPageButton(&m_BtnBuyout, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Buyout);
+    InitPageButton(&m_BtnSearch, m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, I18N::Game::AuctionSearch);
     m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y, BROWSE_SCROLLBAR_HEIGHT);
     m_BrowseScrollBar.Show(false);
 
@@ -199,6 +218,12 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
 
 void SEASON3B::CNewUIAuctionWindow::Release()
 {
+    m_SearchInput.SetState(UISTATE_HIDE);
+    if (m_SearchInput.HaveFocus())
+    {
+        CUITextInputBox::ReleaseFocus();
+    }
+
     UnloadImages();
     ReleaseRowItems();
     ReleaseDetailItem();
@@ -241,6 +266,8 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_BtnClose.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
     m_CurrencyCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_CategoryCombo.SetPos(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
+    m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnNextPage.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBack.ChangeButtonInfo(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
@@ -263,6 +290,9 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     ReleaseDetailItem();
     m_bHasOperationResult = false;
     m_bOperationRequestPending = false;
+    m_SearchInput.SetText(L"");
+    m_SearchInput.SetState(UISTATE_NORMAL);
+    SetRelatedWnd(g_hWnd);
 
     m_bHasOpenResponse = false;
     m_PendingOpenRequestId = AuctionHouse::NextAuctionRequestId();
@@ -280,11 +310,14 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
     // The server now honors every field below (confirmed by reading AuctionBrowseHandlerPlugIn.cs/
     // AuctionHouseRepository.cs after the 2026-10-07 browse-filter work). Category 255 means "every category"
     // (the server's own sentinel, AuctionBrowseHandlerPlugIn.AllCategories); m_SelectedCategoryIndex == 0 maps
-    // to that sentinel, otherwise it's (index - 1) as the wire AuctionCategory value. The remaining fields are
-    // sent as the widest possible range because they have no UI control yet, which is read by the server as
-    // "no filter" on that field, not as a server-side limitation.
+    // to that sentinel, otherwise it's (index - 1) as the wire AuctionCategory value. Name is taken from the
+    // search box; the remaining fields are sent as the widest possible range because they have no UI control
+    // yet, which the server reads as "no filter" rather than as a server-side limitation.
     constexpr BYTE AllCategories = 0xFF;
     const BYTE category = m_SelectedCategoryIndex == 0 ? AllCategories : static_cast<BYTE>(m_SelectedCategoryIndex - 1);
+    wchar_t searchText[33]{};
+    m_SearchInput.GetText(searchText, static_cast<int>(std::size(searchText)));
+    const std::string searchUtf8 = AuctionHouse::ClampUtf8ToByteCapacity(Core::Text::ToUtf8(searchText), SEARCH_PACKET_CAPACITY);
     m_bHasBrowseResponse = false;
     m_BrowseScrollOffset = 0;
     m_BrowseScrollBar.SetCurPos(0);
@@ -305,7 +338,18 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
         0, 0, 0, 0, 0, 0, // minimum price, every component: no floor
         0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, // maximum price, every component: no ceiling
         0, // max remaining hours: no limit
-        0, nullptr, 0); // name search: none
+        static_cast<BYTE>(searchUtf8.size()),
+        searchUtf8.empty() ? nullptr : reinterpret_cast<const BYTE*>(searchUtf8.data()),
+        static_cast<uint32_t>(searchUtf8.size()));
+}
+
+void SEASON3B::CNewUIAuctionWindow::SubmitSearch()
+{
+    m_CurrentPage = 1;
+    SendBrowseRequest();
+    CUITextInputBox::ReleaseFocus();
+    SetRelatedWnd(g_hWnd);
+    PlayBuffer(SOUND_CLICK01);
 }
 
 void SEASON3B::CNewUIAuctionWindow::SetBrowseResponse(const AuctionHouse::AuctionBrowseResponse& response)
@@ -330,6 +374,9 @@ void SEASON3B::CNewUIAuctionWindow::SetBrowseResponse(const AuctionHouse::Auctio
 void SEASON3B::CNewUIAuctionWindow::SendDetailRequest(uint64_t listingId)
 {
     m_bShowingDetail = true;
+    m_SearchInput.SetState(UISTATE_HIDE);
+    CUITextInputBox::ReleaseFocus();
+    SetRelatedWnd(g_hWnd);
     m_bHasDetailResponse = false;
     m_PendingDetailRequestId = AuctionHouse::NextAuctionRequestId();
     m_bDetailRequestPending = true;
@@ -544,6 +591,12 @@ void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
     // The Sell tab will own closing an inventory window it opened for itself (design spec 4.2); there is
     // nothing to release yet since the Sell tab has no content.
     m_bDragging = false;
+    m_SearchInput.SetState(UISTATE_HIDE);
+    if (m_SearchInput.HaveFocus())
+    {
+        CUITextInputBox::ReleaseFocus();
+    }
+    SetRelatedWnd(g_hWnd);
 }
 
 bool SEASON3B::CNewUIAuctionWindow::UpdateMouseEvent()
@@ -604,6 +657,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         if (m_BtnBack.UpdateMouseEvent() == true)
         {
             m_bShowingDetail = false;
+            m_SearchInput.SetState(UISTATE_NORMAL);
             ReleaseDetailItem();
             PlayBuffer(SOUND_CLICK01);
             return true;
@@ -626,6 +680,14 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         return false;
     }
 
+    if (m_SearchInput.HaveFocus() && IsPress(VK_LBUTTON)
+        && !CheckMouseIn(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
+            SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
+    {
+        CUITextInputBox::ReleaseFocus();
+        SetRelatedWnd(g_hWnd);
+    }
+
     // The combo's own contract: its expanded dropdown can extend past this widget's own small hit box, so
     // the owner must separately treat IsMouseOverWidget() as a consumed click.
     if (m_iCurrentTab == TAB_BROWSE && (m_CurrencyCombo.IsMouseOverWidget() || m_CategoryCombo.IsMouseOverWidget()))
@@ -635,6 +697,23 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
     if (m_iCurrentTab == TAB_BROWSE)
     {
+        m_SearchInput.DoAction();
+        if (m_SearchInput.HaveFocus())
+        {
+            SetRelatedWnd(m_SearchInput.GetHandle());
+        }
+        if (CheckMouseIn(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
+            SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
+        {
+            return true;
+        }
+
+        if (m_BtnSearch.UpdateMouseEvent() == true)
+        {
+            SubmitSearch();
+            return true;
+        }
+
         if (m_BrowseScrollBar.IsVisible())
         {
             m_BrowseScrollBar.UpdateMouseEvent();
@@ -718,6 +797,24 @@ bool SEASON3B::CNewUIAuctionWindow::UpdateKeyEvent()
 {
     if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_AUCTION_HOUSE) == true)
     {
+        if (m_SearchInput.HaveFocus())
+        {
+            if (SEASON3B::IsPress(VK_RETURN) == true)
+            {
+                SubmitSearch();
+                return false;
+            }
+
+            if (SEASON3B::IsPress(VK_ESCAPE) == true)
+            {
+                CUITextInputBox::ReleaseFocus();
+                SetRelatedWnd(g_hWnd);
+                return false;
+            }
+
+            return true;
+        }
+
         if (SEASON3B::IsPress(VK_ESCAPE) == true)
         {
             g_pNewUISystem->Hide(SEASON3B::INTERFACE_AUCTION_HOUSE);
@@ -740,6 +837,12 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             m_iCurrentTab = selected;
             m_bShowingDetail = false;
             ReleaseDetailItem();
+            m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
+            if (m_iCurrentTab != TAB_BROWSE && m_SearchInput.HaveFocus())
+            {
+                CUITextInputBox::ReleaseFocus();
+                SetRelatedWnd(g_hWnd);
+            }
         }
 
         if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CurrencyCombo.UpdateMouseEvent())
@@ -823,7 +926,11 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
             m_BrowseScrollBar.Render();
         }
 
-        // Rendered last, per CNewUIComboBox's own contract, so its expanded dropdown draws on top of the row text.
+        m_SearchInput.Render();
+        m_BtnSearch.Render();
+
+        // Rendered last, per CNewUIComboBox's own contract, so an expanded dropdown draws on top of every
+        // other toolbar control and the row text.
         m_CurrencyCombo.Render();
         m_CategoryCombo.Render();
     }

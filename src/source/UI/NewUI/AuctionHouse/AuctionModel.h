@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include "Dotnet/PacketFunctions_CommonEnums.h"
 
@@ -27,6 +28,10 @@ namespace AuctionHouse
     // Scalar price ordering is undefined for component-wise fruit baskets and the server rejects it. Switching
     // currency therefore restores the safe time sort before the next request is sent.
     [[nodiscard]] AuctionSort NormalizeBrowseSort(AuctionCurrencyMode currency, AuctionSort sort) noexcept;
+
+    // The browse packet reserves a fixed byte array, not a character array. Input arrives here as valid UTF-8;
+    // clamp it without leaving a partial multi-byte code point at the end of the packet field.
+    [[nodiscard]] std::string ClampUtf8ToByteCapacity(std::string_view utf8, size_t capacity);
 
     // Returns the number of rows hidden above an eight-row-style Browse viewport when scrolled fully to the
     // bottom. The result is zero when every listing already fits, avoiding unsigned underflow for short pages.

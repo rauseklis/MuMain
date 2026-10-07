@@ -231,3 +231,15 @@ TEST_CASE("fruit browsing falls back from unsupported scalar price sorting [ui][
     CHECK(NormalizeBrowseSort(AuctionCurrencyMode::Fruits, AuctionSort::PriceDescending) == AuctionSort::EndingSoonest);
     CHECK(NormalizeBrowseSort(AuctionCurrencyMode::Chaos, AuctionSort::PriceAscending) == AuctionSort::PriceAscending);
 }
+
+TEST_CASE("auction search names respect the fixed UTF-8 byte capacity [ui][auction_model]")
+{
+    CHECK(ClampUtf8ToByteCapacity(std::string(33, 'a'), 32) == std::string(32, 'a'));
+    CHECK(ClampUtf8ToByteCapacity(std::string(29, 'a') + "\xE2\x82\xAC", 32)
+        == std::string(29, 'a') + "\xE2\x82\xAC");
+}
+
+TEST_CASE("auction search truncation never splits a UTF-8 character [ui][auction_model]")
+{
+    CHECK(ClampUtf8ToByteCapacity(std::string(30, 'a') + "\xE2\x82\xAC", 32) == std::string(30, 'a'));
+}
