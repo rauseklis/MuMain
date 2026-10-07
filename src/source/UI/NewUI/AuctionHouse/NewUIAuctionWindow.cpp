@@ -36,6 +36,10 @@ namespace
     constexpr int BROWSE_ICON_SIZE = 28;
     constexpr int BROWSE_ICON_MARGIN = 2;
     constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_SIZE + 6;
+    constexpr int PAGE_BTN_WIDTH = 53;
+    constexpr int PAGE_BTN_HEIGHT = 23;
+    constexpr int PAGE_BTN_MARGIN_X = 20;
+    constexpr int PAGE_BTN_Y_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT + (BOTTOM_BAND_HEIGHT - PAGE_BTN_HEIGHT) / 2;
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
@@ -98,6 +102,9 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CurrencyCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
         m_CurrencyLabels, 9, static_cast<int>(m_SelectedCurrency));
 
+    InitPageButton(&m_BtnPrevPage, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
+    InitPageButton(&m_BtnNextPage, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
+
     Show(false);
 
     return true;
@@ -119,6 +126,16 @@ void SEASON3B::CNewUIAuctionWindow::Release()
         m_pNewUIMng->RemoveUIObj(this);
         m_pNewUIMng = nullptr;
     }
+}
+
+void SEASON3B::CNewUIAuctionWindow::InitPageButton(CNewUIButton* pButton, int x, int y, const wchar_t* caption)
+{
+    pButton->ChangeText(caption);
+    pButton->ChangeTextBackColor(RGBA(255, 255, 255, 0));
+    pButton->ChangeButtonImgState(true, IMAGE_AUCTION_PAGE_BTN, true);
+    pButton->ChangeButtonInfo(x, y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    pButton->ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
+    pButton->ChangeImgColor(BUTTON_STATE_DOWN, RGBA(255, 255, 255, 255));
 }
 
 void SEASON3B::CNewUIAuctionWindow::SetPos(int x, int y)
@@ -293,6 +310,31 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         return true;
     }
 
+    if (m_iCurrentTab == TAB_BROWSE)
+    {
+        if (m_BtnPrevPage.UpdateMouseEvent() == true)
+        {
+            if (m_CurrentPage > 1)
+            {
+                --m_CurrentPage;
+                SendBrowseRequest();
+            }
+            PlayBuffer(SOUND_CLICK01);
+            return true;
+        }
+
+        if (m_BtnNextPage.UpdateMouseEvent() == true)
+        {
+            if (m_bHasBrowseResponse && m_CurrentPage < m_BrowseResponse.TotalPages)
+            {
+                ++m_CurrentPage;
+                SendBrowseRequest();
+            }
+            PlayBuffer(SOUND_CLICK01);
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -365,6 +407,7 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     if (m_iCurrentTab == TAB_BROWSE)
     {
         RenderBrowseTab();
+        RenderPageControls();
 
         // Rendered last, per CNewUIComboBox's own contract, so its expanded dropdown draws on top of the row text.
         m_CurrencyCombo.Render();
@@ -373,6 +416,52 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     DisableAlphaBlend();
 
     return true;
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderPageControls()
+{
+    // Locked (and grayed, matching CNewUIUnitedMarketPlaceWindow's own locked-button treatment) at page 1 and
+    // once the last known page is reached. Without a response yet, both read as "at the only known page".
+    const bool atFirstPage = m_CurrentPage <= 1;
+    const bool atLastPage = !m_bHasBrowseResponse || m_CurrentPage >= m_BrowseResponse.TotalPages;
+
+    if (atFirstPage)
+    {
+        m_BtnPrevPage.Lock();
+        m_BtnPrevPage.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
+        m_BtnPrevPage.ChangeTextColor(RGBA(100, 100, 100, 255));
+    }
+    else
+    {
+        m_BtnPrevPage.UnLock();
+        m_BtnPrevPage.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
+        m_BtnPrevPage.ChangeTextColor(RGBA(255, 255, 255, 255));
+    }
+
+    if (atLastPage)
+    {
+        m_BtnNextPage.Lock();
+        m_BtnNextPage.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
+        m_BtnNextPage.ChangeTextColor(RGBA(100, 100, 100, 255));
+    }
+    else
+    {
+        m_BtnNextPage.UnLock();
+        m_BtnNextPage.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
+        m_BtnNextPage.ChangeTextColor(RGBA(255, 255, 255, 255));
+    }
+
+    m_BtnPrevPage.Render();
+    m_BtnNextPage.Render();
+
+    const uint16_t totalPages = m_bHasBrowseResponse ? std::max<uint16_t>(m_BrowseResponse.TotalPages, 1) : 1;
+    wchar_t pageText[32];
+    mu_swprintf(pageText, L"%d / %d", m_CurrentPage, totalPages);
+
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + PAGE_BTN_Y_OFFSET + 4), pageText, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
 }
 
 bool SEASON3B::CNewUIAuctionWindow::IsVisible() const
@@ -472,6 +561,7 @@ void SEASON3B::CNewUIAuctionWindow::LoadImages()
     LoadBitmap(L"Interface\\newui_item_back03.tga", IMAGE_AUCTION_BOTTOM, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_exit_00.tga", IMAGE_AUCTION_CLOSE_BTN, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_guild_tab04.tga", IMAGE_AUCTION_TAB_BTN, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_btn_empty_very_small.tga", IMAGE_AUCTION_PAGE_BTN, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIAuctionWindow::UnloadImages()
@@ -483,6 +573,7 @@ void SEASON3B::CNewUIAuctionWindow::UnloadImages()
     DeleteBitmap(IMAGE_AUCTION_BOTTOM);
     DeleteBitmap(IMAGE_AUCTION_CLOSE_BTN);
     DeleteBitmap(IMAGE_AUCTION_TAB_BTN);
+    DeleteBitmap(IMAGE_AUCTION_PAGE_BTN);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderFrame()

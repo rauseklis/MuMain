@@ -38,6 +38,7 @@ namespace SEASON3B
             IMAGE_AUCTION_BOTTOM = CNewUIMyInventory::IMAGE_INVENTORY_BACK_BOTTOM, // newui_item_back03.tga
             IMAGE_AUCTION_CLOSE_BTN = CNewUIMyInventory::IMAGE_INVENTORY_EXIT_BTN, // newui_exit_00.tga
             IMAGE_AUCTION_TAB_BTN = CNewUIGuildInfoWindow::IMAGE_GUILDINFO_TAB_BUTTON, // newui_guild_tab04.tga
+            IMAGE_AUCTION_PAGE_BTN = CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_EMPTY_VERY_SMALL, // newui_btn_empty_very_small.tga
         };
 
         static constexpr int WINDOW_WIDTH = 400;
@@ -84,6 +85,8 @@ namespace SEASON3B
         void ReleaseRowItems();
         void RenderRowItemTooltip(int row) const;
         static void UI2DEffectCallback(LPVOID pClass, DWORD dwParamA, DWORD dwParamB);
+        void InitPageButton(CNewUIButton* pButton, int x, int y, const wchar_t* caption);
+        void RenderPageControls();
 
         CNewUIManager* m_pNewUIMng;
         CNewUI3DRenderMng* m_pNewUI3DRenderMng;
@@ -104,10 +107,11 @@ namespace SEASON3B
         // reply.
         AuctionHouse::AuctionServerClock m_ServerClock;
 
-        // The Browse tab's selected currency, page and sort. V1 scope: the server only honors currency,
-        // category, sort and page (confirmed by reading AuctionBrowseHandlerPlugIn.cs server-side); the
-        // remaining wire fields (name search, class mask, level range, option flags, price range, max
-        // remaining time) are sent as "no filter" and are not exposed as UI controls yet.
+        // The Browse tab's selected currency, page and sort. The server now honors every filter field in the
+        // request packet (confirmed by reading AuctionBrowseHandlerPlugIn.cs/AuctionHouseRepository.cs after
+        // the 2026-10-07 browse-filter work); the remaining wire fields (name search, class mask, level range,
+        // option flags, price range, max remaining time) are still sent as "no filter" because they have no UI
+        // control yet, not because the server would ignore them.
         AuctionCurrencyMode m_SelectedCurrency;
         uint16_t m_CurrentPage;
         AuctionSort m_SelectedSort;
@@ -115,6 +119,11 @@ namespace SEASON3B
         uint32_t m_PendingBrowseRequestId;
         bool m_bHasBrowseResponse;
         AuctionHouse::AuctionBrowseResponse m_BrowseResponse;
+
+        // Prev/Next page buttons for the Browse tab. Locked (and grayed) at page 1 and at the last known page;
+        // clicking either re-sends the browse request for m_CurrentPage, same as a currency change does.
+        CNewUIButton m_BtnPrevPage;
+        CNewUIButton m_BtnNextPage;
 
         // At most this many rows are ever rendered or hit-tested at once (RenderBrowseTab's own constant, which
         // this array and the hover/icon logic must agree with).
