@@ -15058,9 +15058,9 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
         // Auction House (0xD5): a C1-with-subcode packet puts the sub-code right after the code byte at
         // offset 3; a C2-with-subcode packet (bigger payloads: open/browse/detail/my-listings/mailbox) puts
         // it at offset 4, since its length field is two bytes instead of one. bIsC1C3 was already computed
-        // above from the header type byte. Open and browse have a consumer so far (the window itself); the
-        // rest parse into AuctionHouse::Auction*Response but nothing reads them yet (no Detail/My Listings/
-        // Mailbox tab exists, tasks 4.4-4.5).
+        // above from the header type byte. Open, browse, and detail have a consumer so far (the window
+        // itself); the rest parse into AuctionHouse::Auction*Response but nothing reads them yet (no My
+        // Listings/Mailbox tab exists, task 4.5).
         const BYTE auctionSubCode = bIsC1C3 ? ReceiveBuffer[3] : ReceiveBuffer[4];
         switch (auctionSubCode)
         {
@@ -15079,6 +15079,15 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
                 if (g_pAuctionWindow)
                 {
                     g_pAuctionWindow->SetBrowseResponse(*response);
+                }
+            }
+            break;
+        case 0x82: // AuctionDetailResponse
+            if (auto response = AuctionHouse::AuctionDetailResponse::Parse(received_span))
+            {
+                if (g_pAuctionWindow)
+                {
+                    g_pAuctionWindow->SetDetailResponse(*response);
                 }
             }
             break;

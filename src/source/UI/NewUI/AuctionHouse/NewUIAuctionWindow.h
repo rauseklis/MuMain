@@ -66,6 +66,10 @@ namespace SEASON3B
         // does not match the currently pending browse request.
         void SetBrowseResponse(const AuctionHouse::AuctionBrowseResponse& response);
 
+        // Called from the network dispatch when an AuctionDetailResponse arrives. Ignored if its RequestId
+        // does not match the currently pending detail request.
+        void SetDetailResponse(const AuctionHouse::AuctionDetailResponse& response);
+
         bool Render() override;
         void Render3D() override;
         bool IsVisible() const override;
@@ -87,6 +91,11 @@ namespace SEASON3B
         static void UI2DEffectCallback(LPVOID pClass, DWORD dwParamA, DWORD dwParamB);
         void InitPageButton(CNewUIButton* pButton, int x, int y, const wchar_t* caption);
         void RenderPageControls();
+        void SendDetailRequest(uint64_t listingId);
+        void RebuildDetailItem();
+        void ReleaseDetailItem();
+        void RenderDetailPanel();
+        void RenderDetailItemTooltip() const;
 
         CNewUIManager* m_pNewUIMng;
         CNewUI3DRenderMng* m_pNewUI3DRenderMng;
@@ -147,5 +156,20 @@ namespace SEASON3B
         // a known limitation of this widget, not fixed here.
         const wchar_t* m_CurrencyLabels[9];
         CNewUIComboBox m_CurrencyCombo;
+
+        // Selected-listing detail (design spec 4.2's main body swaps between "rows" and "detail panel"). True
+        // while the detail panel replaces the row list; cleared on any tab switch, Back, or window re-open.
+        bool m_bShowingDetail;
+        CNewUIButton m_BtnBack;
+        bool m_bDetailRequestPending;
+        uint32_t m_PendingDetailRequestId;
+        bool m_bHasDetailResponse;
+        AuctionHouse::AuctionDetailResponse m_DetailResponse;
+
+        // Owned separately from m_RowItems: the detail panel shows exactly one item, rebuilt from the detail
+        // response's own ItemData snapshot rather than reusing whichever row happened to be clicked, so it stays
+        // correct even if the underlying Browse page is refreshed while the panel is open.
+        ITEM* m_DetailItem;
+        bool m_bPointingDetailItem;
     };
 }

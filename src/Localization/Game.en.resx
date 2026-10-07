@@ -13012,4 +13012,10 @@
   <data name="Fruit Basket" xml:space="preserve">
     <value>Fruit Basket</value>
   </data>
+  <data name="Seller" xml:space="preserve">
+    <value>Seller</value>
+  </data>
+  <data name="Bidder" xml:space="preserve">
+    <value>Bidder</value>
+  </data>
 </root>
