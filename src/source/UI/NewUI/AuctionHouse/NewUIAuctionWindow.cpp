@@ -6,6 +6,7 @@
 #include "UI/NewUI/NewUISystem.h"
 #include "I18N/All.h"
 #include "Audio/DSPlaySound.h"
+#include "Network/Server/WSclient.h"
 
 using namespace SEASON3B;
 
@@ -24,7 +25,8 @@ namespace
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
-    : m_pNewUIMng(nullptr), m_Pos{ 0, 0 }, m_iCurrentTab(TAB_BROWSE)
+    : m_pNewUIMng(nullptr), m_Pos{ 0, 0 }, m_iCurrentTab(TAB_BROWSE),
+      m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false)
 {
 }
 
@@ -85,10 +87,29 @@ void SEASON3B::CNewUIAuctionWindow::SetPos(int x, int y)
 
 void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
 {
-    // Reset to Browse every time the window opens. Sending the open request and showing a loading
-    // state until the response arrives (design spec 4.1) is wired in once the network dispatch exists.
+    // Reset to Browse every time the window opens, and ask the server for the current fees/currencies/
+    // pending Mailbox count. The design spec's "loading state until the response arrives" (4.1) is UI that
+    // belongs to the Browse tab (task 4.3), which does not exist yet; m_bHasOpenResponse tracks whether one
+    // has arrived, for that tab to read once it does.
     m_iCurrentTab = TAB_BROWSE;
     m_TabBtn.ChangeFrame(m_iCurrentTab);
+
+    m_bHasOpenResponse = false;
+    m_PendingOpenRequestId = AuctionHouse::NextAuctionRequestId();
+    m_bOpenRequestPending = true;
+    SocketClient->ToGameServer()->SendAuctionOpenRequest(m_PendingOpenRequestId);
+}
+
+void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionOpenResponse& response)
+{
+    if (!m_bOpenRequestPending || response.RequestId != m_PendingOpenRequestId)
+    {
+        return;
+    }
+
+    m_bOpenRequestPending = false;
+    m_bHasOpenResponse = true;
+    m_OpenResponse = response;
 }
 
 void SEASON3B::CNewUIAuctionWindow::ClosingProcess()

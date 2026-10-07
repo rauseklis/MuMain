@@ -8,6 +8,7 @@
 #include "UI/NewUI/Dialogs/NewUIMessageBox.h"
 #include "UI/NewUI/Inventory/NewUIMyInventory.h"
 #include "Guild/NewUIGuildInfoWindow.h"
+#include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
 
 namespace SEASON3B
 {
@@ -48,12 +49,15 @@ namespace SEASON3B
 
         void SetPos(int x, int y);
 
-        // Called once when the window becomes visible: resets to the Browse tab and (once wired in a later
-        // slice) sends the open request.
+        // Called once when the window becomes visible: resets to the Browse tab and sends the open request.
         void OpeningProcess();
         // Called once when the window is hidden: closes the inventory window if this window is the one that
         // opened it for the Sell tab (not implemented until the Sell tab exists).
         void ClosingProcess();
+
+        // Called from the network dispatch (WSclient.cpp) when an AuctionOpenResponse arrives. Ignored if its
+        // RequestId does not match the currently pending open request (a stale or unexpected reply).
+        void SetOpenResponse(const AuctionHouse::AuctionOpenResponse& response);
 
         bool Render() override;
         bool Update() override;
@@ -74,5 +78,10 @@ namespace SEASON3B
         int m_iCurrentTab;
 
         CNewUIButton m_BtnClose;
+
+        bool m_bOpenRequestPending;
+        uint32_t m_PendingOpenRequestId;
+        bool m_bHasOpenResponse;
+        AuctionHouse::AuctionOpenResponse m_OpenResponse;
     };
 }

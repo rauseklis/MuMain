@@ -52,6 +52,7 @@
 #include "World/MapInfra/MapManager.h"
 #include "UI/Legacy/UIGuardsMan.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "UI/NewUI/Dialogs/NewUICustomMessageBox.h"
 #include "UI/NewUI/Inventory/NewUIInventoryCtrl.h"
@@ -15052,6 +15053,31 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
     break;
 
 #endif // KJH_PBG_ADD_INGAMESHOP_SYSTEM
+    case 0xD5:
+    {
+        // Auction House (0xD5): a C1-with-subcode packet puts the sub-code right after the code byte at
+        // offset 3; a C2-with-subcode packet (bigger payloads: open/browse/detail/my-listings/mailbox) puts
+        // it at offset 4, since its length field is two bytes instead of one. bIsC1C3 was already computed
+        // above from the header type byte. Only the open response has a consumer so far (the window itself,
+        // once built in tasks 4.3-4.5); the others parse into AuctionHouse::Auction*Response but nothing
+        // reads them yet.
+        const BYTE auctionSubCode = bIsC1C3 ? ReceiveBuffer[3] : ReceiveBuffer[4];
+        switch (auctionSubCode)
+        {
+        case 0x80: // AuctionOpenResponse
+            if (auto response = AuctionHouse::AuctionOpenResponse::Parse(received_span))
+            {
+                if (g_pAuctionWindow)
+                {
+                    g_pAuctionWindow->SetOpenResponse(*response);
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    break;
     case 0x4A:
         ReceiveStraightAttack(ReceiveBuffer, Size, bEncrypted);
         break;
