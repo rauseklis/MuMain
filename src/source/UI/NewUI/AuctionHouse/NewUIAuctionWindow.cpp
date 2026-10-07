@@ -26,6 +26,10 @@ namespace
     constexpr int TOP_BAND_HEIGHT = 64;
     constexpr int BOTTOM_BAND_HEIGHT = 45;
     constexpr int SIDE_BAND_WIDTH = 21;
+    constexpr int FRAME_TEXTURE_WIDTH = 190;
+    constexpr int FRAME_TEXTURE_HEIGHT = 429;
+    constexpr int FRAME_CAP_WIDTH = 64;
+    constexpr int FRAME_CENTER_WIDTH = FRAME_TEXTURE_WIDTH - 2 * FRAME_CAP_WIDTH;
     constexpr int CLOSE_BTN_WIDTH = 36;
     constexpr int CLOSE_BTN_HEIGHT = 29;
     constexpr int CLOSE_BTN_MARGIN = 8;
@@ -1263,7 +1267,9 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
 
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
 {
-    EnableAlphaBlend();
+    // EnableAlphaBlend is the engine's additive "glow" mode, not conventional alpha blending. It turns
+    // translucent table panels into the opaque white/yellow blocks seen during the first in-game pass.
+    EnableAlphaTest();
     RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y,
         BROWSE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT, BROWSE_HEADER_COLOR);
 
@@ -1279,6 +1285,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
         RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X + separator, m_Pos.y + BROWSE_HEADER_Y,
             1, BROWSE_HEADER_HEIGHT + BROWSE_SCROLLBAR_HEIGHT, BROWSE_GRID_COLOR);
     }
+    EndRenderColor();
 
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetTextColor(218, 186, 104, 255);
@@ -1351,10 +1358,11 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         const int rowY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
         const bool isHovered = static_cast<int>(row) == m_iPointedRow;
 
-        EnableAlphaBlend();
+        EnableAlphaTest();
         RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, rowY + BROWSE_ROW_PADDING,
             BodyWidth, BROWSE_ROW_HEIGHT - 2 * BROWSE_ROW_PADDING,
             isHovered ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
+        EndRenderColor();
 
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
         const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
@@ -1390,8 +1398,6 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
             buyoutText.c_str(), (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
     }
 
-    DisableAlphaBlend();
-    EnableAlphaTest();
 }
 
 float SEASON3B::CNewUIAuctionWindow::GetLayerDepth()
@@ -1428,9 +1434,39 @@ void SEASON3B::CNewUIAuctionWindow::UnloadImages()
 
 void SEASON3B::CNewUIAuctionWindow::RenderFrame()
 {
-    RenderImage(IMAGE_AUCTION_BACK, (float)m_Pos.x, (float)m_Pos.y, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
-    RenderImage(IMAGE_AUCTION_TOP, (float)m_Pos.x, (float)m_Pos.y, (float)WINDOW_WIDTH, (float)TOP_BAND_HEIGHT);
-    RenderImage(IMAGE_AUCTION_LEFT, (float)m_Pos.x, (float)(m_Pos.y + TOP_BAND_HEIGHT), (float)SIDE_BAND_WIDTH, (float)(WINDOW_HEIGHT - TOP_BAND_HEIGHT - BOTTOM_BAND_HEIGHT));
-    RenderImage(IMAGE_AUCTION_RIGHT, (float)(m_Pos.x + WINDOW_WIDTH - SIDE_BAND_WIDTH), (float)(m_Pos.y + TOP_BAND_HEIGHT), (float)SIDE_BAND_WIDTH, (float)(WINDOW_HEIGHT - TOP_BAND_HEIGHT - BOTTOM_BAND_HEIGHT));
-    RenderImage(IMAGE_AUCTION_BOTTOM, (float)m_Pos.x, (float)(m_Pos.y + WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT), (float)WINDOW_WIDTH, (float)BOTTOM_BAND_HEIGHT);
+    const float x = static_cast<float>(m_Pos.x);
+    const float y = static_cast<float>(m_Pos.y);
+    const float centerDestinationWidth = static_cast<float>(WINDOW_WIDTH - 2 * FRAME_CAP_WIDTH);
+
+    // These legacy frame sprites are only 190 pixels wide. RenderImage samples destination dimensions as
+    // source dimensions too, so asking it for 600 pixels reads beyond the sprite and produces a black void.
+    // Stretch the subdued background, but preserve both ornate frame caps at 1:1 and stretch only their
+    // plain center strip so the MU corners retain their original proportions.
+    RenderImageStretch(IMAGE_AUCTION_BACK, x, y, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
+        0.f, 0.f, static_cast<float>(FRAME_TEXTURE_WIDTH), static_cast<float>(FRAME_TEXTURE_HEIGHT));
+
+    RenderImageStretch(IMAGE_AUCTION_TOP, x, y, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
+        0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
+    RenderImageStretch(IMAGE_AUCTION_TOP, x + FRAME_CAP_WIDTH, y, centerDestinationWidth, static_cast<float>(TOP_BAND_HEIGHT),
+        static_cast<float>(FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CENTER_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
+    RenderImageStretch(IMAGE_AUCTION_TOP, x + WINDOW_WIDTH - FRAME_CAP_WIDTH, y,
+        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
+        static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f,
+        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
+
+    const float sideHeight = static_cast<float>(WINDOW_HEIGHT - TOP_BAND_HEIGHT - BOTTOM_BAND_HEIGHT);
+    RenderImageStretch(IMAGE_AUCTION_LEFT, x, y + TOP_BAND_HEIGHT, static_cast<float>(SIDE_BAND_WIDTH), sideHeight,
+        0.f, 0.f, static_cast<float>(SIDE_BAND_WIDTH), sideHeight);
+    RenderImageStretch(IMAGE_AUCTION_RIGHT, x + WINDOW_WIDTH - SIDE_BAND_WIDTH, y + TOP_BAND_HEIGHT,
+        static_cast<float>(SIDE_BAND_WIDTH), sideHeight, 0.f, 0.f, static_cast<float>(SIDE_BAND_WIDTH), sideHeight);
+
+    const float bottomY = y + WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT;
+    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x, bottomY, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT),
+        0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
+    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + FRAME_CAP_WIDTH, bottomY, centerDestinationWidth, static_cast<float>(BOTTOM_BAND_HEIGHT),
+        static_cast<float>(FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CENTER_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
+    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + WINDOW_WIDTH - FRAME_CAP_WIDTH, bottomY,
+        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT),
+        static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f,
+        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
 }
