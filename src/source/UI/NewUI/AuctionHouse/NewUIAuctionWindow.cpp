@@ -26,7 +26,9 @@ namespace
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
     : m_pNewUIMng(nullptr), m_Pos{ 0, 0 }, m_iCurrentTab(TAB_BROWSE),
-      m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false)
+      m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false),
+      m_SelectedCurrency(AuctionCurrencyMode::Zen), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
+      m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasBrowseResponse(false)
 {
 }
 
@@ -98,6 +100,47 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     m_PendingOpenRequestId = AuctionHouse::NextAuctionRequestId();
     m_bOpenRequestPending = true;
     SocketClient->ToGameServer()->SendAuctionOpenRequest(m_PendingOpenRequestId);
+
+    m_CurrentPage = 1;
+    SendBrowseRequest();
+}
+
+void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
+{
+    // V1 scope: only currency, category, sort and page are honored server-side (confirmed by reading
+    // AuctionBrowseHandlerPlugIn.cs). Category 255 means "every category" (the server's own sentinel,
+    // AuctionBrowseHandlerPlugIn.AllCategories). The remaining fields are sent as the widest possible
+    // range, so they behave as "no filter" whenever the server starts honoring them.
+    constexpr BYTE AllCategories = 0xFF;
+    m_bHasBrowseResponse = false;
+    m_PendingBrowseRequestId = AuctionHouse::NextAuctionRequestId();
+    m_bBrowseRequestPending = true;
+    SocketClient->ToGameServer()->SendAuctionBrowseRequest(
+        m_PendingBrowseRequestId,
+        m_CurrentPage,
+        AllCategories,
+        m_SelectedCurrency,
+        m_SelectedSort,
+        0xFFFFFFFFu, // class mask: every class
+        0, // level minimum
+        255, // level maximum
+        0, // option flags: none required
+        0, 0, 0, 0, 0, 0, // minimum price, every component: no floor
+        0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, // maximum price, every component: no ceiling
+        0, // max remaining hours: no limit
+        0, nullptr, 0); // name search: none
+}
+
+void SEASON3B::CNewUIAuctionWindow::SetBrowseResponse(const AuctionHouse::AuctionBrowseResponse& response)
+{
+    if (!m_bBrowseRequestPending || response.RequestId != m_PendingBrowseRequestId)
+    {
+        return;
+    }
+
+    m_bBrowseRequestPending = false;
+    m_bHasBrowseResponse = true;
+    m_BrowseResponse = response;
 }
 
 void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionOpenResponse& response)

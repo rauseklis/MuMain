@@ -59,6 +59,10 @@ namespace SEASON3B
         // RequestId does not match the currently pending open request (a stale or unexpected reply).
         void SetOpenResponse(const AuctionHouse::AuctionOpenResponse& response);
 
+        // Called from the network dispatch when an AuctionBrowseResponse arrives. Ignored if its RequestId
+        // does not match the currently pending browse request.
+        void SetBrowseResponse(const AuctionHouse::AuctionBrowseResponse& response);
+
         bool Render() override;
         bool Update() override;
         bool UpdateMouseEvent() override;
@@ -70,6 +74,7 @@ namespace SEASON3B
         void UnloadImages();
         void RenderFrame();
         bool BtnProcess();
+        void SendBrowseRequest();
 
         CNewUIManager* m_pNewUIMng;
         POINT m_Pos;
@@ -83,5 +88,17 @@ namespace SEASON3B
         uint32_t m_PendingOpenRequestId;
         bool m_bHasOpenResponse;
         AuctionHouse::AuctionOpenResponse m_OpenResponse;
+
+        // The Browse tab's selected currency, page and sort. V1 scope: the server only honors currency,
+        // category, sort and page (confirmed by reading AuctionBrowseHandlerPlugIn.cs server-side); the
+        // remaining wire fields (name search, class mask, level range, option flags, price range, max
+        // remaining time) are sent as "no filter" and are not exposed as UI controls yet.
+        AuctionCurrencyMode m_SelectedCurrency;
+        uint16_t m_CurrentPage;
+        AuctionSort m_SelectedSort;
+        bool m_bBrowseRequestPending;
+        uint32_t m_PendingBrowseRequestId;
+        bool m_bHasBrowseResponse;
+        AuctionHouse::AuctionBrowseResponse m_BrowseResponse;
     };
 }
