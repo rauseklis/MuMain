@@ -267,4 +267,63 @@ namespace AuctionHouse
 
         return response;
     }
+
+    std::optional<AuctionCurrencyDescriptor> AuctionCurrencyDescriptor::Parse(std::span<const uint8_t> entry)
+    {
+        if (entry.size() < WireLength)
+        {
+            return std::nullopt;
+        }
+
+        AuctionCurrencyDescriptor descriptor;
+        descriptor.CurrencyMode = static_cast<AuctionCurrencyMode>(entry[0]);
+        descriptor.Enabled = entry[1] != 0;
+        descriptor.MinimumStartingPrice = ReadU32(entry, 2);
+        descriptor.MaximumStartingPrice = ReadU32(entry, 6);
+        descriptor.MinimumIncrement = ReadU32(entry, 10);
+        descriptor.IncrementPercent = entry[14];
+        descriptor.Spendable = ReadAmount(entry, 15, descriptor.CurrencyMode);
+        return descriptor;
+    }
+
+    std::optional<AuctionOpenResponse> AuctionOpenResponse::Parse(std::span<const uint8_t> packet)
+    {
+        if (packet.size() < FixedWireLength)
+        {
+            return std::nullopt;
+        }
+
+        AuctionOpenResponse response;
+        response.RequestId = ReadU32(packet, 5);
+        response.Result = static_cast<AuctionResult>(packet[9]);
+        response.ServerTime = ReadU32(packet, 10);
+        response.ConfigurationVersion = ReadU32(packet, 14);
+        response.ListingFeeBasisPoints = ReadU16(packet, 18);
+        response.SuccessFeeBasisPoints = ReadU16(packet, 20);
+        response.DurationMask = packet[22];
+        response.DefaultDurationHours = packet[23];
+        response.PageSize = packet[24];
+        response.PendingMailboxCount = ReadU16(packet, 25);
+
+        const auto currencyCount = packet[27];
+        response.Currencies.reserve(currencyCount);
+        for (uint8_t i = 0; i < currencyCount; ++i)
+        {
+            const auto offset = FixedWireLength + static_cast<size_t>(i) * AuctionCurrencyDescriptor::WireLength;
+            if (packet.size() < offset + AuctionCurrencyDescriptor::WireLength)
+            {
+                return std::nullopt;
+            }
+
+            auto descriptor = AuctionCurrencyDescriptor::Parse(packet.subspan(offset));
+            if (!descriptor)
+            {
+                return std::nullopt;
+            }
+
+            response.Currencies.push_back(std::move(*descriptor));
+        }
+
+        return response;
+    }
 }

@@ -198,4 +198,48 @@ namespace AuctionHouse
 
         [[nodiscard]] static std::optional<AuctionMailboxResponse> Parse(std::span<const uint8_t> packet);
     };
+
+    // One currency's rules and the player's spendable units in it, mirroring the server's
+    // AuctionCurrencyDescriptorRef. Always exactly 39 bytes. Byte layout: CurrencyMode(u8)@0,
+    // Enabled(bool)@1, MinimumStartingPrice(u32)@2, MaximumStartingPrice(u32)@6, MinimumIncrement(u32)@10,
+    // IncrementPercent(u8)@14, Spendable{Scalar,Str,Agi,Vit,Ene,Cmd}(u32x6)@15.
+    struct AuctionCurrencyDescriptor
+    {
+        static constexpr size_t WireLength = 39;
+
+        AuctionCurrencyMode CurrencyMode = AuctionCurrencyMode::Zen;
+        bool Enabled = false;
+        uint32_t MinimumStartingPrice = 0;
+        uint32_t MaximumStartingPrice = 0;
+        uint32_t MinimumIncrement = 0;
+        uint8_t IncrementPercent = 0;
+        AuctionAmount Spendable = AuctionAmount::FromScalar(0);
+
+        [[nodiscard]] static std::optional<AuctionCurrencyDescriptor> Parse(std::span<const uint8_t> entry);
+    };
+
+    // The response to opening the Auction House window, mirroring the server's AuctionOpenResponse (0xD5 sub
+    // 0x80, a C2-with-subcode packet). Byte layout (absolute offsets): RequestId(u32)@5, Result(u8)@9,
+    // ServerTime(u32)@10, ConfigurationVersion(u32)@14, ListingFeeBasisPoints(u16)@18,
+    // SuccessFeeBasisPoints(u16)@20, DurationMask(u8)@22, DefaultDurationHours(u8)@23, PageSize(u8)@24,
+    // PendingMailboxCount(u16)@25, CurrencyCount(u8)@27, then CurrencyCount AuctionCurrencyDescriptor
+    // entries starting at 28.
+    struct AuctionOpenResponse
+    {
+        static constexpr size_t FixedWireLength = 28;
+
+        uint32_t RequestId = 0;
+        AuctionResult Result = AuctionResult::Success;
+        uint32_t ServerTime = 0;
+        uint32_t ConfigurationVersion = 0;
+        uint16_t ListingFeeBasisPoints = 0;
+        uint16_t SuccessFeeBasisPoints = 0;
+        uint8_t DurationMask = 0;
+        uint8_t DefaultDurationHours = 0;
+        uint8_t PageSize = 0;
+        uint16_t PendingMailboxCount = 0;
+        std::vector<AuctionCurrencyDescriptor> Currencies;
+
+        [[nodiscard]] static std::optional<AuctionOpenResponse> Parse(std::span<const uint8_t> packet);
+    };
 }

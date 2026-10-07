@@ -385,3 +385,94 @@ TEST_CASE("a mailbox response shorter than its own fixed header fails to parse [
 
     CHECK_FALSE(AuctionMailboxResponse::Parse(packet).has_value());
 }
+
+namespace
+{
+    void PutCurrencyDescriptor(std::vector<uint8_t>& buffer, size_t offset, AuctionCurrencyMode mode, bool enabled)
+    {
+        PutU8(buffer, offset + 0, static_cast<uint8_t>(mode));
+        PutU8(buffer, offset + 1, enabled ? 1U : 0U);
+        PutU32(buffer, offset + 2, 1000U); // minimum starting price
+        PutU32(buffer, offset + 6, 2000000000U); // maximum starting price
+        PutU32(buffer, offset + 10, 1000U); // minimum increment
+        PutU8(buffer, offset + 14, 5U); // increment percent
+        PutU32(buffer, offset + 15, 50000U); // spendable scalar
+    }
+}
+
+TEST_CASE("a currency descriptor reads its rules and spendable units [ui][auction_wire]")
+{
+    std::vector<uint8_t> entry(AuctionCurrencyDescriptor::WireLength, 0);
+    PutCurrencyDescriptor(entry, 0, AuctionCurrencyMode::Zen, true);
+
+    const auto descriptor = AuctionCurrencyDescriptor::Parse(entry);
+
+    REQUIRE(descriptor.has_value());
+    CHECK(descriptor->CurrencyMode == AuctionCurrencyMode::Zen);
+    CHECK(descriptor->Enabled);
+    CHECK(descriptor->MinimumStartingPrice == 1000U);
+    CHECK(descriptor->MaximumStartingPrice == 2000000000U);
+    CHECK(descriptor->MinimumIncrement == 1000U);
+    CHECK(descriptor->IncrementPercent == 5U);
+    CHECK_FALSE(descriptor->Spendable.IsFruitBasket());
+    CHECK(descriptor->Spendable.Scalar() == 50000U);
+}
+
+TEST_CASE("a truncated currency descriptor fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> entry(AuctionCurrencyDescriptor::WireLength - 1, 0);
+
+    CHECK_FALSE(AuctionCurrencyDescriptor::Parse(entry).has_value());
+}
+
+TEST_CASE("an open response reads its fees, duration rules and every currency descriptor [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength + 2 * AuctionCurrencyDescriptor::WireLength, 0);
+    PutU32(packet, 5, 7U); // request id
+    PutU8(packet, 9, static_cast<uint8_t>(AuctionResult::Success));
+    PutU32(packet, 10, 1700001000U); // server time
+    PutU32(packet, 14, 1U); // configuration version
+    PutU16(packet, 18, 100U); // listing fee basis points
+    PutU16(packet, 20, 500U); // success fee basis points
+    PutU8(packet, 22, 0x0F); // duration mask
+    PutU8(packet, 23, 24U); // default duration hours
+    PutU8(packet, 24, 8U); // page size
+    PutU16(packet, 25, 2U); // pending mailbox count
+    PutU8(packet, 27, 2U); // currency count
+    PutCurrencyDescriptor(packet, 28, AuctionCurrencyMode::Zen, true);
+    PutCurrencyDescriptor(packet, 28 + AuctionCurrencyDescriptor::WireLength, AuctionCurrencyMode::Chaos, false);
+
+    const auto response = AuctionOpenResponse::Parse(packet);
+
+    REQUIRE(response.has_value());
+    CHECK(response->RequestId == 7U);
+    CHECK(response->ServerTime == 1700001000U);
+    CHECK(response->ConfigurationVersion == 1U);
+    CHECK(response->ListingFeeBasisPoints == 100U);
+    CHECK(response->SuccessFeeBasisPoints == 500U);
+    CHECK(response->DurationMask == 0x0F);
+    CHECK(response->DefaultDurationHours == 24U);
+    CHECK(response->PageSize == 8U);
+    CHECK(response->PendingMailboxCount == 2U);
+    REQUIRE(response->Currencies.size() == 2U);
+    CHECK(response->Currencies[0].CurrencyMode == AuctionCurrencyMode::Zen);
+    CHECK(response->Currencies[0].Enabled);
+    CHECK(response->Currencies[1].CurrencyMode == AuctionCurrencyMode::Chaos);
+    CHECK_FALSE(response->Currencies[1].Enabled);
+}
+
+TEST_CASE("an open response truncated mid-descriptor fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength + AuctionCurrencyDescriptor::WireLength, 0);
+    PutU8(packet, 27, 2U);
+    PutCurrencyDescriptor(packet, 28, AuctionCurrencyMode::Zen, true);
+
+    CHECK_FALSE(AuctionOpenResponse::Parse(packet).has_value());
+}
+
+TEST_CASE("an open response shorter than its own fixed header fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength - 1, 0);
+
+    CHECK_FALSE(AuctionOpenResponse::Parse(packet).has_value());
+}
