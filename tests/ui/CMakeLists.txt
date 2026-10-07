@@ -83,3 +83,11 @@ mu_add_test(
         test_auction_model.cpp
         ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/AuctionHouse/AuctionModel.cpp
 )
+
+mu_add_test(
+    NAME auction_wire_responses_tests
+    SOURCES
+        test_auction_wire_responses.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/AuctionHouse/AuctionModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/AuctionHouse/AuctionWireResponses.cpp
+)
