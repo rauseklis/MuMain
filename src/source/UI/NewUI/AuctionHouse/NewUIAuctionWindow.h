@@ -103,10 +103,20 @@ namespace SEASON3B
         void SendBidRequest();
         void SendBuyoutRequest();
         void RenderOperationButtons();
+        void RepositionChildren();
 
         CNewUIManager* m_pNewUIMng;
         CNewUI3DRenderMng* m_pNewUI3DRenderMng;
         POINT m_Pos;
+
+        // Drag-by-title-bar, the same mechanism CNewUIExpHuntWindow (the /hunt feature) already established
+        // for a movable NewUI window: grab anywhere in the title strip (excluding the close button), hold,
+        // release to drop. Unlike ExpHuntWindow (which has no interior widgets), this window is full of
+        // buttons/combos/rows, so every child's absolute position has to be reapplied on every drag-move frame
+        // via RepositionChildren() — nothing else in NewUI does this today because nothing else here moves.
+        bool m_bDragging;
+        int m_iDragGrabOffsetX;
+        int m_iDragGrabOffsetY;
 
         CNewUIRadioGroupButton m_TabBtn;
         int m_iCurrentTab;
@@ -129,6 +139,8 @@ namespace SEASON3B
         // option flags, price range, max remaining time) are still sent as "no filter" because they have no UI
         // control yet, not because the server would ignore them.
         AuctionCurrencyMode m_SelectedCurrency;
+        // 0 = "All Categories"; 1-7 map to AuctionCategory's seven wire values (index - 1).
+        int m_SelectedCategoryIndex;
         uint16_t m_CurrentPage;
         AuctionSort m_SelectedSort;
         bool m_bBrowseRequestPending;
@@ -163,6 +175,12 @@ namespace SEASON3B
         // a known limitation of this widget, not fixed here.
         const wchar_t* m_CurrencyLabels[9];
         CNewUIComboBox m_CurrencyCombo;
+
+        // Index 0 is "All Categories" (sent on the wire as the server's own 0xFF "every category" sentinel);
+        // indices 1-7 are AuctionCategory's seven wire values in order, so GetSelectedIndex() - 1 is the wire
+        // category value whenever a specific category is selected.
+        const wchar_t* m_CategoryLabels[8];
+        CNewUIComboBox m_CategoryCombo;
 
         // Selected-listing detail (design spec 4.2's main body swaps between "rows" and "detail panel"). True
         // while the detail panel replaces the row list; cleared on any tab switch, Back, or window re-open.

@@ -13027,4 +13027,28 @@
   <data name="Success" xml:space="preserve">
     <value>Success</value>
   </data>
+  <data name="All Categories" xml:space="preserve">
+    <value>All Categories</value>
+  </data>
+  <data name="Weapon" xml:space="preserve">
+    <value>Weapon</value>
+  </data>
+  <data name="Armor" xml:space="preserve">
+    <value>Armor</value>
+  </data>
+  <data name="Wing" xml:space="preserve">
+    <value>Wing</value>
+  </data>
+  <data name="Pet &amp; Helper" xml:space="preserve">
+    <value>Pet &amp; Helper</value>
+  </data>
+  <data name="Jewel &amp; Material" xml:space="preserve">
+    <value>Jewel &amp; Material</value>
+  </data>
+  <data name="Consumable" xml:space="preserve">
+    <value>Consumable</value>
+  </data>
+  <data name="Miscellaneous" xml:space="preserve">
+    <value>Miscellaneous</value>
+  </data>
 </root>

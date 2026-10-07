@@ -30,12 +30,21 @@ namespace
     constexpr int TOOLBAR_Y = 69;
     constexpr int CURRENCY_COMBO_WIDTH = 150;
     constexpr int CURRENCY_COMBO_ITEM_HEIGHT = 22;
+    constexpr int CATEGORY_COMBO_X_OFFSET = CURRENCY_COMBO_WIDTH + 8;
+    constexpr int CATEGORY_COMBO_WIDTH = 210;
     constexpr int BROWSE_BODY_X = 11;
     constexpr int BROWSE_BODY_Y = 112;
-    constexpr int BROWSE_ROW_HEIGHT = 32;
+    constexpr int BROWSE_ROW_HEIGHT = 34;
+    constexpr int BROWSE_ROW_PADDING = 1;
     constexpr int BROWSE_ICON_SIZE = 28;
-    constexpr int BROWSE_ICON_MARGIN = 2;
-    constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_SIZE + 6;
+    constexpr int BROWSE_ICON_MARGIN = 3;
+    constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_SIZE + 6 + BROWSE_ICON_MARGIN;
+    constexpr int BROWSE_LINE_HEIGHT = 15;
+    // A visible panel behind every row, so each listing reads as a distinct card rather than bare text
+    // floating on the window background — the same idea as WoW's Auction House row cards, built from plain
+    // colored quads since no card-panel texture exists in this project's asset set.
+    constexpr unsigned int BROWSE_CARD_COLOR = 0x30FFFFFFu;
+    constexpr unsigned int BROWSE_CARD_HOVER_COLOR = 0x50FFD700u;
     constexpr int PAGE_BTN_WIDTH = 53;
     constexpr int PAGE_BTN_HEIGHT = 23;
     constexpr int PAGE_BTN_MARGIN_X = 20;
@@ -49,9 +58,10 @@ namespace
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
-    : m_pNewUIMng(nullptr), m_pNewUI3DRenderMng(nullptr), m_Pos{ 0, 0 }, m_iCurrentTab(TAB_BROWSE),
+    : m_pNewUIMng(nullptr), m_pNewUI3DRenderMng(nullptr), m_Pos{ 0, 0 },
+      m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_iCurrentTab(TAB_BROWSE),
       m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false),
-      m_SelectedCurrency(AuctionCurrencyMode::Zen), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
+      m_SelectedCurrency(AuctionCurrencyMode::Zen), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasBrowseResponse(false),
       m_iPointedRow(-1),
       m_bShowingDetail(false), m_bDetailRequestPending(false), m_PendingDetailRequestId(0),
@@ -112,6 +122,20 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CurrencyCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
         m_CurrencyLabels, 9, static_cast<int>(m_SelectedCurrency));
 
+    // Index 0 is "All Categories" (the server's own 0xFF sentinel); indices 1-7 are AuctionCategory's seven
+    // wire values in declaration order (Weapon, Armor, Wing, Pet & Helper, Jewel & Material, Consumable,
+    // Miscellaneous) — see AuctionCategory.cs server-side.
+    m_CategoryLabels[0] = I18N::Game::AllCategories;
+    m_CategoryLabels[1] = I18N::Game::Weapon;
+    m_CategoryLabels[2] = I18N::Game::Armor;
+    m_CategoryLabels[3] = I18N::Game::Wing;
+    m_CategoryLabels[4] = I18N::Game::PetHelper;
+    m_CategoryLabels[5] = I18N::Game::JewelMaterial;
+    m_CategoryLabels[6] = I18N::Game::Consumable;
+    m_CategoryLabels[7] = I18N::Game::Miscellaneous;
+    m_CategoryCombo.Setup(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
+        m_CategoryLabels, 8, m_SelectedCategoryIndex);
+
     InitPageButton(&m_BtnPrevPage, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
     InitPageButton(&m_BtnNextPage, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
     InitPageButton(&m_BtnBack, m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, I18N::Game::Back);
@@ -158,6 +182,22 @@ void SEASON3B::CNewUIAuctionWindow::SetPos(int x, int y)
     m_Pos.y = y;
 }
 
+void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
+{
+    // Every child widget was given an absolute, one-time position in Create() (the established NewUI
+    // convention, since nothing else here ever moves). Dragging breaks that assumption, so every widget's
+    // position has to be reapplied against the new m_Pos on every drag-move frame.
+    m_TabBtn.ChangeRadioButtonInfo(true, (float)(m_Pos.x + TAB_REGION_X), (float)(m_Pos.y + TAB_REGION_Y), TAB_WIDTH, TAB_HEIGHT);
+    m_BtnClose.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
+    m_CurrencyCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
+    m_CategoryCombo.SetPos(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
+    m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnNextPage.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnBack.ChangeButtonInfo(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnBid.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnBuyout.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+}
+
 void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
 {
     // Reset to Browse every time the window opens, and ask the server for the current fees/currencies/
@@ -185,17 +225,19 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
 {
     // The server now honors every field below (confirmed by reading AuctionBrowseHandlerPlugIn.cs/
     // AuctionHouseRepository.cs after the 2026-10-07 browse-filter work). Category 255 means "every category"
-    // (the server's own sentinel, AuctionBrowseHandlerPlugIn.AllCategories). The remaining fields are sent as
-    // the widest possible range because they have no UI control yet, which is read by the server as "no
-    // filter" on that field, not as a server-side limitation.
+    // (the server's own sentinel, AuctionBrowseHandlerPlugIn.AllCategories); m_SelectedCategoryIndex == 0 maps
+    // to that sentinel, otherwise it's (index - 1) as the wire AuctionCategory value. The remaining fields are
+    // sent as the widest possible range because they have no UI control yet, which is read by the server as
+    // "no filter" on that field, not as a server-side limitation.
     constexpr BYTE AllCategories = 0xFF;
+    const BYTE category = m_SelectedCategoryIndex == 0 ? AllCategories : static_cast<BYTE>(m_SelectedCategoryIndex - 1);
     m_bHasBrowseResponse = false;
     m_PendingBrowseRequestId = AuctionHouse::NextAuctionRequestId();
     m_bBrowseRequestPending = true;
     SocketClient->ToGameServer()->SendAuctionBrowseRequest(
         m_PendingBrowseRequestId,
         m_CurrentPage,
-        AllCategories,
+        category,
         m_SelectedCurrency,
         m_SelectedSort,
         0xFFFFFFFFu, // class mask: every class
@@ -437,12 +479,42 @@ void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
 {
     // The Sell tab will own closing an inventory window it opened for itself (design spec 4.2); there is
     // nothing to release yet since the Sell tab has no content.
+    m_bDragging = false;
 }
 
 bool SEASON3B::CNewUIAuctionWindow::UpdateMouseEvent()
 {
     if (BtnProcess())
     {
+        return false;
+    }
+
+    if (m_bDragging)
+    {
+        // MouseLButton (not a one-shot press-edge flag) is required here: using an edge-triggered press to
+        // decide whether to KEEP dragging ends the drag one frame after every press. Same reasoning as
+        // CNewUIExpHuntWindow's own drag loop.
+        if (!MouseLButton)
+        {
+            m_bDragging = false;
+            return false;
+        }
+
+        m_Pos.x = MouseX - m_iDragGrabOffsetX;
+        m_Pos.y = MouseY - m_iDragGrabOffsetY;
+        RepositionChildren();
+        return false;
+    }
+
+    // Grab zone is the title strip above the tabs, excluding the close button's own rect (BtnProcess already
+    // handles a close-button click above, before this is ever reached, but excluding it here too keeps the
+    // grab zone honest if that ordering ever changes).
+    const bool overTitleBar = CheckMouseIn(m_Pos.x, m_Pos.y, WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, TAB_REGION_Y);
+    if (overTitleBar && IsPress(VK_LBUTTON))
+    {
+        m_bDragging = true;
+        m_iDragGrabOffsetX = MouseX - m_Pos.x;
+        m_iDragGrabOffsetY = MouseY - m_Pos.y;
         return false;
     }
 
@@ -492,7 +564,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
     // The combo's own contract: its expanded dropdown can extend past this widget's own small hit box, so
     // the owner must separately treat IsMouseOverWidget() as a consumed click.
-    if (m_iCurrentTab == TAB_BROWSE && m_CurrencyCombo.IsMouseOverWidget())
+    if (m_iCurrentTab == TAB_BROWSE && (m_CurrencyCombo.IsMouseOverWidget() || m_CategoryCombo.IsMouseOverWidget()))
     {
         return true;
     }
@@ -567,6 +639,13 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             SendBrowseRequest();
         }
 
+        if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CategoryCombo.UpdateMouseEvent())
+        {
+            m_SelectedCategoryIndex = m_CategoryCombo.GetSelectedIndex();
+            m_CurrentPage = 1;
+            SendBrowseRequest();
+        }
+
         m_iPointedRow = -1;
         m_bPointingDetailItem = false;
         if (m_iCurrentTab == TAB_BROWSE && m_bShowingDetail)
@@ -618,6 +697,7 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
         // Rendered last, per CNewUIComboBox's own contract, so its expanded dropdown draws on top of the row text.
         m_CurrencyCombo.Render();
+        m_CategoryCombo.Render();
     }
 
     DisableAlphaBlend();
@@ -832,10 +912,11 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 {
     // Main body region per the design spec's shared layout table (4.2): x 31-409, y 137-416 in the 640x480
-    // logical canvas, i.e. local offset (11, 112) from this window's own (20, 25) origin. Eight rows. Each
-    // row's item icon is drawn in Render3D() (the engine's 3D pass, same as inventory slots), so the text
-    // columns here start after BROWSE_TEXT_X_OFFSET to leave room for it. The countdown uses m_ServerClock's
-    // live estimate, not the frozen ServerTime the last response carried, so it ticks down between responses.
+    // logical canvas, i.e. local offset (11, 112) from this window's own (20, 25) origin. Eight card-style
+    // rows: a translucent panel per row (gold-tinted when hovered), the item icon drawn separately in
+    // Render3D() (the engine's 3D pass, same as inventory slots), the item's own display name on the first
+    // text line, and price/buyout/time/bids on the second. The countdown uses m_ServerClock's live estimate,
+    // not the frozen ServerTime the last response carried, so it ticks down between responses.
     constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X;
 
     g_pRenderText->SetFont(g_hFont);
@@ -859,19 +940,37 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
     for (size_t row = 0; row < rowCount; ++row)
     {
         const auto& listing = m_BrowseResponse.Listings[row];
+        const int rowY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
+        const bool isHovered = static_cast<int>(row) == m_iPointedRow;
+
+        EnableAlphaBlend();
+        RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, rowY + BROWSE_ROW_PADDING,
+            BodyWidth, BROWSE_ROW_HEIGHT - 2 * BROWSE_ROW_PADDING,
+            isHovered ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
+
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
         const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
         const std::wstring priceText = listing.CurrentPrice.IsFruitBasket()
             ? L"(fruits)"
             : std::to_wstring(listing.CurrentPrice.Scalar());
-
-        wchar_t line[256];
-        mu_swprintf(line, L"%ls   %ls   x%d   %ls", priceText.c_str(), countdown.c_str(), listing.BidCount, listing.SellerName.c_str());
+        const std::wstring itemName = m_RowItems[row] != nullptr ? GetItemDisplayName(m_RowItems[row]) : std::wstring();
 
         const int textX = m_Pos.x + BROWSE_BODY_X + BROWSE_TEXT_X_OFFSET;
-        const int textY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
-        g_pRenderText->RenderText((float)textX, (float)textY, line, (float)(BodyWidth - BROWSE_TEXT_X_OFFSET), 0, RT3_SORT_LEFT);
+        const int textWidth = BodyWidth - BROWSE_TEXT_X_OFFSET - 4;
+
+        g_pRenderText->SetFont(g_hFontBold);
+        g_pRenderText->SetTextColor(255, 255, 255, 255);
+        g_pRenderText->RenderText((float)textX, (float)(rowY + 2), itemName.c_str(), (float)textWidth, 0, RT3_SORT_LEFT);
+
+        wchar_t secondLine[256];
+        mu_swprintf(secondLine, L"%ls   x%d   %ls   %ls", priceText.c_str(), listing.BidCount, countdown.c_str(), listing.SellerName.c_str());
+        g_pRenderText->SetFont(g_hFont);
+        g_pRenderText->SetTextColor(200, 200, 200, 255);
+        g_pRenderText->RenderText((float)textX, (float)(rowY + 2 + BROWSE_LINE_HEIGHT), secondLine, (float)textWidth, 0, RT3_SORT_LEFT);
     }
+
+    DisableAlphaBlend();
+    EnableAlphaTest();
 }
 
 float SEASON3B::CNewUIAuctionWindow::GetLayerDepth()
