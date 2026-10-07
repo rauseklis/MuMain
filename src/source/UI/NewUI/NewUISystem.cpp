@@ -465,7 +465,7 @@ bool CNewUISystem::LoadMainSceneInterface()
         return false;
 
     m_pNewAuctionWindow = new CNewUIAuctionWindow;
-    if (m_pNewAuctionWindow->Create(m_pNewUIMng, 20, 25) == false)
+    if (m_pNewAuctionWindow->Create(m_pNewUIMng, m_pNewUI3DRenderMng, 20, 25) == false)
         return false;
 
     m_pNewMiniMap = new CNewUIMiniMap;

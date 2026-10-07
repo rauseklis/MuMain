@@ -4,6 +4,7 @@
 #pragma once
 
 #include "UI/NewUI/NewUIBase.h"
+#include "UI/NewUI/NewUI3DRenderMng.h"
 #include "UI/NewUI/Widgets/NewUIButton.h"
 #include "UI/NewUI/Widgets/NewUIComboBox.h"
 #include "UI/NewUI/Dialogs/NewUIMessageBox.h"
@@ -16,7 +17,7 @@ namespace SEASON3B
     // The standalone Auction House window. Four tabs: Browse, Sell, My Listings, Mailbox. This slice wires the
     // frame, the tab chrome, and the open/close lifecycle; the tab bodies are filled in by later work (the
     // design spec's tasks 4.3-4.5) and are empty placeholders here.
-    class CNewUIAuctionWindow : public CNewUIObj
+    class CNewUIAuctionWindow : public CNewUIObj, public INewUI3DRenderObj
     {
     public:
         enum TAB
@@ -45,7 +46,7 @@ namespace SEASON3B
         CNewUIAuctionWindow();
         ~CNewUIAuctionWindow() override;
 
-        bool Create(CNewUIManager* pNewUIMng, int x, int y);
+        bool Create(CNewUIManager* pNewUIMng, CNewUI3DRenderMng* pNewUI3DRenderMng, int x, int y);
         void Release();
 
         void SetPos(int x, int y);
@@ -65,6 +66,8 @@ namespace SEASON3B
         void SetBrowseResponse(const AuctionHouse::AuctionBrowseResponse& response);
 
         bool Render() override;
+        void Render3D() override;
+        bool IsVisible() const override;
         bool Update() override;
         bool UpdateMouseEvent() override;
         bool UpdateKeyEvent() override;
@@ -77,8 +80,13 @@ namespace SEASON3B
         bool BtnProcess();
         void SendBrowseRequest();
         void RenderBrowseTab();
+        void RebuildRowItems();
+        void ReleaseRowItems();
+        void RenderRowItemTooltip(int row) const;
+        static void UI2DEffectCallback(LPVOID pClass, DWORD dwParamA, DWORD dwParamB);
 
         CNewUIManager* m_pNewUIMng;
+        CNewUI3DRenderMng* m_pNewUI3DRenderMng;
         POINT m_Pos;
 
         CNewUIRadioGroupButton m_TabBtn;
@@ -102,6 +110,22 @@ namespace SEASON3B
         uint32_t m_PendingBrowseRequestId;
         bool m_bHasBrowseResponse;
         AuctionHouse::AuctionBrowseResponse m_BrowseResponse;
+
+        // At most this many rows are ever rendered or hit-tested at once (RenderBrowseTab's own constant, which
+        // this array and the hover/icon logic must agree with).
+        static constexpr size_t MaxBrowseRows = 8;
+
+        // One owned ITEM* per rendered row, created from that row's AuctionListingSummary::ItemData via
+        // g_pNewItemMng (the same manager the rest of NewUI uses), so the Browse tab can reuse RenderItem3D and
+        // RenderItemInfo exactly as the inventory window does. Null for a row with no listing or no item data.
+        // Rebuilt whenever m_BrowseResponse is replaced; always released through g_pNewItemMng, never deleted
+        // directly, since CNewUIItemMng ref-counts and owns the underlying allocation.
+        ITEM* m_RowItems[MaxBrowseRows];
+
+        // The Browse row currently under the mouse, or -1. Computed in Update() from the same row geometry
+        // RenderBrowseTab() and Render3D() use, so hover, icon, and tooltip never disagree about which row the
+        // pointer is over.
+        int m_iPointedRow;
 
         // One label per AuctionCurrencyMode value, in wire order, so GetSelectedIndex() doubles as the mode's
         // wire value. CNewUIComboBox keeps only the pointers, not a locale-change "slot" like CNewUIButton

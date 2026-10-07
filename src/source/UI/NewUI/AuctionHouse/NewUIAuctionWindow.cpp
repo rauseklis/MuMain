@@ -4,6 +4,8 @@
 #include "stdafx.h"
 #include "UI/NewUI/AuctionHouse/NewUIAuctionWindow.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "UI/NewUI/Inventory/NewUIItemMng.h"
+#include "Engine/Object/ZzzInventory.h"
 #include "I18N/All.h"
 #include "Audio/DSPlaySound.h"
 #include "Network/Server/WSclient.h"
@@ -28,14 +30,22 @@ namespace
     constexpr int TOOLBAR_Y = 69;
     constexpr int CURRENCY_COMBO_WIDTH = 150;
     constexpr int CURRENCY_COMBO_ITEM_HEIGHT = 22;
+    constexpr int BROWSE_BODY_X = 11;
+    constexpr int BROWSE_BODY_Y = 112;
+    constexpr int BROWSE_ROW_HEIGHT = 32;
+    constexpr int BROWSE_ICON_SIZE = 28;
+    constexpr int BROWSE_ICON_MARGIN = 2;
+    constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_SIZE + 6;
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
-    : m_pNewUIMng(nullptr), m_Pos{ 0, 0 }, m_iCurrentTab(TAB_BROWSE),
+    : m_pNewUIMng(nullptr), m_pNewUI3DRenderMng(nullptr), m_Pos{ 0, 0 }, m_iCurrentTab(TAB_BROWSE),
       m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false),
       m_SelectedCurrency(AuctionCurrencyMode::Zen), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
-      m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasBrowseResponse(false)
+      m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasBrowseResponse(false),
+      m_iPointedRow(-1)
 {
+    std::fill(std::begin(m_RowItems), std::end(m_RowItems), nullptr);
 }
 
 SEASON3B::CNewUIAuctionWindow::~CNewUIAuctionWindow()
@@ -43,15 +53,18 @@ SEASON3B::CNewUIAuctionWindow::~CNewUIAuctionWindow()
     Release();
 }
 
-bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, int x, int y)
+bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRenderMng* pNewUI3DRenderMng, int x, int y)
 {
-    if (nullptr == pNewUIMng)
+    if (nullptr == pNewUIMng || nullptr == pNewUI3DRenderMng)
     {
         return false;
     }
 
     m_pNewUIMng = pNewUIMng;
     m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_AUCTION_HOUSE, this);
+
+    m_pNewUI3DRenderMng = pNewUI3DRenderMng;
+    m_pNewUI3DRenderMng->Add3DRenderObj(this, INVENTORY_CAMERA_Z_ORDER);
 
     SetPos(x, y);
     LoadImages();
@@ -93,6 +106,13 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, int x, int 
 void SEASON3B::CNewUIAuctionWindow::Release()
 {
     UnloadImages();
+    ReleaseRowItems();
+
+    if (m_pNewUI3DRenderMng)
+    {
+        m_pNewUI3DRenderMng->Remove3DRenderObj(this);
+        m_pNewUI3DRenderMng = nullptr;
+    }
 
     if (m_pNewUIMng)
     {
@@ -161,6 +181,65 @@ void SEASON3B::CNewUIAuctionWindow::SetBrowseResponse(const AuctionHouse::Auctio
     m_bBrowseRequestPending = false;
     m_bHasBrowseResponse = true;
     m_BrowseResponse = response;
+    RebuildRowItems();
+}
+
+void SEASON3B::CNewUIAuctionWindow::ReleaseRowItems()
+{
+    for (auto*& item : m_RowItems)
+    {
+        if (item != nullptr && g_pNewItemMng != nullptr)
+        {
+            g_pNewItemMng->DeleteItem(item);
+        }
+        item = nullptr;
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::RebuildRowItems()
+{
+    // Each response fully replaces the Browse page, so the previous page's owned items are always stale once a
+    // new one arrives; release them all before creating this page's items, the same lifetime rule
+    // CNewUIInventoryCtrl's own tooltip item follows (create fresh, delete the old one, never reuse).
+    ReleaseRowItems();
+
+    if (g_pNewItemMng == nullptr)
+    {
+        return;
+    }
+
+    const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
+    for (size_t row = 0; row < rowCount; ++row)
+    {
+        const auto& listing = m_BrowseResponse.Listings[row];
+        if (listing.ItemDataLength == 0)
+        {
+            continue;
+        }
+
+        const size_t length = std::min<size_t>(listing.ItemDataLength, listing.ItemData.size());
+        m_RowItems[row] = g_pNewItemMng->CreateItem(std::span<const BYTE>(listing.ItemData.data(), length));
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderRowItemTooltip(int row) const
+{
+    if (row < 0 || static_cast<size_t>(row) >= MaxBrowseRows || m_RowItems[row] == nullptr)
+    {
+        return;
+    }
+
+    const int iconX = m_Pos.x + BROWSE_BODY_X;
+    const int iconY = m_Pos.y + BROWSE_BODY_Y + row * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
+    RenderItemInfo(iconX + BROWSE_ICON_SIZE / 2, iconY + BROWSE_ICON_SIZE / 2, m_RowItems[row], false);
+}
+
+void SEASON3B::CNewUIAuctionWindow::UI2DEffectCallback(LPVOID pClass, DWORD dwParamA, DWORD /*dwParamB*/)
+{
+    if (pClass != nullptr)
+    {
+        static_cast<CNewUIAuctionWindow*>(pClass)->RenderRowItemTooltip(static_cast<int>(dwParamA));
+    }
 }
 
 void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionOpenResponse& response)
@@ -247,6 +326,21 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             m_CurrentPage = 1;
             SendBrowseRequest();
         }
+
+        m_iPointedRow = -1;
+        if (m_iCurrentTab == TAB_BROWSE && m_bHasBrowseResponse)
+        {
+            const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
+            for (size_t row = 0; row < rowCount; ++row)
+            {
+                if (CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT,
+                    WINDOW_WIDTH - 2 * BROWSE_BODY_X, BROWSE_ROW_HEIGHT))
+                {
+                    m_iPointedRow = static_cast<int>(row);
+                    break;
+                }
+            }
+        }
     }
 
     return true;
@@ -279,18 +373,50 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     return true;
 }
 
+bool SEASON3B::CNewUIAuctionWindow::IsVisible() const
+{
+    return CNewUIObj::IsVisible();
+}
+
+void SEASON3B::CNewUIAuctionWindow::Render3D()
+{
+    if (m_iCurrentTab != TAB_BROWSE || !m_bHasBrowseResponse)
+    {
+        return;
+    }
+
+    const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
+    for (size_t row = 0; row < rowCount; ++row)
+    {
+        const ITEM* item = m_RowItems[row];
+        if (item == nullptr)
+        {
+            continue;
+        }
+
+        const int iconX = m_Pos.x + BROWSE_BODY_X;
+        const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
+        RenderItem3D((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
+            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, false);
+    }
+
+    // Deferred to the shared 3D render manager so the tooltip draws after every window's own icons, the same
+    // ordering CNewUIMyInventory::Render3D relies on for its own item tooltip.
+    if (m_iPointedRow != -1 && m_pNewUI3DRenderMng)
+    {
+        m_pNewUI3DRenderMng->RenderUI2DEffect(INVENTORY_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(m_iPointedRow), 0);
+    }
+}
+
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 {
     // Main body region per the design spec's shared layout table (4.2): x 31-409, y 137-416 in the 640x480
-    // logical canvas, i.e. local offset (11, 112) from this window's own (20, 25) origin. Eight rows, text
-    // only for now: no item icon or tooltip yet (that needs the existing inventory item-render/tooltip path,
-    // a separate piece of work), and the countdown is a snapshot from the last response rather than ticking
-    // live (that needs the server-time-offset tracking the design spec calls for, not built yet either).
-    constexpr int BodyX = 11;
-    constexpr int BodyY = 112;
-    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BodyX;
-    constexpr int RowHeight = 32;
-    constexpr size_t MaxRows = 8;
+    // logical canvas, i.e. local offset (11, 112) from this window's own (20, 25) origin. Eight rows. Each
+    // row's item icon is drawn in Render3D() (the engine's 3D pass, same as inventory slots), so the text
+    // columns here start after BROWSE_TEXT_X_OFFSET to leave room for it. The countdown is a snapshot from the
+    // last response rather than ticking live (that needs the server-time-offset tracking the design spec calls
+    // for, not built yet).
+    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X;
 
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
@@ -298,17 +424,17 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 
     if (!m_bHasBrowseResponse)
     {
-        g_pRenderText->RenderText((float)(m_Pos.x + BodyX), (float)(m_Pos.y + BodyY), I18N::Game::PleaseWait, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::PleaseWait, (float)BodyWidth, 0, RT3_SORT_LEFT);
         return;
     }
 
     if (m_BrowseResponse.Listings.empty())
     {
-        g_pRenderText->RenderText((float)(m_Pos.x + BodyX), (float)(m_Pos.y + BodyY), I18N::Game::NoListingsFound, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::NoListingsFound, (float)BodyWidth, 0, RT3_SORT_LEFT);
         return;
     }
 
-    const auto rowCount = std::min(MaxRows, m_BrowseResponse.Listings.size());
+    const auto rowCount = std::min(MaxBrowseRows, m_BrowseResponse.Listings.size());
     for (size_t row = 0; row < rowCount; ++row)
     {
         const auto& listing = m_BrowseResponse.Listings[row];
@@ -321,7 +447,9 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         wchar_t line[256];
         mu_swprintf(line, L"%ls   %ls   x%d   %ls", priceText.c_str(), countdown.c_str(), listing.BidCount, listing.SellerName.c_str());
 
-        g_pRenderText->RenderText((float)(m_Pos.x + BodyX), (float)(m_Pos.y + BodyY + static_cast<int>(row) * RowHeight), line, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        const int textX = m_Pos.x + BROWSE_BODY_X + BROWSE_TEXT_X_OFFSET;
+        const int textY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
+        g_pRenderText->RenderText((float)textX, (float)textY, line, (float)(BodyWidth - BROWSE_TEXT_X_OFFSET), 0, RT3_SORT_LEFT);
     }
 }
 
