@@ -13045,6 +13045,9 @@
   <data name="Auction Admin Removed" xml:space="preserve">
     <value>Admin Removed</value>
   </data>
+  <data name="Auction Cancel Confirmation" xml:space="preserve">
+    <value>Cancel this listing? The listing fee will not be refunded, and the item will be returned through your Mailbox.</value>
+  </data>
   <data name="Success" xml:space="preserve">
     <value>Success</value>
   </data>

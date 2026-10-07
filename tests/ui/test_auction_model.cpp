@@ -250,3 +250,13 @@ TEST_CASE("my listings status combo maps all and concrete statuses to the wire [
     CHECK(EncodeListingStatusFilter(1) == static_cast<uint8_t>(AuctionListingStatus::Active));
     CHECK(EncodeListingStatusFilter(5) == static_cast<uint8_t>(AuctionListingStatus::AdminRemoved));
 }
+
+TEST_CASE("only an active owned listing without bids may be cancelled [ui][auction_model]")
+{
+    CHECK(CanCancelOwnedListing(AuctionListingStatus::Active, 0));
+    CHECK_FALSE(CanCancelOwnedListing(AuctionListingStatus::Active, 1));
+    CHECK_FALSE(CanCancelOwnedListing(AuctionListingStatus::Sold, 0));
+    CHECK_FALSE(CanCancelOwnedListing(AuctionListingStatus::Expired, 0));
+    CHECK_FALSE(CanCancelOwnedListing(AuctionListingStatus::Cancelled, 0));
+    CHECK_FALSE(CanCancelOwnedListing(AuctionListingStatus::AdminRemoved, 0));
+}

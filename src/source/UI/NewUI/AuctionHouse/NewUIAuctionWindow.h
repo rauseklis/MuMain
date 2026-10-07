@@ -77,9 +77,13 @@ namespace SEASON3B
         // does not match the currently pending detail request.
         void SetDetailResponse(const AuctionHouse::AuctionDetailResponse& response);
 
-        // Called from the network dispatch when an AuctionOperationResponse (a bid or buyout result) arrives.
+        // Called from the network dispatch when an AuctionOperationResponse (bid, buyout, or cancellation) arrives.
         // Ignored if its OperationId does not match the currently pending mutation.
         void SetOperationResponse(const AuctionHouse::AuctionOperationResponse& response);
+
+        // Invoked only by the modal confirmation's OK callback. Re-checks the current detail snapshot before
+        // sending, because the listing can change between opening the confirmation and accepting it.
+        void ConfirmCancelListing();
 
         bool Render() override;
         void Render3D() override;
@@ -113,6 +117,7 @@ namespace SEASON3B
         void RenderDetailItemTooltip() const;
         void SendBidRequest();
         void SendBuyoutRequest();
+        void RequestCancelConfirmation();
         void RenderOperationButtons();
         void RepositionChildren();
 
@@ -233,6 +238,7 @@ namespace SEASON3B
         // is advisory client-side guidance for the quick-bid button; the server independently re-validates.
         CNewUIButton m_BtnBid;
         CNewUIButton m_BtnBuyout;
+        CNewUIButton m_BtnCancelListing;
         bool m_bOperationRequestPending;
         std::array<uint8_t, 16> m_PendingOperationId;
         bool m_bHasOperationResult;

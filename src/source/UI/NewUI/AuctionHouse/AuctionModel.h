@@ -37,6 +37,10 @@ namespace AuctionHouse
     // contiguous AuctionListingStatus values in display order.
     [[nodiscard]] uint8_t EncodeListingStatusFilter(int selectedIndex) noexcept;
 
+    // Mirrors the design's seller-side cancellation eligibility for UI guidance. The server remains
+    // authoritative and re-checks status, ownership, version and bid count under the listing lock.
+    [[nodiscard]] bool CanCancelOwnedListing(AuctionListingStatus status, uint16_t bidCount) noexcept;
+
     // Returns the number of rows hidden above an eight-row-style Browse viewport when scrolled fully to the
     // bottom. The result is zero when every listing already fits, avoiding unsigned underflow for short pages.
     [[nodiscard]] size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept;

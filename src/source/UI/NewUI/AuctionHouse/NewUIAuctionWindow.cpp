@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "UI/NewUI/AuctionHouse/NewUIAuctionWindow.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "UI/NewUI/Inventory/NewUIItemMng.h"
 #include "Engine/Object/ZzzInventory.h"
 #include "I18N/All.h"
@@ -129,6 +130,44 @@ namespace
         default: return L"-";
         }
     }
+
+    class AuctionCancelMsgBoxLayout : public SEASON3B::TMsgBoxLayout<SEASON3B::CNewUICommonMessageBox>
+    {
+    public:
+        bool SetLayout()
+        {
+            auto* messageBox = GetMsgBox();
+            if (messageBox == nullptr || !messageBox->Create(SEASON3B::MSGBOX_COMMON_TYPE_OKCANCEL))
+            {
+                return false;
+            }
+
+            messageBox->AddMsg(I18N::Game::AuctionCancelConfirmation);
+            messageBox->AddCallbackFunc(OkBtnDown, MSGBOX_EVENT_USER_COMMON_OK);
+            messageBox->AddCallbackFunc(CancelBtnDown, MSGBOX_EVENT_USER_COMMON_CANCEL);
+            messageBox->AddCallbackFunc(OkBtnDown, MSGBOX_EVENT_PRESSKEY_RETURN);
+            messageBox->AddCallbackFunc(CancelBtnDown, MSGBOX_EVENT_PRESSKEY_ESC);
+            return true;
+        }
+
+        static CALLBACK_RESULT OkBtnDown(SEASON3B::CNewUIMessageBoxBase* owner, const leaf::xstreambuf&)
+        {
+            if (g_pAuctionWindow != nullptr)
+            {
+                g_pAuctionWindow->ConfirmCancelListing();
+            }
+            PlayBuffer(SOUND_CLICK01);
+            g_MessageBox->SendEvent(owner, MSGBOX_EVENT_DESTROY);
+            return CALLBACK_BREAK;
+        }
+
+        static CALLBACK_RESULT CancelBtnDown(SEASON3B::CNewUIMessageBoxBase* owner, const leaf::xstreambuf&)
+        {
+            PlayBuffer(SOUND_CLICK01);
+            g_MessageBox->SendEvent(owner, MSGBOX_EVENT_DESTROY);
+            return CALLBACK_BREAK;
+        }
+    };
 }
 
 SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
@@ -234,6 +273,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     InitPageButton(&m_BtnBack, m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, I18N::Game::Back);
     InitPageButton(&m_BtnBid, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Bid);
     InitPageButton(&m_BtnBuyout, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Buyout);
+    InitPageButton(&m_BtnCancelListing, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
+        m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Cancel);
     InitPageButton(&m_BtnSearch, m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, I18N::Game::AuctionSearch);
     m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y, BROWSE_SCROLLBAR_HEIGHT);
     m_BrowseScrollBar.Show(false);
@@ -301,6 +342,8 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_BtnBack.ChangeButtonInfo(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBid.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBuyout.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnCancelListing.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
+        m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BrowseScrollBar.SetPos(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y);
     m_BrowseScrollBar.UpdateScrolling();
 }
@@ -523,6 +566,34 @@ void SEASON3B::CNewUIAuctionWindow::SendBuyoutRequest()
         m_DetailResponse.ListingId, m_DetailResponse.Version);
 }
 
+void SEASON3B::CNewUIAuctionWindow::RequestCancelConfirmation()
+{
+    if (m_iCurrentTab != TAB_MY_LISTINGS || !m_bShowingDetail || !m_bHasDetailResponse || m_bOperationRequestPending
+        || !AuctionHouse::CanCancelOwnedListing(m_DetailResponse.Status, m_DetailResponse.BidCount))
+    {
+        return;
+    }
+
+    SEASON3B::CreateMessageBox(MSGBOX_LAYOUT_CLASS(AuctionCancelMsgBoxLayout));
+}
+
+void SEASON3B::CNewUIAuctionWindow::ConfirmCancelListing()
+{
+    if (m_iCurrentTab != TAB_MY_LISTINGS || !m_bShowingDetail || !m_bHasDetailResponse
+        || m_bOperationRequestPending
+        || !AuctionHouse::CanCancelOwnedListing(m_DetailResponse.Status, m_DetailResponse.BidCount))
+    {
+        return;
+    }
+
+    m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
+    m_bOperationRequestPending = true;
+    m_bHasOperationResult = false;
+    SocketClient->ToGameServer()->SendAuctionCancelRequest(
+        m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()),
+        m_DetailResponse.ListingId, m_DetailResponse.Version);
+}
+
 void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::AuctionOperationResponse& response)
 {
     if (!m_bOperationRequestPending || response.OperationId != m_PendingOperationId)
@@ -533,6 +604,28 @@ void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::Auc
     m_bOperationRequestPending = false;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     const AuctionResult result = response.Result;
+
+    if (response.OperationType == AuctionOperationType::Cancel)
+    {
+        if (response.Result == AuctionResult::Success && m_iCurrentTab == TAB_MY_LISTINGS)
+        {
+            // The item is now a durable Mailbox collection. Return to the owned-listing page and refresh it
+            // from the server instead of mutating the cached row/status/version locally.
+            m_bShowingDetail = false;
+            ReleaseDetailItem();
+            SendMyListingsRequest();
+        }
+        else if (response.Result != AuctionResult::Success && m_iCurrentTab == TAB_MY_LISTINGS
+            && m_bShowingDetail && response.ListingId == m_DetailResponse.ListingId)
+        {
+            // StaleListing, CannotCancelWithBid and state changes all need a fresh authoritative snapshot.
+            SendDetailRequest(response.ListingId);
+        }
+
+        m_bHasOperationResult = true;
+        m_LastOperationResult = response.Result;
+        return;
+    }
 
     // The listing's price/version/bidder changed (win or lose), so refresh the detail panel from the server
     // rather than guessing the new state locally. Only while still looking at the same listing/tab — the
@@ -757,6 +850,13 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         if (m_iCurrentTab == TAB_BROWSE && m_BtnBuyout.UpdateMouseEvent() == true)
         {
             SendBuyoutRequest();
+            PlayBuffer(SOUND_CLICK01);
+            return true;
+        }
+
+        if (m_iCurrentTab == TAB_MY_LISTINGS && m_BtnCancelListing.UpdateMouseEvent() == true)
+        {
+            RequestCancelConfirmation();
             PlayBuffer(SOUND_CLICK01);
             return true;
         }
@@ -1027,10 +1127,7 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     {
         RenderDetailPanel();
         m_BtnBack.Render();
-        if (m_iCurrentTab == TAB_BROWSE)
-        {
-            RenderOperationButtons();
-        }
+        RenderOperationButtons();
     }
     else if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
     {
@@ -1113,6 +1210,37 @@ void SEASON3B::CNewUIAuctionWindow::RenderDetailPanel()
 
 void SEASON3B::CNewUIAuctionWindow::RenderOperationButtons()
 {
+    if (m_iCurrentTab == TAB_MY_LISTINGS)
+    {
+        const bool canCancel = m_bHasDetailResponse && !m_bOperationRequestPending
+            && AuctionHouse::CanCancelOwnedListing(m_DetailResponse.Status, m_DetailResponse.BidCount);
+        if (canCancel)
+        {
+            m_BtnCancelListing.UnLock();
+            m_BtnCancelListing.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
+            m_BtnCancelListing.ChangeTextColor(RGBA(255, 255, 255, 255));
+        }
+        else
+        {
+            m_BtnCancelListing.Lock();
+            m_BtnCancelListing.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
+            m_BtnCancelListing.ChangeTextColor(RGBA(100, 100, 100, 255));
+        }
+
+        m_BtnCancelListing.Render();
+
+        if (m_bHasOperationResult)
+        {
+            const bool succeeded = m_LastOperationResult == AuctionResult::Success;
+            g_pRenderText->SetFont(g_hFont);
+            g_pRenderText->SetTextColor(succeeded ? 120 : 255, succeeded ? 220 : 90, 120, 255);
+            g_pRenderText->SetBgColor(0, 0, 0, 0);
+            g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + OPERATION_RESULT_Y_OFFSET),
+                succeeded ? I18N::Game::Success : I18N::Game::Failed, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
+        }
+        return;
+    }
+
     // Locked (and grayed) while no detail response has arrived yet, while a mutation is already in flight, or
     // (Buyout only) when the listing has no buyout price. The server independently re-validates every other
     // rule (self-trade, stale version, already-highest-bidder, etc.) — this is guidance, not enforcement, the

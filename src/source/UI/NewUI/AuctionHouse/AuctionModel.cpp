@@ -52,6 +52,11 @@ namespace AuctionHouse
         return selectedIndex <= 0 ? 0xFFu : static_cast<uint8_t>(selectedIndex - 1);
     }
 
+    bool CanCancelOwnedListing(AuctionListingStatus status, uint16_t bidCount) noexcept
+    {
+        return status == AuctionListingStatus::Active && bidCount == 0;
+    }
+
     size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept
     {
         return listingCount > visibleRows ? listingCount - visibleRows : 0;
