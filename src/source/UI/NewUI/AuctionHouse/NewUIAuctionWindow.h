@@ -239,11 +239,11 @@ namespace SEASON3B
         // pointer is over.
         int m_iPointedRow;
 
-        // One label per AuctionCurrencyMode value, in wire order, so GetSelectedIndex() doubles as the mode's
-        // wire value. CNewUIComboBox keeps only the pointers, not a locale-change "slot" like CNewUIButton
+        // Index zero is the all-currencies sentinel, then one label per AuctionCurrencyMode value in wire
+        // order. CNewUIComboBox keeps only the pointers, not a locale-change "slot" like CNewUIButton
         // does, so these labels will not refresh if the player changes language while this window is open —
         // a known limitation of this widget, not fixed here.
-        const wchar_t* m_CurrencyLabels[9];
+        const wchar_t* m_CurrencyLabels[10];
         CNewUIComboBox m_CurrencyCombo;
 
         // Index 0 is "All Categories" (sent on the wire as the server's own 0xFF "every category" sentinel);

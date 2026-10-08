@@ -52,6 +52,7 @@ namespace
     constexpr int RESET_BUTTON_X_OFFSET = SEARCH_BUTTON_X_OFFSET + SEARCH_BUTTON_WIDTH + 5;
     constexpr int SEARCH_INPUT_WIDTH = SEARCH_BUTTON_X_OFFSET - SEARCH_INPUT_X_OFFSET - 7;
     constexpr size_t SEARCH_PACKET_CAPACITY = 32;
+    constexpr BYTE ALL_CURRENCIES = 0xFF;
     static_assert(SEARCH_INPUT_WIDTH > 0, "Auction search controls exceed the toolbar width");
     constexpr int BROWSE_BODY_X = 11;
     constexpr int BROWSE_HEADER_Y = 105;
@@ -167,6 +168,29 @@ namespace
         return std::to_wstring(amount.Scalar()) + L" " + name;
     }
 
+    bool IsAllCurrencies(AuctionCurrencyMode currency)
+    {
+        return static_cast<BYTE>(currency) == ALL_CURRENCIES;
+    }
+
+    std::wstring BrowsePriceText(AuctionCurrencyMode currency, const AuctionHouse::AuctionAmount& amount)
+    {
+        if (amount.IsZero())
+        {
+            return L"-";
+        }
+
+        if (amount.IsFruitBasket())
+        {
+            return I18N::Game::FruitBasket;
+        }
+
+        static const wchar_t* names[] = { L"Zen", L"Chaos", L"Bless", L"Soul", L"Life", L"Creation", L"Guardian", L"Harmony" };
+        const auto index = static_cast<size_t>(currency);
+        const wchar_t* name = index < std::size(names) ? names[index] : L"Units";
+        return std::to_wstring(amount.Scalar()) + L" " + name;
+    }
+
     void SetBrowseItemNameColor(const ITEM* item)
     {
         if (item == nullptr)
@@ -251,7 +275,7 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false),
       m_bOpenedInventoryForSell(false), m_bHasSellItem(false), m_SellInventorySlot(0),
       m_SellItemSnapshot{}, m_bPointingSellItem(false),
-      m_SelectedCurrency(AuctionCurrencyMode::Zen), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
+      m_SelectedCurrency(static_cast<AuctionCurrencyMode>(ALL_CURRENCIES)), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasListingResponse(false),
       m_SelectedStatusIndex(0), m_bMyListingsRequestPending(false), m_PendingMyListingsRequestId(0),
       m_SelectedCollectionKindIndex(0), m_bMailboxRequestPending(false), m_PendingMailboxRequestId(0),
@@ -303,19 +327,20 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_BtnClose.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
     m_BtnClose.ChangeToolTipText(&I18N::Game::Close388);
 
-    // Labels in AuctionCurrencyMode wire order (0 Zen .. 8 Fruits), so the combo's selected index is the
-    // currency's wire value directly, no lookup table needed.
-    m_CurrencyLabels[0] = I18N::Game::Zen;
-    m_CurrencyLabels[1] = I18N::Game::JewelOfChaos;
-    m_CurrencyLabels[2] = I18N::Game::JewelOfBless;
-    m_CurrencyLabels[3] = I18N::Game::JewelOfSoul;
-    m_CurrencyLabels[4] = I18N::Game::JewelOfLife;
-    m_CurrencyLabels[5] = I18N::Game::JewelOfCreation;
-    m_CurrencyLabels[6] = I18N::Game::JewelOfGuardian;
-    m_CurrencyLabels[7] = I18N::Game::JewelOfHarmony;
-    m_CurrencyLabels[8] = I18N::Game::FruitBasket;
+    // Index zero is the wire's 0xFF all-currencies sentinel. Following entries map to the nine contiguous
+    // AuctionCurrencyMode values, so item-name search can return every matching listing rather than only Zen.
+    m_CurrencyLabels[0] = L"All Currencies";
+    m_CurrencyLabels[1] = I18N::Game::Zen;
+    m_CurrencyLabels[2] = I18N::Game::JewelOfChaos;
+    m_CurrencyLabels[3] = I18N::Game::JewelOfBless;
+    m_CurrencyLabels[4] = I18N::Game::JewelOfSoul;
+    m_CurrencyLabels[5] = I18N::Game::JewelOfLife;
+    m_CurrencyLabels[6] = I18N::Game::JewelOfCreation;
+    m_CurrencyLabels[7] = I18N::Game::JewelOfGuardian;
+    m_CurrencyLabels[8] = I18N::Game::JewelOfHarmony;
+    m_CurrencyLabels[9] = I18N::Game::FruitBasket;
     m_CurrencyCombo.Setup(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
-        m_CurrencyLabels, 9, static_cast<int>(m_SelectedCurrency));
+        m_CurrencyLabels, 10, 0);
 
     // Index 0 is "All Categories" (the server's own 0xFF sentinel); indices 1-7 are AuctionCategory's seven
     // wire values in declaration order (Weapon, Armor, Wing, Pet & Helper, Jewel & Material, Consumable,
@@ -1446,10 +1471,10 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             if (m_BtnReset.UpdateMouseEvent() == true)
             {
                 m_SearchInput.SetText(L"");
-                m_SelectedCurrency = AuctionCurrencyMode::Zen;
+                m_SelectedCurrency = static_cast<AuctionCurrencyMode>(ALL_CURRENCIES);
                 m_SelectedCategoryIndex = 0;
                 m_SelectedSort = AuctionSort::EndingSoonest;
-                m_CurrencyCombo.SetSelectedIndex(static_cast<int>(m_SelectedCurrency));
+                m_CurrencyCombo.SetSelectedIndex(0);
                 m_CategoryCombo.SetSelectedIndex(m_SelectedCategoryIndex);
                 m_CurrentPage = 1;
                 SendBrowseRequest();
@@ -1488,7 +1513,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             {
                 requestedSort = AuctionHouse::NextBrowseSort(AuctionHouse::AuctionBrowseSortColumn::TimeLeft, m_SelectedSort);
             }
-            else if (m_SelectedCurrency != AuctionCurrencyMode::Fruits
+            else if (!IsAllCurrencies(m_SelectedCurrency) && m_SelectedCurrency != AuctionCurrencyMode::Fruits
                 && localX >= BROWSE_PRICE_COLUMN_X && localX < BROWSE_PRICE_COLUMN_X + BROWSE_PRICE_COLUMN_WIDTH)
             {
                 requestedSort = AuctionHouse::NextBrowseSort(AuctionHouse::AuctionBrowseSortColumn::Price, m_SelectedSort);
@@ -1657,8 +1682,13 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
 
         if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CurrencyCombo.UpdateMouseEvent())
         {
-            m_SelectedCurrency = static_cast<AuctionCurrencyMode>(m_CurrencyCombo.GetSelectedIndex());
-            m_SelectedSort = AuctionHouse::NormalizeBrowseSort(m_SelectedCurrency, m_SelectedSort);
+            const int selectedCurrencyIndex = m_CurrencyCombo.GetSelectedIndex();
+            m_SelectedCurrency = selectedCurrencyIndex == 0
+                ? static_cast<AuctionCurrencyMode>(ALL_CURRENCIES)
+                : static_cast<AuctionCurrencyMode>(selectedCurrencyIndex - 1);
+            m_SelectedSort = IsAllCurrencies(m_SelectedCurrency)
+                ? AuctionSort::EndingSoonest
+                : AuctionHouse::NormalizeBrowseSort(m_SelectedCurrency, m_SelectedSort);
             m_CurrentPage = 1;
             SendBrowseRequest();
         }
@@ -2336,7 +2366,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     {
         priceHeader += L" v";
     }
-    if (m_iCurrentTab == TAB_BROWSE && m_SelectedCurrency == AuctionCurrencyMode::Fruits)
+    if (m_iCurrentTab == TAB_BROWSE && (IsAllCurrencies(m_SelectedCurrency) || m_SelectedCurrency == AuctionCurrencyMode::Fruits))
     {
         g_pRenderText->SetTextColor(110, 110, 110, 255);
     }
@@ -2386,12 +2416,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
         const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
-        const std::wstring priceText = listing.CurrentPrice.IsFruitBasket()
-            ? I18N::Game::FruitBasket
-            : std::to_wstring(listing.CurrentPrice.Scalar());
-        const std::wstring buyoutText = listing.BuyoutPrice.IsZero()
-            ? L"-"
-            : (listing.BuyoutPrice.IsFruitBasket() ? I18N::Game::FruitBasket : std::to_wstring(listing.BuyoutPrice.Scalar()));
+        const std::wstring priceText = BrowsePriceText(listing.CurrencyMode, listing.CurrentPrice);
+        const std::wstring buyoutText = BrowsePriceText(listing.CurrencyMode, listing.BuyoutPrice);
         const std::wstring itemName = m_RowItems[row] != nullptr ? GetItemDisplayName(m_RowItems[row]) : std::wstring();
 
         const int textX = m_Pos.x + BROWSE_TABLE_X + BROWSE_TEXT_X_OFFSET;
