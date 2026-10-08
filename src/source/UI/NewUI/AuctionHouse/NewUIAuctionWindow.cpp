@@ -37,11 +37,12 @@ namespace
     constexpr int CLOSE_BTN_MARGIN = 8;
     constexpr int TOOLBAR_X = 11;
     constexpr int TOOLBAR_Y = 69;
-    constexpr int CURRENCY_COMBO_WIDTH = 150;
+    constexpr int CURRENCY_COMBO_WIDTH = 105;
     constexpr int CURRENCY_COMBO_ITEM_HEIGHT = 22;
     constexpr int CATEGORY_COMBO_X_OFFSET = CURRENCY_COMBO_WIDTH + 8;
     constexpr int CATEGORY_COMBO_WIDTH = 210;
-    constexpr int SEARCH_INPUT_X_OFFSET = CATEGORY_COMBO_X_OFFSET + CATEGORY_COMBO_WIDTH + 8;
+    constexpr int BROWSE_TABLE_X = 132;
+    constexpr int SEARCH_INPUT_X_OFFSET = BROWSE_TABLE_X + CURRENCY_COMBO_WIDTH + 8 - TOOLBAR_X;
     constexpr int SEARCH_INPUT_Y_OFFSET = TOOLBAR_Y + 3;
     constexpr int SEARCH_INPUT_HEIGHT = 16;
     constexpr int SEARCH_BUTTON_WIDTH = 53;
@@ -53,27 +54,37 @@ namespace
     constexpr int BROWSE_HEADER_Y = 105;
     constexpr int BROWSE_HEADER_HEIGHT = 21;
     constexpr int BROWSE_BODY_Y = BROWSE_HEADER_Y + BROWSE_HEADER_HEIGHT;
-    constexpr int BROWSE_ROW_HEIGHT = 32;
+    constexpr int BROWSE_ROW_HEIGHT = 29;
     constexpr int BROWSE_ROW_PADDING = 1;
-    constexpr int BROWSE_ICON_SIZE = 26;
-    constexpr int BROWSE_ICON_MARGIN = 3;
+    constexpr int BROWSE_ICON_SIZE = 24;
+    constexpr int BROWSE_ICON_MARGIN = 2;
     constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_SIZE + 6 + BROWSE_ICON_MARGIN;
     constexpr int BROWSE_SCROLLBAR_RIGHT_MARGIN = 14;
     constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_ROW_HEIGHT * 8;
     constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 18;
     constexpr int BROWSE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
+    constexpr int BROWSE_TABLE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - BROWSE_TABLE_X - BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
     constexpr int BROWSE_ITEM_COLUMN_X = 0;
-    constexpr int BROWSE_ITEM_COLUMN_WIDTH = 224;
+    constexpr int BROWSE_ITEM_COLUMN_WIDTH = 164;
     constexpr int BROWSE_LEVEL_COLUMN_X = BROWSE_ITEM_COLUMN_X + BROWSE_ITEM_COLUMN_WIDTH;
-    constexpr int BROWSE_LEVEL_COLUMN_WIDTH = 42;
+    constexpr int BROWSE_LEVEL_COLUMN_WIDTH = 36;
     constexpr int BROWSE_TIME_COLUMN_X = BROWSE_LEVEL_COLUMN_X + BROWSE_LEVEL_COLUMN_WIDTH;
-    constexpr int BROWSE_TIME_COLUMN_WIDTH = 76;
+    constexpr int BROWSE_TIME_COLUMN_WIDTH = 58;
     constexpr int BROWSE_SELLER_COLUMN_X = BROWSE_TIME_COLUMN_X + BROWSE_TIME_COLUMN_WIDTH;
-    constexpr int BROWSE_SELLER_COLUMN_WIDTH = 82;
+    constexpr int BROWSE_SELLER_COLUMN_WIDTH = 60;
     constexpr int BROWSE_PRICE_COLUMN_X = BROWSE_SELLER_COLUMN_X + BROWSE_SELLER_COLUMN_WIDTH;
-    constexpr int BROWSE_PRICE_COLUMN_WIDTH = 70;
+    constexpr int BROWSE_PRICE_COLUMN_WIDTH = 60;
     constexpr int BROWSE_BUYOUT_COLUMN_X = BROWSE_PRICE_COLUMN_X + BROWSE_PRICE_COLUMN_WIDTH;
-    constexpr int BROWSE_BUYOUT_COLUMN_WIDTH = BROWSE_CONTENT_WIDTH - BROWSE_BUYOUT_COLUMN_X;
+    constexpr int BROWSE_BUYOUT_COLUMN_WIDTH = BROWSE_TABLE_CONTENT_WIDTH - BROWSE_BUYOUT_COLUMN_X;
+    constexpr int CATEGORY_RAIL_X = BROWSE_BODY_X;
+    constexpr int CATEGORY_RAIL_Y = BROWSE_HEADER_Y;
+    constexpr int CATEGORY_RAIL_WIDTH = BROWSE_TABLE_X - BROWSE_BODY_X - 7;
+    constexpr int CATEGORY_RAIL_ROW_HEIGHT = 29;
+    constexpr int BALANCE_BAR_X = BROWSE_TABLE_X;
+    constexpr int BALANCE_BAR_Y = BROWSE_BODY_Y + BROWSE_SCROLLBAR_HEIGHT + 4;
+    constexpr int BALANCE_BAR_WIDTH = BROWSE_TABLE_CONTENT_WIDTH;
+    constexpr int BALANCE_BAR_HEIGHT = 21;
+    constexpr int BALANCE_ICON_SIZE = 17;
     constexpr int MAILBOX_KIND_COLUMN_WIDTH = 145;
     constexpr int MAILBOX_CONTENT_COLUMN_X = MAILBOX_KIND_COLUMN_WIDTH;
     constexpr int MAILBOX_CONTENT_COLUMN_WIDTH = 245;
@@ -300,7 +311,7 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CurrencyLabels[6] = I18N::Game::JewelOfGuardian;
     m_CurrencyLabels[7] = I18N::Game::JewelOfHarmony;
     m_CurrencyLabels[8] = I18N::Game::FruitBasket;
-    m_CurrencyCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
+    m_CurrencyCombo.Setup(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
         m_CurrencyLabels, 9, static_cast<int>(m_SelectedCurrency));
 
     // Index 0 is "All Categories" (the server's own 0xFF sentinel); indices 1-7 are AuctionCategory's seven
@@ -429,7 +440,7 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     const int tabWidth = (windowWidth - 2 * TAB_REGION_X) / 4;
     m_TabBtn.ChangeRadioButtonInfo(true, (float)(m_Pos.x + TAB_REGION_X), (float)(m_Pos.y + TAB_REGION_Y), tabWidth, TAB_HEIGHT);
     m_BtnClose.ChangeButtonInfo(m_Pos.x + windowWidth - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
-    m_CurrencyCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
+    m_CurrencyCombo.SetPos(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + TOOLBAR_Y);
     m_CategoryCombo.SetPos(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
     m_StatusCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_CollectionKindCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
@@ -1375,7 +1386,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
     // The combo's own contract: its expanded dropdown can extend past this widget's own small hit box, so
     // the owner must separately treat IsMouseOverWidget() as a consumed click.
-    if (m_iCurrentTab == TAB_BROWSE && (m_CurrencyCombo.IsMouseOverWidget() || m_CategoryCombo.IsMouseOverWidget()))
+    if (m_iCurrentTab == TAB_BROWSE && m_CurrencyCombo.IsMouseOverWidget())
     {
         return true;
     }
@@ -1394,6 +1405,22 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
     {
         if (m_iCurrentTab == TAB_BROWSE)
         {
+            if (IsRelease(VK_LBUTTON)
+                && CheckMouseIn(m_Pos.x + CATEGORY_RAIL_X, m_Pos.y + CATEGORY_RAIL_Y,
+                    CATEGORY_RAIL_WIDTH, CATEGORY_RAIL_ROW_HEIGHT * static_cast<int>(std::size(m_CategoryLabels))))
+            {
+                const int selectedCategory = (MouseY - (m_Pos.y + CATEGORY_RAIL_Y)) / CATEGORY_RAIL_ROW_HEIGHT;
+                if (selectedCategory != m_SelectedCategoryIndex)
+                {
+                    m_SelectedCategoryIndex = selectedCategory;
+                    m_CategoryCombo.SetSelectedIndex(selectedCategory);
+                    m_CurrentPage = 1;
+                    SendBrowseRequest();
+                }
+                PlayBuffer(SOUND_CLICK01);
+                return true;
+            }
+
             m_SearchInput.DoAction();
             if (m_SearchInput.HaveFocus())
             {
@@ -1418,8 +1445,8 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         }
 
         if (m_BrowseScrollBar.IsVisible()
-            && CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y,
-            WINDOW_WIDTH - 2 * BROWSE_BODY_X, BROWSE_SCROLLBAR_HEIGHT) && MouseWheel != 0)
+            && CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_BODY_Y,
+            BROWSE_TABLE_CONTENT_WIDTH, BROWSE_SCROLLBAR_HEIGHT) && MouseWheel != 0)
         {
             m_BrowseScrollBar.SetCurPos(m_BrowseScrollBar.GetCurPos() - MouseWheel);
             MouseWheel = 0;
@@ -1433,10 +1460,10 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         }
 
         if (m_iCurrentTab == TAB_BROWSE && IsRelease(VK_LBUTTON)
-            && CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y,
-                BROWSE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT))
+            && CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_HEADER_Y,
+                BROWSE_TABLE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT))
         {
-            const int localX = MouseX - (m_Pos.x + BROWSE_BODY_X);
+            const int localX = MouseX - (m_Pos.x + BROWSE_TABLE_X);
             AuctionSort requestedSort = m_SelectedSort;
             if (localX >= BROWSE_TIME_COLUMN_X && localX < BROWSE_TIME_COLUMN_X + BROWSE_TIME_COLUMN_WIDTH)
             {
@@ -1673,8 +1700,8 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             const auto rowCount = std::min(MaxBrowseRows, remainingRows);
             for (size_t row = 0; row < rowCount; ++row)
             {
-                if (CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT,
-                    WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH, BROWSE_ROW_HEIGHT))
+                if (CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT,
+                    BROWSE_TABLE_CONTENT_WIDTH, BROWSE_ROW_HEIGHT))
                 {
                     m_iPointedRow = static_cast<int>(row);
                     break;
@@ -1736,8 +1763,16 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     }
     else if (m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS)
     {
+        if (m_iCurrentTab == TAB_BROWSE)
+        {
+            RenderCategoryRail();
+        }
         RenderBrowseHeader();
         RenderBrowseTab();
+        if (m_iCurrentTab == TAB_BROWSE)
+        {
+            RenderCurrencyBalances();
+        }
         RenderPageControls();
         if (m_BrowseScrollBar.IsVisible())
         {
@@ -1749,7 +1784,6 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
             m_SearchInput.Render();
             m_BtnSearch.Render();
             m_CurrencyCombo.Render();
-            m_CategoryCombo.Render();
         }
         else
         {
@@ -2109,11 +2143,48 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
             continue;
         }
 
-        const int iconX = m_Pos.x + BROWSE_BODY_X
+        const int iconX = m_Pos.x + (m_iCurrentTab == TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X)
             + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0);
         const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
         RenderItem3D((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
             item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, false);
+    }
+
+    if (m_iCurrentTab == TAB_BROWSE && m_bHasOpenResponse)
+    {
+        size_t visibleCurrencyCount = 0;
+        for (const auto& currency : m_OpenResponse.Currencies)
+        {
+            if (currency.Enabled && currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType != 0)
+            {
+                ++visibleCurrencyCount;
+            }
+        }
+
+        const size_t allCurrencyCount = std::count_if(m_OpenResponse.Currencies.begin(), m_OpenResponse.Currencies.end(),
+            [](const auto& currency)
+            {
+                return currency.Enabled && (currency.CurrencyMode == AuctionCurrencyMode::Zen || currency.LooseItemType != 0);
+            });
+        if (visibleCurrencyCount > 0 && allCurrencyCount > 0)
+        {
+            const int segmentWidth = BALANCE_BAR_WIDTH / static_cast<int>(allCurrencyCount);
+            int segment = 0;
+            for (const auto& currency : m_OpenResponse.Currencies)
+            {
+                if (!currency.Enabled || (currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType == 0))
+                {
+                    continue;
+                }
+                if (currency.CurrencyMode != AuctionCurrencyMode::Zen)
+                {
+                    RenderItem3D((float)(m_Pos.x + BALANCE_BAR_X + segment * segmentWidth + 3),
+                        (float)(m_Pos.y + BALANCE_BAR_Y + 2), (float)BALANCE_ICON_SIZE, (float)BALANCE_ICON_SIZE,
+                        currency.LooseItemType, 0, 0, 0, false);
+                }
+                ++segment;
+            }
+        }
     }
 
     // Deferred to the shared 3D render manager so the tooltip draws after every window's own icons, the same
@@ -2188,8 +2259,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     // EnableAlphaBlend is the engine's additive "glow" mode, not conventional alpha blending. It turns
     // translucent table panels into the opaque white/yellow blocks seen during the first in-game pass.
     EnableAlphaTest();
-    RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y,
-        BROWSE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT, BROWSE_HEADER_COLOR);
+    RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_HEADER_Y,
+        BROWSE_TABLE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT, BROWSE_HEADER_COLOR);
 
     const int separators[] = {
         BROWSE_LEVEL_COLUMN_X,
@@ -2200,7 +2271,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     };
     for (const int separator : separators)
     {
-        RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X + separator, m_Pos.y + BROWSE_HEADER_Y,
+        RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X + separator, m_Pos.y + BROWSE_HEADER_Y,
             1, BROWSE_HEADER_HEIGHT + BROWSE_SCROLLBAR_HEIGHT, BROWSE_GRID_COLOR);
     }
     EndRenderColor();
@@ -2209,9 +2280,9 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     g_pRenderText->SetTextColor(218, 186, 104, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     const float headerY = static_cast<float>(m_Pos.y + BROWSE_HEADER_Y + 5);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_ITEM_COLUMN_X + 5), headerY,
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_ITEM_COLUMN_X + 5), headerY,
         I18N::Game::Item, (float)(BROWSE_ITEM_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_LEVEL_COLUMN_X), headerY,
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_LEVEL_COLUMN_X), headerY,
         I18N::Game::Level, (float)BROWSE_LEVEL_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 
     std::wstring timeHeader = I18N::Game::TimeLeft;
@@ -2219,9 +2290,9 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     {
         timeHeader += L" ^";
     }
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_TIME_COLUMN_X), headerY,
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_TIME_COLUMN_X), headerY,
         timeHeader.c_str(), (float)BROWSE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_SELLER_COLUMN_X), headerY,
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_SELLER_COLUMN_X), headerY,
         m_iCurrentTab == TAB_MY_LISTINGS ? I18N::Game::Status : I18N::Game::Seller,
         (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 
@@ -2238,10 +2309,10 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     {
         g_pRenderText->SetTextColor(110, 110, 110, 255);
     }
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_PRICE_COLUMN_X), headerY,
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X), headerY,
         priceHeader.c_str(), (float)BROWSE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
     g_pRenderText->SetTextColor(218, 186, 104, 255);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_BUYOUT_COLUMN_X), headerY,
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X), headerY,
         I18N::Game::Buyout, (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 }
 
@@ -2249,7 +2320,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 {
     // Eight compact table rows. Item icons remain in the engine's 3D pass; the text columns and grid are
     // ordinary UI rendering. The countdown uses m_ServerClock's live estimate, not the frozen response time.
-    constexpr int BodyWidth = BROWSE_CONTENT_WIDTH;
+    constexpr int BodyWidth = BROWSE_TABLE_CONTENT_WIDTH;
 
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
@@ -2257,13 +2328,13 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 
     if (!m_bHasListingResponse)
     {
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::PleaseWait, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::PleaseWait, (float)BodyWidth, 0, RT3_SORT_LEFT);
         return;
     }
 
     if (m_ListingResponse.Listings.empty())
     {
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::NoListingsFound, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::NoListingsFound, (float)BodyWidth, 0, RT3_SORT_LEFT);
         return;
     }
 
@@ -2277,7 +2348,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         const bool isHovered = static_cast<int>(row) == m_iPointedRow;
 
         EnableAlphaTest();
-        RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, rowY + BROWSE_ROW_PADDING,
+        RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X, rowY + BROWSE_ROW_PADDING,
             BodyWidth, BROWSE_ROW_HEIGHT - 2 * BROWSE_ROW_PADDING,
             isHovered ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
         EndRenderColor();
@@ -2292,9 +2363,9 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
             : (listing.BuyoutPrice.IsFruitBasket() ? I18N::Game::FruitBasket : std::to_wstring(listing.BuyoutPrice.Scalar()));
         const std::wstring itemName = m_RowItems[row] != nullptr ? GetItemDisplayName(m_RowItems[row]) : std::wstring();
 
-        const int textX = m_Pos.x + BROWSE_BODY_X + BROWSE_TEXT_X_OFFSET;
+        const int textX = m_Pos.x + BROWSE_TABLE_X + BROWSE_TEXT_X_OFFSET;
         const int textWidth = BROWSE_ITEM_COLUMN_WIDTH - BROWSE_TEXT_X_OFFSET - 4;
-        const float textY = static_cast<float>(rowY + 9);
+        const float textY = static_cast<float>(rowY + 7);
 
         g_pRenderText->SetFont(g_hFontBold);
         SetBrowseItemNameColor(m_RowItems[row]);
@@ -2303,19 +2374,102 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         g_pRenderText->SetFont(g_hFont);
         g_pRenderText->SetTextColor(200, 200, 200, 255);
         const std::wstring levelText = L"+" + std::to_wstring(m_RowItems[row] != nullptr ? m_RowItems[row]->Level : 0);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_LEVEL_COLUMN_X), textY,
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_LEVEL_COLUMN_X), textY,
             levelText.c_str(), (float)BROWSE_LEVEL_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_TIME_COLUMN_X), textY,
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_TIME_COLUMN_X), textY,
             countdown.c_str(), (float)BROWSE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_SELLER_COLUMN_X), textY,
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_SELLER_COLUMN_X), textY,
             m_iCurrentTab == TAB_MY_LISTINGS ? ListingStatusText(listing.Status) : listing.SellerName.c_str(),
             (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_PRICE_COLUMN_X), textY,
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X), textY,
             priceText.c_str(), (float)BROWSE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + BROWSE_BUYOUT_COLUMN_X), textY,
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X), textY,
             buyoutText.c_str(), (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
     }
 
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
+{
+    // A persistent category rail makes filtering a single, visible action instead of hiding the server's
+    // seven real auction categories inside a dropdown. It deliberately uses the existing MU table materials
+    // rather than borrowing the reference game's artwork.
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    for (int category = 0; category < static_cast<int>(std::size(m_CategoryLabels)); ++category)
+    {
+        const int y = m_Pos.y + CATEGORY_RAIL_Y + category * CATEGORY_RAIL_ROW_HEIGHT;
+        const bool selected = category == m_SelectedCategoryIndex;
+        EnableAlphaTest();
+        RenderColorQuadARGB(m_Pos.x + CATEGORY_RAIL_X, y + 1, CATEGORY_RAIL_WIDTH, CATEGORY_RAIL_ROW_HEIGHT - 2,
+            selected ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
+        EndRenderColor();
+
+        g_pRenderText->SetTextColor(selected ? 255 : 205, selected ? 215 : 205, selected ? 100 : 205, 255);
+        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + 7), (float)(y + 8),
+            m_CategoryLabels[category], (float)(CATEGORY_RAIL_WIDTH - 12), 0, RT3_SORT_LEFT);
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
+{
+    if (!m_bHasOpenResponse)
+    {
+        return;
+    }
+
+    size_t visibleCurrencyCount = 0;
+    for (const auto& currency : m_OpenResponse.Currencies)
+    {
+        if (currency.Enabled && (currency.CurrencyMode == AuctionCurrencyMode::Zen || currency.LooseItemType != 0))
+        {
+            ++visibleCurrencyCount;
+        }
+    }
+    if (visibleCurrencyCount == 0)
+    {
+        return;
+    }
+
+    EnableAlphaTest();
+    RenderColorQuadARGB(m_Pos.x + BALANCE_BAR_X, m_Pos.y + BALANCE_BAR_Y,
+        BALANCE_BAR_WIDTH, BALANCE_BAR_HEIGHT, BROWSE_HEADER_COLOR);
+    EndRenderColor();
+
+    const int segmentWidth = BALANCE_BAR_WIDTH / static_cast<int>(visibleCurrencyCount);
+    int segment = 0;
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetTextColor(235, 210, 120, 255);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    for (const auto& currency : m_OpenResponse.Currencies)
+    {
+        if (!currency.Enabled || (currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType == 0))
+        {
+            continue;
+        }
+
+        const int x = m_Pos.x + BALANCE_BAR_X + segment * segmentWidth;
+        if (segment > 0)
+        {
+            EnableAlphaTest();
+            RenderColorQuadARGB(x, m_Pos.y + BALANCE_BAR_Y, 1, BALANCE_BAR_HEIGHT, BROWSE_GRID_COLOR);
+            EndRenderColor();
+        }
+
+        if (currency.CurrencyMode == AuctionCurrencyMode::Zen)
+        {
+            // This is the same loaded money artwork the inventory uses; cropping its left edge gives the
+            // familiar coin badge without adding a duplicate asset.
+            RenderImage(CNewUIMyInventory::IMAGE_INVENTORY_MONEY,
+                static_cast<float>(x + 3), static_cast<float>(m_Pos.y + BALANCE_BAR_Y + 2),
+                static_cast<float>(BALANCE_ICON_SIZE), static_cast<float>(BALANCE_ICON_SIZE));
+        }
+
+        const std::wstring amount = std::to_wstring(currency.Spendable.Scalar());
+        g_pRenderText->RenderText((float)(x + BALANCE_ICON_SIZE + 5), (float)(m_Pos.y + BALANCE_BAR_Y + 5),
+            amount.c_str(), (float)(segmentWidth - BALANCE_ICON_SIZE - 8), 0, RT3_SORT_LEFT);
+        ++segment;
+    }
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderMailboxHeader()

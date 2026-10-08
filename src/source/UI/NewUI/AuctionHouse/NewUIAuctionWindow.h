@@ -113,6 +113,8 @@ namespace SEASON3B
         void SubmitSearch();
         void RenderBrowseHeader();
         void RenderBrowseTab();
+        void RenderCategoryRail();
+        void RenderCurrencyBalances();
         void RenderMailboxHeader();
         void RenderMailboxTab();
         void EnterSellTab();
