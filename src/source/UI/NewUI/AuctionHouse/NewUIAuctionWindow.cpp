@@ -60,9 +60,10 @@ namespace
     constexpr int BROWSE_BODY_Y = BROWSE_HEADER_Y + BROWSE_HEADER_HEIGHT;
     constexpr int BROWSE_ROW_HEIGHT = 29;
     constexpr int BROWSE_ROW_PADDING = 1;
-    constexpr int BROWSE_ICON_SIZE = 24;
-    constexpr int BROWSE_ICON_MARGIN = 2;
-    constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_SIZE + 6 + BROWSE_ICON_MARGIN;
+    constexpr int BROWSE_ICON_CELL_SIZE = 26;
+    constexpr int BROWSE_ICON_SIZE = 18;
+    constexpr int BROWSE_ICON_MARGIN = 4;
+    constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_CELL_SIZE + 6;
     constexpr int BROWSE_SCROLLBAR_RIGHT_MARGIN = 14;
     constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_ROW_HEIGHT * 8;
     constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 18;
@@ -87,8 +88,8 @@ namespace
     constexpr int BALANCE_BAR_X = BROWSE_TABLE_X;
     constexpr int BALANCE_BAR_Y = BROWSE_BODY_Y + BROWSE_SCROLLBAR_HEIGHT + 4;
     constexpr int BALANCE_BAR_WIDTH = BROWSE_TABLE_CONTENT_WIDTH;
-    constexpr int BALANCE_BAR_HEIGHT = 21;
-    constexpr int BALANCE_ICON_SIZE = 17;
+    constexpr int BALANCE_BAR_HEIGHT = 18;
+    constexpr int BALANCE_ICON_SIZE = 14;
     constexpr int MAILBOX_KIND_COLUMN_WIDTH = 145;
     constexpr int MAILBOX_CONTENT_COLUMN_X = MAILBOX_KIND_COLUMN_WIDTH;
     constexpr int MAILBOX_CONTENT_COLUMN_WIDTH = 245;
@@ -197,6 +198,12 @@ namespace
         {
             g_pRenderText->SetTextColor(255, 255, 255, 255);
         }
+        else if (item->Type == ITEM_JEWEL_OF_BLESS || item->Type == ITEM_JEWEL_OF_SOUL || item->Type == ITEM_JEWEL_OF_CHAOS
+            || item->Type == ITEM_JEWEL_OF_GUARDIAN || item->Type == ITEM_JEWEL_OF_LIFE || item->Type == ITEM_JEWEL_OF_CREATION)
+        {
+            // Keep the same yellow jewel-name convention as RenderItemInfo.
+            g_pRenderText->SetTextColor(255, 204, 26, 255);
+        }
         else if (item->AncientDiscriminator > 0)
         {
             // Matches RenderItemInfo's ancient-name foreground (its blue tooltip background is not suitable
@@ -210,6 +217,14 @@ namespace
         else if (item->SpecialNum > 0 && item->ExcellentFlags > 0)
         {
             g_pRenderText->SetTextColor(26, 255, 128, 255);
+        }
+        else if (item->Level >= 7)
+        {
+            g_pRenderText->SetTextColor(255, 204, 26, 255);
+        }
+        else if (item->SpecialNum > 0)
+        {
+            g_pRenderText->SetTextColor(128, 179, 255, 255);
         }
         else
         {
@@ -280,7 +295,7 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_SelectedStatusIndex(0), m_bMyListingsRequestPending(false), m_PendingMyListingsRequestId(0),
       m_SelectedCollectionKindIndex(0), m_bMailboxRequestPending(false), m_PendingMailboxRequestId(0),
       m_bHasMailboxResponse(false), m_PendingMailboxCount(0), m_bHasSelectedCollection(false),
-      m_BrowseScrollOffset(0), m_iPointedRow(-1),
+      m_BrowseScrollOffset(0), m_iPointedRow(-1), m_iPointedItemRow(-1),
       m_bShowingDetail(false), m_bDetailRequestPending(false), m_PendingDetailRequestId(0),
       m_bHasDetailResponse(false), m_DetailItem(nullptr), m_bPointingDetailItem(false),
       m_bOperationRequestPending(false), m_PendingOperationId{}, m_bHasOperationResult(false),
@@ -1105,8 +1120,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderRowItemTooltip(int row) const
         return;
     }
 
-    const int iconX = m_Pos.x + BROWSE_BODY_X
-        + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0);
+    const int iconX = m_Pos.x + (m_iCurrentTab == TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X)
+        + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0) + BROWSE_ICON_MARGIN;
     const int iconY = m_Pos.y + BROWSE_BODY_Y + row * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
     RenderItemInfo(iconX + BROWSE_ICON_SIZE / 2, iconY + BROWSE_ICON_SIZE / 2, m_RowItems[row], false);
 }
@@ -1729,6 +1744,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         }
 
         m_iPointedRow = -1;
+        m_iPointedItemRow = -1;
         m_bPointingDetailItem = false;
         m_bPointingSellItem = false;
         if (m_iCurrentTab == TAB_SELL)
@@ -1753,6 +1769,11 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
                     BROWSE_TABLE_CONTENT_WIDTH, BROWSE_ROW_HEIGHT))
                 {
                     m_iPointedRow = static_cast<int>(row);
+                    if (CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + 1,
+                        BROWSE_ICON_CELL_SIZE, BROWSE_ICON_CELL_SIZE))
+                    {
+                        m_iPointedItemRow = static_cast<int>(row);
+                    }
                     break;
                 }
             }
@@ -2205,10 +2226,10 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         }
 
         const int iconX = m_Pos.x + (m_iCurrentTab == TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X)
-            + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0);
+            + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0) + BROWSE_ICON_MARGIN;
         const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
-        RenderItem3D((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
-            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, false);
+        RenderItem3DScaled((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
+            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, 0.32f, false);
     }
 
     if (m_iCurrentTab == TAB_BROWSE && m_bHasOpenResponse)
@@ -2250,9 +2271,9 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
 
     // Deferred to the shared 3D render manager so the tooltip draws after every window's own icons, the same
     // ordering CNewUIMyInventory::Render3D relies on for its own item tooltip.
-    if (m_iPointedRow != -1 && m_pNewUI3DRenderMng)
+    if (m_iPointedItemRow != -1 && m_pNewUI3DRenderMng)
     {
-        m_pNewUI3DRenderMng->RenderUI2DEffect(INFORMATION_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(m_iPointedRow), 0);
+        m_pNewUI3DRenderMng->RenderUI2DEffect(INFORMATION_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(m_iPointedItemRow), 0);
     }
 }
 
@@ -2412,6 +2433,13 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X, rowY + BROWSE_ROW_PADDING,
             BodyWidth, BROWSE_ROW_HEIGHT - 2 * BROWSE_ROW_PADDING,
             isHovered ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
+        EndRenderColor();
+
+        // A fixed, inventory-like cell keeps even long weapons visually contained and gives the item tooltip
+        // an unambiguous hover target instead of making the whole row feel like an inventory item.
+        EnableAlphaTest();
+        RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X + 1, rowY + 1, BROWSE_ICON_CELL_SIZE, BROWSE_ICON_CELL_SIZE,
+            isHovered ? 0x60303030u : 0x50202020u);
         EndRenderColor();
 
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;

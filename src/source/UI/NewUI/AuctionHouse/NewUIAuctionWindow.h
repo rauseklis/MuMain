@@ -239,6 +239,9 @@ namespace SEASON3B
         // pointer is over.
         int m_iPointedRow;
 
+        // The tooltip has a tighter hit target than a row selection: it is shown only over the item-icon cell.
+        int m_iPointedItemRow;
+
         // Index zero is the all-currencies sentinel, then one label per AuctionCurrencyMode value in wire
         // order. CNewUIComboBox keeps only the pointers, not a locale-change "slot" like CNewUIButton
         // does, so these labels will not refresh if the player changes language while this window is open —

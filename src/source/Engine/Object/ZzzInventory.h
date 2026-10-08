@@ -161,6 +161,9 @@ bool ShouldAnimatePreview(bool pointerInside, bool pickedItemActive, bool render
 }
 
 void RenderItem3D(float sx, float sy, float Width, float Height, int Type, int Level, int excellentFlags, int ancientDiscriminator, bool PickUp = false);
+// Renders the same inventory model with an explicit size multiplier. Dense table UIs use this rather than
+// treating RenderItem3D's placement rectangle as a scale control (it is not one).
+void RenderItem3DScaled(float sx, float sy, float Width, float Height, int Type, int Level, int excellentFlags, int ancientDiscriminator, float scaleMultiplier, bool PickUp = false);
 void RenderObjectScreen(int Type, int ItemLevel, int excellentFlags, int ancientDiscriminator, vec3_t Target, int Select, bool PickUp);
 bool GetAttackDamage(int* iMinDamage, int* iMaxDamage);
 void GetItemName(int iType, int iLevel, wchar_t* Text);

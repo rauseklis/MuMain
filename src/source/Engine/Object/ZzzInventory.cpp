@@ -6694,6 +6694,13 @@ OBJECT ObjectSelect;
 
 namespace
 {
+    // RenderItem3D has a wide established call surface. A scoped multiplier preserves that API while allowing
+    // compact consumers to use the identical item-model selection path at a truthful smaller scale.
+    float ItemPreviewScaleMultiplier = 1.0f;
+}
+
+namespace
+{
 // Degrees per millisecond of WorldTime.
 constexpr float GambleItemTurnSpeed = 0.2f;
 constexpr float SelectedItemTurnSpeed = 0.45f;
@@ -6738,7 +6745,7 @@ void RenderObjectScreen(int Type, int ItemLevel, int excellentFlags, int ancient
     ObjectSelect.PriorAction = 0;
     b->BodyHeight = display.bodyHeight;
 
-    float Scale = display.scale;
+    float Scale = display.scale * ItemPreviewScaleMultiplier;
     if (const std::optional<float> smallScale = Render::Items::Display::GetSmallArchangelWeaponScale(Type, ItemLevel))
     {
         Scale = *smallScale;
@@ -6974,6 +6981,15 @@ void RenderItem3D(float sx, float sy, float Width, float Height, int Type, int L
         RenderObjectScreen(Render::Items::Display::GetInventoryModel(Type), Level, excellentFlags, ancientDiscriminator,
                            Position, Success, PickUp);
     }
+}
+
+void RenderItem3DScaled(float sx, float sy, float Width, float Height, int Type, int Level, int excellentFlags,
+    int ancientDiscriminator, float scaleMultiplier, bool PickUp)
+{
+    const float previousMultiplier = ItemPreviewScaleMultiplier;
+    ItemPreviewScaleMultiplier = scaleMultiplier;
+    RenderItem3D(sx, sy, Width, Height, Type, Level, excellentFlags, ancientDiscriminator, PickUp);
+    ItemPreviewScaleMultiplier = previousMultiplier;
 }
 
 void InventoryColor(ITEM* p)
