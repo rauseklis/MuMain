@@ -105,7 +105,8 @@ namespace
     constexpr int CLAIM_INPUT_COLUMN_WIDTH = 105;
     constexpr int SELL_PANEL_X = 20;
     constexpr int SELL_PANEL_Y = 112;
-    constexpr int SELL_PANEL_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * SELL_PANEL_X;
+    constexpr int SELL_WINDOW_WIDTH = 400;
+    constexpr int SELL_PANEL_WIDTH = SELL_WINDOW_WIDTH - 2 * SELL_PANEL_X;
     constexpr int SELL_PANEL_HEIGHT = 92;
     constexpr int SELL_ICON_SIZE = 52;
     constexpr int SELL_ICON_MARGIN = 12;
@@ -266,7 +267,9 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_AUCTION_HOUSE, this);
 
     m_pNewUI3DRenderMng = pNewUI3DRenderMng;
-    m_pNewUI3DRenderMng->Add3DRenderObj(this, INVENTORY_CAMERA_Z_ORDER);
+    // The Auction window itself renders above the inventory camera. Queue its item models on the
+    // information camera so the opaque Auction frame cannot cover them.
+    m_pNewUI3DRenderMng->Add3DRenderObj(this, INFORMATION_CAMERA_Z_ORDER);
 
     SetPos(x, y);
     LoadImages();
@@ -422,8 +425,10 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     // Every child widget was given an absolute, one-time position in Create() (the established NewUI
     // convention, since nothing else here ever moves). Dragging breaks that assumption, so every widget's
     // position has to be reapplied against the new m_Pos on every drag-move frame.
-    m_TabBtn.ChangeRadioButtonInfo(true, (float)(m_Pos.x + TAB_REGION_X), (float)(m_Pos.y + TAB_REGION_Y), TAB_WIDTH, TAB_HEIGHT);
-    m_BtnClose.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
+    const int windowWidth = CurrentWindowWidth();
+    const int tabWidth = (windowWidth - 2 * TAB_REGION_X) / 4;
+    m_TabBtn.ChangeRadioButtonInfo(true, (float)(m_Pos.x + TAB_REGION_X), (float)(m_Pos.y + TAB_REGION_Y), tabWidth, TAB_HEIGHT);
+    m_BtnClose.ChangeButtonInfo(m_Pos.x + windowWidth - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
     m_CurrencyCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_CategoryCombo.SetPos(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
     m_StatusCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
@@ -437,16 +442,20 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
-    m_BtnNextPage.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnNextPage.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBack.ChangeButtonInfo(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBid.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
-    m_BtnBuyout.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
-    m_BtnCancelListing.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
+    m_BtnBuyout.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnCancelListing.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
         m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
-    m_BtnCollect.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
+    m_BtnCollect.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
         m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
-    m_BrowseScrollBar.SetPos(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y);
+    m_BrowseScrollBar.SetPos(m_Pos.x + windowWidth - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y);
     m_BrowseScrollBar.UpdateScrolling();
+    if (m_iCurrentTab == TAB_SELL && m_bOpenedInventoryForSell)
+    {
+        g_pMyInventory->SetPos(m_Pos.x + windowWidth + 10, m_Pos.y);
+    }
 }
 
 void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
@@ -457,6 +466,8 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     // has arrived, for that tab to read once it does.
     m_iCurrentTab = TAB_BROWSE;
     m_TabBtn.ChangeFrame(m_iCurrentTab);
+    SetLayoutMode(UI::Scaling::LayoutMode::Dialog);
+    RepositionChildren();
 
     m_bShowingDetail = false;
     m_bHasSelectedCollection = false;
@@ -1166,10 +1177,15 @@ void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
 
 void SEASON3B::CNewUIAuctionWindow::EnterSellTab()
 {
+    // Browse needs the owner's 600-wide table, but that cannot coexist with the stock 190-wide inventory on
+    // the 640-unit panel canvas. Sell returns to the approved original 400-wide geometry and uses the same
+    // right-docked transform as inventory, putting the two windows side by side at every supported aspect.
+    SetLayoutMode(UI::Scaling::LayoutMode::DockRight);
+    RepositionChildren();
     if (!g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY))
     {
         m_bOpenedInventoryForSell = true;
-        g_pMyInventory->SetPos(430, 25);
+        g_pMyInventory->SetPos(m_Pos.x + CurrentWindowWidth() + 10, m_Pos.y);
         g_pNewUISystem->Show(SEASON3B::INTERFACE_INVENTORY);
     }
 }
@@ -1203,7 +1219,35 @@ void SEASON3B::CNewUIAuctionWindow::CaptureSellSelection()
     }
 
     // Selection is not an item move. Put the engine-owned picked item back in its source slot immediately.
+    // If the legacy restore cannot reinsert it (for example because its client slot map is already stale),
+    // request the authoritative inventory and release the cursor copy so Sell never leaves the giant red
+    // invalid-drop overlay seen in the first real-game pass.
     CNewUIInventoryCtrl::BackupPickedItem();
+    if (CNewUIInventoryCtrl::GetPickedItem() == picked)
+    {
+        SocketClient->ToGameServer()->SendInventoryRequest();
+        CNewUIInventoryCtrl::DeletePickedItem();
+    }
+
+    // Inventory pickup is release-triggered. Consume that release after restoring the item, otherwise
+    // the inventory control can see it again on the next update and immediately pick the same item back up.
+    g_pMyInventory->ResetMouseLButton();
+    g_pNewKeyInput->SetKeyState(VK_LBUTTON, CNewKeyInput::KEY_NONE);
+}
+
+void SEASON3B::CNewUIAuctionWindow::ValidateSellSelection()
+{
+    if (!m_bHasSellItem)
+    {
+        return;
+    }
+
+    const ITEM* liveItem = FindInventoryItemBySlot(m_SellInventorySlot);
+    if (liveItem == nullptr || liveItem->Key != m_SellItemSnapshot.Key)
+    {
+        m_bHasSellItem = false;
+        m_bPointingSellItem = false;
+    }
 }
 
 bool SEASON3B::CNewUIAuctionWindow::UpdateMouseEvent()
@@ -1233,7 +1277,8 @@ bool SEASON3B::CNewUIAuctionWindow::UpdateMouseEvent()
     // Grab zone is the title strip above the tabs, excluding the close button's own rect (BtnProcess already
     // handles a close-button click above, before this is ever reached, but excluding it here too keeps the
     // grab zone honest if that ordering ever changes).
-    const bool overTitleBar = CheckMouseIn(m_Pos.x, m_Pos.y, WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, TAB_REGION_Y);
+    const int windowWidth = CurrentWindowWidth();
+    const bool overTitleBar = CheckMouseIn(m_Pos.x, m_Pos.y, windowWidth - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, TAB_REGION_Y);
     if (overTitleBar && IsPress(VK_LBUTTON))
     {
         m_bDragging = true;
@@ -1242,7 +1287,7 @@ bool SEASON3B::CNewUIAuctionWindow::UpdateMouseEvent()
         return false;
     }
 
-    if (CheckMouseIn(m_Pos.x, m_Pos.y, WINDOW_WIDTH, WINDOW_HEIGHT))
+    if (CheckMouseIn(m_Pos.x, m_Pos.y, windowWidth, WINDOW_HEIGHT))
     {
         return false;
     }
@@ -1531,6 +1576,11 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             {
                 EnterSellTab();
             }
+            else
+            {
+                SetLayoutMode(UI::Scaling::LayoutMode::Dialog);
+                RepositionChildren();
+            }
 
             m_bShowingDetail = false;
             m_bHasSelectedCollection = false;
@@ -1608,6 +1658,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         if (m_iCurrentTab == TAB_SELL)
         {
             CaptureSellSelection();
+            ValidateSellSelection();
             const int iconX = m_Pos.x + SELL_PANEL_X + SELL_ICON_MARGIN;
             const int iconY = m_Pos.y + SELL_PANEL_Y + (SELL_PANEL_HEIGHT - SELL_ICON_SIZE) / 2;
             m_bPointingSellItem = m_bHasSellItem && CheckMouseIn(iconX, iconY, SELL_ICON_SIZE, SELL_ICON_SIZE);
@@ -1660,20 +1711,22 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
     if (m_PendingMailboxCount > 0)
     {
+        const int tabWidth = (CurrentWindowWidth() - 2 * TAB_REGION_X) / 4;
         wchar_t badge[16];
         mu_swprintf(badge, L"[%d]", m_PendingMailboxCount);
         g_pRenderText->SetFont(g_hFontBold);
         g_pRenderText->SetTextColor(255, 190, 70, 255);
         g_pRenderText->SetBgColor(0, 0, 0, 0);
         g_pRenderText->RenderText(
-            (float)(m_Pos.x + TAB_REGION_X + 3 * TAB_WIDTH + TAB_WIDTH - 38),
+            (float)(m_Pos.x + TAB_REGION_X + 4 * tabWidth - 38),
             (float)(m_Pos.y + TAB_REGION_Y + 8), badge, 34.0f, 0, RT3_SORT_CENTER);
     }
 
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetTextColor(220, 220, 220, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
-    g_pRenderText->RenderText((float)(m_Pos.x + 15), (float)(m_Pos.y + 13), I18N::Game::AuctionHouse, (float)(WINDOW_WIDTH - 30), 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText((float)(m_Pos.x + 15), (float)(m_Pos.y + 13), I18N::Game::AuctionHouse,
+        (float)(CurrentWindowWidth() - 30), 0, RT3_SORT_CENTER);
 
     if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bShowingDetail)
     {
@@ -2009,7 +2062,7 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
 
         if (m_bPointingSellItem && m_pNewUI3DRenderMng)
         {
-            m_pNewUI3DRenderMng->RenderUI2DEffect(INVENTORY_CAMERA_Z_ORDER, UI2DEffectCallback, this,
+            m_pNewUI3DRenderMng->RenderUI2DEffect(INFORMATION_CAMERA_Z_ORDER, UI2DEffectCallback, this,
                 static_cast<DWORD>(MaxBrowseRows + 1), 0);
         }
         return;
@@ -2032,7 +2085,7 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
 
         if (m_bPointingDetailItem && m_pNewUI3DRenderMng)
         {
-            m_pNewUI3DRenderMng->RenderUI2DEffect(INVENTORY_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(MaxBrowseRows), 0);
+            m_pNewUI3DRenderMng->RenderUI2DEffect(INFORMATION_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(MaxBrowseRows), 0);
         }
 
         return;
@@ -2067,7 +2120,7 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
     // ordering CNewUIMyInventory::Render3D relies on for its own item tooltip.
     if (m_iPointedRow != -1 && m_pNewUI3DRenderMng)
     {
-        m_pNewUI3DRenderMng->RenderUI2DEffect(INVENTORY_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(m_iPointedRow), 0);
+        m_pNewUI3DRenderMng->RenderUI2DEffect(INFORMATION_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(m_iPointedRow), 0);
     }
 }
 
@@ -2374,6 +2427,11 @@ float SEASON3B::CNewUIAuctionWindow::GetLayerDepth()
     return 10.1f;
 }
 
+int SEASON3B::CNewUIAuctionWindow::CurrentWindowWidth() const
+{
+    return m_iCurrentTab == TAB_SELL ? SELL_WINDOW_WIDTH : WINDOW_WIDTH;
+}
+
 void SEASON3B::CNewUIAuctionWindow::LoadImages()
 {
     LoadBitmap(L"Interface\\newui_msgbox_back.jpg", IMAGE_AUCTION_BACK, GL_LINEAR);
@@ -2402,20 +2460,21 @@ void SEASON3B::CNewUIAuctionWindow::RenderFrame()
 {
     const float x = static_cast<float>(m_Pos.x);
     const float y = static_cast<float>(m_Pos.y);
-    const float centerDestinationWidth = static_cast<float>(WINDOW_WIDTH - 2 * FRAME_CAP_WIDTH);
+    const int windowWidth = CurrentWindowWidth();
+    const float centerDestinationWidth = static_cast<float>(windowWidth - 2 * FRAME_CAP_WIDTH);
 
     // These legacy frame sprites are only 190 pixels wide. RenderImage samples destination dimensions as
     // source dimensions too, so asking it for 600 pixels reads beyond the sprite and produces a black void.
     // Stretch the subdued background, but preserve both ornate frame caps at 1:1 and stretch only their
     // plain center strip so the MU corners retain their original proportions.
-    RenderImageStretch(IMAGE_AUCTION_BACK, x, y, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
+    RenderImageStretch(IMAGE_AUCTION_BACK, x, y, static_cast<float>(windowWidth), static_cast<float>(WINDOW_HEIGHT),
         0.f, 0.f, static_cast<float>(FRAME_TEXTURE_WIDTH), static_cast<float>(FRAME_TEXTURE_HEIGHT));
 
     RenderImageStretch(IMAGE_AUCTION_TOP, x, y, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
         0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
     RenderImageStretch(IMAGE_AUCTION_TOP, x + FRAME_CAP_WIDTH, y, centerDestinationWidth, static_cast<float>(TOP_BAND_HEIGHT),
         static_cast<float>(FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CENTER_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
-    RenderImageStretch(IMAGE_AUCTION_TOP, x + WINDOW_WIDTH - FRAME_CAP_WIDTH, y,
+    RenderImageStretch(IMAGE_AUCTION_TOP, x + windowWidth - FRAME_CAP_WIDTH, y,
         static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
         static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f,
         static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
@@ -2423,7 +2482,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderFrame()
     const float sideHeight = static_cast<float>(WINDOW_HEIGHT - TOP_BAND_HEIGHT - BOTTOM_BAND_HEIGHT);
     RenderImageStretch(IMAGE_AUCTION_LEFT, x, y + TOP_BAND_HEIGHT, static_cast<float>(SIDE_BAND_WIDTH), sideHeight,
         0.f, 0.f, static_cast<float>(SIDE_BAND_WIDTH), sideHeight);
-    RenderImageStretch(IMAGE_AUCTION_RIGHT, x + WINDOW_WIDTH - SIDE_BAND_WIDTH, y + TOP_BAND_HEIGHT,
+    RenderImageStretch(IMAGE_AUCTION_RIGHT, x + windowWidth - SIDE_BAND_WIDTH, y + TOP_BAND_HEIGHT,
         static_cast<float>(SIDE_BAND_WIDTH), sideHeight, 0.f, 0.f, static_cast<float>(SIDE_BAND_WIDTH), sideHeight);
 
     const float bottomY = y + WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT;
@@ -2431,7 +2490,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderFrame()
         0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
     RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + FRAME_CAP_WIDTH, bottomY, centerDestinationWidth, static_cast<float>(BOTTOM_BAND_HEIGHT),
         static_cast<float>(FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CENTER_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
-    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + WINDOW_WIDTH - FRAME_CAP_WIDTH, bottomY,
+    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + windowWidth - FRAME_CAP_WIDTH, bottomY,
         static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT),
         static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f,
         static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));

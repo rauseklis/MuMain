@@ -103,6 +103,7 @@ namespace SEASON3B
     private:
         void LoadImages();
         void UnloadImages();
+        int CurrentWindowWidth() const;
         void RenderFrame();
         bool BtnProcess();
         void SendBrowseRequest();
@@ -117,6 +118,7 @@ namespace SEASON3B
         void EnterSellTab();
         void LeaveSellTab();
         void CaptureSellSelection();
+        void ValidateSellSelection();
         void RenderSellTab();
         void RenderSellItemTooltip() const;
         void RebuildRowItems();
