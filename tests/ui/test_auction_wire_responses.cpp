@@ -400,6 +400,12 @@ namespace
         PutU16(buffer, offset + 39, 10U); // small packed-jewel denomination
         PutU16(buffer, offset + 41, 20U); // medium packed-jewel denomination
         PutU16(buffer, offset + 43, 30U); // large packed-jewel denomination
+        PutU16(buffer, offset + 45, 6159U); // loose item type (12 * 512 + 15)
+        PutU16(buffer, offset + 47, 6174U); // pack item type (12 * 512 + 30)
+        PutU16(buffer, offset + 49, 2U); // loose count
+        PutU16(buffer, offset + 51, 3U); // 10-pack count
+        PutU16(buffer, offset + 53, 4U); // 20-pack count
+        PutU16(buffer, offset + 55, 5U); // 30-pack count
     }
 }
 
@@ -420,6 +426,10 @@ TEST_CASE("a currency descriptor reads its rules and spendable units [ui][auctio
     CHECK_FALSE(descriptor->Spendable.IsFruitBasket());
     CHECK(descriptor->Spendable.Scalar() == 50000U);
     CHECK(descriptor->PackUnits == std::array<uint16_t, 3>{10U, 20U, 30U});
+    CHECK(descriptor->LooseItemType == 6159U);
+    CHECK(descriptor->PackItemType == 6174U);
+    CHECK(descriptor->LooseItemCount == 2U);
+    CHECK(descriptor->PackCounts == std::array<uint16_t, 3>{3U, 4U, 5U});
 }
 
 TEST_CASE("a truncated currency descriptor fails to parse [ui][auction_wire]")
@@ -435,7 +445,7 @@ TEST_CASE("an open response reads its fees, duration rules and every currency de
     PutU32(packet, 5, 7U); // request id
     PutU8(packet, 9, static_cast<uint8_t>(AuctionResult::Success));
     PutU32(packet, 10, 1700001000U); // server time
-    PutU32(packet, 14, 2U); // configuration version with packed-jewel metadata
+    PutU32(packet, 14, 3U); // configuration version with packed-jewel inventory metadata
     PutU16(packet, 18, 100U); // listing fee basis points
     PutU16(packet, 20, 500U); // success fee basis points
     PutU8(packet, 22, 0x0F); // duration mask
@@ -451,7 +461,7 @@ TEST_CASE("an open response reads its fees, duration rules and every currency de
     REQUIRE(response.has_value());
     CHECK(response->RequestId == 7U);
     CHECK(response->ServerTime == 1700001000U);
-    CHECK(response->ConfigurationVersion == 2U);
+    CHECK(response->ConfigurationVersion == 3U);
     CHECK(response->ListingFeeBasisPoints == 100U);
     CHECK(response->SuccessFeeBasisPoints == 500U);
     CHECK(response->DurationMask == 0x0F);
@@ -468,7 +478,7 @@ TEST_CASE("an open response reads its fees, duration rules and every currency de
 TEST_CASE("an open response truncated mid-descriptor fails to parse [ui][auction_wire]")
 {
     std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength + AuctionCurrencyDescriptor::WireLength, 0);
-    PutU32(packet, 14, 2U);
+    PutU32(packet, 14, 3U);
     PutU8(packet, 27, 2U);
     PutCurrencyDescriptor(packet, 28, AuctionCurrencyMode::Zen, true);
 
@@ -489,6 +499,26 @@ TEST_CASE("an open response accepts legacy currency descriptors without packed-j
     REQUIRE(response->Currencies.size() == 1U);
     CHECK(response->Currencies[0].CurrencyMode == AuctionCurrencyMode::Chaos);
     CHECK(response->Currencies[0].PackUnits == std::array<uint16_t, 3>{0U, 0U, 0U});
+}
+
+TEST_CASE("an open response accepts version two descriptors without inventory composition [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength + AuctionCurrencyDescriptor::PackMetadataWireLength, 0);
+    PutU32(packet, 14, 2U);
+    PutU8(packet, 27, 1U);
+    PutU8(packet, 28, static_cast<uint8_t>(AuctionCurrencyMode::Chaos));
+    PutU8(packet, 29, 1U);
+    PutU16(packet, 28 + 39, 10U);
+    PutU16(packet, 28 + 41, 20U);
+    PutU16(packet, 28 + 43, 30U);
+
+    const auto response = AuctionOpenResponse::Parse(packet);
+
+    REQUIRE(response.has_value());
+    REQUIRE(response->Currencies.size() == 1U);
+    CHECK(response->Currencies[0].PackUnits == std::array<uint16_t, 3>{10U, 20U, 30U});
+    CHECK(response->Currencies[0].LooseItemType == 0U);
+    CHECK(response->Currencies[0].PackCounts == std::array<uint16_t, 3>{0U, 0U, 0U});
 }
 
 TEST_CASE("an open response shorter than its own fixed header fails to parse [ui][auction_wire]")

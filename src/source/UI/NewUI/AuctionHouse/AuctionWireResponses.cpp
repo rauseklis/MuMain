@@ -283,9 +283,16 @@ namespace AuctionHouse
         descriptor.MinimumIncrement = ReadU32(entry, 10);
         descriptor.IncrementPercent = entry[14];
         descriptor.Spendable = ReadAmount(entry, 15, descriptor.CurrencyMode);
-        if (entry.size() >= WireLength)
+        if (entry.size() >= PackMetadataWireLength)
         {
             descriptor.PackUnits = {ReadU16(entry, 39), ReadU16(entry, 41), ReadU16(entry, 43)};
+        }
+        if (entry.size() >= WireLength)
+        {
+            descriptor.LooseItemType = ReadU16(entry, 45);
+            descriptor.PackItemType = ReadU16(entry, 47);
+            descriptor.LooseItemCount = ReadU16(entry, 49);
+            descriptor.PackCounts = {ReadU16(entry, 51), ReadU16(entry, 53), ReadU16(entry, 55)};
         }
 
         return descriptor;
@@ -311,9 +318,11 @@ namespace AuctionHouse
         response.PendingMailboxCount = ReadU16(packet, 25);
 
         const auto currencyCount = packet[27];
-        const auto descriptorWireLength = response.ConfigurationVersion >= 2
+        const auto descriptorWireLength = response.ConfigurationVersion >= 3
             ? AuctionCurrencyDescriptor::WireLength
-            : AuctionCurrencyDescriptor::LegacyWireLength;
+            : response.ConfigurationVersion >= 2
+                ? AuctionCurrencyDescriptor::PackMetadataWireLength
+                : AuctionCurrencyDescriptor::LegacyWireLength;
         response.Currencies.reserve(currencyCount);
         for (uint8_t i = 0; i < currencyCount; ++i)
         {
