@@ -16,8 +16,8 @@
 
 namespace SEASON3B
 {
-    // The standalone Auction House window. Browse, My Listings, and the first Mailbox collection slice are
-    // implemented incrementally; Sell and partial Mailbox collection controls remain later tasks.
+    // The standalone Auction House window. Browse, My Listings, Mailbox collection, and Sell item selection
+    // are implemented incrementally; the remaining Sell form controls are added in focused slices.
     class CNewUIAuctionWindow : public CNewUIObj, public INewUI3DRenderObj
     {
     public:
@@ -57,8 +57,7 @@ namespace SEASON3B
 
         // Called once when the window becomes visible: resets to the Browse tab and sends the open request.
         void OpeningProcess();
-        // Called once when the window is hidden: closes the inventory window if this window is the one that
-        // opened it for the Sell tab (not implemented until the Sell tab exists).
+        // Called once when the window is hidden: closes the inventory window if this window opened it for Sell.
         void ClosingProcess();
 
         // Called from the network dispatch (WSclient.cpp) when an AuctionOpenResponse arrives. Ignored if its
@@ -115,6 +114,11 @@ namespace SEASON3B
         void RenderBrowseTab();
         void RenderMailboxHeader();
         void RenderMailboxTab();
+        void EnterSellTab();
+        void LeaveSellTab();
+        void CaptureSellSelection();
+        void RenderSellTab();
+        void RenderSellItemTooltip() const;
         void RebuildRowItems();
         void ReleaseRowItems();
         void RenderRowItemTooltip(int row) const;
@@ -160,6 +164,14 @@ namespace SEASON3B
         uint32_t m_PendingOpenRequestId;
         bool m_bHasOpenResponse;
         AuctionHouse::AuctionOpenResponse m_OpenResponse;
+
+        // Sell owns the inventory only when it opened a previously hidden window. A selected lot is a value
+        // snapshot plus its authoritative source slot; restoring the picked item immediately avoids moving it.
+        bool m_bOpenedInventoryForSell;
+        bool m_bHasSellItem;
+        BYTE m_SellInventorySlot;
+        ITEM m_SellItemSnapshot;
+        bool m_bPointingSellItem;
 
         // Synced from whichever response arrives most recently (Open or Browse both carry ServerTime), so the
         // Browse tab's countdown can tick down locally between responses instead of only updating on the next

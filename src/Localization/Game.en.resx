@@ -13000,6 +13000,18 @@
   <data name="Sell" xml:space="preserve">
     <value>Sell</value>
   </data>
+  <data name="Auction Select Item" xml:space="preserve">
+    <value>Select an item from your inventory</value>
+  </data>
+  <data name="Auction Select Item Hint" xml:space="preserve">
+    <value>Click an inventory item to choose the whole item for this listing.</value>
+  </data>
+  <data name="Auction Selected Item" xml:space="preserve">
+    <value>Selected Item</value>
+  </data>
+  <data name="Auction Inventory Slot" xml:space="preserve">
+    <value>Inventory slot</value>
+  </data>
   <data name="My Listings" xml:space="preserve">
     <value>My Listings</value>
   </data>

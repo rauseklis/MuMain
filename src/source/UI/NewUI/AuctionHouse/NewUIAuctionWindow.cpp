@@ -7,6 +7,7 @@
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "UI/NewUI/Inventory/NewUIItemMng.h"
 #include "Engine/Object/ZzzInventory.h"
+#include "GameLogic/Items/InventoryUtils.h"
 #include "I18N/All.h"
 #include "Audio/DSPlaySound.h"
 #include "Network/Server/WSclient.h"
@@ -102,6 +103,12 @@ namespace
     constexpr int CLAIM_INPUT_WIDTH = 58;
     constexpr int CLAIM_INPUT_HEIGHT = 16;
     constexpr int CLAIM_INPUT_COLUMN_WIDTH = 105;
+    constexpr int SELL_PANEL_X = 20;
+    constexpr int SELL_PANEL_Y = 112;
+    constexpr int SELL_PANEL_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * SELL_PANEL_X;
+    constexpr int SELL_PANEL_HEIGHT = 92;
+    constexpr int SELL_ICON_SIZE = 52;
+    constexpr int SELL_ICON_MARGIN = 12;
 
     const wchar_t* CollectionKindText(AuctionCollectionKind kind)
     {
@@ -227,6 +234,8 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
     : m_pNewUIMng(nullptr), m_pNewUI3DRenderMng(nullptr), m_Pos{ 0, 0 },
       m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_iCurrentTab(TAB_BROWSE),
       m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false),
+      m_bOpenedInventoryForSell(false), m_bHasSellItem(false), m_SellInventorySlot(0),
+      m_SellItemSnapshot{}, m_bPointingSellItem(false),
       m_SelectedCurrency(AuctionCurrencyMode::Zen), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasListingResponse(false),
       m_SelectedStatusIndex(0), m_bMyListingsRequestPending(false), m_PendingMyListingsRequestId(0),
@@ -456,6 +465,9 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     m_bHasOperationResult = false;
     m_LastOperationMessage.clear();
     m_bOperationRequestPending = false;
+    m_bOpenedInventoryForSell = false;
+    m_bHasSellItem = false;
+    m_bPointingSellItem = false;
     m_SearchInput.SetText(L"");
     m_SearchInput.SetState(UISTATE_NORMAL);
     SetRelatedWnd(g_hWnd);
@@ -1107,13 +1119,17 @@ void SEASON3B::CNewUIAuctionWindow::UI2DEffectCallback(LPVOID pClass, DWORD dwPa
         return;
     }
 
-    // dwParamA == MaxBrowseRows is the sentinel for "the detail panel's single item", since a real row index
-    // is always strictly less than MaxBrowseRows; one callback function pointer serves both cases because
-    // CNewUI3DRenderMng::DeleteUI2DEffectObject matches by function pointer, not by instance.
+    // Real row indexes are below MaxBrowseRows. The two following values identify the detail and Sell items;
+    // one callback function pointer serves every case because CNewUI3DRenderMng::DeleteUI2DEffectObject
+    // matches by function pointer, not by instance.
     auto* window = static_cast<CNewUIAuctionWindow*>(pClass);
     if (static_cast<size_t>(dwParamA) == MaxBrowseRows)
     {
         window->RenderDetailItemTooltip();
+    }
+    else if (static_cast<size_t>(dwParamA) == MaxBrowseRows + 1)
+    {
+        window->RenderSellItemTooltip();
     }
     else
     {
@@ -1137,8 +1153,7 @@ void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionO
 
 void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
 {
-    // The Sell tab will own closing an inventory window it opened for itself (design spec 4.2); there is
-    // nothing to release yet since the Sell tab has no content.
+    LeaveSellTab();
     m_bDragging = false;
     m_SearchInput.SetState(UISTATE_HIDE);
     SetCollectionClaimInputsVisible(false);
@@ -1147,6 +1162,48 @@ void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
         CUITextInputBox::ReleaseFocus();
     }
     SetRelatedWnd(g_hWnd);
+}
+
+void SEASON3B::CNewUIAuctionWindow::EnterSellTab()
+{
+    if (!g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY))
+    {
+        m_bOpenedInventoryForSell = true;
+        g_pMyInventory->SetPos(430, 25);
+        g_pNewUISystem->Show(SEASON3B::INTERFACE_INVENTORY);
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::LeaveSellTab()
+{
+    if (m_bOpenedInventoryForSell && g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY))
+    {
+        g_pNewUISystem->Hide(SEASON3B::INTERFACE_INVENTORY);
+    }
+
+    m_bOpenedInventoryForSell = false;
+    m_bPointingSellItem = false;
+}
+
+void SEASON3B::CNewUIAuctionWindow::CaptureSellSelection()
+{
+    auto* picked = CNewUIInventoryCtrl::GetPickedItem();
+    if (picked == nullptr || picked->GetSourceStorageType() != STORAGE_TYPE::INVENTORY)
+    {
+        return;
+    }
+
+    const int slot = picked->GetSourceLinealPos();
+    ITEM* item = picked->GetItem();
+    if (item != nullptr && IsPlayerInventorySlot(slot))
+    {
+        m_SellInventorySlot = static_cast<BYTE>(slot);
+        m_SellItemSnapshot = *item;
+        m_bHasSellItem = true;
+    }
+
+    // Selection is not an item move. Put the engine-owned picked item back in its source slot immediately.
+    CNewUIInventoryCtrl::BackupPickedItem();
 }
 
 bool SEASON3B::CNewUIAuctionWindow::UpdateMouseEvent()
@@ -1462,9 +1519,19 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
     if (IsVisible())
     {
         const int selected = m_TabBtn.UpdateMouseEvent();
-        if (selected != RADIOGROUPEVENT_NONE)
+        if (selected != RADIOGROUPEVENT_NONE && selected != m_iCurrentTab)
         {
+            if (m_iCurrentTab == TAB_SELL)
+            {
+                LeaveSellTab();
+            }
+
             m_iCurrentTab = selected;
+            if (m_iCurrentTab == TAB_SELL)
+            {
+                EnterSellTab();
+            }
+
             m_bShowingDetail = false;
             m_bHasSelectedCollection = false;
             SetCollectionClaimInputsVisible(false);
@@ -1537,6 +1604,14 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
 
         m_iPointedRow = -1;
         m_bPointingDetailItem = false;
+        m_bPointingSellItem = false;
+        if (m_iCurrentTab == TAB_SELL)
+        {
+            CaptureSellSelection();
+            const int iconX = m_Pos.x + SELL_PANEL_X + SELL_ICON_MARGIN;
+            const int iconY = m_Pos.y + SELL_PANEL_Y + (SELL_PANEL_HEIGHT - SELL_ICON_SIZE) / 2;
+            m_bPointingSellItem = m_bHasSellItem && CheckMouseIn(iconX, iconY, SELL_ICON_SIZE, SELL_ICON_SIZE);
+        }
         if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX) && m_bShowingDetail)
         {
             m_bPointingDetailItem = CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y, DETAIL_ICON_SIZE, DETAIL_ICON_SIZE);
@@ -1644,6 +1719,10 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
             m_BrowseScrollBar.Render();
         }
         m_CollectionKindCombo.Render();
+    }
+    else if (m_iCurrentTab == TAB_SELL)
+    {
+        RenderSellTab();
     }
 
     DisableAlphaBlend();
@@ -1917,6 +1996,25 @@ bool SEASON3B::CNewUIAuctionWindow::IsVisible() const
 
 void SEASON3B::CNewUIAuctionWindow::Render3D()
 {
+    if (m_iCurrentTab == TAB_SELL)
+    {
+        if (m_bHasSellItem)
+        {
+            const int iconX = m_Pos.x + SELL_PANEL_X + SELL_ICON_MARGIN;
+            const int iconY = m_Pos.y + SELL_PANEL_Y + (SELL_PANEL_HEIGHT - SELL_ICON_SIZE) / 2;
+            RenderItem3D((float)iconX, (float)iconY, (float)SELL_ICON_SIZE, (float)SELL_ICON_SIZE,
+                m_SellItemSnapshot.Type, m_SellItemSnapshot.Level, m_SellItemSnapshot.ExcellentFlags,
+                m_SellItemSnapshot.AncientDiscriminator, false);
+        }
+
+        if (m_bPointingSellItem && m_pNewUI3DRenderMng)
+        {
+            m_pNewUI3DRenderMng->RenderUI2DEffect(INVENTORY_CAMERA_Z_ORDER, UI2DEffectCallback, this,
+                static_cast<DWORD>(MaxBrowseRows + 1), 0);
+        }
+        return;
+    }
+
     if (m_iCurrentTab != TAB_BROWSE && m_iCurrentTab != TAB_MY_LISTINGS && m_iCurrentTab != TAB_MAILBOX)
     {
         return;
@@ -1971,6 +2069,65 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
     {
         m_pNewUI3DRenderMng->RenderUI2DEffect(INVENTORY_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(m_iPointedRow), 0);
     }
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderSellTab()
+{
+    const int panelX = m_Pos.x + SELL_PANEL_X;
+    const int panelY = m_Pos.y + SELL_PANEL_Y;
+
+    EnableAlphaTest();
+    RenderColorQuadARGB(panelX, panelY, SELL_PANEL_WIDTH, SELL_PANEL_HEIGHT, ARGB(150, 18, 18, 18));
+    RenderColorQuadARGB(panelX, panelY, SELL_PANEL_WIDTH, 1, BROWSE_GRID_COLOR);
+    RenderColorQuadARGB(panelX, panelY + SELL_PANEL_HEIGHT - 1, SELL_PANEL_WIDTH, 1, BROWSE_GRID_COLOR);
+    RenderColorQuadARGB(panelX, panelY, 1, SELL_PANEL_HEIGHT, BROWSE_GRID_COLOR);
+    RenderColorQuadARGB(panelX + SELL_PANEL_WIDTH - 1, panelY, 1, SELL_PANEL_HEIGHT, BROWSE_GRID_COLOR);
+    EndRenderColor();
+
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    if (!m_bHasSellItem)
+    {
+        g_pRenderText->SetFont(g_hFontBold);
+        g_pRenderText->SetTextColor(218, 186, 104, 255);
+        g_pRenderText->RenderText((float)(panelX + 12), (float)(panelY + 22), I18N::Game::AuctionSelectItem,
+            (float)(SELL_PANEL_WIDTH - 24), 0, RT3_SORT_CENTER);
+        g_pRenderText->SetFont(g_hFont);
+        g_pRenderText->SetTextColor(185, 185, 185, 255);
+        g_pRenderText->RenderText((float)(panelX + 12), (float)(panelY + 48), I18N::Game::AuctionSelectItemHint,
+            (float)(SELL_PANEL_WIDTH - 24), 0, RT3_SORT_CENTER);
+        return;
+    }
+
+    const int textX = panelX + SELL_ICON_MARGIN + SELL_ICON_SIZE + 14;
+    const int textWidth = SELL_PANEL_WIDTH - (textX - panelX) - 12;
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetTextColor(218, 186, 104, 255);
+    g_pRenderText->RenderText((float)textX, (float)(panelY + 17), I18N::Game::AuctionSelectedItem,
+        (float)textWidth, 0, RT3_SORT_LEFT);
+
+    SetBrowseItemNameColor(&m_SellItemSnapshot);
+    const std::wstring itemName = GetItemDisplayName(&m_SellItemSnapshot);
+    g_pRenderText->RenderText((float)textX, (float)(panelY + 39), itemName.c_str(),
+        (float)textWidth, 0, RT3_SORT_LEFT);
+
+    const std::wstring slotText = std::wstring(I18N::Game::AuctionInventorySlot) + L": " + std::to_wstring(m_SellInventorySlot);
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetTextColor(175, 175, 175, 255);
+    g_pRenderText->RenderText((float)textX, (float)(panelY + 61), slotText.c_str(),
+        (float)textWidth, 0, RT3_SORT_LEFT);
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderSellItemTooltip() const
+{
+    if (!m_bHasSellItem)
+    {
+        return;
+    }
+
+    const int iconX = m_Pos.x + SELL_PANEL_X + SELL_ICON_MARGIN;
+    const int iconY = m_Pos.y + SELL_PANEL_Y + (SELL_PANEL_HEIGHT - SELL_ICON_SIZE) / 2;
+    RenderItemInfo(iconX + SELL_ICON_SIZE / 2, iconY + SELL_ICON_SIZE / 2,
+        const_cast<ITEM*>(&m_SellItemSnapshot), false);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
