@@ -138,6 +138,11 @@ namespace AuctionHouse
     // re-validates every bid, so duplicating this formula client-side is not a trust boundary.
     [[nodiscard]] AuctionAmount ComputeMinimumNextBid(AuctionCurrencyMode mode, const AuctionAmount& currentPrice, uint16_t bidCount) noexcept;
 
+    // Advisory listing/success fee preview. Mirrors the server's whole-unit calculation: multiply by the
+    // configured basis-point rate, round upward, and charge at least one unit for every positive scalar or
+    // fruit component. Fruit fees are calculated independently; zero components stay zero.
+    [[nodiscard]] AuctionAmount ComputeAuctionFee(const AuctionAmount& amount, uint16_t basisPoints) noexcept;
+
     // Formats the time remaining on a listing for the countdown display: "Ended" once it has reached zero, otherwise the two
     // most significant units ("1d 1h", "1h 1m", "2m 5s", or "45s" under a minute).
     [[nodiscard]] std::wstring FormatAuctionCountdown(std::chrono::seconds remaining);

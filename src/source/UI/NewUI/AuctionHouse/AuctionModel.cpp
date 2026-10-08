@@ -98,6 +98,18 @@ namespace AuctionHouse
         {
             return (value * 5 + 99) / 100;
         }
+
+        int64_t ComputeFeeComponent(int64_t value, uint16_t basisPoints) noexcept
+        {
+            if (value <= 0)
+            {
+                return 0;
+            }
+
+            constexpr int64_t BasisPointsDivisor = 10'000;
+            const int64_t rounded = (value * basisPoints + BasisPointsDivisor - 1) / BasisPointsDivisor;
+            return std::max<int64_t>(1, rounded);
+        }
     }
 
     AuctionAmount ComputeMinimumNextBid(AuctionCurrencyMode mode, const AuctionAmount& currentPrice, uint16_t bidCount) noexcept
@@ -127,6 +139,23 @@ namespace AuctionHouse
         const int64_t minimumFloor = (mode == AuctionCurrencyMode::Zen) ? 1000 : 1;
         const int64_t current = currentPrice.Scalar();
         return AuctionAmount::FromScalar(current + std::max(minimumFloor, CeilFivePercent(current)));
+    }
+
+    AuctionAmount ComputeAuctionFee(const AuctionAmount& amount, uint16_t basisPoints) noexcept
+    {
+        if (!amount.IsFruitBasket())
+        {
+            return AuctionAmount::FromScalar(ComputeFeeComponent(amount.Scalar(), basisPoints));
+        }
+
+        const auto& fruits = amount.Fruits();
+        return AuctionAmount::FromFruits(FruitBasket{
+            ComputeFeeComponent(fruits.Strength, basisPoints),
+            ComputeFeeComponent(fruits.Agility, basisPoints),
+            ComputeFeeComponent(fruits.Vitality, basisPoints),
+            ComputeFeeComponent(fruits.Energy, basisPoints),
+            ComputeFeeComponent(fruits.Command, basisPoints),
+        });
     }
 
     std::wstring FormatAuctionCountdown(std::chrono::seconds remaining)

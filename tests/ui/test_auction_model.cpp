@@ -199,6 +199,30 @@ TEST_CASE("the first fruit bid is the starting basket unchanged [ui][auction_mod
     CHECK(minimum.Fruits() == basket);
 }
 
+TEST_CASE("auction fee preview rounds scalar fees upward with a one-unit minimum [ui][auction_model]")
+{
+    CHECK(ComputeAuctionFee(AuctionAmount::FromScalar(1), 100).Scalar() == 1);
+    CHECK(ComputeAuctionFee(AuctionAmount::FromScalar(100), 100).Scalar() == 1);
+    CHECK(ComputeAuctionFee(AuctionAmount::FromScalar(101), 100).Scalar() == 2);
+    CHECK(ComputeAuctionFee(AuctionAmount::FromScalar(0), 100).Scalar() == 0);
+}
+
+TEST_CASE("auction fee preview rounds every nonzero fruit component independently [ui][auction_model]")
+{
+    const auto price = AuctionAmount::FromFruits(FruitBasket{
+        .Strength = 1,
+        .Agility = 100,
+        .Vitality = 101,
+        .Energy = 0,
+        .Command = 999,
+    });
+
+    const auto fee = ComputeAuctionFee(price, 100);
+
+    CHECK(fee.IsFruitBasket());
+    CHECK(fee.Fruits() == FruitBasket{ .Strength = 1, .Agility = 1, .Vitality = 2, .Energy = 0, .Command = 10 });
+}
+
 TEST_CASE("browse scrolling exposes every row beyond the visible viewport [ui][auction_model]")
 {
     CHECK(MaximumBrowseScrollOffset(24, 8) == 16);
