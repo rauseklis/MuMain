@@ -46,7 +46,10 @@ namespace
     constexpr int SEARCH_INPUT_Y_OFFSET = TOOLBAR_Y + 3;
     constexpr int SEARCH_INPUT_HEIGHT = 16;
     constexpr int SEARCH_BUTTON_WIDTH = 53;
-    constexpr int SEARCH_BUTTON_X_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * TOOLBAR_X - SEARCH_BUTTON_WIDTH;
+    constexpr int RESET_BUTTON_WIDTH = 45;
+    constexpr int SEARCH_BUTTON_X_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * TOOLBAR_X
+        - SEARCH_BUTTON_WIDTH - RESET_BUTTON_WIDTH - 5;
+    constexpr int RESET_BUTTON_X_OFFSET = SEARCH_BUTTON_X_OFFSET + SEARCH_BUTTON_WIDTH + 5;
     constexpr int SEARCH_INPUT_WIDTH = SEARCH_BUTTON_X_OFFSET - SEARCH_INPUT_X_OFFSET - 7;
     constexpr size_t SEARCH_PACKET_CAPACITY = 32;
     static_assert(SEARCH_INPUT_WIDTH > 0, "Auction search controls exceed the toolbar width");
@@ -381,6 +384,7 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     InitPageButton(&m_BtnCollect, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
         m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::AuctionCollect);
     InitPageButton(&m_BtnSearch, m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, I18N::Game::AuctionSearch);
+    InitPageButton(&m_BtnReset, m_Pos.x + TOOLBAR_X + RESET_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, L"Reset");
     m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y, BROWSE_SCROLLBAR_HEIGHT);
     m_BrowseScrollBar.Show(false);
 
@@ -452,6 +456,8 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     }
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnReset.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + RESET_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y,
+        RESET_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnNextPage.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBack.ChangeButtonInfo(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
@@ -1437,6 +1443,19 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
                 SubmitSearch();
                 return true;
             }
+            if (m_BtnReset.UpdateMouseEvent() == true)
+            {
+                m_SearchInput.SetText(L"");
+                m_SelectedCurrency = AuctionCurrencyMode::Zen;
+                m_SelectedCategoryIndex = 0;
+                m_SelectedSort = AuctionSort::EndingSoonest;
+                m_CurrencyCombo.SetSelectedIndex(static_cast<int>(m_SelectedCurrency));
+                m_CategoryCombo.SetSelectedIndex(m_SelectedCategoryIndex);
+                m_CurrentPage = 1;
+                SendBrowseRequest();
+                PlayBuffer(SOUND_CLICK01);
+                return true;
+            }
         }
 
         if (m_BrowseScrollBar.IsVisible())
@@ -1782,7 +1801,19 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
         if (m_iCurrentTab == TAB_BROWSE)
         {
             m_SearchInput.Render();
+            wchar_t searchText[33]{};
+            m_SearchInput.GetText(searchText, static_cast<int>(std::size(searchText)));
+            if (searchText[0] == L'\0' && !m_SearchInput.HaveFocus())
+            {
+                g_pRenderText->SetFont(g_hFont);
+                g_pRenderText->SetTextColor(130, 130, 130, 255);
+                g_pRenderText->SetBgColor(0, 0, 0, 0);
+                g_pRenderText->RenderText((float)(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET + 5),
+                    (float)(m_Pos.y + SEARCH_INPUT_Y_OFFSET + 2), L"Search item name...",
+                    (float)(SEARCH_INPUT_WIDTH - 8), 0, RT3_SORT_LEFT);
+            }
             m_BtnSearch.Render();
+            m_BtnReset.Render();
             m_CurrencyCombo.Render();
         }
         else

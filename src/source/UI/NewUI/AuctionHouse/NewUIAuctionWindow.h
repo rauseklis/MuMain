@@ -265,6 +265,7 @@ namespace SEASON3B
         // submit. The adjacent Search button and Enter both call SubmitSearch().
         CUITextInputBox m_SearchInput;
         CNewUIButton m_BtnSearch;
+        CNewUIButton m_BtnReset;
 
         // Selected-listing detail (design spec 4.2's main body swaps between "rows" and "detail panel"). True
         // while the detail panel replaces the row list; cleared on any tab switch, Back, or window re-open.
