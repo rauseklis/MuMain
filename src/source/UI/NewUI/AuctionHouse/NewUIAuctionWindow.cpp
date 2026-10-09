@@ -25,7 +25,9 @@ namespace
     // A compact, equal-width tab cluster leaves the title bar's close control unobstructed. The widest label
     // ("My Listings") still has symmetrical horizontal padding, and every tab shares this exact width.
     constexpr int TAB_WIDTH = 80;
-    constexpr int TAB_GAP = 14;
+    // Treat the four views as one compact navigation group. The old 14-pixel gaps made four related
+    // choices look like isolated buttons and wasted the most legible part of the window.
+    constexpr int TAB_GAP = 6;
     constexpr int TAB_HEIGHT = 26;
     constexpr int TOP_BAND_HEIGHT = 64;
     constexpr int BOTTOM_BAND_HEIGHT = 45;
@@ -48,6 +50,7 @@ namespace
     constexpr int SEARCH_INPUT_X_OFFSET = 0;
     constexpr int SEARCH_INPUT_Y_OFFSET = TOOLBAR_Y + 3;
     constexpr int SEARCH_INPUT_HEIGHT = 16;
+    constexpr int TOOLBAR_FIELD_HEIGHT = 23;
     // Equal widths so Search/Reset read as a matched pair (not two arbitrarily-different sizes), and wide
     // enough that "Reset" (the longer-looking word at this font) doesn't clip against its own border.
     constexpr int SEARCH_BUTTON_WIDTH = 56;
@@ -72,14 +75,18 @@ namespace
     constexpr int BROWSE_ROW_HEIGHT = 29;
     constexpr int BROWSE_ROW_PADDING = 1;
     constexpr int BROWSE_ICON_CELL_SIZE = 27;
-    constexpr int BROWSE_ICON_SIZE = 25;
-    constexpr int BROWSE_ICON_MARGIN = 1;
+    constexpr int BROWSE_ICON_SIZE = 23;
+    constexpr int BROWSE_ICON_MARGIN = (BROWSE_ICON_CELL_SIZE - BROWSE_ICON_SIZE) / 2;
     constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_CELL_SIZE + 6;
-    constexpr int BROWSE_SCROLLBAR_RIGHT_MARGIN = 14;
+    // Keep the native scrollbar inside the content gutter. Its original position sat against the ornate
+    // frame edge, which made the chunky legacy thumb look clipped rather than intentionally contained.
+    constexpr int BROWSE_SCROLLBAR_RIGHT_MARGIN = 25;
+    constexpr int BROWSE_SCROLLBAR_TOP_INSET = 5;
     // Nine full rows fit above the native frame's footer; all remaining rows in the server page are reached
     // with the existing scrollbar.
-    constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_ROW_HEIGHT * 9;
-    constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 18;
+    constexpr int BROWSE_TABLE_HEIGHT = BROWSE_ROW_HEIGHT * 9;
+    constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_TABLE_HEIGHT - BROWSE_SCROLLBAR_TOP_INSET * 2;
+    constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 27;
     constexpr int BROWSE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
     constexpr int BROWSE_TABLE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - BROWSE_TABLE_X - BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
     constexpr int BROWSE_ITEM_COLUMN_X = 0;
@@ -204,9 +211,11 @@ namespace
     // A visible panel behind every row, so each listing reads as a distinct card rather than bare text
     // floating on the window background — the same idea as WoW's Auction House row cards, built from plain
     // colored quads since no card-panel texture exists in this project's asset set.
-    constexpr unsigned int BROWSE_CARD_COLOR = 0x30FFFFFFu;
-    constexpr unsigned int BROWSE_CARD_HOVER_COLOR = 0x50FFD700u;
-    constexpr unsigned int BROWSE_HEADER_COLOR = 0xA018120Au;
+    // Browse is the data-dense focal area. Keep its chrome quiet and black so item art and rarity colour
+    // do the work, instead of letting the stone frame texture compete with every row.
+    constexpr unsigned int BROWSE_CARD_COLOR = 0xD0080808u;
+    constexpr unsigned int BROWSE_CARD_HOVER_COLOR = 0xD22B2410u;
+    constexpr unsigned int BROWSE_HEADER_COLOR = 0xE0101010u;
     constexpr unsigned int BROWSE_GRID_COLOR = 0x50C8A45Au;
     constexpr int PAGE_BTN_WIDTH = 53;
     constexpr int PAGE_BTN_HEIGHT = 23;
@@ -333,44 +342,73 @@ namespace
         return amount.IsZero() ? L"-" : std::to_wstring(amount.Scalar());
     }
 
-    void SetBrowseItemNameColor(const ITEM* item)
+    bool IsAuctionJewelItem(const ITEM* item)
+    {
+        return item != nullptr && (item->Type == ITEM_JEWEL_OF_BLESS || item->Type == ITEM_JEWEL_OF_SOUL
+            || item->Type == ITEM_JEWEL_OF_CHAOS || item->Type == ITEM_JEWEL_OF_GUARDIAN
+            || item->Type == ITEM_JEWEL_OF_LIFE || item->Type == ITEM_JEWEL_OF_CREATION
+            || item->Type == ITEM_JEWEL_OF_HARMONY);
+    }
+
+    DWORD GetAuctionItemRarityColor(const ITEM* item)
     {
         if (item == nullptr)
         {
-            g_pRenderText->SetTextColor(255, 255, 255, 255);
+            return 0xFF7A7A7Au;
         }
-        else if (item->Type == ITEM_JEWEL_OF_BLESS || item->Type == ITEM_JEWEL_OF_SOUL || item->Type == ITEM_JEWEL_OF_CHAOS
-            || item->Type == ITEM_JEWEL_OF_GUARDIAN || item->Type == ITEM_JEWEL_OF_LIFE || item->Type == ITEM_JEWEL_OF_CREATION)
+        else if (IsAuctionJewelItem(item))
         {
-            // Keep the same yellow jewel-name convention as RenderItemInfo.
-            g_pRenderText->SetTextColor(255, 204, 26, 255);
+            return 0xFFFFCC1Au;
         }
         else if (item->AncientDiscriminator > 0)
         {
-            // Matches RenderItemInfo's ancient-name foreground (its blue tooltip background is not suitable
-            // inside a table cell).
-            g_pRenderText->SetTextColor(0, 255, 0, 255);
+            return 0xFF00FF00u;
         }
         else if (g_SocketItemMgr.IsSocketItem(item))
         {
-            g_pRenderText->SetTextColor(179, 102, 255, 255);
+            return 0xFFB366FFu;
         }
         else if (item->SpecialNum > 0 && item->ExcellentFlags > 0)
         {
-            g_pRenderText->SetTextColor(26, 255, 128, 255);
+            return 0xFF1AFF80u;
         }
         else if (item->Level >= 7)
         {
-            g_pRenderText->SetTextColor(255, 204, 26, 255);
+            return 0xFFFFCC1Au;
         }
         else if (item->SpecialNum > 0)
         {
-            g_pRenderText->SetTextColor(128, 179, 255, 255);
+            return 0xFF80B3FFu;
         }
-        else
-        {
-            g_pRenderText->SetTextColor(255, 255, 255, 255);
-        }
+
+        return 0xFF8A8A8Au;
+    }
+
+    void SetBrowseItemNameColor(const ITEM* item)
+    {
+        const DWORD color = GetAuctionItemRarityColor(item);
+        g_pRenderText->SetTextColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, color >> 24);
+    }
+
+    void RenderRoundedAuctionIconSlot(int x, int y, int size, DWORD borderColor, DWORD fillColor)
+    {
+        // A one-pixel outline is enough at the client's native scale. The prior doubled segments looked
+        // like a bright selection frame around every listing rather than a subtle rarity marker.
+        constexpr int Corner = 2;
+        RenderColorQuadARGB(x + Corner, y, size - Corner * 2, 1, borderColor);
+        RenderColorQuadARGB(x, y + Corner, 1, size - Corner * 2, borderColor);
+        RenderColorQuadARGB(x + size - 1, y + Corner, 1, size - Corner * 2, borderColor);
+        RenderColorQuadARGB(x + Corner, y + size - 1, size - Corner * 2, 1, borderColor);
+        RenderColorQuadARGB(x + 1, y + 1, size - 2, size - 2, fillColor);
+    }
+
+    DWORD GetAuctionItemSlotBorderColor(const ITEM* item)
+    {
+        const DWORD rarity = GetAuctionItemRarityColor(item);
+        const DWORD red = ((rarity >> 16) & 0xFF) * 2 / 5;
+        const DWORD green = ((rarity >> 8) & 0xFF) * 2 / 5;
+        const DWORD blue = (rarity & 0xFF) * 2 / 5;
+        return 0xFF000000u | (red << 16) | (green << 8) | blue;
     }
 
     const wchar_t* ListingStatusText(AuctionListingStatus status)
@@ -580,7 +618,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
         m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::AuctionCollect);
     InitPageButton(&m_BtnSearch, m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, I18N::Game::AuctionSearch);
     InitPageButton(&m_BtnReset, m_Pos.x + TOOLBAR_X + RESET_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, L"Reset");
-    m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y, BROWSE_SCROLLBAR_HEIGHT);
+    m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN,
+        m_Pos.y + BROWSE_BODY_Y + BROWSE_SCROLLBAR_TOP_INSET, BROWSE_SCROLLBAR_HEIGHT);
     m_BrowseScrollBar.Show(false);
 
     Show(false);
@@ -666,7 +705,8 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
         m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnCollect.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH,
         m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
-    m_BrowseScrollBar.SetPos(m_Pos.x + windowWidth - BROWSE_SCROLLBAR_RIGHT_MARGIN, m_Pos.y + BROWSE_BODY_Y);
+    m_BrowseScrollBar.SetPos(m_Pos.x + windowWidth - BROWSE_SCROLLBAR_RIGHT_MARGIN,
+        m_Pos.y + BROWSE_BODY_Y + BROWSE_SCROLLBAR_TOP_INSET);
     m_BrowseScrollBar.UpdateScrolling();
     if (m_iCurrentTab == TAB_SELL && m_bOpenedInventoryForSell)
     {
@@ -1523,7 +1563,9 @@ bool SEASON3B::CNewUIAuctionWindow::UpdateMouseEvent()
 
 bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 {
-    if (m_BtnClose.UpdateMouseEvent() == true)
+    const int closeX = m_Pos.x + CurrentWindowWidth() - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN;
+    const int closeY = m_Pos.y + CLOSE_BTN_MARGIN;
+    if (CheckMouseIn(closeX, closeY, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT) && IsRelease(VK_LBUTTON))
     {
         g_pNewUISystem->Hide(SEASON3B::INTERFACE_AUCTION_HOUSE);
         PlayBuffer(SOUND_CLICK01);
@@ -1686,7 +1728,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
 
         if (m_BrowseScrollBar.IsVisible()
             && CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_BODY_Y,
-            BROWSE_TABLE_CONTENT_WIDTH, BROWSE_SCROLLBAR_HEIGHT) && MouseWheel != 0)
+            BROWSE_TABLE_CONTENT_WIDTH, BROWSE_TABLE_HEIGHT) && MouseWheel != 0)
         {
             m_BrowseScrollBar.SetCurPos(m_BrowseScrollBar.GetCurPos() - MouseWheel);
             MouseWheel = 0;
@@ -2028,7 +2070,9 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
                 (float)tabWidths[tab], 0, RT3_SORT_CENTER);
         }
     }
-    m_BtnClose.Render();
+    // The native inventory frame already contains its own top-right close artwork. Rendering a second
+    // exit sprite on top produced the doubled-X reported in visual review; keep the frame's single visual
+    // control and handle its hit rectangle directly in BtnProcess().
 
     if (m_PendingMailboxCount > 0)
     {
@@ -2077,6 +2121,18 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
         if (m_iCurrentTab == TAB_BROWSE)
         {
+            // Inputs get the same capped MU treatment as the Search, Reset, and paging buttons. The text
+            // controls still own their keyboard behaviour; this is only the shared rounded visual shell.
+            const int fieldY = m_Pos.y + TOOLBAR_Y;
+            const auto renderToolbarField = [this, fieldY](int xOffset, int width)
+            {
+                RenderImageStretch(IMAGE_AUCTION_PAGE_BTN, (float)(m_Pos.x + TOOLBAR_X + xOffset), (float)fieldY,
+                    (float)width, (float)TOOLBAR_FIELD_HEIGHT, 0.f, 0.f, 54.f, 23.f,
+                    RGBA(150, 150, 150, 255));
+            };
+            renderToolbarField(SEARCH_INPUT_X_OFFSET, SEARCH_INPUT_WIDTH);
+            renderToolbarField(LEVEL_MINIMUM_X_OFFSET, LEVEL_INPUT_WIDTH);
+            renderToolbarField(LEVEL_MAXIMUM_X_OFFSET, LEVEL_INPUT_WIDTH);
             m_SearchInput.Render();
             m_MinimumLevelInput.Render();
             m_MaximumLevelInput.Render();
@@ -2439,8 +2495,9 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         const int iconX = m_Pos.x + (m_iCurrentTab == TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X)
             + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0) + BROWSE_ICON_MARGIN;
         const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
+        const float previewScale = GetAuctionPreviewScale(item->Type) * (IsAuctionJewelItem(item) ? 0.85f : 1.0f);
         RenderItem3DScaled((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
-            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, GetAuctionPreviewScale(item->Type), false);
+            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, previewScale, false);
 
         // Small per-row currency icons beside the Price/Buyout numbers (see RenderBrowseTab's matching text
         // offset). Only the Browse/My Listings table has these two columns; Mailbox's layout does not.
@@ -2512,7 +2569,8 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
                     // the wallet's icon baselines visually aligned without changing the item itself.
                     const int iconYOffset = currency.CurrencyMode == AuctionCurrencyMode::Harmony ? 1 : 0;
                     RenderItem3DScaled((float)iconX,
-                        (float)(m_Pos.y + WALLET_Y + WALLET_TITLE_HEIGHT + iconYOffset), (float)WALLET_ICON_SIZE, (float)WALLET_ICON_SIZE,
+                        (float)(m_Pos.y + WALLET_Y + WALLET_TITLE_HEIGHT + iconYOffset),
+                        (float)WALLET_ICON_SIZE, (float)WALLET_ICON_SIZE,
                         currency.LooseItemType, 0, 0, 0, GetAuctionPreviewScale(currency.LooseItemType) * 0.65f, false);
                     ++unit;
                 }
@@ -2534,7 +2592,7 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
                         continue;
                     }
 
-                    const int iconX = m_Pos.x + WALLET_X + segment * segmentWidth + (segmentWidth - WALLET_ICON_SIZE) / 2;
+                    const int iconX = m_Pos.x + WALLET_X + segment * segmentWidth + (segmentWidth - WALLET_FRUIT_ICON_SIZE) / 2;
                     RenderItem3DScaled((float)iconX,
                         (float)(m_Pos.y + WALLET_FRUITS_Y + WALLET_TITLE_HEIGHT),
                         (float)WALLET_FRUIT_ICON_SIZE, (float)WALLET_FRUIT_ICON_SIZE,
@@ -2631,12 +2689,12 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     for (const int separator : separators)
     {
         RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X + separator, m_Pos.y + BROWSE_HEADER_Y,
-            1, BROWSE_HEADER_HEIGHT + BROWSE_SCROLLBAR_HEIGHT, BROWSE_GRID_COLOR);
+            1, BROWSE_HEADER_HEIGHT + BROWSE_TABLE_HEIGHT, BROWSE_GRID_COLOR);
     }
     EndRenderColor();
 
     g_pRenderText->SetFont(g_hFontBold);
-    g_pRenderText->SetTextColor(218, 186, 104, 255);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     const float headerY = static_cast<float>(m_Pos.y + BROWSE_HEADER_Y + 5);
     g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_ITEM_COLUMN_X), headerY,
@@ -2666,13 +2724,9 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     {
         priceHeader += L" v";
     }
-    if (m_iCurrentTab == TAB_BROWSE && (IsAllCurrencies(m_SelectedCurrency) || m_SelectedCurrency == AuctionCurrencyMode::Fruits))
-    {
-        g_pRenderText->SetTextColor(110, 110, 110, 255);
-    }
     g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X), headerY,
         priceHeader.c_str(), (float)BROWSE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-    g_pRenderText->SetTextColor(218, 186, 104, 255);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X), headerY,
         I18N::Game::Buyout, (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 }
@@ -2714,14 +2768,14 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
             isHovered ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
         EndRenderColor();
 
-        // A fixed, inventory-like cell keeps even long weapons visually contained and gives the item tooltip
-        // an unambiguous hover target instead of making the whole row feel like an inventory item.
+        // A fixed, rounded slot keeps each preview contained and makes its rarity visible before the user
+        // opens the tooltip. The black fill is intentionally shared by every item; only the thin outline
+        // changes with rarity so the list stays calm and readable.
         const int cellX = m_Pos.x + BROWSE_TABLE_X + 1;
-        const DWORD cellFill = isHovered ? 0xB0303030u : 0xA0181818u;
-        const DWORD cellBorder = isHovered ? 0xD8C69D3Fu : 0xA8786530u;
+        const DWORD cellFill = isHovered ? 0xFF17130Au : 0xFF050505u;
+        const DWORD cellBorder = GetAuctionItemSlotBorderColor(m_RowItems[row]);
         EnableAlphaTest();
-        RenderColorQuadARGB(cellX, rowY + 1, BROWSE_ICON_CELL_SIZE, BROWSE_ICON_CELL_SIZE, cellBorder);
-        RenderColorQuadARGB(cellX + 1, rowY + 2, BROWSE_ICON_CELL_SIZE - 2, BROWSE_ICON_CELL_SIZE - 2, cellFill);
+        RenderRoundedAuctionIconSlot(cellX, rowY + 1, BROWSE_ICON_CELL_SIZE, cellBorder, cellFill);
         EndRenderColor();
 
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
@@ -2918,7 +2972,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderMailboxHeader()
     for (const int separator : separators)
     {
         RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X + separator, m_Pos.y + BROWSE_HEADER_Y,
-            1, BROWSE_HEADER_HEIGHT + BROWSE_SCROLLBAR_HEIGHT, BROWSE_GRID_COLOR);
+            1, BROWSE_HEADER_HEIGHT + BROWSE_TABLE_HEIGHT, BROWSE_GRID_COLOR);
     }
     EndRenderColor();
 
