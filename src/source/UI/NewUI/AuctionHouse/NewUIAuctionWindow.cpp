@@ -125,6 +125,17 @@ namespace
     // Auction slot stays contained while its contents remain recognisable.
     float GetAuctionPreviewScale(int itemType)
     {
+        // Jewel of Chaos is historically filed under item group 12 (Wing) in MU's original item table —
+        // a numbering quirk, not a visual one. It is a small jewel like the other six, not an oversized
+        // wing mesh, so the Wing group's heavily-shrunk scale (tuned for meshes much bigger than a jewel)
+        // rendered it as a barely visible speck everywhere this function is used at small preview sizes.
+        // Give it the same scale the other six jewels get from their own (correct) group 14.
+        constexpr int ItemTypeJewelOfChaos = ITEM_GROUP_WING * MAX_ITEM_INDEX + 15;
+        if (itemType == ItemTypeJewelOfChaos)
+        {
+            return 0.90f;
+        }
+
         switch (itemType / MAX_ITEM_INDEX)
         {
         case ITEM_GROUP_SWORD:
