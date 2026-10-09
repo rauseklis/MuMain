@@ -104,6 +104,13 @@ namespace
     constexpr int WALLET_ZEN_Y = WALLET_FRUITS_Y + WALLET_FRUITS_HEIGHT + WALLET_PANEL_GAP;
     constexpr int WALLET_ICON_SIZE = 12;
     constexpr int WALLET_TITLE_HEIGHT = 11;
+    // A small per-row currency icon (same 3D-rendered jewel model the wallet panel already uses, just
+    // smaller) replaces the "<amount> <currency name>" text suffix for jewel-priced rows, freeing enough of
+    // the narrow Price/Buyout columns for the number to read clearly. Zen and Fruits have no single item
+    // identity to render this way, so they keep their existing text-only format.
+    constexpr int BROWSE_PRICE_ICON_SIZE = 12;
+    constexpr int BROWSE_PRICE_ICON_GAP = 2;
+    constexpr int BROWSE_PRICE_ICON_COLUMN_WIDTH = BROWSE_PRICE_ICON_SIZE + BROWSE_PRICE_ICON_GAP;
     constexpr int MAILBOX_KIND_COLUMN_WIDTH = 145;
     constexpr int MAILBOX_CONTENT_COLUMN_X = MAILBOX_KIND_COLUMN_WIDTH;
     constexpr int MAILBOX_CONTENT_COLUMN_WIDTH = 245;
@@ -264,6 +271,36 @@ namespace
         const auto index = static_cast<size_t>(currency);
         const wchar_t* name = index < std::size(names) ? names[index] : L"Units";
         return std::to_wstring(amount.Scalar()) + L" " + name;
+    }
+
+    // Finds the Open response's descriptor for a jewel currency with a real item identity to render as an
+    // icon. Returns null for Zen (no single item represents money) and Fruits (a five-component basket has no
+    // one icon), and for any currency the Open response has not reported yet (e.g. before it has arrived, or a
+    // mode the server configuration leaves disabled).
+    const AuctionHouse::AuctionCurrencyDescriptor* FindJewelCurrencyDescriptor(
+        const AuctionHouse::AuctionOpenResponse& openResponse, AuctionCurrencyMode currency)
+    {
+        if (currency == AuctionCurrencyMode::Zen || currency == AuctionCurrencyMode::Fruits)
+        {
+            return nullptr;
+        }
+
+        for (const auto& descriptor : openResponse.Currencies)
+        {
+            if (descriptor.CurrencyMode == currency && descriptor.Enabled && descriptor.LooseItemType != 0)
+            {
+                return &descriptor;
+            }
+        }
+
+        return nullptr;
+    }
+
+    // The number alone, used when an icon (not text) will carry the currency identity. Still "-" for a zero
+    // amount so an icon is never drawn beside an empty buyout.
+    std::wstring BrowseScalarOnlyText(const AuctionHouse::AuctionAmount& amount)
+    {
+        return amount.IsZero() ? L"-" : std::to_wstring(amount.Scalar());
     }
 
     void SetBrowseItemNameColor(const ITEM* item)
@@ -2341,6 +2378,36 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
         RenderItem3DScaled((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
             item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, GetAuctionPreviewScale(item->Type), false);
+
+        // Small per-row currency icons beside the Price/Buyout numbers (see RenderBrowseTab's matching text
+        // offset). Only the Browse/My Listings table has these two columns; Mailbox's layout does not.
+        if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bHasListingResponse
+            && m_BrowseScrollOffset + row < m_ListingResponse.Listings.size())
+        {
+            const auto& rowListing = m_ListingResponse.Listings[m_BrowseScrollOffset + row];
+            const int priceIconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT
+                + (BROWSE_ROW_HEIGHT - BROWSE_PRICE_ICON_SIZE) / 2;
+
+            if (!rowListing.CurrentPrice.IsZero())
+            {
+                if (const auto* descriptor = FindJewelCurrencyDescriptor(m_OpenResponse, rowListing.CurrencyMode))
+                {
+                    RenderItem3DScaled((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X), (float)priceIconY,
+                        (float)BROWSE_PRICE_ICON_SIZE, (float)BROWSE_PRICE_ICON_SIZE,
+                        descriptor->LooseItemType, 0, 0, 0, GetAuctionPreviewScale(descriptor->LooseItemType) * 0.6f, false);
+                }
+            }
+
+            if (!rowListing.BuyoutPrice.IsZero())
+            {
+                if (const auto* descriptor = FindJewelCurrencyDescriptor(m_OpenResponse, rowListing.CurrencyMode))
+                {
+                    RenderItem3DScaled((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X), (float)priceIconY,
+                        (float)BROWSE_PRICE_ICON_SIZE, (float)BROWSE_PRICE_ICON_SIZE,
+                        descriptor->LooseItemType, 0, 0, 0, GetAuctionPreviewScale(descriptor->LooseItemType) * 0.6f, false);
+                }
+            }
+        }
     }
 
     if (m_iCurrentTab == TAB_BROWSE && m_bHasOpenResponse)
@@ -2591,8 +2658,18 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
         const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
-        const std::wstring priceText = BrowsePriceText(listing.CurrencyMode, listing.CurrentPrice);
-        const std::wstring buyoutText = BrowsePriceText(listing.CurrencyMode, listing.BuyoutPrice);
+        // A jewel-priced amount shows a small icon (drawn alongside the other row icons in Render3D, the
+        // engine's 3D pass) instead of appending the currency's name as text, which is what actually makes
+        // room for the number in these narrow columns. Zen and Fruits have no single item identity to render
+        // this way and keep their existing "<amount> <name>" text.
+        const auto* priceCurrencyIcon = m_bHasOpenResponse && !listing.CurrentPrice.IsZero()
+            ? FindJewelCurrencyDescriptor(m_OpenResponse, listing.CurrencyMode) : nullptr;
+        const auto* buyoutCurrencyIcon = m_bHasOpenResponse && !listing.BuyoutPrice.IsZero()
+            ? FindJewelCurrencyDescriptor(m_OpenResponse, listing.CurrencyMode) : nullptr;
+        const std::wstring priceText = priceCurrencyIcon != nullptr
+            ? BrowseScalarOnlyText(listing.CurrentPrice) : BrowsePriceText(listing.CurrencyMode, listing.CurrentPrice);
+        const std::wstring buyoutText = buyoutCurrencyIcon != nullptr
+            ? BrowseScalarOnlyText(listing.BuyoutPrice) : BrowsePriceText(listing.CurrencyMode, listing.BuyoutPrice);
         const std::wstring itemName = m_RowItems[row] != nullptr ? GetItemDisplayName(m_RowItems[row]) : std::wstring();
 
         const int textX = m_Pos.x + BROWSE_TABLE_X + BROWSE_TEXT_X_OFFSET;
@@ -2613,10 +2690,12 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_SELLER_COLUMN_X), textY,
             m_iCurrentTab == TAB_MY_LISTINGS ? ListingStatusText(listing.Status) : listing.SellerName.c_str(),
             (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X), textY,
-            priceText.c_str(), (float)BROWSE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X), textY,
-            buyoutText.c_str(), (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        const int priceIconOffset = priceCurrencyIcon != nullptr ? BROWSE_PRICE_ICON_COLUMN_WIDTH : 0;
+        const int buyoutIconOffset = buyoutCurrencyIcon != nullptr ? BROWSE_PRICE_ICON_COLUMN_WIDTH : 0;
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X + priceIconOffset), textY,
+            priceText.c_str(), (float)(BROWSE_PRICE_COLUMN_WIDTH - priceIconOffset), 0, RT3_SORT_CENTER);
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X + buyoutIconOffset), textY,
+            buyoutText.c_str(), (float)(BROWSE_BUYOUT_COLUMN_WIDTH - buyoutIconOffset), 0, RT3_SORT_CENTER);
     }
 
 }
