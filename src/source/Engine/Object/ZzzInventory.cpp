@@ -6748,7 +6748,7 @@ void RenderObjectScreen(int Type, int ItemLevel, int excellentFlags, int ancient
     float Scale = display.scale * ItemPreviewScaleMultiplier;
     if (const std::optional<float> smallScale = Render::Items::Display::GetSmallArchangelWeaponScale(Type, ItemLevel))
     {
-        Scale = *smallScale;
+        Scale = *smallScale * ItemPreviewScaleMultiplier;
         ItemLevel = 0;
     }
 

@@ -42,15 +42,20 @@ namespace
     constexpr int CATEGORY_COMBO_X_OFFSET = CURRENCY_COMBO_WIDTH + 8;
     constexpr int CATEGORY_COMBO_WIDTH = 210;
     constexpr int BROWSE_TABLE_X = 132;
-    constexpr int SEARCH_INPUT_X_OFFSET = BROWSE_TABLE_X + CURRENCY_COMBO_WIDTH + 8 - TOOLBAR_X;
+    // Currency is shown on each result's price, so a global currency selector obscures the main search
+    // without helping buyers find an item. Browse always queries every supported currency.
+    constexpr int SEARCH_INPUT_X_OFFSET = 0;
     constexpr int SEARCH_INPUT_Y_OFFSET = TOOLBAR_Y + 3;
     constexpr int SEARCH_INPUT_HEIGHT = 16;
     constexpr int SEARCH_BUTTON_WIDTH = 53;
     constexpr int RESET_BUTTON_WIDTH = 45;
-    constexpr int SEARCH_BUTTON_X_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * TOOLBAR_X
-        - SEARCH_BUTTON_WIDTH - RESET_BUTTON_WIDTH - 5;
+    constexpr int SEARCH_INPUT_WIDTH = 188;
+    constexpr int SEARCH_BUTTON_X_OFFSET = SEARCH_INPUT_X_OFFSET + SEARCH_INPUT_WIDTH + 6;
     constexpr int RESET_BUTTON_X_OFFSET = SEARCH_BUTTON_X_OFFSET + SEARCH_BUTTON_WIDTH + 5;
-    constexpr int SEARCH_INPUT_WIDTH = SEARCH_BUTTON_X_OFFSET - SEARCH_INPUT_X_OFFSET - 7;
+    constexpr int LEVEL_LABEL_X_OFFSET = RESET_BUTTON_X_OFFSET + RESET_BUTTON_WIDTH + 10;
+    constexpr int LEVEL_MINIMUM_X_OFFSET = LEVEL_LABEL_X_OFFSET + 20;
+    constexpr int LEVEL_MAXIMUM_X_OFFSET = LEVEL_MINIMUM_X_OFFSET + 38;
+    constexpr int LEVEL_INPUT_WIDTH = 30;
     constexpr size_t SEARCH_PACKET_CAPACITY = 32;
     constexpr BYTE ALL_CURRENCIES = 0xFF;
     static_assert(SEARCH_INPUT_WIDTH > 0, "Auction search controls exceed the toolbar width");
@@ -60,9 +65,9 @@ namespace
     constexpr int BROWSE_BODY_Y = BROWSE_HEADER_Y + BROWSE_HEADER_HEIGHT;
     constexpr int BROWSE_ROW_HEIGHT = 29;
     constexpr int BROWSE_ROW_PADDING = 1;
-    constexpr int BROWSE_ICON_CELL_SIZE = 26;
-    constexpr int BROWSE_ICON_SIZE = 18;
-    constexpr int BROWSE_ICON_MARGIN = 4;
+    constexpr int BROWSE_ICON_CELL_SIZE = 27;
+    constexpr int BROWSE_ICON_SIZE = 25;
+    constexpr int BROWSE_ICON_MARGIN = 1;
     constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_CELL_SIZE + 6;
     constexpr int BROWSE_SCROLLBAR_RIGHT_MARGIN = 14;
     constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_ROW_HEIGHT * 8;
@@ -84,12 +89,21 @@ namespace
     constexpr int CATEGORY_RAIL_X = BROWSE_BODY_X;
     constexpr int CATEGORY_RAIL_Y = BROWSE_HEADER_Y;
     constexpr int CATEGORY_RAIL_WIDTH = BROWSE_TABLE_X - BROWSE_BODY_X - 7;
-    constexpr int CATEGORY_RAIL_ROW_HEIGHT = 29;
-    constexpr int BALANCE_BAR_X = BROWSE_TABLE_X;
-    constexpr int BALANCE_BAR_Y = BROWSE_BODY_Y + BROWSE_SCROLLBAR_HEIGHT + 4;
-    constexpr int BALANCE_BAR_WIDTH = BROWSE_TABLE_CONTENT_WIDTH;
-    constexpr int BALANCE_BAR_HEIGHT = 18;
-    constexpr int BALANCE_ICON_SIZE = 14;
+    constexpr int CATEGORY_RAIL_ROW_HEIGHT = 20;
+    // Keep the character's spending resources where a buyer naturally looks for them: a compact, labelled
+    // left rail below categories.  The previous two-row strip consumed the table footer and made Zen look
+    // like another listing column instead of a balance.
+    constexpr int WALLET_X = CATEGORY_RAIL_X;
+    constexpr int WALLET_Y = CATEGORY_RAIL_Y + CATEGORY_RAIL_ROW_HEIGHT * 8 + 4;
+    constexpr int WALLET_WIDTH = CATEGORY_RAIL_WIDTH;
+    constexpr int WALLET_JEWELS_HEIGHT = 40;
+    constexpr int WALLET_FRUITS_HEIGHT = 30;
+    constexpr int WALLET_ZEN_HEIGHT = 31;
+    constexpr int WALLET_PANEL_GAP = 2;
+    constexpr int WALLET_FRUITS_Y = WALLET_Y + WALLET_JEWELS_HEIGHT + WALLET_PANEL_GAP;
+    constexpr int WALLET_ZEN_Y = WALLET_FRUITS_Y + WALLET_FRUITS_HEIGHT + WALLET_PANEL_GAP;
+    constexpr int WALLET_ICON_SIZE = 12;
+    constexpr int WALLET_TITLE_HEIGHT = 11;
     constexpr int MAILBOX_KIND_COLUMN_WIDTH = 145;
     constexpr int MAILBOX_CONTENT_COLUMN_X = MAILBOX_KIND_COLUMN_WIDTH;
     constexpr int MAILBOX_CONTENT_COLUMN_WIDTH = 245;
@@ -98,6 +112,66 @@ namespace
     constexpr int MAILBOX_STATUS_COLUMN_X = MAILBOX_SOURCE_COLUMN_X + MAILBOX_SOURCE_COLUMN_WIDTH;
     constexpr int MAILBOX_STATUS_COLUMN_WIDTH = BROWSE_CONTENT_WIDTH - MAILBOX_STATUS_COLUMN_X;
     static_assert(BROWSE_BUYOUT_COLUMN_WIDTH > 0, "Auction browse columns exceed their content region");
+
+    // Inventory meshes do not share a common footprint: long weapons and wings occupy far more
+    // screen space than gloves or jewels at the same model scale. Tune by item group so each
+    // Auction slot stays contained while its contents remain recognisable.
+    float GetAuctionPreviewScale(int itemType)
+    {
+        switch (itemType / MAX_ITEM_INDEX)
+        {
+        case ITEM_GROUP_SWORD:
+        case ITEM_GROUP_AXE:
+        case ITEM_GROUP_MACE:
+        case ITEM_GROUP_SPEAR:
+        case ITEM_GROUP_BOW:
+        case ITEM_GROUP_STAFF:
+            return 0.24f;
+        case ITEM_GROUP_SHIELD:
+        case ITEM_GROUP_HELM:
+        case ITEM_GROUP_ARMOR:
+        case ITEM_GROUP_PANTS:
+            return 0.42f;
+        case ITEM_GROUP_GLOVES:
+            return 0.48f;
+        case ITEM_GROUP_BOOTS:
+            return 0.55f;
+        case ITEM_GROUP_WING:
+            return 0.22f;
+        case ITEM_GROUP_HELPER:
+            return 0.70f;
+        case ITEM_GROUP_POTION:
+            return 0.90f;
+        case ITEM_GROUP_ETC:
+            return 0.65f;
+        default:
+            return 0.50f;
+        }
+    }
+
+    std::wstring FormatWalletAmount(uint32_t amount)
+    {
+        std::wstring result = std::to_wstring(amount);
+        for (int separator = static_cast<int>(result.size()) - 3; separator > 0; separator -= 3)
+        {
+            result.insert(static_cast<size_t>(separator), 1, L',');
+        }
+
+        return result;
+    }
+
+    BYTE ReadAuctionLevelInput(CUITextInputBox& input, BYTE fallback)
+    {
+        wchar_t text[4]{};
+        input.GetText(text, static_cast<int>(std::size(text)));
+        if (text[0] == L'\0')
+        {
+            return fallback;
+        }
+
+        const unsigned long parsed = wcstoul(text, nullptr, 10);
+        return static_cast<BYTE>(std::min(parsed, 255ul));
+    }
     // A visible panel behind every row, so each listing reads as a distinct card rather than bare text
     // floating on the window background — the same idea as WoW's Auction House row cards, built from plain
     // colored quads since no card-panel texture exists in this project's asset set.
@@ -399,6 +473,20 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_SearchInput.SetParentUIID(SEASON3B::INTERFACE_AUCTION_HOUSE);
     m_SearchInput.SetState(UISTATE_NORMAL);
 
+    for (auto* levelInput : { &m_MinimumLevelInput, &m_MaximumLevelInput })
+    {
+        levelInput->Init(g_hWnd, LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT, 3, false);
+        levelInput->SetTextColor(255, 255, 230, 210);
+        levelInput->SetBackColor(210, 20, 14, 8);
+        levelInput->SetSelectBackColor(255, 95, 68, 24);
+        levelInput->SetFont(g_hFont);
+        levelInput->SetParentUIID(SEASON3B::INTERFACE_AUCTION_HOUSE);
+        levelInput->SetOption(UIOPTION_NUMBERONLY);
+        levelInput->SetState(UISTATE_NORMAL);
+    }
+    m_MinimumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_MaximumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+
     for (size_t i = 0; i < std::size(m_CollectionClaimInputs); ++i)
     {
         auto& input = m_CollectionClaimInputs[i];
@@ -436,8 +524,10 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
 void SEASON3B::CNewUIAuctionWindow::Release()
 {
     m_SearchInput.SetState(UISTATE_HIDE);
+    m_MinimumLevelInput.SetState(UISTATE_HIDE);
+    m_MaximumLevelInput.SetState(UISTATE_HIDE);
     SetCollectionClaimInputsVisible(false);
-    if (m_SearchInput.HaveFocus())
+    if (m_SearchInput.HaveFocus() || m_MinimumLevelInput.HaveFocus() || m_MaximumLevelInput.HaveFocus())
     {
         CUITextInputBox::ReleaseFocus();
     }
@@ -495,6 +585,8 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
             m_Pos.y + CLAIM_INPUT_Y_OFFSET + 15);
     }
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_MinimumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_MaximumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnReset.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + RESET_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y,
         RESET_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
@@ -538,6 +630,10 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     m_bPointingSellItem = false;
     m_SearchInput.SetText(L"");
     m_SearchInput.SetState(UISTATE_NORMAL);
+    m_MinimumLevelInput.SetText(L"");
+    m_MaximumLevelInput.SetText(L"");
+    m_MinimumLevelInput.SetState(UISTATE_NORMAL);
+    m_MaximumLevelInput.SetState(UISTATE_NORMAL);
     SetRelatedWnd(g_hWnd);
 
     m_bHasOpenResponse = false;
@@ -564,6 +660,12 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
     wchar_t searchText[33]{};
     m_SearchInput.GetText(searchText, static_cast<int>(std::size(searchText)));
     const std::string searchUtf8 = AuctionHouse::ClampUtf8ToByteCapacity(Core::Text::ToUtf8(searchText), SEARCH_PACKET_CAPACITY);
+    BYTE minimumLevel = ReadAuctionLevelInput(m_MinimumLevelInput, 0);
+    BYTE maximumLevel = ReadAuctionLevelInput(m_MaximumLevelInput, 255);
+    if (minimumLevel > maximumLevel)
+    {
+        std::swap(minimumLevel, maximumLevel);
+    }
     m_bHasListingResponse = false;
     m_BrowseScrollOffset = 0;
     m_BrowseScrollBar.SetCurPos(0);
@@ -578,8 +680,8 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
         m_SelectedCurrency,
         m_SelectedSort,
         0xFFFFFFFFu, // class mask: every class
-        0, // level minimum
-        255, // level maximum
+        minimumLevel,
+        maximumLevel,
         0, // option flags: none required
         0, 0, 0, 0, 0, 0, // minimum price, every component: no floor
         0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, // maximum price, every component: no ceiling
@@ -1225,7 +1327,7 @@ void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
     m_bDragging = false;
     m_SearchInput.SetState(UISTATE_HIDE);
     SetCollectionClaimInputsVisible(false);
-    if (m_SearchInput.HaveFocus())
+    if (m_SearchInput.HaveFocus() || m_MinimumLevelInput.HaveFocus() || m_MaximumLevelInput.HaveFocus())
     {
         CUITextInputBox::ReleaseFocus();
     }
@@ -1422,19 +1524,16 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         return false;
     }
 
-    if (m_SearchInput.HaveFocus() && IsPress(VK_LBUTTON)
+    if ((m_SearchInput.HaveFocus() || m_MinimumLevelInput.HaveFocus() || m_MaximumLevelInput.HaveFocus()) && IsPress(VK_LBUTTON)
         && !CheckMouseIn(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-            SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
+            SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT)
+        && !CheckMouseIn(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
+            LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT)
+        && !CheckMouseIn(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
+            LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
     {
         CUITextInputBox::ReleaseFocus();
         SetRelatedWnd(g_hWnd);
-    }
-
-    // The combo's own contract: its expanded dropdown can extend past this widget's own small hit box, so
-    // the owner must separately treat IsMouseOverWidget() as a consumed click.
-    if (m_iCurrentTab == TAB_BROWSE && m_CurrencyCombo.IsMouseOverWidget())
-    {
-        return true;
     }
 
     if (m_iCurrentTab == TAB_MY_LISTINGS && m_StatusCombo.IsMouseOverWidget())
@@ -1468,12 +1567,26 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             }
 
             m_SearchInput.DoAction();
+            m_MinimumLevelInput.DoAction();
+            m_MaximumLevelInput.DoAction();
             if (m_SearchInput.HaveFocus())
             {
                 SetRelatedWnd(m_SearchInput.GetHandle());
             }
+            else if (m_MinimumLevelInput.HaveFocus())
+            {
+                SetRelatedWnd(m_MinimumLevelInput.GetHandle());
+            }
+            else if (m_MaximumLevelInput.HaveFocus())
+            {
+                SetRelatedWnd(m_MaximumLevelInput.GetHandle());
+            }
             if (CheckMouseIn(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-                SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
+                SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT)
+                || CheckMouseIn(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
+                    LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT)
+                || CheckMouseIn(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
+                    LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
             {
                 return true;
             }
@@ -1486,10 +1599,11 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             if (m_BtnReset.UpdateMouseEvent() == true)
             {
                 m_SearchInput.SetText(L"");
+                m_MinimumLevelInput.SetText(L"");
+                m_MaximumLevelInput.SetText(L"");
                 m_SelectedCurrency = static_cast<AuctionCurrencyMode>(ALL_CURRENCIES);
                 m_SelectedCategoryIndex = 0;
                 m_SelectedSort = AuctionSort::EndingSoonest;
-                m_CurrencyCombo.SetSelectedIndex(0);
                 m_CategoryCombo.SetSelectedIndex(m_SelectedCategoryIndex);
                 m_CurrentPage = 1;
                 SendBrowseRequest();
@@ -1615,7 +1729,7 @@ bool SEASON3B::CNewUIAuctionWindow::UpdateKeyEvent()
             return true;
         }
 
-        if (m_SearchInput.HaveFocus())
+        if (m_SearchInput.HaveFocus() || m_MinimumLevelInput.HaveFocus() || m_MaximumLevelInput.HaveFocus())
         {
             if (SEASON3B::IsPress(VK_RETURN) == true)
             {
@@ -1675,7 +1789,9 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             m_LastOperationMessage.clear();
             ReleaseDetailItem();
             m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
-            if (m_iCurrentTab != TAB_BROWSE && m_SearchInput.HaveFocus())
+            m_MinimumLevelInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
+            m_MaximumLevelInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
+            if (m_iCurrentTab != TAB_BROWSE && (m_SearchInput.HaveFocus() || m_MinimumLevelInput.HaveFocus() || m_MaximumLevelInput.HaveFocus()))
             {
                 CUITextInputBox::ReleaseFocus();
                 SetRelatedWnd(g_hWnd);
@@ -1693,19 +1809,6 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
                 m_BrowseScrollBar.Show(false);
                 ReleaseRowItems();
             }
-        }
-
-        if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CurrencyCombo.UpdateMouseEvent())
-        {
-            const int selectedCurrencyIndex = m_CurrencyCombo.GetSelectedIndex();
-            m_SelectedCurrency = selectedCurrencyIndex == 0
-                ? static_cast<AuctionCurrencyMode>(ALL_CURRENCIES)
-                : static_cast<AuctionCurrencyMode>(selectedCurrencyIndex - 1);
-            m_SelectedSort = IsAllCurrencies(m_SelectedCurrency)
-                ? AuctionSort::EndingSoonest
-                : AuctionHouse::NormalizeBrowseSort(m_SelectedCurrency, m_SelectedSort);
-            m_CurrentPage = 1;
-            SendBrowseRequest();
         }
 
         if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CategoryCombo.UpdateMouseEvent())
@@ -1852,6 +1955,8 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
         if (m_iCurrentTab == TAB_BROWSE)
         {
             m_SearchInput.Render();
+            m_MinimumLevelInput.Render();
+            m_MaximumLevelInput.Render();
             wchar_t searchText[33]{};
             m_SearchInput.GetText(searchText, static_cast<int>(std::size(searchText)));
             if (searchText[0] == L'\0' && !m_SearchInput.HaveFocus())
@@ -1865,7 +1970,13 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
             }
             m_BtnSearch.Render();
             m_BtnReset.Render();
-            m_CurrencyCombo.Render();
+            g_pRenderText->SetFont(g_hFontBold);
+            g_pRenderText->SetTextColor(218, 186, 104, 255);
+            g_pRenderText->SetBgColor(0, 0, 0, 0);
+            g_pRenderText->RenderText((float)(m_Pos.x + TOOLBAR_X + LEVEL_LABEL_X_OFFSET),
+                (float)(m_Pos.y + SEARCH_INPUT_Y_OFFSET + 2), L"Lv.", 18.0f, 0, RT3_SORT_LEFT);
+            g_pRenderText->RenderText((float)(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET + LEVEL_INPUT_WIDTH),
+                (float)(m_Pos.y + SEARCH_INPUT_Y_OFFSET + 2), L"-", 8.0f, 0, RT3_SORT_CENTER);
         }
         else
         {
@@ -2229,12 +2340,13 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
             + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0) + BROWSE_ICON_MARGIN;
         const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
         RenderItem3DScaled((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
-            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, 0.32f, false);
+            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, GetAuctionPreviewScale(item->Type), false);
     }
 
     if (m_iCurrentTab == TAB_BROWSE && m_bHasOpenResponse)
     {
-        size_t balanceCount = 0;
+        size_t jewelCount = 0;
+        const AuctionHouse::AuctionCurrencyDescriptor* fruitsCurrency = nullptr;
         for (const auto& currency : m_OpenResponse.Currencies)
         {
             if (!currency.Enabled)
@@ -2242,47 +2354,59 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
                 continue;
             }
 
-            balanceCount += currency.CurrencyMode == AuctionCurrencyMode::Zen ? 1
-                : currency.CurrencyMode == AuctionCurrencyMode::Fruits
-                    ? std::count_if(currency.FruitItemTypes.begin(), currency.FruitItemTypes.end(), [](uint16_t itemType) { return itemType != 0; })
-                    : currency.LooseItemType != 0 ? 1 : 0;
+            if (currency.CurrencyMode == AuctionCurrencyMode::Fruits)
+            {
+                fruitsCurrency = &currency;
+            }
+            else if (currency.LooseItemType != 0)
+            {
+                ++jewelCount;
+            }
         }
 
-        if (balanceCount > 0)
+        if (jewelCount > 0)
         {
-            const int segmentWidth = BALANCE_BAR_WIDTH / static_cast<int>(balanceCount);
-            int segment = 0;
+            const int unitWidth = WALLET_WIDTH / static_cast<int>(jewelCount);
+            int unit = 0;
             for (const auto& currency : m_OpenResponse.Currencies)
             {
-                if (!currency.Enabled)
+                if (!currency.Enabled || currency.CurrencyMode == AuctionCurrencyMode::Fruits)
                 {
                     continue;
                 }
 
-                if (currency.CurrencyMode == AuctionCurrencyMode::Fruits)
+                if (currency.LooseItemType != 0)
                 {
-                    for (size_t fruit = 0; fruit < currency.FruitItemTypes.size(); ++fruit)
-                    {
-                        if (currency.FruitItemTypes[fruit] == 0)
-                        {
-                            continue;
-                        }
+                    const int iconX = m_Pos.x + WALLET_X + unit * unitWidth + (unitWidth - WALLET_ICON_SIZE) / 2;
+                    RenderItem3DScaled((float)iconX,
+                        (float)(m_Pos.y + WALLET_Y + WALLET_TITLE_HEIGHT), (float)WALLET_ICON_SIZE, (float)WALLET_ICON_SIZE,
+                        currency.LooseItemType, 0, 0, 0, GetAuctionPreviewScale(currency.LooseItemType) * 0.65f, false);
+                    ++unit;
+                }
+            }
+        }
 
-                        RenderItem3DScaled((float)(m_Pos.x + BALANCE_BAR_X + segment * segmentWidth + 2),
-                            (float)(m_Pos.y + BALANCE_BAR_Y + 2), (float)BALANCE_ICON_SIZE, (float)BALANCE_ICON_SIZE,
-                            currency.FruitItemTypes[fruit], currency.FruitItemLevels[fruit], 0, 0, 0.24f, false);
-                        ++segment;
+        if (fruitsCurrency != nullptr)
+        {
+            const size_t fruitCount = std::count_if(fruitsCurrency->FruitItemTypes.begin(), fruitsCurrency->FruitItemTypes.end(),
+                [](uint16_t itemType) { return itemType != 0; });
+            if (fruitCount > 0)
+            {
+                const int segmentWidth = WALLET_WIDTH / static_cast<int>(fruitCount);
+                int segment = 0;
+                for (size_t fruit = 0; fruit < fruitsCurrency->FruitItemTypes.size(); ++fruit)
+                {
+                    if (fruitsCurrency->FruitItemTypes[fruit] == 0)
+                    {
+                        continue;
                     }
-                }
-                else if (currency.CurrencyMode == AuctionCurrencyMode::Zen)
-                {
-                    ++segment;
-                }
-                else if (currency.LooseItemType != 0)
-                {
-                    RenderItem3DScaled((float)(m_Pos.x + BALANCE_BAR_X + segment * segmentWidth + 2),
-                        (float)(m_Pos.y + BALANCE_BAR_Y + 2), (float)BALANCE_ICON_SIZE, (float)BALANCE_ICON_SIZE,
-                        currency.LooseItemType, 0, 0, 0, 0.24f, false);
+
+                    const int iconX = m_Pos.x + WALLET_X + segment * segmentWidth + (segmentWidth - WALLET_ICON_SIZE) / 2;
+                    RenderItem3DScaled((float)iconX,
+                        (float)(m_Pos.y + WALLET_FRUITS_Y + WALLET_TITLE_HEIGHT),
+                        (float)WALLET_ICON_SIZE, (float)WALLET_ICON_SIZE,
+                        fruitsCurrency->FruitItemTypes[fruit], fruitsCurrency->FruitItemLevels[fruit], 0, 0,
+                        GetAuctionPreviewScale(fruitsCurrency->FruitItemTypes[fruit]) * 1.20f, false);
                     ++segment;
                 }
             }
@@ -2457,9 +2581,12 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 
         // A fixed, inventory-like cell keeps even long weapons visually contained and gives the item tooltip
         // an unambiguous hover target instead of making the whole row feel like an inventory item.
+        const int cellX = m_Pos.x + BROWSE_TABLE_X + 1;
+        const DWORD cellFill = isHovered ? 0xB0303030u : 0xA0181818u;
+        const DWORD cellBorder = isHovered ? 0xD8C69D3Fu : 0xA8786530u;
         EnableAlphaTest();
-        RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X + 1, rowY + 1, BROWSE_ICON_CELL_SIZE, BROWSE_ICON_CELL_SIZE,
-            isHovered ? 0x60303030u : 0x50202020u);
+        RenderColorQuadARGB(cellX, rowY + 1, BROWSE_ICON_CELL_SIZE, BROWSE_ICON_CELL_SIZE, cellBorder);
+        RenderColorQuadARGB(cellX + 1, rowY + 2, BROWSE_ICON_CELL_SIZE - 2, BROWSE_ICON_CELL_SIZE - 2, cellFill);
         EndRenderColor();
 
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
@@ -2511,7 +2638,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
         EndRenderColor();
 
         g_pRenderText->SetTextColor(selected ? 255 : 205, selected ? 215 : 205, selected ? 100 : 205, 255);
-        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + 7), (float)(y + 8),
+        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + 7), (float)(y + 4),
             m_CategoryLabels[category], (float)(CATEGORY_RAIL_WIDTH - 12), 0, RT3_SORT_LEFT);
     }
 }
@@ -2523,34 +2650,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
         return;
     }
 
-    size_t visibleCurrencyCount = 0;
-    for (const auto& currency : m_OpenResponse.Currencies)
-    {
-        if (!currency.Enabled)
-        {
-            continue;
-        }
-
-        visibleCurrencyCount += currency.CurrencyMode == AuctionCurrencyMode::Zen ? 1
-            : currency.CurrencyMode == AuctionCurrencyMode::Fruits
-                ? std::count_if(currency.FruitItemTypes.begin(), currency.FruitItemTypes.end(), [](uint16_t itemType) { return itemType != 0; })
-                : currency.LooseItemType != 0 ? 1 : 0;
-    }
-    if (visibleCurrencyCount == 0)
-    {
-        return;
-    }
-
-    EnableAlphaTest();
-    RenderColorQuadARGB(m_Pos.x + BALANCE_BAR_X, m_Pos.y + BALANCE_BAR_Y,
-        BALANCE_BAR_WIDTH, BALANCE_BAR_HEIGHT, BROWSE_HEADER_COLOR);
-    EndRenderColor();
-
-    const int segmentWidth = BALANCE_BAR_WIDTH / static_cast<int>(visibleCurrencyCount);
-    int segment = 0;
-    g_pRenderText->SetFont(g_hFontBold);
-    g_pRenderText->SetTextColor(235, 210, 120, 255);
-    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    size_t jewelCount = 0;
+    const AuctionHouse::AuctionCurrencyDescriptor* fruitsCurrency = nullptr;
     for (const auto& currency : m_OpenResponse.Currencies)
     {
         if (!currency.Enabled)
@@ -2560,58 +2661,96 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
 
         if (currency.CurrencyMode == AuctionCurrencyMode::Fruits)
         {
-            const auto& fruits = currency.Spendable.Fruits();
-            const std::array<uint32_t, 5> amounts = { fruits.Strength, fruits.Agility, fruits.Vitality, fruits.Energy, fruits.Command };
-            for (size_t fruit = 0; fruit < currency.FruitItemTypes.size(); ++fruit)
-            {
-                if (currency.FruitItemTypes[fruit] == 0)
-                {
-                    continue;
-                }
-
-                const int fruitX = m_Pos.x + BALANCE_BAR_X + segment * segmentWidth;
-                if (segment > 0)
-                {
-                    EnableAlphaTest();
-                    RenderColorQuadARGB(fruitX, m_Pos.y + BALANCE_BAR_Y, 1, BALANCE_BAR_HEIGHT, BROWSE_GRID_COLOR);
-                    EndRenderColor();
-                }
-
-                const std::wstring amount = std::to_wstring(amounts[fruit]);
-                g_pRenderText->RenderText((float)(fruitX + BALANCE_ICON_SIZE + 5), (float)(m_Pos.y + BALANCE_BAR_Y + 5),
-                    amount.c_str(), (float)(segmentWidth - BALANCE_ICON_SIZE - 8), 0, RT3_SORT_LEFT);
-                ++segment;
-            }
-
-            continue;
+            fruitsCurrency = &currency;
         }
+        else if (currency.LooseItemType != 0)
+        {
+            ++jewelCount;
+        }
+    }
+    const size_t fruitCount = fruitsCurrency == nullptr ? 0 : std::count_if(
+        fruitsCurrency->FruitItemTypes.begin(), fruitsCurrency->FruitItemTypes.end(),
+        [](uint16_t itemType) { return itemType != 0; });
+    if (jewelCount == 0 && fruitCount == 0)
+    {
+        return;
+    }
 
-        if (currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType == 0)
+    const auto renderPanel = [this](int y, int height)
+    {
+        EnableAlphaTest();
+        RenderColorQuadARGB(m_Pos.x + WALLET_X, m_Pos.y + y, WALLET_WIDTH, height, 0xC0141414u);
+        RenderColorQuadARGB(m_Pos.x + WALLET_X, m_Pos.y + y, WALLET_WIDTH, 1, BROWSE_GRID_COLOR);
+        RenderColorQuadARGB(m_Pos.x + WALLET_X, m_Pos.y + y + height - 1, WALLET_WIDTH, 1, BROWSE_GRID_COLOR);
+        RenderColorQuadARGB(m_Pos.x + WALLET_X, m_Pos.y + y, 1, height, BROWSE_GRID_COLOR);
+        RenderColorQuadARGB(m_Pos.x + WALLET_X + WALLET_WIDTH - 1, m_Pos.y + y, 1, height, BROWSE_GRID_COLOR);
+        EndRenderColor();
+    };
+    renderPanel(WALLET_Y, WALLET_JEWELS_HEIGHT);
+    renderPanel(WALLET_FRUITS_Y, WALLET_FRUITS_HEIGHT);
+    renderPanel(WALLET_ZEN_Y, WALLET_ZEN_HEIGHT);
+
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetTextColor(235, 210, 120, 255);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+
+    g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_Y + 1), L"JEWELS",
+        (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_FRUITS_Y + 1), L"FRUITS",
+        (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_ZEN_Y + 1), L"ZEN",
+        (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
+
+    const int jewelUnitWidth = jewelCount > 0 ? WALLET_WIDTH / static_cast<int>(jewelCount) : WALLET_WIDTH;
+    int jewelUnit = 0;
+    for (const auto& currency : m_OpenResponse.Currencies)
+    {
+        if (!currency.Enabled || currency.CurrencyMode == AuctionCurrencyMode::Fruits
+            || (currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType == 0))
         {
             continue;
         }
 
-        const int x = m_Pos.x + BALANCE_BAR_X + segment * segmentWidth;
-        if (segment > 0)
+        if (currency.CurrencyMode == AuctionCurrencyMode::Zen || currency.LooseItemType == 0)
         {
-            EnableAlphaTest();
-            RenderColorQuadARGB(x, m_Pos.y + BALANCE_BAR_Y, 1, BALANCE_BAR_HEIGHT, BROWSE_GRID_COLOR);
-            EndRenderColor();
+            continue;
         }
 
-        if (currency.CurrencyMode == AuctionCurrencyMode::Zen)
-        {
-            // This is the same loaded money artwork the inventory uses; cropping its left edge gives the
-            // familiar coin badge without adding a duplicate asset.
-            RenderImage(CNewUIMyInventory::IMAGE_INVENTORY_MONEY,
-                static_cast<float>(x + 3), static_cast<float>(m_Pos.y + BALANCE_BAR_Y + 2),
-                static_cast<float>(BALANCE_ICON_SIZE), static_cast<float>(BALANCE_ICON_SIZE));
-        }
-
+        const int x = m_Pos.x + WALLET_X + jewelUnit * jewelUnitWidth;
         const std::wstring amount = std::to_wstring(currency.Spendable.Scalar());
-        g_pRenderText->RenderText((float)(x + BALANCE_ICON_SIZE + 5), (float)(m_Pos.y + BALANCE_BAR_Y + 5),
-            amount.c_str(), (float)(segmentWidth - BALANCE_ICON_SIZE - 8), 0, RT3_SORT_LEFT);
-        ++segment;
+        g_pRenderText->RenderText((float)x, (float)(m_Pos.y + WALLET_Y + WALLET_TITLE_HEIGHT + WALLET_ICON_SIZE + 1),
+            amount.c_str(), (float)jewelUnitWidth, 0, RT3_SORT_CENTER);
+        ++jewelUnit;
+    }
+    if (fruitsCurrency != nullptr && fruitCount > 0)
+    {
+        const auto& fruits = fruitsCurrency->Spendable.Fruits();
+        const std::array<uint32_t, 5> amounts = { fruits.Strength, fruits.Agility, fruits.Vitality, fruits.Energy, fruits.Command };
+        const int fruitUnitWidth = WALLET_WIDTH / static_cast<int>(fruitCount);
+        int fruitUnit = 0;
+        for (size_t fruit = 0; fruit < fruitsCurrency->FruitItemTypes.size(); ++fruit)
+        {
+            if (fruitsCurrency->FruitItemTypes[fruit] == 0)
+            {
+                continue;
+            }
+            const int x = m_Pos.x + WALLET_X + fruitUnit * fruitUnitWidth;
+            const std::wstring amount = std::to_wstring(amounts[fruit]);
+            g_pRenderText->RenderText((float)x, (float)(m_Pos.y + WALLET_FRUITS_Y + WALLET_TITLE_HEIGHT + WALLET_ICON_SIZE + 1),
+                amount.c_str(), (float)fruitUnitWidth, 0, RT3_SORT_CENTER);
+            ++fruitUnit;
+        }
+    }
+
+    for (const auto& currency : m_OpenResponse.Currencies)
+    {
+        if (currency.Enabled && currency.CurrencyMode == AuctionCurrencyMode::Zen)
+        {
+            const std::wstring amount = FormatWalletAmount(currency.Spendable.Scalar());
+            g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X + 4), (float)(m_Pos.y + WALLET_ZEN_Y + 15),
+                amount.c_str(), (float)(WALLET_WIDTH - 8), 0, RT3_SORT_CENTER);
+            break;
+        }
     }
 }
 

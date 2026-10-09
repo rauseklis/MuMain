@@ -267,6 +267,10 @@ namespace SEASON3B
         // Single-line UTF-16 edit field converted to the browse packet's fixed 32-byte UTF-8 name field on
         // submit. The adjacent Search button and Enter both call SubmitSearch().
         CUITextInputBox m_SearchInput;
+        // The browse packet has supported this range from the first implementation. Keep its controls beside
+        // the item search so the visible filter bar matches the actual server query rather than a mock-up.
+        CUITextInputBox m_MinimumLevelInput;
+        CUITextInputBox m_MaximumLevelInput;
         CNewUIButton m_BtnSearch;
         CNewUIButton m_BtnReset;
 
