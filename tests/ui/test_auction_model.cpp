@@ -225,15 +225,15 @@ TEST_CASE("auction fee preview rounds every nonzero fruit component independentl
 
 TEST_CASE("browse scrolling exposes every row beyond the visible viewport [ui][auction_model]")
 {
-    CHECK(MaximumBrowseScrollOffset(24, 8) == 16);
-    CHECK(MaximumBrowseScrollOffset(9, 8) == 1);
+    CHECK(MaximumBrowseScrollOffset(25, 9) == 16);
+    CHECK(MaximumBrowseScrollOffset(10, 9) == 1);
 }
 
 TEST_CASE("browse scrolling stays at the top when all rows fit [ui][auction_model]")
 {
-    CHECK(MaximumBrowseScrollOffset(8, 8) == 0);
-    CHECK(MaximumBrowseScrollOffset(3, 8) == 0);
-    CHECK(MaximumBrowseScrollOffset(0, 8) == 0);
+    CHECK(MaximumBrowseScrollOffset(9, 9) == 0);
+    CHECK(MaximumBrowseScrollOffset(3, 9) == 0);
+    CHECK(MaximumBrowseScrollOffset(0, 9) == 0);
 }
 
 TEST_CASE("clicking the price header toggles ascending and descending server sorts [ui][auction_model]")

@@ -44,7 +44,7 @@ namespace AuctionHouse
     // authoritative and re-checks status, ownership, version and bid count under the listing lock.
     [[nodiscard]] bool CanCancelOwnedListing(AuctionListingStatus status, uint16_t bidCount) noexcept;
 
-    // Returns the number of rows hidden above an eight-row-style Browse viewport when scrolled fully to the
+    // Returns the number of rows hidden above the Browse viewport when scrolled fully to the
     // bottom. The result is zero when every listing already fits, avoiding unsigned underflow for short pages.
     [[nodiscard]] size_t MaximumBrowseScrollOffset(size_t listingCount, size_t visibleRows) noexcept;
 

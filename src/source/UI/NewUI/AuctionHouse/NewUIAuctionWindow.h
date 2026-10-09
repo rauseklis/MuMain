@@ -223,10 +223,10 @@ namespace SEASON3B
 
         // At most this many rows are ever rendered or hit-tested at once (RenderBrowseTab's own constant, which
         // this array and the hover/icon logic must agree with).
-        static constexpr size_t MaxBrowseRows = 8;
+        static constexpr size_t MaxBrowseRows = 9;
 
-        // The server returns up to three viewports per page. This widget scrolls within that received page;
-        // Prev/Next still move between server pages when more than 24 matching listings exist.
+        // The server returns up to 25 rows per page. This widget scrolls within that received page;
+        // Prev/Next still move between server pages when more results exist.
         CNewUIScrollBar m_BrowseScrollBar;
         size_t m_BrowseScrollOffset;
 

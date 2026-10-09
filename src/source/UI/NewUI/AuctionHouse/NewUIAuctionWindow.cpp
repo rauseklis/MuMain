@@ -22,8 +22,10 @@ namespace
 {
     constexpr int TAB_REGION_X = 10;
     constexpr int TAB_REGION_Y = 40;
-    // Four equal tabs span the wider window while preserving the existing 10-pixel side margins.
-    constexpr int TAB_WIDTH = (SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * TAB_REGION_X) / 4;
+    // A compact, equal-width tab cluster leaves the title bar's close control unobstructed. The widest label
+    // ("My Listings") still has symmetrical horizontal padding, and every tab shares this exact width.
+    constexpr int TAB_WIDTH = 80;
+    constexpr int TAB_GAP = 14;
     constexpr int TAB_HEIGHT = 26;
     constexpr int TOP_BAND_HEIGHT = 64;
     constexpr int BOTTOM_BAND_HEIGHT = 45;
@@ -74,7 +76,9 @@ namespace
     constexpr int BROWSE_ICON_MARGIN = 1;
     constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_CELL_SIZE + 6;
     constexpr int BROWSE_SCROLLBAR_RIGHT_MARGIN = 14;
-    constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_ROW_HEIGHT * 8;
+    // Nine full rows fit above the native frame's footer; all remaining rows in the server page are reached
+    // with the existing scrollbar.
+    constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_ROW_HEIGHT * 9;
     constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 18;
     constexpr int BROWSE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
     constexpr int BROWSE_TABLE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - BROWSE_TABLE_X - BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
@@ -107,6 +111,7 @@ namespace
     constexpr int WALLET_FRUITS_Y = WALLET_Y + WALLET_JEWELS_HEIGHT + WALLET_PANEL_GAP;
     constexpr int WALLET_ZEN_Y = WALLET_FRUITS_Y + WALLET_FRUITS_HEIGHT + WALLET_PANEL_GAP;
     constexpr int WALLET_ICON_SIZE = 12;
+    constexpr int WALLET_FRUIT_ICON_SIZE = 10;
     constexpr int WALLET_TITLE_HEIGHT = 11;
     // A small per-row currency icon (same 3D-rendered jewel model the wallet panel already uses, just
     // smaller) replaces the "<amount> <currency name>" text suffix for jewel-priced rows, freeing enough of
@@ -133,11 +138,13 @@ namespace
         // a numbering quirk, not a visual one. It is a small jewel like the other six, not an oversized
         // wing mesh, so the Wing group's heavily-shrunk scale (tuned for meshes much bigger than a jewel)
         // rendered it as a barely visible speck everywhere this function is used at small preview sizes.
-        // Give it the same scale the other six jewels get from their own (correct) group 14.
+        // The model itself has a markedly smaller footprint than the group-14 jewel models, even after
+        // correcting the group classification. Give it the larger calibrated scale so it is equally readable
+        // inside the compact wallet and price cells.
         constexpr int ItemTypeJewelOfChaos = ITEM_GROUP_WING * MAX_ITEM_INDEX + 15;
         if (itemType == ItemTypeJewelOfChaos)
         {
-            return 0.90f;
+            return 1.50f;
         }
 
         switch (itemType / MAX_ITEM_INDEX)
@@ -1823,8 +1830,8 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
 {
     if (IsVisible())
     {
-        // Tabs are sized to their own label now (ComputeTabLayout), not the uniform grid m_TabBtn assumes,
-        // so hit-testing is done manually here, the same CheckMouseIn+IsRelease idiom the category rail uses.
+        // The compact tab row deliberately leaves clear space between the last tab and the close control, so
+        // hit-testing follows the same fixed geometry that Render() uses.
         int selected = RADIOGROUPEVENT_NONE;
         if (IsRelease(VK_LBUTTON))
         {
@@ -1994,11 +2001,9 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
     RenderFrame();
 
-    // m_TabBtn is no longer used for either rendering or hit-testing (see the manual click check further
-    // down): it only supports a uniform equal-width grid, but the reference tabs are sized to their own
-    // label and clustered at the left, leaving blank space to the right rather than stretched to fill the
-    // window. Chrome reuses the same bordered-box art Previous/Next use (newui_btn_empty_very_small, native
-    // 54x23) stretched per-tab, tinted gold when active.
+    // Chrome reuses the bordered-box art Previous/Next use (newui_btn_empty_very_small, native 54x23).
+    // Unlike the previous label-sized pass, every tab has one fixed width and its caption is measured before
+    // rendering so it is centered on both axes.
     {
         constexpr float PAGE_BTN_TEX_NATIVE_WIDTH = 54.f;
         constexpr float PAGE_BTN_TEX_NATIVE_HEIGHT = 23.f;
@@ -2018,7 +2023,8 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
                 0.f, 0.f, PAGE_BTN_TEX_NATIVE_WIDTH, PAGE_BTN_TEX_NATIVE_HEIGHT,
                 active ? RGBA(255, 210, 110, 255) : RGBA(150, 150, 150, 255));
             g_pRenderText->SetTextColor(active ? 255 : 205, active ? 215 : 205, active ? 100 : 205, 255);
-            g_pRenderText->RenderText((float)tabX[tab], (float)(tabY + 6), tabLabelPtrs[tab],
+            const SIZE labelSize = g_pRenderText->MeasureText(tabLabelPtrs[tab], static_cast<int>(wcslen(tabLabelPtrs[tab])));
+            g_pRenderText->RenderText((float)tabX[tab], (float)(tabY + (TAB_HEIGHT - labelSize.cy) / 2), tabLabelPtrs[tab],
                 (float)tabWidths[tab], 0, RT3_SORT_CENTER);
         }
     }
@@ -2502,8 +2508,11 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
                 if (currency.LooseItemType != 0)
                 {
                     const int iconX = m_Pos.x + WALLET_X + unit * unitWidth + (unitWidth - WALLET_ICON_SIZE) / 2;
+                    // Harmony's model origin sits one logical pixel higher than the other jewel models. Keep
+                    // the wallet's icon baselines visually aligned without changing the item itself.
+                    const int iconYOffset = currency.CurrencyMode == AuctionCurrencyMode::Harmony ? 1 : 0;
                     RenderItem3DScaled((float)iconX,
-                        (float)(m_Pos.y + WALLET_Y + WALLET_TITLE_HEIGHT), (float)WALLET_ICON_SIZE, (float)WALLET_ICON_SIZE,
+                        (float)(m_Pos.y + WALLET_Y + WALLET_TITLE_HEIGHT + iconYOffset), (float)WALLET_ICON_SIZE, (float)WALLET_ICON_SIZE,
                         currency.LooseItemType, 0, 0, 0, GetAuctionPreviewScale(currency.LooseItemType) * 0.65f, false);
                     ++unit;
                 }
@@ -2528,9 +2537,9 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
                     const int iconX = m_Pos.x + WALLET_X + segment * segmentWidth + (segmentWidth - WALLET_ICON_SIZE) / 2;
                     RenderItem3DScaled((float)iconX,
                         (float)(m_Pos.y + WALLET_FRUITS_Y + WALLET_TITLE_HEIGHT),
-                        (float)WALLET_ICON_SIZE, (float)WALLET_ICON_SIZE,
+                        (float)WALLET_FRUIT_ICON_SIZE, (float)WALLET_FRUIT_ICON_SIZE,
                         fruitsCurrency->FruitItemTypes[fruit], fruitsCurrency->FruitItemLevels[fruit], 0, 0,
-                        GetAuctionPreviewScale(fruitsCurrency->FruitItemTypes[fruit]) * 1.20f, false);
+                        GetAuctionPreviewScale(fruitsCurrency->FruitItemTypes[fruit]) * 0.90f, false);
                     ++segment;
                 }
             }
@@ -3016,17 +3025,10 @@ int SEASON3B::CNewUIAuctionWindow::CurrentWindowWidth() const
 
 void SEASON3B::CNewUIAuctionWindow::ComputeTabLayout(int (&outX)[TAB_COUNT], int (&outWidth)[TAB_COUNT]) const
 {
-    constexpr int TAB_LABEL_PADDING = 40;
-    constexpr int TAB_GAP = 14;
-    const wchar_t* const labels[TAB_COUNT] = {
-        I18N::Game::Browse, I18N::Game::Sell, I18N::Game::MyListings, I18N::Game::Mailbox,
-    };
-    g_pRenderText->SetFont(g_hFontBold);
     int x = m_Pos.x + TAB_REGION_X;
     for (int tab = 0; tab < TAB_COUNT; ++tab)
     {
-        const SIZE labelSize = g_pRenderText->MeasureText(labels[tab], static_cast<int>(wcslen(labels[tab])));
-        outWidth[tab] = labelSize.cx + TAB_LABEL_PADDING;
+        outWidth[tab] = TAB_WIDTH;
         outX[tab] = x;
         x += outWidth[tab] + TAB_GAP;
     }
