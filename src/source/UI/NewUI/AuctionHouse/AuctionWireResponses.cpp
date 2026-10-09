@@ -287,12 +287,17 @@ namespace AuctionHouse
         {
             descriptor.PackUnits = {ReadU16(entry, 39), ReadU16(entry, 41), ReadU16(entry, 43)};
         }
-        if (entry.size() >= WireLength)
+        if (entry.size() >= InventoryMetadataWireLength)
         {
             descriptor.LooseItemType = ReadU16(entry, 45);
             descriptor.PackItemType = ReadU16(entry, 47);
             descriptor.LooseItemCount = ReadU16(entry, 49);
             descriptor.PackCounts = {ReadU16(entry, 51), ReadU16(entry, 53), ReadU16(entry, 55)};
+        }
+        if (entry.size() >= WireLength)
+        {
+            descriptor.FruitItemTypes = {ReadU16(entry, 57), ReadU16(entry, 59), ReadU16(entry, 61), ReadU16(entry, 63), ReadU16(entry, 65)};
+            descriptor.FruitItemLevels = {entry[67], entry[68], entry[69], entry[70], entry[71]};
         }
 
         return descriptor;
@@ -318,8 +323,10 @@ namespace AuctionHouse
         response.PendingMailboxCount = ReadU16(packet, 25);
 
         const auto currencyCount = packet[27];
-        const auto descriptorWireLength = response.ConfigurationVersion >= 3
+        const auto descriptorWireLength = response.ConfigurationVersion >= 4
             ? AuctionCurrencyDescriptor::WireLength
+            : response.ConfigurationVersion >= 3
+                ? AuctionCurrencyDescriptor::InventoryMetadataWireLength
             : response.ConfigurationVersion >= 2
                 ? AuctionCurrencyDescriptor::PackMetadataWireLength
                 : AuctionCurrencyDescriptor::LegacyWireLength;

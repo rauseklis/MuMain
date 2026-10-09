@@ -406,6 +406,16 @@ namespace
         PutU16(buffer, offset + 51, 3U); // 10-pack count
         PutU16(buffer, offset + 53, 4U); // 20-pack count
         PutU16(buffer, offset + 55, 5U); // 30-pack count
+        PutU16(buffer, offset + 57, 6671U); // strength Fruit item type (13 * 512 + 15)
+        PutU16(buffer, offset + 59, 6671U); // agility Fruit item type
+        PutU16(buffer, offset + 61, 6671U); // vitality Fruit item type
+        PutU16(buffer, offset + 63, 6671U); // energy Fruit item type
+        PutU16(buffer, offset + 65, 6671U); // command Fruit item type
+        PutU8(buffer, offset + 67, 3U); // strength Fruit level
+        PutU8(buffer, offset + 68, 2U); // agility Fruit level
+        PutU8(buffer, offset + 69, 1U); // vitality Fruit level
+        PutU8(buffer, offset + 70, 0U); // energy Fruit level
+        PutU8(buffer, offset + 71, 4U); // command Fruit level
     }
 }
 
@@ -430,6 +440,8 @@ TEST_CASE("a currency descriptor reads its rules and spendable units [ui][auctio
     CHECK(descriptor->PackItemType == 6174U);
     CHECK(descriptor->LooseItemCount == 2U);
     CHECK(descriptor->PackCounts == std::array<uint16_t, 3>{3U, 4U, 5U});
+    CHECK(descriptor->FruitItemTypes == std::array<uint16_t, 5>{6671U, 6671U, 6671U, 6671U, 6671U});
+    CHECK(descriptor->FruitItemLevels == std::array<uint8_t, 5>{3U, 2U, 1U, 0U, 4U});
 }
 
 TEST_CASE("a truncated currency descriptor fails to parse [ui][auction_wire]")
@@ -445,7 +457,7 @@ TEST_CASE("an open response reads its fees, duration rules and every currency de
     PutU32(packet, 5, 7U); // request id
     PutU8(packet, 9, static_cast<uint8_t>(AuctionResult::Success));
     PutU32(packet, 10, 1700001000U); // server time
-    PutU32(packet, 14, 3U); // configuration version with packed-jewel inventory metadata
+    PutU32(packet, 14, 4U); // configuration version with fruit item identities
     PutU16(packet, 18, 100U); // listing fee basis points
     PutU16(packet, 20, 500U); // success fee basis points
     PutU8(packet, 22, 0x0F); // duration mask
@@ -461,7 +473,7 @@ TEST_CASE("an open response reads its fees, duration rules and every currency de
     REQUIRE(response.has_value());
     CHECK(response->RequestId == 7U);
     CHECK(response->ServerTime == 1700001000U);
-    CHECK(response->ConfigurationVersion == 3U);
+    CHECK(response->ConfigurationVersion == 4U);
     CHECK(response->ListingFeeBasisPoints == 100U);
     CHECK(response->SuccessFeeBasisPoints == 500U);
     CHECK(response->DurationMask == 0x0F);

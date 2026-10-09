@@ -2234,37 +2234,57 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
 
     if (m_iCurrentTab == TAB_BROWSE && m_bHasOpenResponse)
     {
-        size_t visibleCurrencyCount = 0;
+        size_t balanceCount = 0;
         for (const auto& currency : m_OpenResponse.Currencies)
         {
-            if (currency.Enabled && currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType != 0)
+            if (!currency.Enabled)
             {
-                ++visibleCurrencyCount;
+                continue;
             }
+
+            balanceCount += currency.CurrencyMode == AuctionCurrencyMode::Zen ? 1
+                : currency.CurrencyMode == AuctionCurrencyMode::Fruits
+                    ? std::count_if(currency.FruitItemTypes.begin(), currency.FruitItemTypes.end(), [](uint16_t itemType) { return itemType != 0; })
+                    : currency.LooseItemType != 0 ? 1 : 0;
         }
 
-        const size_t allCurrencyCount = std::count_if(m_OpenResponse.Currencies.begin(), m_OpenResponse.Currencies.end(),
-            [](const auto& currency)
-            {
-                return currency.Enabled && (currency.CurrencyMode == AuctionCurrencyMode::Zen || currency.LooseItemType != 0);
-            });
-        if (visibleCurrencyCount > 0 && allCurrencyCount > 0)
+        if (balanceCount > 0)
         {
-            const int segmentWidth = BALANCE_BAR_WIDTH / static_cast<int>(allCurrencyCount);
+            const int segmentWidth = BALANCE_BAR_WIDTH / static_cast<int>(balanceCount);
             int segment = 0;
             for (const auto& currency : m_OpenResponse.Currencies)
             {
-                if (!currency.Enabled || (currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType == 0))
+                if (!currency.Enabled)
                 {
                     continue;
                 }
-                if (currency.CurrencyMode != AuctionCurrencyMode::Zen)
+
+                if (currency.CurrencyMode == AuctionCurrencyMode::Fruits)
                 {
-                    RenderItem3D((float)(m_Pos.x + BALANCE_BAR_X + segment * segmentWidth + 3),
-                        (float)(m_Pos.y + BALANCE_BAR_Y + 2), (float)BALANCE_ICON_SIZE, (float)BALANCE_ICON_SIZE,
-                        currency.LooseItemType, 0, 0, 0, false);
+                    for (size_t fruit = 0; fruit < currency.FruitItemTypes.size(); ++fruit)
+                    {
+                        if (currency.FruitItemTypes[fruit] == 0)
+                        {
+                            continue;
+                        }
+
+                        RenderItem3DScaled((float)(m_Pos.x + BALANCE_BAR_X + segment * segmentWidth + 2),
+                            (float)(m_Pos.y + BALANCE_BAR_Y + 2), (float)BALANCE_ICON_SIZE, (float)BALANCE_ICON_SIZE,
+                            currency.FruitItemTypes[fruit], currency.FruitItemLevels[fruit], 0, 0, 0.24f, false);
+                        ++segment;
+                    }
                 }
-                ++segment;
+                else if (currency.CurrencyMode == AuctionCurrencyMode::Zen)
+                {
+                    ++segment;
+                }
+                else if (currency.LooseItemType != 0)
+                {
+                    RenderItem3DScaled((float)(m_Pos.x + BALANCE_BAR_X + segment * segmentWidth + 2),
+                        (float)(m_Pos.y + BALANCE_BAR_Y + 2), (float)BALANCE_ICON_SIZE, (float)BALANCE_ICON_SIZE,
+                        currency.LooseItemType, 0, 0, 0, 0.24f, false);
+                    ++segment;
+                }
             }
         }
     }
@@ -2506,10 +2526,15 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
     size_t visibleCurrencyCount = 0;
     for (const auto& currency : m_OpenResponse.Currencies)
     {
-        if (currency.Enabled && (currency.CurrencyMode == AuctionCurrencyMode::Zen || currency.LooseItemType != 0))
+        if (!currency.Enabled)
         {
-            ++visibleCurrencyCount;
+            continue;
         }
+
+        visibleCurrencyCount += currency.CurrencyMode == AuctionCurrencyMode::Zen ? 1
+            : currency.CurrencyMode == AuctionCurrencyMode::Fruits
+                ? std::count_if(currency.FruitItemTypes.begin(), currency.FruitItemTypes.end(), [](uint16_t itemType) { return itemType != 0; })
+                : currency.LooseItemType != 0 ? 1 : 0;
     }
     if (visibleCurrencyCount == 0)
     {
@@ -2528,7 +2553,40 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     for (const auto& currency : m_OpenResponse.Currencies)
     {
-        if (!currency.Enabled || (currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType == 0))
+        if (!currency.Enabled)
+        {
+            continue;
+        }
+
+        if (currency.CurrencyMode == AuctionCurrencyMode::Fruits)
+        {
+            const auto& fruits = currency.Spendable.Fruits();
+            const std::array<uint32_t, 5> amounts = { fruits.Strength, fruits.Agility, fruits.Vitality, fruits.Energy, fruits.Command };
+            for (size_t fruit = 0; fruit < currency.FruitItemTypes.size(); ++fruit)
+            {
+                if (currency.FruitItemTypes[fruit] == 0)
+                {
+                    continue;
+                }
+
+                const int fruitX = m_Pos.x + BALANCE_BAR_X + segment * segmentWidth;
+                if (segment > 0)
+                {
+                    EnableAlphaTest();
+                    RenderColorQuadARGB(fruitX, m_Pos.y + BALANCE_BAR_Y, 1, BALANCE_BAR_HEIGHT, BROWSE_GRID_COLOR);
+                    EndRenderColor();
+                }
+
+                const std::wstring amount = std::to_wstring(amounts[fruit]);
+                g_pRenderText->RenderText((float)(fruitX + BALANCE_ICON_SIZE + 5), (float)(m_Pos.y + BALANCE_BAR_Y + 5),
+                    amount.c_str(), (float)(segmentWidth - BALANCE_ICON_SIZE - 8), 0, RT3_SORT_LEFT);
+                ++segment;
+            }
+
+            continue;
+        }
+
+        if (currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType == 0)
         {
             continue;
         }

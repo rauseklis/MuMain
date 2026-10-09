@@ -200,16 +200,18 @@ namespace AuctionHouse
     };
 
     // One currency's rules and the player's spendable units in it, mirroring the server's
-    // AuctionCurrencyDescriptorRef. Version 3 is 57 bytes (version 2 was 45, version 1 was 39). Byte layout: CurrencyMode(u8)@0,
+    // AuctionCurrencyDescriptorRef. Version 4 is 72 bytes (version 3 was 57, version 2 was 45, version 1 was 39). Byte layout: CurrencyMode(u8)@0,
     // Enabled(bool)@1, MinimumStartingPrice(u32)@2, MaximumStartingPrice(u32)@6, MinimumIncrement(u32)@10,
     // IncrementPercent(u8)@14, Spendable{Scalar,Str,Agi,Vit,Ene,Cmd}(u32x6)@15, then the server-authoritative
     // small/medium/large packed-jewel denominations (u16x3)@39, loose/pack item types (u16x2)@45,
-    // and loose/small/medium/large inventory counts (u16x4)@49. Older descriptors default missing metadata to zero.
+    // and loose/small/medium/large inventory counts (u16x4)@49. Version 4 adds the server-authored
+    // Type/Level identity of each stat Fruit (u16x5 then u8x5)@57. Older descriptors default missing metadata to zero.
     struct AuctionCurrencyDescriptor
     {
         static constexpr size_t LegacyWireLength = 39;
         static constexpr size_t PackMetadataWireLength = 45;
-        static constexpr size_t WireLength = 57;
+        static constexpr size_t InventoryMetadataWireLength = 57;
+        static constexpr size_t WireLength = 72;
 
         AuctionCurrencyMode CurrencyMode = AuctionCurrencyMode::Zen;
         bool Enabled = false;
@@ -223,6 +225,8 @@ namespace AuctionHouse
         uint16_t PackItemType = 0;
         uint16_t LooseItemCount = 0;
         std::array<uint16_t, 3> PackCounts{};
+        std::array<uint16_t, 5> FruitItemTypes{};
+        std::array<uint8_t, 5> FruitItemLevels{};
 
         [[nodiscard]] static std::optional<AuctionCurrencyDescriptor> Parse(std::span<const uint8_t> entry);
     };
