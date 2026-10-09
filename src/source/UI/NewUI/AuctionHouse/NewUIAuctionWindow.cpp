@@ -13,7 +13,6 @@
 #include "Network/Server/WSclient.h"
 #include "Network/Server/SocketSystem.h"
 #include "Core/Text/Utf8.h"
-#include "Render/Textures/ZzzOpenglUtil.h"
 
 #include <algorithm>
 
@@ -33,23 +32,12 @@ namespace
     constexpr int FRAME_TEXTURE_HEIGHT = 429;
     constexpr int FRAME_CAP_WIDTH = 64;
     constexpr int FRAME_CENTER_WIDTH = FRAME_TEXTURE_WIDTH - 2 * FRAME_CAP_WIDTH;
-    // Native-size ornate frame pieces (AI-generated, isolated art — see docs/AUDIT.md). Corners are drawn
-    // 1:1, never stretched; mirrored via a UV flip for the other three corners. The edge strip tiles at its
-    // native width rather than stretching, so its diagonal weave pattern never warps.
-    // Drawn smaller than the art's native 96px so the flourish's taper clears the tab row and search bar
-    // instead of being clipped by them (shrinking the draw size, not stretching - still 1:1 texel sampling).
-    // 72 still reached into TAB_REGION_Y (40): the tab row sits entirely inside a 0-72 span. Shrunk further,
-    // below 40, so the corner's own art never shares vertical space with the tabs at all.
-    constexpr int NEW_FRAME_CORNER_SIZE = 36;
-    constexpr int NEW_FRAME_EDGE_HEIGHT = 32;
-    constexpr int NEW_FRAME_EDGE_TILE_WIDTH = 256;
     constexpr int CLOSE_BTN_WIDTH = 36;
     constexpr int CLOSE_BTN_HEIGHT = 29;
     constexpr int CLOSE_BTN_MARGIN = 8;
     constexpr int TOOLBAR_X = 11;
     constexpr int TOOLBAR_Y = 69;
-    // Trimmed from 105 to make room for the wider Search/Reset buttons below without crowding the right
-    // corner's reserved NEW_FRAME_CORNER_SIZE zone - still enough for the closed selector's single label.
+    // Trimmed from 105 to make room for the wider Search/Reset buttons below.
     constexpr int CURRENCY_COMBO_WIDTH = 90;
     constexpr int CURRENCY_COMBO_ITEM_HEIGHT = 22;
     constexpr int CATEGORY_COMBO_X_OFFSET = CURRENCY_COMBO_WIDTH + 8;
@@ -70,8 +58,7 @@ namespace
     constexpr int LEVEL_MAXIMUM_X_OFFSET = LEVEL_MINIMUM_X_OFFSET + 38;
     constexpr int LEVEL_INPUT_WIDTH = 30;
     // Sits right after the Level range inputs on the same toolbar row - BROWSE_TABLE_X (132) used to overlap
-    // the search box and Search button, since that constant is a table-content X, not a toolbar-row X. The
-    // +8 gap (not more) keeps its right edge clear of the right corner's reserved NEW_FRAME_CORNER_SIZE zone.
+    // the search box and Search button, since that constant is a table-content X, not a toolbar-row X.
     constexpr int CURRENCY_COMBO_X_OFFSET = LEVEL_MAXIMUM_X_OFFSET + LEVEL_INPUT_WIDTH + 8;
     constexpr size_t SEARCH_PACKET_CAPACITY = 32;
     constexpr BYTE ALL_CURRENCIES = 0xFF;
@@ -217,10 +204,8 @@ namespace
     constexpr int PAGE_BTN_WIDTH = 53;
     constexpr int PAGE_BTN_HEIGHT = 23;
     constexpr int PAGE_BTN_MARGIN_X = 20;
-    // BOTTOM_BAND_HEIGHT (45) is the OLD frame's bottom band, from before the corner/edge art replaced it -
-    // anchoring to it here left the footer buttons cramped right against the new, differently-sized bottom
-    // trim. Anchor to the new frame geometry instead, with real clearance above the edge strip.
-    constexpr int PAGE_BTN_Y_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_HEIGHT - NEW_FRAME_EDGE_HEIGHT - PAGE_BTN_HEIGHT - 10;
+    constexpr int PAGE_BTN_Y_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT
+        + (BOTTOM_BAND_HEIGHT - PAGE_BTN_HEIGHT) / 2;
     // Previous/Next are a compact pair left-aligned to the table's own left edge (not spread to the window's
     // own edges, which is where Bid/Buyout/Cancel/Collect still anchor - a different, detail-panel context),
     // leaving the rest of the bottom bar as a reserved blank panel, matching the reference layout exactly.
@@ -3057,8 +3042,6 @@ void SEASON3B::CNewUIAuctionWindow::LoadImages()
     LoadBitmap(L"Interface\\newui_exit_00.tga", IMAGE_AUCTION_CLOSE_BTN, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_guild_tab04.tga", IMAGE_AUCTION_TAB_BTN, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_btn_empty_very_small.tga", IMAGE_AUCTION_PAGE_BTN, GL_LINEAR);
-    LoadBitmap(L"Interface\\newui_auction_frame_corner.tga", IMAGE_AUCTION_FRAME_CORNER, GL_LINEAR);
-    LoadBitmap(L"Interface\\newui_auction_frame_edge.tga", IMAGE_AUCTION_FRAME_EDGE, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIAuctionWindow::UnloadImages()
@@ -3071,8 +3054,6 @@ void SEASON3B::CNewUIAuctionWindow::UnloadImages()
     DeleteBitmap(IMAGE_AUCTION_CLOSE_BTN);
     DeleteBitmap(IMAGE_AUCTION_TAB_BTN);
     DeleteBitmap(IMAGE_AUCTION_PAGE_BTN);
-    DeleteBitmap(IMAGE_AUCTION_FRAME_CORNER);
-    DeleteBitmap(IMAGE_AUCTION_FRAME_EDGE);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderFrame()
@@ -3081,54 +3062,37 @@ void SEASON3B::CNewUIAuctionWindow::RenderFrame()
     const float y = static_cast<float>(m_Pos.y);
     const int windowWidth = CurrentWindowWidth();
 
+    const float centerDestinationWidth = static_cast<float>(windowWidth - 2 * FRAME_CAP_WIDTH);
+
     // These legacy frame sprites are only 190 pixels wide. RenderImage samples destination dimensions as
     // source dimensions too, so asking it for 600 pixels reads beyond the sprite and produces a black void.
+    // Stretch the subdued background, but preserve both ornate frame caps at 1:1 and stretch only their
+    // plain center strip so the MU corners retain their original proportions.
     RenderImageStretch(IMAGE_AUCTION_BACK, x, y, static_cast<float>(windowWidth), static_cast<float>(WINDOW_HEIGHT),
         0.f, 0.f, static_cast<float>(FRAME_TEXTURE_WIDTH), static_cast<float>(FRAME_TEXTURE_HEIGHT));
 
-    // Left/right bands reuse the same edge strip as top/bottom, rotated 90 degrees and tiled vertically, so
-    // all four sides share one consistent border weight instead of the old, visibly thinner placeholder.
-    const float sideRunStartY = y + NEW_FRAME_CORNER_SIZE;
-    const float sideRunEndY = y + WINDOW_HEIGHT - NEW_FRAME_CORNER_SIZE;
-    const float leftEdgeCenterX = x + NEW_FRAME_EDGE_HEIGHT * 0.5f;
-    const float rightEdgeCenterX = x + windowWidth - NEW_FRAME_EDGE_HEIGHT * 0.5f;
-    for (float drawY = sideRunStartY; drawY < sideRunEndY; drawY += NEW_FRAME_EDGE_TILE_WIDTH)
-    {
-        const float tileLength = std::min(static_cast<float>(NEW_FRAME_EDGE_TILE_WIDTH), sideRunEndY - drawY);
-        const float centerY = drawY + tileLength * 0.5f;
-        const float uWidth = tileLength / static_cast<float>(NEW_FRAME_EDGE_TILE_WIDTH);
-        RenderBitmapRotate(IMAGE_AUCTION_FRAME_EDGE, leftEdgeCenterX, centerY, tileLength,
-            static_cast<float>(NEW_FRAME_EDGE_HEIGHT), 90.f, 0.f, 0.f, uWidth, 1.f);
-        RenderBitmapRotate(IMAGE_AUCTION_FRAME_EDGE, rightEdgeCenterX, centerY, tileLength,
-            static_cast<float>(NEW_FRAME_EDGE_HEIGHT), 270.f, 0.f, 0.f, uWidth, 1.f);
-    }
+    RenderImageStretch(IMAGE_AUCTION_TOP, x, y, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
+        0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
+    RenderImageStretch(IMAGE_AUCTION_TOP, x + FRAME_CAP_WIDTH, y, centerDestinationWidth, static_cast<float>(TOP_BAND_HEIGHT),
+        static_cast<float>(FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CENTER_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
+    RenderImageStretch(IMAGE_AUCTION_TOP, x + windowWidth - FRAME_CAP_WIDTH, y,
+        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
+        static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f,
+        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
 
-    // Top/bottom edges: tile the native 256x32 strip rather than stretching it, so its diagonal weave
-    // pattern never warps. The final tile in each run is clipped by sampling only its needed sub-width.
-    const float edgeRunStartX = x + NEW_FRAME_CORNER_SIZE;
-    const float edgeRunEndX = x + windowWidth - NEW_FRAME_CORNER_SIZE;
-    const float bottomEdgeY = y + WINDOW_HEIGHT - NEW_FRAME_EDGE_HEIGHT;
-    for (float drawX = edgeRunStartX; drawX < edgeRunEndX; drawX += NEW_FRAME_EDGE_TILE_WIDTH)
-    {
-        const float tileWidth = std::min(static_cast<float>(NEW_FRAME_EDGE_TILE_WIDTH), edgeRunEndX - drawX);
-        RenderImageStretch(IMAGE_AUCTION_FRAME_EDGE, drawX, y, tileWidth, static_cast<float>(NEW_FRAME_EDGE_HEIGHT),
-            0.f, 0.f, tileWidth, static_cast<float>(NEW_FRAME_EDGE_HEIGHT));
-        RenderImageStretch(IMAGE_AUCTION_FRAME_EDGE, drawX, bottomEdgeY, tileWidth, static_cast<float>(NEW_FRAME_EDGE_HEIGHT),
-            0.f, 0.f, tileWidth, static_cast<float>(NEW_FRAME_EDGE_HEIGHT));
-    }
+    const float sideHeight = static_cast<float>(WINDOW_HEIGHT - TOP_BAND_HEIGHT - BOTTOM_BAND_HEIGHT);
+    RenderImageStretch(IMAGE_AUCTION_LEFT, x, y + TOP_BAND_HEIGHT, static_cast<float>(SIDE_BAND_WIDTH), sideHeight,
+        0.f, 0.f, static_cast<float>(SIDE_BAND_WIDTH), sideHeight);
+    RenderImageStretch(IMAGE_AUCTION_RIGHT, x + windowWidth - SIDE_BAND_WIDTH, y + TOP_BAND_HEIGHT,
+        static_cast<float>(SIDE_BAND_WIDTH), sideHeight, 0.f, 0.f, static_cast<float>(SIDE_BAND_WIDTH), sideHeight);
 
-    // Four corners, native size, never stretched. The source art is drawn for the top-left orientation; the
-    // other three come from an exact UV flip (texel-center swap), not from stretching or re-exported mirrored
-    // art, per the "isolated native-size assets, no atlas" rule.
-    const float kCorner = static_cast<float>(NEW_FRAME_CORNER_SIZE);
-    const float cornerRightX = x + windowWidth - NEW_FRAME_CORNER_SIZE;
-    const float cornerBottomY = y + WINDOW_HEIGHT - NEW_FRAME_CORNER_SIZE;
-
-    RenderImageStretch(IMAGE_AUCTION_FRAME_CORNER, x, y, kCorner, kCorner, 0.f, 0.f, kCorner, kCorner);
-    RenderImageStretch(IMAGE_AUCTION_FRAME_CORNER, cornerRightX, y, kCorner, kCorner,
-        kCorner - 1.f, 0.f, 2.f - kCorner, kCorner);
-    RenderImageStretch(IMAGE_AUCTION_FRAME_CORNER, x, cornerBottomY, kCorner, kCorner,
-        0.f, kCorner - 1.f, kCorner, 2.f - kCorner);
-    RenderImageStretch(IMAGE_AUCTION_FRAME_CORNER, cornerRightX, cornerBottomY, kCorner, kCorner,
-        kCorner - 1.f, kCorner - 1.f, 2.f - kCorner, 2.f - kCorner);
+    const float bottomY = y + WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT;
+    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x, bottomY, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT),
+        0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
+    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + FRAME_CAP_WIDTH, bottomY, centerDestinationWidth, static_cast<float>(BOTTOM_BAND_HEIGHT),
+        static_cast<float>(FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CENTER_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
+    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + windowWidth - FRAME_CAP_WIDTH, bottomY,
+        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT),
+        static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f,
+        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
 }
