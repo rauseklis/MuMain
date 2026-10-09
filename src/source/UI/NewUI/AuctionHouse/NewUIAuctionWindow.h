@@ -13,6 +13,7 @@
 #include "UI/Legacy/UIControls.h"
 #include "Guild/NewUIGuildInfoWindow.h"
 #include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
+#include "Core/Globals/_TextureIndex.h"
 
 namespace SEASON3B
 {
@@ -40,6 +41,11 @@ namespace SEASON3B
             IMAGE_AUCTION_CLOSE_BTN = CNewUIMyInventory::IMAGE_INVENTORY_EXIT_BTN, // newui_exit_00.tga
             IMAGE_AUCTION_TAB_BTN = CNewUIGuildInfoWindow::IMAGE_GUILDINFO_TAB_BUTTON, // newui_guild_tab04.tga
             IMAGE_AUCTION_PAGE_BTN = CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_EMPTY_VERY_SMALL, // newui_btn_empty_very_small.tga
+
+            // Dedicated, non-aliased slots: unlike the legacy pieces above, these two textures belong only
+            // to this window, so they need their own reserved bitmap index range instead of borrowing one.
+            IMAGE_AUCTION_FRAME_CORNER = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN,     // newui_auction_frame_corner.tga
+            IMAGE_AUCTION_FRAME_EDGE = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 1,   // newui_auction_frame_edge.tga
         };
 
         // The original 400-pixel design could not fit the owner-approved search/filter bar and six-column
@@ -114,6 +120,10 @@ namespace SEASON3B
         void RenderBrowseHeader();
         void RenderBrowseTab();
         void RenderCategoryRail();
+        // Tabs are sized to their own label (not stretched to equal quarters of the window, matching the
+        // reference's left-clustered, content-width tab row). Computed once per frame and shared by the
+        // click-hit-test and the renderer so they can never drift apart.
+        void ComputeTabLayout(int (&outX)[TAB_COUNT], int (&outWidth)[TAB_COUNT]) const;
         void RenderCurrencyBalances();
         void RenderMailboxHeader();
         void RenderMailboxTab();

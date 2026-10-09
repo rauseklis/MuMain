@@ -13,6 +13,7 @@
 #include "Network/Server/WSclient.h"
 #include "Network/Server/SocketSystem.h"
 #include "Core/Text/Utf8.h"
+#include "Render/Textures/ZzzOpenglUtil.h"
 
 #include <algorithm>
 
@@ -32,23 +33,35 @@ namespace
     constexpr int FRAME_TEXTURE_HEIGHT = 429;
     constexpr int FRAME_CAP_WIDTH = 64;
     constexpr int FRAME_CENTER_WIDTH = FRAME_TEXTURE_WIDTH - 2 * FRAME_CAP_WIDTH;
+    // Native-size ornate frame pieces (AI-generated, isolated art — see docs/AUDIT.md). Corners are drawn
+    // 1:1, never stretched; mirrored via a UV flip for the other three corners. The edge strip tiles at its
+    // native width rather than stretching, so its diagonal weave pattern never warps.
+    // Drawn smaller than the art's native 96px so the flourish's taper clears the tab row and search bar
+    // instead of being clipped by them (shrinking the draw size, not stretching - still 1:1 texel sampling).
+    // 72 still reached into TAB_REGION_Y (40): the tab row sits entirely inside a 0-72 span. Shrunk further,
+    // below 40, so the corner's own art never shares vertical space with the tabs at all.
+    constexpr int NEW_FRAME_CORNER_SIZE = 36;
+    constexpr int NEW_FRAME_EDGE_HEIGHT = 32;
+    constexpr int NEW_FRAME_EDGE_TILE_WIDTH = 256;
     constexpr int CLOSE_BTN_WIDTH = 36;
     constexpr int CLOSE_BTN_HEIGHT = 29;
     constexpr int CLOSE_BTN_MARGIN = 8;
     constexpr int TOOLBAR_X = 11;
     constexpr int TOOLBAR_Y = 69;
-    constexpr int CURRENCY_COMBO_WIDTH = 105;
+    // Trimmed from 105 to make room for the wider Search/Reset buttons below without crowding the right
+    // corner's reserved NEW_FRAME_CORNER_SIZE zone - still enough for the closed selector's single label.
+    constexpr int CURRENCY_COMBO_WIDTH = 90;
     constexpr int CURRENCY_COMBO_ITEM_HEIGHT = 22;
     constexpr int CATEGORY_COMBO_X_OFFSET = CURRENCY_COMBO_WIDTH + 8;
     constexpr int CATEGORY_COMBO_WIDTH = 210;
     constexpr int BROWSE_TABLE_X = 132;
-    // Currency is shown on each result's price, so a global currency selector obscures the main search
-    // without helping buyers find an item. Browse always queries every supported currency.
     constexpr int SEARCH_INPUT_X_OFFSET = 0;
     constexpr int SEARCH_INPUT_Y_OFFSET = TOOLBAR_Y + 3;
     constexpr int SEARCH_INPUT_HEIGHT = 16;
-    constexpr int SEARCH_BUTTON_WIDTH = 53;
-    constexpr int RESET_BUTTON_WIDTH = 45;
+    // Equal widths so Search/Reset read as a matched pair (not two arbitrarily-different sizes), and wide
+    // enough that "Reset" (the longer-looking word at this font) doesn't clip against its own border.
+    constexpr int SEARCH_BUTTON_WIDTH = 56;
+    constexpr int RESET_BUTTON_WIDTH = 56;
     constexpr int SEARCH_INPUT_WIDTH = 188;
     constexpr int SEARCH_BUTTON_X_OFFSET = SEARCH_INPUT_X_OFFSET + SEARCH_INPUT_WIDTH + 6;
     constexpr int RESET_BUTTON_X_OFFSET = SEARCH_BUTTON_X_OFFSET + SEARCH_BUTTON_WIDTH + 5;
@@ -56,6 +69,10 @@ namespace
     constexpr int LEVEL_MINIMUM_X_OFFSET = LEVEL_LABEL_X_OFFSET + 20;
     constexpr int LEVEL_MAXIMUM_X_OFFSET = LEVEL_MINIMUM_X_OFFSET + 38;
     constexpr int LEVEL_INPUT_WIDTH = 30;
+    // Sits right after the Level range inputs on the same toolbar row - BROWSE_TABLE_X (132) used to overlap
+    // the search box and Search button, since that constant is a table-content X, not a toolbar-row X. The
+    // +8 gap (not more) keeps its right edge clear of the right corner's reserved NEW_FRAME_CORNER_SIZE zone.
+    constexpr int CURRENCY_COMBO_X_OFFSET = LEVEL_MAXIMUM_X_OFFSET + LEVEL_INPUT_WIDTH + 8;
     constexpr size_t SEARCH_PACKET_CAPACITY = 32;
     constexpr BYTE ALL_CURRENCIES = 0xFF;
     static_assert(SEARCH_INPUT_WIDTH > 0, "Auction search controls exceed the toolbar width");
@@ -98,7 +115,7 @@ namespace
     constexpr int WALLET_WIDTH = CATEGORY_RAIL_WIDTH;
     constexpr int WALLET_JEWELS_HEIGHT = 40;
     constexpr int WALLET_FRUITS_HEIGHT = 30;
-    constexpr int WALLET_ZEN_HEIGHT = 31;
+    constexpr int WALLET_ZEN_HEIGHT = 43;
     constexpr int WALLET_PANEL_GAP = 2;
     constexpr int WALLET_FRUITS_Y = WALLET_Y + WALLET_JEWELS_HEIGHT + WALLET_PANEL_GAP;
     constexpr int WALLET_ZEN_Y = WALLET_FRUITS_Y + WALLET_FRUITS_HEIGHT + WALLET_PANEL_GAP;
@@ -200,7 +217,17 @@ namespace
     constexpr int PAGE_BTN_WIDTH = 53;
     constexpr int PAGE_BTN_HEIGHT = 23;
     constexpr int PAGE_BTN_MARGIN_X = 20;
-    constexpr int PAGE_BTN_Y_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT + (BOTTOM_BAND_HEIGHT - PAGE_BTN_HEIGHT) / 2;
+    // BOTTOM_BAND_HEIGHT (45) is the OLD frame's bottom band, from before the corner/edge art replaced it -
+    // anchoring to it here left the footer buttons cramped right against the new, differently-sized bottom
+    // trim. Anchor to the new frame geometry instead, with real clearance above the edge strip.
+    constexpr int PAGE_BTN_Y_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_HEIGHT - NEW_FRAME_EDGE_HEIGHT - PAGE_BTN_HEIGHT - 10;
+    // Previous/Next are a compact pair left-aligned to the table's own left edge (not spread to the window's
+    // own edges, which is where Bid/Buyout/Cancel/Collect still anchor - a different, detail-panel context),
+    // leaving the rest of the bottom bar as a reserved blank panel, matching the reference layout exactly.
+    constexpr int PAGE_CLUSTER_GAP = 40;
+    constexpr int PAGE_CLUSTER_WIDTH = PAGE_BTN_WIDTH * 2 + PAGE_CLUSTER_GAP;
+    constexpr int PAGE_CLUSTER_X = BROWSE_TABLE_X;
+    constexpr int PAGE_NEXT_BTN_X = PAGE_CLUSTER_X + PAGE_BTN_WIDTH + PAGE_CLUSTER_GAP;
     constexpr int DETAIL_ICON_SIZE = 32;
     constexpr int DETAIL_TEXT_X_OFFSET = DETAIL_ICON_SIZE + 10;
     constexpr int DETAIL_LINE_HEIGHT = 18;
@@ -476,7 +503,7 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CurrencyLabels[7] = I18N::Game::JewelOfGuardian;
     m_CurrencyLabels[8] = I18N::Game::JewelOfHarmony;
     m_CurrencyLabels[9] = I18N::Game::FruitBasket;
-    m_CurrencyCombo.Setup(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
+    m_CurrencyCombo.Setup(m_Pos.x + TOOLBAR_X + CURRENCY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
         m_CurrencyLabels, 10, 0);
 
     // Index 0 is "All Categories" (the server's own 0xFF sentinel); indices 1-7 are AuctionCategory's seven
@@ -550,8 +577,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
         input.SetState(UISTATE_HIDE);
     }
 
-    InitPageButton(&m_BtnPrevPage, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
-    InitPageButton(&m_BtnNextPage, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
+    InitPageButton(&m_BtnPrevPage, m_Pos.x + PAGE_CLUSTER_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
+    InitPageButton(&m_BtnNextPage, m_Pos.x + PAGE_NEXT_BTN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
     InitPageButton(&m_BtnBack, m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, I18N::Game::Back);
     InitPageButton(&m_BtnBid, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Bid);
     InitPageButton(&m_BtnBuyout, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Buyout);
@@ -622,7 +649,7 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     const int tabWidth = (windowWidth - 2 * TAB_REGION_X) / 4;
     m_TabBtn.ChangeRadioButtonInfo(true, (float)(m_Pos.x + TAB_REGION_X), (float)(m_Pos.y + TAB_REGION_Y), tabWidth, TAB_HEIGHT);
     m_BtnClose.ChangeButtonInfo(m_Pos.x + windowWidth - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
-    m_CurrencyCombo.SetPos(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + TOOLBAR_Y);
+    m_CurrencyCombo.SetPos(m_Pos.x + TOOLBAR_X + CURRENCY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
     m_CategoryCombo.SetPos(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y);
     m_StatusCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
     m_CollectionKindCombo.SetPos(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y);
@@ -638,8 +665,8 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnReset.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + RESET_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y,
         RESET_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
-    m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
-    m_BtnNextPage.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_CLUSTER_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnNextPage.ChangeButtonInfo(m_Pos.x + PAGE_NEXT_BTN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBack.ChangeButtonInfo(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBid.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBuyout.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
@@ -1811,7 +1838,23 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
 {
     if (IsVisible())
     {
-        const int selected = m_TabBtn.UpdateMouseEvent();
+        // Tabs are sized to their own label now (ComputeTabLayout), not the uniform grid m_TabBtn assumes,
+        // so hit-testing is done manually here, the same CheckMouseIn+IsRelease idiom the category rail uses.
+        int selected = RADIOGROUPEVENT_NONE;
+        if (IsRelease(VK_LBUTTON))
+        {
+            int tabX[TAB_COUNT];
+            int tabWidths[TAB_COUNT];
+            ComputeTabLayout(tabX, tabWidths);
+            for (int tab = 0; tab < TAB_COUNT; ++tab)
+            {
+                if (CheckMouseIn(tabX[tab], m_Pos.y + TAB_REGION_Y, tabWidths[tab], TAB_HEIGHT))
+                {
+                    selected = tab;
+                    break;
+                }
+            }
+        }
         if (selected != RADIOGROUPEVENT_NONE && selected != m_iCurrentTab)
         {
             if (m_iCurrentTab == TAB_SELL)
@@ -1862,6 +1905,18 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CategoryCombo.UpdateMouseEvent())
         {
             m_SelectedCategoryIndex = m_CategoryCombo.GetSelectedIndex();
+            m_CurrentPage = 1;
+            SendBrowseRequest();
+        }
+
+        if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CurrencyCombo.UpdateMouseEvent())
+        {
+            // Combo index 0 is the "All Currencies" sentinel; indices 1-9 map directly onto
+            // AuctionCurrencyMode (Zen=0 .. Fruits=8), one past the combo index.
+            const int selected = m_CurrencyCombo.GetSelectedIndex();
+            m_SelectedCurrency = selected == 0
+                ? static_cast<AuctionCurrencyMode>(ALL_CURRENCIES)
+                : static_cast<AuctionCurrencyMode>(selected - 1);
             m_CurrentPage = 1;
             SendBrowseRequest();
         }
@@ -1954,19 +2009,48 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
     RenderFrame();
 
-    m_TabBtn.Render();
+    // m_TabBtn is no longer used for either rendering or hit-testing (see the manual click check further
+    // down): it only supports a uniform equal-width grid, but the reference tabs are sized to their own
+    // label and clustered at the left, leaving blank space to the right rather than stretched to fill the
+    // window. Chrome reuses the same bordered-box art Previous/Next use (newui_btn_empty_very_small, native
+    // 54x23) stretched per-tab, tinted gold when active.
+    {
+        constexpr float PAGE_BTN_TEX_NATIVE_WIDTH = 54.f;
+        constexpr float PAGE_BTN_TEX_NATIVE_HEIGHT = 23.f;
+        const wchar_t* const tabLabelPtrs[TAB_COUNT] = {
+            I18N::Game::Browse, I18N::Game::Sell, I18N::Game::MyListings, I18N::Game::Mailbox,
+        };
+        int tabX[TAB_COUNT];
+        int tabWidths[TAB_COUNT];
+        ComputeTabLayout(tabX, tabWidths);
+        g_pRenderText->SetFont(g_hFontBold);
+        g_pRenderText->SetBgColor(0, 0, 0, 0);
+        for (int tab = 0; tab < TAB_COUNT; ++tab)
+        {
+            const int tabY = m_Pos.y + TAB_REGION_Y;
+            const bool active = tab == m_iCurrentTab;
+            RenderImageStretch(IMAGE_AUCTION_PAGE_BTN, (float)tabX[tab], (float)tabY, (float)tabWidths[tab], (float)TAB_HEIGHT,
+                0.f, 0.f, PAGE_BTN_TEX_NATIVE_WIDTH, PAGE_BTN_TEX_NATIVE_HEIGHT,
+                active ? RGBA(255, 210, 110, 255) : RGBA(150, 150, 150, 255));
+            g_pRenderText->SetTextColor(active ? 255 : 205, active ? 215 : 205, active ? 100 : 205, 255);
+            g_pRenderText->RenderText((float)tabX[tab], (float)(tabY + 6), tabLabelPtrs[tab],
+                (float)tabWidths[tab], 0, RT3_SORT_CENTER);
+        }
+    }
     m_BtnClose.Render();
 
     if (m_PendingMailboxCount > 0)
     {
-        const int tabWidth = (CurrentWindowWidth() - 2 * TAB_REGION_X) / 4;
+        int tabX[TAB_COUNT];
+        int tabWidths[TAB_COUNT];
+        ComputeTabLayout(tabX, tabWidths);
         wchar_t badge[16];
         mu_swprintf(badge, L"[%d]", m_PendingMailboxCount);
         g_pRenderText->SetFont(g_hFontBold);
         g_pRenderText->SetTextColor(255, 190, 70, 255);
         g_pRenderText->SetBgColor(0, 0, 0, 0);
         g_pRenderText->RenderText(
-            (float)(m_Pos.x + TAB_REGION_X + 4 * tabWidth - 38),
+            (float)(tabX[TAB_MAILBOX] + tabWidths[TAB_MAILBOX] - 38),
             (float)(m_Pos.y + TAB_REGION_Y + 8), badge, 34.0f, 0, RT3_SORT_CENTER);
     }
 
@@ -2018,6 +2102,7 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
             }
             m_BtnSearch.Render();
             m_BtnReset.Render();
+            m_CurrencyCombo.Render();
             g_pRenderText->SetFont(g_hFontBold);
             g_pRenderText->SetTextColor(218, 186, 104, 255);
             g_pRenderText->SetBgColor(0, 0, 0, 0);
@@ -2270,39 +2355,14 @@ void SEASON3B::CNewUIAuctionWindow::RenderOperationButtons()
 
 void SEASON3B::CNewUIAuctionWindow::RenderPageControls()
 {
-    // Locked (and grayed, matching CNewUIUnitedMarketPlaceWindow's own locked-button treatment) at page 1 and
-    // once the last known page is reached. Without a response yet, both read as "at the only known page".
-    const bool atFirstPage = m_CurrentPage <= 1;
+    // Previous/Next always render fully interactive - plain hover/press/release, same as Search/Reset - and
+    // are never grayed out or Lock()'d at a page boundary. A click at a boundary already does nothing
+    // functionally (guarded in the click handlers below by m_CurrentPage comparisons); it just doesn't also
+    // need to look disabled, which previously made Next look stuck gray the instant a click reached the last
+    // page (locking suppresses all further hover/press updates, so the gray tint never clears again).
     const bool hasResponse = m_iCurrentTab == TAB_MAILBOX ? m_bHasMailboxResponse : m_bHasListingResponse;
     const uint16_t knownTotalPages = m_iCurrentTab == TAB_MAILBOX
         ? m_MailboxResponse.TotalPages : m_ListingResponse.TotalPages;
-    const bool atLastPage = !hasResponse || m_CurrentPage >= knownTotalPages;
-
-    if (atFirstPage)
-    {
-        m_BtnPrevPage.Lock();
-        m_BtnPrevPage.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
-        m_BtnPrevPage.ChangeTextColor(RGBA(100, 100, 100, 255));
-    }
-    else
-    {
-        m_BtnPrevPage.UnLock();
-        m_BtnPrevPage.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
-        m_BtnPrevPage.ChangeTextColor(RGBA(255, 255, 255, 255));
-    }
-
-    if (atLastPage)
-    {
-        m_BtnNextPage.Lock();
-        m_BtnNextPage.ChangeImgColor(BUTTON_STATE_UP, RGBA(100, 100, 100, 255));
-        m_BtnNextPage.ChangeTextColor(RGBA(100, 100, 100, 255));
-    }
-    else
-    {
-        m_BtnNextPage.UnLock();
-        m_BtnNextPage.ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
-        m_BtnNextPage.ChangeTextColor(RGBA(255, 255, 255, 255));
-    }
 
     m_BtnPrevPage.Render();
     m_BtnNextPage.Render();
@@ -2314,7 +2374,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderPageControls()
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
-    g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + PAGE_BTN_Y_OFFSET + 4), pageText, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText((float)(m_Pos.x + PAGE_CLUSTER_X + PAGE_BTN_WIDTH), (float)(m_Pos.y + PAGE_BTN_Y_OFFSET + 4),
+        pageText, (float)PAGE_CLUSTER_GAP, 0, RT3_SORT_CENTER);
 }
 
 bool SEASON3B::CNewUIAuctionWindow::IsVisible() const
@@ -2584,8 +2645,10 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
     g_pRenderText->SetTextColor(218, 186, 104, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     const float headerY = static_cast<float>(m_Pos.y + BROWSE_HEADER_Y + 5);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_ITEM_COLUMN_X + 5), headerY,
-        I18N::Game::Item, (float)(BROWSE_ITEM_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_ITEM_COLUMN_X), headerY,
+        L"Icon", (float)BROWSE_ICON_CELL_SIZE, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_TEXT_X_OFFSET), headerY,
+        I18N::Game::ItemName, (float)(BROWSE_ITEM_COLUMN_WIDTH - BROWSE_TEXT_X_OFFSET - 4), 0, RT3_SORT_LEFT);
     g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_LEVEL_COLUMN_X), headerY,
         I18N::Game::Level, (float)BROWSE_LEVEL_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 
@@ -2600,7 +2663,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
         m_iCurrentTab == TAB_MY_LISTINGS ? I18N::Game::Status : I18N::Game::Seller,
         (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 
-    std::wstring priceHeader = I18N::Game::AuctionPrice;
+    std::wstring priceHeader = L"Current Price";
     if (m_iCurrentTab == TAB_BROWSE && m_SelectedSort == AuctionSort::PriceAscending)
     {
         priceHeader += L" ^";
@@ -2730,6 +2793,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
         g_pRenderText->SetTextColor(selected ? 255 : 205, selected ? 215 : 205, selected ? 100 : 205, 255);
         g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + 7), (float)(y + 4),
             m_CategoryLabels[category], (float)(CATEGORY_RAIL_WIDTH - 12), 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + CATEGORY_RAIL_WIDTH - 16), (float)(y + 4),
+            L">", 12.0f, 0, RT3_SORT_LEFT);
     }
 }
 
@@ -2790,6 +2855,12 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
         (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
     g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_ZEN_Y + 1), L"ZEN",
         (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetTextColor(190, 190, 190, 255);
+    g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_ZEN_Y + WALLET_TITLE_HEIGHT + 2),
+        L"Zen Balance:", (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetTextColor(235, 210, 120, 255);
 
     const int jewelUnitWidth = jewelCount > 0 ? WALLET_WIDTH / static_cast<int>(jewelCount) : WALLET_WIDTH;
     int jewelUnit = 0;
@@ -2837,7 +2908,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
         if (currency.Enabled && currency.CurrencyMode == AuctionCurrencyMode::Zen)
         {
             const std::wstring amount = FormatWalletAmount(currency.Spendable.Scalar());
-            g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X + 4), (float)(m_Pos.y + WALLET_ZEN_Y + 15),
+            g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X + 4), (float)(m_Pos.y + WALLET_ZEN_Y + WALLET_TITLE_HEIGHT + 16),
                 amount.c_str(), (float)(WALLET_WIDTH - 8), 0, RT3_SORT_CENTER);
             break;
         }
@@ -2958,6 +3029,24 @@ int SEASON3B::CNewUIAuctionWindow::CurrentWindowWidth() const
     return m_iCurrentTab == TAB_SELL ? SELL_WINDOW_WIDTH : WINDOW_WIDTH;
 }
 
+void SEASON3B::CNewUIAuctionWindow::ComputeTabLayout(int (&outX)[TAB_COUNT], int (&outWidth)[TAB_COUNT]) const
+{
+    constexpr int TAB_LABEL_PADDING = 40;
+    constexpr int TAB_GAP = 14;
+    const wchar_t* const labels[TAB_COUNT] = {
+        I18N::Game::Browse, I18N::Game::Sell, I18N::Game::MyListings, I18N::Game::Mailbox,
+    };
+    g_pRenderText->SetFont(g_hFontBold);
+    int x = m_Pos.x + TAB_REGION_X;
+    for (int tab = 0; tab < TAB_COUNT; ++tab)
+    {
+        const SIZE labelSize = g_pRenderText->MeasureText(labels[tab], static_cast<int>(wcslen(labels[tab])));
+        outWidth[tab] = labelSize.cx + TAB_LABEL_PADDING;
+        outX[tab] = x;
+        x += outWidth[tab] + TAB_GAP;
+    }
+}
+
 void SEASON3B::CNewUIAuctionWindow::LoadImages()
 {
     LoadBitmap(L"Interface\\newui_msgbox_back.jpg", IMAGE_AUCTION_BACK, GL_LINEAR);
@@ -2968,6 +3057,8 @@ void SEASON3B::CNewUIAuctionWindow::LoadImages()
     LoadBitmap(L"Interface\\newui_exit_00.tga", IMAGE_AUCTION_CLOSE_BTN, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_guild_tab04.tga", IMAGE_AUCTION_TAB_BTN, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_btn_empty_very_small.tga", IMAGE_AUCTION_PAGE_BTN, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_frame_corner.tga", IMAGE_AUCTION_FRAME_CORNER, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_frame_edge.tga", IMAGE_AUCTION_FRAME_EDGE, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIAuctionWindow::UnloadImages()
@@ -2980,6 +3071,8 @@ void SEASON3B::CNewUIAuctionWindow::UnloadImages()
     DeleteBitmap(IMAGE_AUCTION_CLOSE_BTN);
     DeleteBitmap(IMAGE_AUCTION_TAB_BTN);
     DeleteBitmap(IMAGE_AUCTION_PAGE_BTN);
+    DeleteBitmap(IMAGE_AUCTION_FRAME_CORNER);
+    DeleteBitmap(IMAGE_AUCTION_FRAME_EDGE);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderFrame()
@@ -2987,37 +3080,55 @@ void SEASON3B::CNewUIAuctionWindow::RenderFrame()
     const float x = static_cast<float>(m_Pos.x);
     const float y = static_cast<float>(m_Pos.y);
     const int windowWidth = CurrentWindowWidth();
-    const float centerDestinationWidth = static_cast<float>(windowWidth - 2 * FRAME_CAP_WIDTH);
 
     // These legacy frame sprites are only 190 pixels wide. RenderImage samples destination dimensions as
     // source dimensions too, so asking it for 600 pixels reads beyond the sprite and produces a black void.
-    // Stretch the subdued background, but preserve both ornate frame caps at 1:1 and stretch only their
-    // plain center strip so the MU corners retain their original proportions.
     RenderImageStretch(IMAGE_AUCTION_BACK, x, y, static_cast<float>(windowWidth), static_cast<float>(WINDOW_HEIGHT),
         0.f, 0.f, static_cast<float>(FRAME_TEXTURE_WIDTH), static_cast<float>(FRAME_TEXTURE_HEIGHT));
 
-    RenderImageStretch(IMAGE_AUCTION_TOP, x, y, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
-        0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
-    RenderImageStretch(IMAGE_AUCTION_TOP, x + FRAME_CAP_WIDTH, y, centerDestinationWidth, static_cast<float>(TOP_BAND_HEIGHT),
-        static_cast<float>(FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CENTER_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
-    RenderImageStretch(IMAGE_AUCTION_TOP, x + windowWidth - FRAME_CAP_WIDTH, y,
-        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
-        static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f,
-        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
+    // Left/right bands reuse the same edge strip as top/bottom, rotated 90 degrees and tiled vertically, so
+    // all four sides share one consistent border weight instead of the old, visibly thinner placeholder.
+    const float sideRunStartY = y + NEW_FRAME_CORNER_SIZE;
+    const float sideRunEndY = y + WINDOW_HEIGHT - NEW_FRAME_CORNER_SIZE;
+    const float leftEdgeCenterX = x + NEW_FRAME_EDGE_HEIGHT * 0.5f;
+    const float rightEdgeCenterX = x + windowWidth - NEW_FRAME_EDGE_HEIGHT * 0.5f;
+    for (float drawY = sideRunStartY; drawY < sideRunEndY; drawY += NEW_FRAME_EDGE_TILE_WIDTH)
+    {
+        const float tileLength = std::min(static_cast<float>(NEW_FRAME_EDGE_TILE_WIDTH), sideRunEndY - drawY);
+        const float centerY = drawY + tileLength * 0.5f;
+        const float uWidth = tileLength / static_cast<float>(NEW_FRAME_EDGE_TILE_WIDTH);
+        RenderBitmapRotate(IMAGE_AUCTION_FRAME_EDGE, leftEdgeCenterX, centerY, tileLength,
+            static_cast<float>(NEW_FRAME_EDGE_HEIGHT), 90.f, 0.f, 0.f, uWidth, 1.f);
+        RenderBitmapRotate(IMAGE_AUCTION_FRAME_EDGE, rightEdgeCenterX, centerY, tileLength,
+            static_cast<float>(NEW_FRAME_EDGE_HEIGHT), 270.f, 0.f, 0.f, uWidth, 1.f);
+    }
 
-    const float sideHeight = static_cast<float>(WINDOW_HEIGHT - TOP_BAND_HEIGHT - BOTTOM_BAND_HEIGHT);
-    RenderImageStretch(IMAGE_AUCTION_LEFT, x, y + TOP_BAND_HEIGHT, static_cast<float>(SIDE_BAND_WIDTH), sideHeight,
-        0.f, 0.f, static_cast<float>(SIDE_BAND_WIDTH), sideHeight);
-    RenderImageStretch(IMAGE_AUCTION_RIGHT, x + windowWidth - SIDE_BAND_WIDTH, y + TOP_BAND_HEIGHT,
-        static_cast<float>(SIDE_BAND_WIDTH), sideHeight, 0.f, 0.f, static_cast<float>(SIDE_BAND_WIDTH), sideHeight);
+    // Top/bottom edges: tile the native 256x32 strip rather than stretching it, so its diagonal weave
+    // pattern never warps. The final tile in each run is clipped by sampling only its needed sub-width.
+    const float edgeRunStartX = x + NEW_FRAME_CORNER_SIZE;
+    const float edgeRunEndX = x + windowWidth - NEW_FRAME_CORNER_SIZE;
+    const float bottomEdgeY = y + WINDOW_HEIGHT - NEW_FRAME_EDGE_HEIGHT;
+    for (float drawX = edgeRunStartX; drawX < edgeRunEndX; drawX += NEW_FRAME_EDGE_TILE_WIDTH)
+    {
+        const float tileWidth = std::min(static_cast<float>(NEW_FRAME_EDGE_TILE_WIDTH), edgeRunEndX - drawX);
+        RenderImageStretch(IMAGE_AUCTION_FRAME_EDGE, drawX, y, tileWidth, static_cast<float>(NEW_FRAME_EDGE_HEIGHT),
+            0.f, 0.f, tileWidth, static_cast<float>(NEW_FRAME_EDGE_HEIGHT));
+        RenderImageStretch(IMAGE_AUCTION_FRAME_EDGE, drawX, bottomEdgeY, tileWidth, static_cast<float>(NEW_FRAME_EDGE_HEIGHT),
+            0.f, 0.f, tileWidth, static_cast<float>(NEW_FRAME_EDGE_HEIGHT));
+    }
 
-    const float bottomY = y + WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT;
-    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x, bottomY, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT),
-        0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
-    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + FRAME_CAP_WIDTH, bottomY, centerDestinationWidth, static_cast<float>(BOTTOM_BAND_HEIGHT),
-        static_cast<float>(FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CENTER_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
-    RenderImageStretch(IMAGE_AUCTION_BOTTOM, x + windowWidth - FRAME_CAP_WIDTH, bottomY,
-        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT),
-        static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f,
-        static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
+    // Four corners, native size, never stretched. The source art is drawn for the top-left orientation; the
+    // other three come from an exact UV flip (texel-center swap), not from stretching or re-exported mirrored
+    // art, per the "isolated native-size assets, no atlas" rule.
+    const float kCorner = static_cast<float>(NEW_FRAME_CORNER_SIZE);
+    const float cornerRightX = x + windowWidth - NEW_FRAME_CORNER_SIZE;
+    const float cornerBottomY = y + WINDOW_HEIGHT - NEW_FRAME_CORNER_SIZE;
+
+    RenderImageStretch(IMAGE_AUCTION_FRAME_CORNER, x, y, kCorner, kCorner, 0.f, 0.f, kCorner, kCorner);
+    RenderImageStretch(IMAGE_AUCTION_FRAME_CORNER, cornerRightX, y, kCorner, kCorner,
+        kCorner - 1.f, 0.f, 2.f - kCorner, kCorner);
+    RenderImageStretch(IMAGE_AUCTION_FRAME_CORNER, x, cornerBottomY, kCorner, kCorner,
+        0.f, kCorner - 1.f, kCorner, 2.f - kCorner);
+    RenderImageStretch(IMAGE_AUCTION_FRAME_CORNER, cornerRightX, cornerBottomY, kCorner, kCorner,
+        kCorner - 1.f, kCorner - 1.f, 2.f - kCorner, 2.f - kCorner);
 }
