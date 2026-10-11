@@ -6992,6 +6992,23 @@ void RenderItem3DScaled(float sx, float sy, float Width, float Height, int Type,
     ItemPreviewScaleMultiplier = previousMultiplier;
 }
 
+void RenderItem3DFittedToSlot(float sx, float sy, float Width, float Height, int Type, int Level, int excellentFlags,
+    int ancientDiscriminator, float fill, bool PickUp)
+{
+    // Inventory models are authored for the item's real grid footprint and anchor, not for a universal square.
+    // Use the same coordinate system as the inventory and uniformly scale that footprint into this slot.
+    const ITEM_ATTRIBUTE& attributes = ItemAttribute[Type];
+    constexpr float InventoryCellSize = 20.0f;
+    const float nativeWidth = static_cast<float>(std::max(1, static_cast<int>(attributes.Width))) * InventoryCellSize;
+    const float nativeHeight = static_cast<float>(std::max(1, static_cast<int>(attributes.Height))) * InventoryCellSize;
+    const float clampedFill = std::clamp(fill, 0.1f, 1.0f);
+    const float scale = std::min(Width / nativeWidth, Height / nativeHeight) * clampedFill;
+    // RenderItem3D applies the model's authored anchor inside the supplied rectangle. Passing the slot
+    // rectangle through unchanged is essential: translating the origin to a geometric centre would cancel
+    // that anchor and makes swords, wings and armour sit high or to one side of the cell.
+    RenderItem3DScaled(sx, sy, Width, Height, Type, Level, excellentFlags, ancientDiscriminator, scale, PickUp);
+}
+
 void InventoryColor(ITEM* p)
 {
     (void)p;

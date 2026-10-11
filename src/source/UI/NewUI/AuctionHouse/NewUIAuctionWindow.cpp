@@ -162,18 +162,18 @@ namespace
         case ITEM_GROUP_SPEAR:
         case ITEM_GROUP_BOW:
         case ITEM_GROUP_STAFF:
-            return 0.24f;
+            return 0.14f;
         case ITEM_GROUP_SHIELD:
         case ITEM_GROUP_HELM:
         case ITEM_GROUP_ARMOR:
         case ITEM_GROUP_PANTS:
-            return 0.42f;
+            return 0.28f;
         case ITEM_GROUP_GLOVES:
-            return 0.48f;
+            return 0.34f;
         case ITEM_GROUP_BOOTS:
-            return 0.55f;
+            return 0.38f;
         case ITEM_GROUP_WING:
-            return 0.22f;
+            return 0.15f;
         case ITEM_GROUP_HELPER:
             return 0.70f;
         case ITEM_GROUP_POTION:
@@ -368,7 +368,7 @@ namespace
         {
             return 0xFFB366FFu;
         }
-        else if (item->SpecialNum > 0 && item->ExcellentFlags > 0)
+        else if (item->ExcellentFlags > 0)
         {
             return 0xFF1AFF80u;
         }
@@ -2495,9 +2495,8 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         const int iconX = m_Pos.x + (m_iCurrentTab == TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X)
             + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0) + BROWSE_ICON_MARGIN;
         const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
-        const float previewScale = GetAuctionPreviewScale(item->Type) * (IsAuctionJewelItem(item) ? 0.85f : 1.0f);
-        RenderItem3DScaled((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
-            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, previewScale, false);
+        RenderItem3DFittedToSlot((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
+            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, 0.68f, false);
 
         // Small per-row currency icons beside the Price/Buyout numbers (see RenderBrowseTab's matching text
         // offset). Only the Browse/My Listings table has these two columns; Mailbox's layout does not.

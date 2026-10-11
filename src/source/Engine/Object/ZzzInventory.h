@@ -164,6 +164,11 @@ void RenderItem3D(float sx, float sy, float Width, float Height, int Type, int L
 // Renders the same inventory model with an explicit size multiplier. Dense table UIs use this rather than
 // treating RenderItem3D's placement rectangle as a scale control (it is not one).
 void RenderItem3DScaled(float sx, float sy, float Width, float Height, int Type, int Level, int excellentFlags, int ancientDiscriminator, float scaleMultiplier, bool PickUp = false);
+// Fits an item into a compact UI slot while retaining the native inventory model anchor. Unlike a
+// geometric-centre approximation, this uses the item's authored inventory footprint and therefore
+// keeps long weapons, wings, armour and jewels correctly placed inside the same fixed-size slot.
+void RenderItem3DFittedToSlot(float sx, float sy, float Width, float Height, int Type, int Level, int excellentFlags,
+    int ancientDiscriminator, float fill = 0.82f, bool PickUp = false);
 void RenderObjectScreen(int Type, int ItemLevel, int excellentFlags, int ancientDiscriminator, vec3_t Target, int Select, bool PickUp);
 bool GetAttackDamage(int* iMinDamage, int* iMaxDamage);
 void GetItemName(int iType, int iLevel, wchar_t* Text);
