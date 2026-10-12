@@ -270,16 +270,40 @@ namespace
         default: return BROWSE_BODY_X + TABLE_INSET;
         }
     }
-    constexpr int DETAIL_ICON_SIZE = 32;
-    constexpr int DETAIL_TEXT_X_OFFSET = DETAIL_ICON_SIZE + 10;
     constexpr int DETAIL_LINE_HEIGHT = 18;
+    // The detail views (a listing, a Mailbox collection) are stacks of rounded cards under the Back button.
+    constexpr int DETAIL_CARD_WIDTH = BROWSE_CONTENT_WIDTH;
+    constexpr int DETAIL_CARD_Y = BROWSE_HEADER_Y;
+    constexpr int DETAIL_CARD_HEIGHT = 96;
+    constexpr int DETAIL_CARD_GAP = 8;
+    constexpr int DETAIL_SLOT_X = BROWSE_BODY_X + 8;
+    constexpr int DETAIL_SLOT_Y = DETAIL_CARD_Y + 8;
+    constexpr int DETAIL_SLOT_SIZE = 80;
+    constexpr int DETAIL_ICON_INSET = 4;
+    constexpr int DETAIL_TEXT_X = DETAIL_SLOT_X + DETAIL_SLOT_SIZE + 12;
+    constexpr int DETAIL_PRICE_CARD_Y = DETAIL_CARD_Y + DETAIL_CARD_HEIGHT + DETAIL_CARD_GAP;
+    constexpr int DETAIL_PRICE_CARD_HEIGHT = 96;
+    // Where a price block's chip row sits inside its card; the chip layout centres two lines on a 29-pixel row.
+    constexpr int DETAIL_CHIP_ROW_Y = 33;
+    constexpr int AMOUNT_CARD_Y = DETAIL_CARD_Y + DETAIL_CARD_HEIGHT + DETAIL_CARD_GAP;
+    constexpr int AMOUNT_CARD_HEIGHT = 62;
+    constexpr int AMOUNT_CHIP_ROW_Y = 26;
+    constexpr int CLAIM_CARD_Y = AMOUNT_CARD_Y + AMOUNT_CARD_HEIGHT + DETAIL_CARD_GAP;
+    constexpr int CLAIM_CARD_HEIGHT = 64;
     constexpr int BACK_BTN_WIDTH = 53;
     constexpr int BACK_BTN_HEIGHT = 23;
     constexpr int OPERATION_RESULT_Y_OFFSET = PAGE_BTN_Y_OFFSET - DETAIL_LINE_HEIGHT - 2;
-    constexpr int CLAIM_INPUT_Y_OFFSET = BROWSE_BODY_Y + 108;
     constexpr int CLAIM_INPUT_WIDTH = 58;
     constexpr int CLAIM_INPUT_HEIGHT = 16;
     constexpr int CLAIM_INPUT_COLUMN_WIDTH = 105;
+    // Each claim amount sits in a recessed field: label above, field below, text inset from the frame.
+    constexpr int CLAIM_LABEL_Y = CLAIM_CARD_Y + 8;
+    constexpr int CLAIM_FIELD_Y = CLAIM_CARD_Y + 30;
+    constexpr int CLAIM_FIELD_INSET = 6;
+    constexpr int CLAIM_FIELD_WIDTH = CLAIM_INPUT_WIDTH + 2 * CLAIM_FIELD_INSET;
+    constexpr int CLAIM_INPUT_Y = CLAIM_FIELD_Y + 7;
+    constexpr int CLAIM_FIELD_X = BROWSE_BODY_X + 8;
+    constexpr int CLAIM_INPUT_X = CLAIM_FIELD_X + CLAIM_FIELD_INSET;
     constexpr int SELL_PANEL_X = 20;
     constexpr int SELL_PANEL_Y = 112;
     constexpr int SELL_WINDOW_WIDTH = 400;
@@ -740,6 +764,46 @@ namespace
         }
     }
 
+    // A rounded card of the detail views.
+    void RenderContainer(int x, int y, int width, int height)
+    {
+        UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(x), static_cast<float>(y),
+            static_cast<float>(width), static_cast<float>(height), TABLE_CONTAINER_TINT);
+    }
+
+    // A small bold caption over a card's content.
+    void RenderCardCaption(const wchar_t* text, int x, int y, int width, int sort)
+    {
+        g_pRenderText->SetFont(g_hFontBold);
+        g_pRenderText->SetTextColor(218, 186, 104, 255);
+        g_pRenderText->SetBgColor(0, 0, 0, 0);
+        g_pRenderText->RenderText(static_cast<float>(x), static_cast<float>(y), text, static_cast<float>(width), 0, sort);
+    }
+
+    // One line of text in the given font and colour.
+    void RenderCardLine(const std::wstring& text, int x, int y, int width, bool bold, int r, int g, int b, int sort = RT3_SORT_LEFT)
+    {
+        g_pRenderText->SetFont(bold ? g_hFontBold : g_hFont);
+        g_pRenderText->SetTextColor(r, g, b, 255);
+        g_pRenderText->SetBgColor(0, 0, 0, 0);
+        g_pRenderText->RenderText(static_cast<float>(x), static_cast<float>(y), text.c_str(), static_cast<float>(width), 0, sort);
+    }
+
+    // The icons of a price cell's chips (the 3D pass; the amounts are drawn by RenderPriceCellText).
+    void RenderPriceChipIcons(int cellX, int rowY, const std::vector<PriceChip>& chips)
+    {
+        for (const PriceChip& chip : chips)
+        {
+            if (chip.icon)
+            {
+                RenderItem3DFittedToSlot(static_cast<float>(cellX + chip.x),
+                    static_cast<float>(rowY + chip.textY + PRICE_ICON_Y_OFFSET), static_cast<float>(PRICE_ICON_SIZE),
+                    static_cast<float>(PRICE_ICON_SIZE), chip.icon->itemType, chip.icon->itemLevel, 0, 0, PRICE_ICON_FILL,
+                    false);
+            }
+        }
+    }
+
     const wchar_t* ListingStatusText(AuctionListingStatus status)
     {
         switch (status)
@@ -930,10 +994,9 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     {
         auto& input = m_CollectionClaimInputs[i];
         input.Init(g_hWnd, CLAIM_INPUT_WIDTH, CLAIM_INPUT_HEIGHT, 10, false);
-        input.SetPosition(m_Pos.x + TOOLBAR_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH,
-            m_Pos.y + CLAIM_INPUT_Y_OFFSET + 15);
+        input.SetPosition(m_Pos.x + CLAIM_INPUT_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH, m_Pos.y + CLAIM_INPUT_Y);
         input.SetTextColor(255, 255, 230, 210);
-        input.SetBackColor(210, 20, 14, 8);
+        input.SetBackColor(0, 0, 0, 0);
         input.SetSelectBackColor(255, 95, 68, 24);
         input.SetFont(g_hFont);
         input.SetParentUIID(SEASON3B::INTERFACE_AUCTION_HOUSE);
@@ -1025,8 +1088,7 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     for (size_t i = 0; i < std::size(m_CollectionClaimInputs); ++i)
     {
         m_CollectionClaimInputs[i].SetPosition(
-            m_Pos.x + TOOLBAR_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH,
-            m_Pos.y + CLAIM_INPUT_Y_OFFSET + 15);
+            m_Pos.x + CLAIM_INPUT_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH, m_Pos.y + CLAIM_INPUT_Y);
     }
     m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET + TOOLBAR_FIELD_TEXT_INSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_MinimumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET + LEVEL_FIELD_TEXT_INSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
@@ -1784,9 +1846,10 @@ void SEASON3B::CNewUIAuctionWindow::RenderDetailItemTooltip() const
         return;
     }
 
-    const int iconX = m_Pos.x + BROWSE_BODY_X;
-    const int iconY = m_Pos.y + BROWSE_BODY_Y;
-    RenderItemInfo(iconX + DETAIL_ICON_SIZE / 2, iconY + DETAIL_ICON_SIZE / 2, m_DetailItem, false);
+    const int iconSize = DETAIL_SLOT_SIZE - 2 * DETAIL_ICON_INSET;
+    const int iconX = m_Pos.x + DETAIL_SLOT_X + DETAIL_ICON_INSET;
+    const int iconY = m_Pos.y + DETAIL_SLOT_Y + DETAIL_ICON_INSET;
+    RenderItemInfo(iconX + iconSize / 2, iconY + iconSize / 2, m_DetailItem, false);
 }
 
 void SEASON3B::CNewUIAuctionWindow::UI2DEffectCallback(LPVOID pClass, DWORD dwParamA, DWORD /*dwParamB*/)
@@ -2422,7 +2485,8 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         }
         if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX) && m_bShowingDetail)
         {
-            m_bPointingDetailItem = CheckMouseIn(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_BODY_Y, DETAIL_ICON_SIZE, DETAIL_ICON_SIZE);
+            m_bPointingDetailItem = m_DetailItem != nullptr
+                && CheckMouseIn(m_Pos.x + DETAIL_SLOT_X, m_Pos.y + DETAIL_SLOT_Y, DETAIL_SLOT_SIZE, DETAIL_SLOT_SIZE);
         }
         else if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bHasListingResponse)
         {
@@ -2601,101 +2665,184 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
 void SEASON3B::CNewUIAuctionWindow::RenderDetailPanel()
 {
-    g_pRenderText->SetFont(g_hFont);
-    g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
-
-    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X;
+    const int x = m_Pos.x + BROWSE_BODY_X;
 
     if (!m_bHasDetailResponse)
     {
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::PleaseWait, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->SetFont(g_hFont);
+        g_pRenderText->SetTextColor(255, 255, 255, 255);
+        g_pRenderText->RenderText((float)x, (float)(m_Pos.y + DETAIL_CARD_Y + 8), I18N::Game::PleaseWait,
+            (float)DETAIL_CARD_WIDTH, 0, RT3_SORT_CENTER);
         return;
     }
 
     const auto& detail = m_DetailResponse;
     const uint32_t estimatedServerTime = m_ServerClock.EstimatedServerTime(GetTickCount());
-    const auto remainingSeconds = detail.EndsAt > estimatedServerTime ? (detail.EndsAt - estimatedServerTime) : 0;
+    const uint32_t remainingSeconds = detail.EndsAt > estimatedServerTime ? (detail.EndsAt - estimatedServerTime) : 0;
     const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
-    const std::wstring priceText = PriceSummaryText(detail.CurrencyMode, detail.CurrentPrice);
-    const std::wstring buyoutText = detail.BuyoutPrice.IsZero()
-        ? L"\x2014" // em dash: no buyout set, per the design spec's own "buyout price, or an em dash" wording.
-        : PriceSummaryText(detail.CurrencyMode, detail.BuyoutPrice);
 
-    const int textX = m_Pos.x + BROWSE_BODY_X + DETAIL_TEXT_X_OFFSET;
-    int textY = m_Pos.y + BROWSE_BODY_Y;
-    const int textWidth = BodyWidth - DETAIL_TEXT_X_OFFSET;
+    // Item card: the preview in its slot, then who sells it, how long is left and who is bidding.
+    EnableAlphaTest();
+    RenderContainer(x, m_Pos.y + DETAIL_CARD_Y, DETAIL_CARD_WIDTH, DETAIL_CARD_HEIGHT);
+    RenderAuctionItemSlot(m_Pos.x + DETAIL_SLOT_X, m_Pos.y + DETAIL_SLOT_Y, DETAIL_SLOT_SIZE,
+        GetAuctionItemSlotTint(m_DetailItem, m_bPointingDetailItem));
 
+    const int textX = m_Pos.x + DETAIL_TEXT_X;
+    const int textWidth = x + DETAIL_CARD_WIDTH - textX - 12;
+    int lineY = m_Pos.y + DETAIL_CARD_Y + 12;
     if (m_DetailItem != nullptr)
     {
+        g_pRenderText->SetFont(g_hFontBold);
+        SetBrowseItemNameColor(m_DetailItem);
         const std::wstring itemName = GetItemDisplayName(m_DetailItem);
-        g_pRenderText->RenderText((float)textX, (float)textY, itemName.c_str(), (float)textWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)textX, (float)lineY, itemName.c_str(), (float)(textWidth - 90), 0, RT3_SORT_LEFT);
     }
-    textY += DETAIL_ICON_SIZE + 6;
 
-    wchar_t line[256];
-    mu_swprintf(line, L"%ls: %ls", I18N::Game::Seller, detail.SellerName.c_str());
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, line, (float)BodyWidth, 0, RT3_SORT_LEFT);
-    textY += DETAIL_LINE_HEIGHT;
+    // The listing's status, right-aligned on the name's line.
+    int statusR = 190, statusG = 196, statusB = 208;
+    switch (detail.Status)
+    {
+    case AuctionListingStatus::Active: statusR = 120; statusG = 220; statusB = 130; break;
+    case AuctionListingStatus::Sold: statusR = 238; statusG = 214; statusB = 120; break;
+    case AuctionListingStatus::Cancelled:
+    case AuctionListingStatus::AdminRemoved: statusR = 255; statusG = 120; statusB = 110; break;
+    default: break;
+    }
+    RenderCardLine(ListingStatusText(detail.Status), textX, lineY, textWidth, true, statusR, statusG, statusB, RT3_SORT_RIGHT);
 
-    mu_swprintf(line, L"%ls / %ls   x%d   %ls", priceText.c_str(), buyoutText.c_str(), detail.BidCount, countdown.c_str());
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, line, (float)BodyWidth, 0, RT3_SORT_LEFT);
-    textY += DETAIL_LINE_HEIGHT;
+    lineY += 20;
+    RenderCardLine(std::wstring(I18N::Game::Seller) + L": " + detail.SellerName, textX, lineY, textWidth, false, 170, 176, 190);
 
+    lineY += 16;
+    constexpr uint32_t UrgentSeconds = 3600;
+    const bool urgent = remainingSeconds < UrgentSeconds;
+    RenderCardLine(remainingSeconds == 0 ? std::wstring(L"Ended") : L"Ends in " + countdown, textX, lineY, textWidth, false,
+        urgent ? 255 : 196, urgent ? 132 : 200, urgent ? 100 : 210);
+
+    lineY += 16;
+    std::wstring bids = detail.BidCount == 0 ? std::wstring(L"No bids yet")
+        : std::to_wstring(detail.BidCount) + (detail.BidCount == 1 ? L" bid" : L" bids");
     if (!detail.CurrentBidderName.empty())
     {
-        mu_swprintf(line, L"%ls: %ls", I18N::Game::Bidder, detail.CurrentBidderName.c_str());
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, line, (float)BodyWidth, 0, RT3_SORT_LEFT);
-        textY += DETAIL_LINE_HEIGHT;
+        bids += L"  -  highest: " + detail.CurrentBidderName;
+    }
+    RenderCardLine(bids, textX, lineY, textWidth, false, 196, 200, 210);
+
+    if (!detail.Note.empty())
+    {
+        lineY += 16;
+        RenderCardLine(L"\"" + detail.Note + L"\"", textX, lineY, textWidth, false, 142, 148, 160);
+    }
+
+    // Price card: what it costs now on the left, the buyout on the right, each as chips.
+    const int half = (DETAIL_CARD_WIDTH - 1) / 2;
+    const int cardY = m_Pos.y + DETAIL_PRICE_CARD_Y;
+    RenderContainer(x, cardY, DETAIL_CARD_WIDTH, DETAIL_PRICE_CARD_HEIGHT);
+    EnableAlphaTest();
+    RenderColorQuadARGB(x + half, cardY + 8, 1, DETAIL_PRICE_CARD_HEIGHT - 16, BROWSE_HEADER_LINE_COLOR);
+    EndRenderColor();
+
+    RenderCardCaption(detail.BidCount > 0 ? L"CURRENT BID" : L"STARTING PRICE", x, cardY + 9, half, RT3_SORT_CENTER);
+    RenderCardCaption(L"BUYOUT", x + half + 1, cardY + 9, half, RT3_SORT_CENTER);
+
+    const AuctionHouse::AuctionOpenResponse* openResponse = m_bHasOpenResponse ? &m_OpenResponse : nullptr;
+    const int chipRowY = cardY + DETAIL_CHIP_ROW_Y;
+    RenderPriceCellText(x, half, chipRowY,
+        LayoutPriceCell(AuctionHouse::PriceComponentsOf(detail.CurrencyMode, detail.CurrentPrice), half, openResponse));
+    if (detail.BuyoutPrice.IsZero())
+    {
+        RenderCardLine(L"No buyout", x + half + 1, chipRowY + BROWSE_ROW_TEXT_Y_OFFSET, half, false, 120, 126, 138,
+            RT3_SORT_CENTER);
+    }
+    else
+    {
+        RenderPriceCellText(x + half + 1, half, chipRowY,
+            LayoutPriceCell(AuctionHouse::PriceComponentsOf(detail.CurrencyMode, detail.BuyoutPrice), half, openResponse));
+    }
+
+    if (m_iCurrentTab == TAB_BROWSE && detail.Status == AuctionListingStatus::Active && !detail.CurrentPrice.IsZero())
+    {
+        const auto minimumBid = AuctionHouse::ComputeMinimumNextBid(detail.CurrencyMode, detail.CurrentPrice, detail.BidCount);
+        RenderCardLine(L"Minimum bid: " + PriceSummaryText(detail.CurrencyMode, minimumBid), x + 12, cardY + 76, half - 24,
+            false, 142, 148, 160);
     }
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderMailboxDetailPanel()
 {
-    g_pRenderText->SetFont(g_hFont);
-    g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
-    constexpr int BodyWidth = WINDOW_WIDTH - 2 * BROWSE_BODY_X;
-
     if (!m_bHasSelectedCollection)
     {
         return;
     }
 
     const auto& entry = m_SelectedCollection;
-    const int textX = m_Pos.x + BROWSE_BODY_X + (entry.HasItem ? DETAIL_TEXT_X_OFFSET : 0);
-    int textY = m_Pos.y + BROWSE_BODY_Y;
-    const int textWidth = BodyWidth - (entry.HasItem ? DETAIL_TEXT_X_OFFSET : 0);
-    g_pRenderText->RenderText((float)textX, (float)textY, CollectionKindText(entry.CollectionKind),
-        (float)textWidth, 0, RT3_SORT_LEFT);
-    textY += DETAIL_ICON_SIZE + 6;
+    const int x = m_Pos.x + BROWSE_BODY_X;
 
-    const auto amount = entry.HasItem ? std::wstring(I18N::Game::Item)
-        : AuctionAmountText(entry.CurrencyMode, entry.Remaining);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, amount.c_str(),
-        (float)BodyWidth, 0, RT3_SORT_LEFT);
-    textY += DETAIL_LINE_HEIGHT;
+    // What it is and where it came from: a collected item shows its preview, money shows no slot.
+    EnableAlphaTest();
+    RenderContainer(x, m_Pos.y + DETAIL_CARD_Y, DETAIL_CARD_WIDTH, DETAIL_CARD_HEIGHT);
+    int textX = x + 14;
+    if (entry.HasItem)
+    {
+        RenderAuctionItemSlot(m_Pos.x + DETAIL_SLOT_X, m_Pos.y + DETAIL_SLOT_Y, DETAIL_SLOT_SIZE,
+            GetAuctionItemSlotTint(m_DetailItem, m_bPointingDetailItem));
+        textX = m_Pos.x + DETAIL_TEXT_X;
+    }
+    const int textWidth = x + DETAIL_CARD_WIDTH - textX - 12;
+    int lineY = m_Pos.y + DETAIL_CARD_Y + 14;
+    RenderCardLine(CollectionKindText(entry.CollectionKind), textX, lineY, textWidth - 110, true, 238, 238, 244);
+    const bool claimed = entry.CollectionStatus == AuctionCollectionStatus::Claimed;
+    RenderCardLine(CollectionStatusText(entry.CollectionStatus), textX, lineY, textWidth, true, claimed ? 150 : 238,
+        claimed ? 156 : 214, claimed ? 168 : 120, RT3_SORT_RIGHT);
 
-    wchar_t line[160];
-    mu_swprintf(line, L"%ls: %llu", I18N::Game::AuctionSource, entry.SourceListingId);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY, line,
-        (float)BodyWidth, 0, RT3_SORT_LEFT);
-    textY += DETAIL_LINE_HEIGHT;
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X), (float)textY,
-        CollectionStatusText(entry.CollectionStatus), (float)BodyWidth, 0, RT3_SORT_LEFT);
+    lineY += 20;
+    wchar_t source[96];
+    mu_swprintf(source, L"%ls: #%llu", I18N::Game::AuctionSource, entry.SourceListingId);
+    RenderCardLine(source, textX, lineY, textWidth, false, 170, 176, 190);
+    if (entry.HasItem && m_DetailItem != nullptr)
+    {
+        lineY += 16;
+        SetBrowseItemNameColor(m_DetailItem);
+        g_pRenderText->SetFont(g_hFontBold);
+        const std::wstring itemName = GetItemDisplayName(m_DetailItem);
+        g_pRenderText->RenderText((float)textX, (float)lineY, itemName.c_str(), (float)textWidth, 0, RT3_SORT_LEFT);
+    }
+
+    // Money: the amount waiting, as chips, and what is left to claim by field below.
+    const bool isMoney = !entry.HasItem;
+    if (isMoney)
+    {
+        const int cardY = m_Pos.y + AMOUNT_CARD_Y;
+        RenderContainer(x, cardY, DETAIL_CARD_WIDTH, AMOUNT_CARD_HEIGHT);
+        RenderCardCaption(L"AVAILABLE TO COLLECT", x + 12, cardY + 9, 200, RT3_SORT_LEFT);
+        if (entry.CollectionStatus == AuctionCollectionStatus::PartiallyClaimed)
+        {
+            RenderCardLine(L"Originally " + PriceSummaryText(entry.CurrencyMode, entry.Original), x + 12, cardY + 9,
+                DETAIL_CARD_WIDTH - 24, false, 142, 148, 160, RT3_SORT_RIGHT);
+        }
+        RenderPriceCellText(x, DETAIL_CARD_WIDTH, m_Pos.y + AMOUNT_CARD_Y + AMOUNT_CHIP_ROW_Y,
+            LayoutPriceCell(AuctionHouse::PriceComponentsOf(entry.CurrencyMode, entry.Remaining), DETAIL_CARD_WIDTH,
+                m_bHasOpenResponse ? &m_OpenResponse : nullptr));
+    }
 
     const wchar_t* fruitLabels[] = {
         I18N::Game::Strength, I18N::Game::Agility, I18N::Game::Vitality, I18N::Game::Energy, I18N::Game::Command
     };
-    if (!entry.HasItem && entry.CurrencyMode != AuctionCurrencyMode::Zen)
+    if (isMoney && entry.CurrencyMode != AuctionCurrencyMode::Zen)
     {
+        RenderContainer(x, m_Pos.y + CLAIM_CARD_Y, DETAIL_CARD_WIDTH, CLAIM_CARD_HEIGHT);
         const size_t inputCount = entry.CurrencyMode == AuctionCurrencyMode::Fruits ? 5 : 1;
         for (size_t i = 0; i < inputCount; ++i)
         {
-            const int x = m_Pos.x + TOOLBAR_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH;
+            const int fieldX = m_Pos.x + CLAIM_FIELD_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH;
             const wchar_t* label = inputCount == 1 ? I18N::Game::AuctionClaimAmount : fruitLabels[i];
-            g_pRenderText->RenderText((float)x, (float)(m_Pos.y + CLAIM_INPUT_Y_OFFSET), label,
-                (float)CLAIM_INPUT_COLUMN_WIDTH, 0, RT3_SORT_LEFT);
+            RenderCardCaption(label, fieldX, m_Pos.y + CLAIM_LABEL_Y, CLAIM_INPUT_COLUMN_WIDTH, RT3_SORT_LEFT);
+            const UI::NineSlice::StateTints& tints = AuctionFieldSkin().tints;
+            UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(fieldX),
+                static_cast<float>(m_Pos.y + CLAIM_FIELD_Y), static_cast<float>(CLAIM_FIELD_WIDTH), 23.f,
+                m_CollectionClaimInputs[i].HaveFocus() ? tints.pressed : tints.normal);
             m_CollectionClaimInputs[i].Render();
         }
     }
@@ -2719,10 +2866,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderMailboxDetailPanel()
 
     if (!validClaim)
     {
-        g_pRenderText->SetTextColor(255, 90, 90, 255);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X),
-            (float)(m_Pos.y + CLAIM_INPUT_Y_OFFSET + CLAIM_INPUT_HEIGHT + 20),
-            I18N::Game::AuctionInvalidClaim, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        RenderCardLine(I18N::Game::AuctionInvalidClaim, x + 4, m_Pos.y + CLAIM_CARD_Y + CLAIM_CARD_HEIGHT + 6,
+            DETAIL_CARD_WIDTH, false, 255, 110, 100);
     }
 }
 
@@ -2871,10 +3016,31 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
     {
         if (m_DetailItem != nullptr)
         {
-            const int iconX = m_Pos.x + BROWSE_BODY_X;
-            const int iconY = m_Pos.y + BROWSE_BODY_Y;
-            RenderItem3D((float)iconX, (float)iconY, (float)DETAIL_ICON_SIZE, (float)DETAIL_ICON_SIZE,
-                m_DetailItem->Type, m_DetailItem->Level, m_DetailItem->ExcellentFlags, m_DetailItem->AncientDiscriminator, false);
+            const int iconSize = DETAIL_SLOT_SIZE - 2 * DETAIL_ICON_INSET;
+            RenderItem3DFittedToSlot((float)(m_Pos.x + DETAIL_SLOT_X + DETAIL_ICON_INSET),
+                (float)(m_Pos.y + DETAIL_SLOT_Y + DETAIL_ICON_INSET), (float)iconSize, (float)iconSize,
+                m_DetailItem->Type, m_DetailItem->Level, m_DetailItem->ExcellentFlags, m_DetailItem->AncientDiscriminator,
+                BROWSE_ICON_FILL, false);
+        }
+
+        // The price chips' icons, laid out by the same function that places their amounts.
+        if (m_iCurrentTab == TAB_MAILBOX && m_bHasSelectedCollection && !m_SelectedCollection.HasItem)
+        {
+            RenderPriceChipIcons(m_Pos.x + BROWSE_BODY_X, m_Pos.y + AMOUNT_CARD_Y + AMOUNT_CHIP_ROW_Y,
+                LayoutPriceCell(AuctionHouse::PriceComponentsOf(m_SelectedCollection.CurrencyMode, m_SelectedCollection.Remaining),
+                    DETAIL_CARD_WIDTH, m_bHasOpenResponse ? &m_OpenResponse : nullptr));
+        }
+        else if (m_iCurrentTab != TAB_MAILBOX && m_bHasDetailResponse)
+        {
+            const AuctionHouse::AuctionOpenResponse* openResponse = m_bHasOpenResponse ? &m_OpenResponse : nullptr;
+            const int half = (DETAIL_CARD_WIDTH - 1) / 2;
+            const int chipRowY = m_Pos.y + DETAIL_PRICE_CARD_Y + DETAIL_CHIP_ROW_Y;
+            RenderPriceChipIcons(m_Pos.x + BROWSE_BODY_X, chipRowY,
+                LayoutPriceCell(AuctionHouse::PriceComponentsOf(m_DetailResponse.CurrencyMode, m_DetailResponse.CurrentPrice),
+                    half, openResponse));
+            RenderPriceChipIcons(m_Pos.x + BROWSE_BODY_X + half + 1, chipRowY,
+                LayoutPriceCell(AuctionHouse::PriceComponentsOf(m_DetailResponse.CurrencyMode, m_DetailResponse.BuyoutPrice),
+                    half, openResponse));
         }
 
         if (m_bPointingDetailItem && m_pNewUI3DRenderMng)
