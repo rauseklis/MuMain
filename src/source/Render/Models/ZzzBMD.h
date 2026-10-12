@@ -348,6 +348,11 @@ public:
     void EndRender();
 
     void RenderMeshEffect(int i, int iType, int iSubType = 0, vec3_t Angle = 0, VOID* obj = NULL);
+    // Whether RenderMesh/RenderBody would actually draw this mesh: it has triangles, its texture is not the
+    // hidden placeholder, it is not a scripted-hidden mesh, and (when hideSkin is set, as it is for item
+    // previews) its texture is not a skin or hair texture. Callers measuring what a render covers - rather
+    // than what the BMD file contains - use this instead of assuming every mesh is drawn.
+    bool IsMeshDrawn(int meshIndex, bool hideSkin) const;
 
     void RenderMesh(int meshIndex, int renderFlags, float alpha = 1.f, int blendMeshIndex = -1, float blendMeshAlpha = 1.f, float blendMeshTextureCoordU = 0.f, float blendMeshTextureCoordV = 0.f, int textureIndex = -1);
     void BeginRenderCoinHeap();

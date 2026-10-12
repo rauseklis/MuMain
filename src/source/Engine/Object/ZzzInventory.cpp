@@ -37,6 +37,8 @@
 #include "GameLogic/Items/ChangeRingManager.h"
 #include "GameLogic/Items/ItemCategories.h"
 #include "Render/Items/ItemDisplay.h"
+#include "Render/Items/ItemPreviewBounds.h"
+#include <set>
 #include "GameLogic/Items/ShopRestrictions.h"
 #include "GameLogic/Items/TradeRestrictions.h"
 #include "GameLogic/Items/MixMgr.h"
@@ -6712,11 +6714,13 @@ void RenderObjectScreen(int Type, int ItemLevel, int excellentFlags, int ancient
     int Level = ItemLevel;
     vec3_t Direction, Position;
 
+    // The item is drawn part of the way from the camera to the far-plane target, not at the target.
+    // Render::Items::Preview measures silhouettes at this same depth, so the fractions are shared.
     VectorSubtract(Target, MousePosition, Direction);
     if (PickUp)
-        VectorMA(MousePosition, 0.07f, Direction, Position);
+        VectorMA(MousePosition, Render::Items::Preview::PickedItemDepthFraction, Direction, Position);
     else
-        VectorMA(MousePosition, 0.1f, Direction, Position);
+        VectorMA(MousePosition, Render::Items::Preview::ItemDepthFraction, Direction, Position);
 
     Type = Render::Items::Display::GetDrawnModel(Type, Level);
 
@@ -6992,21 +6996,68 @@ void RenderItem3DScaled(float sx, float sy, float Width, float Height, int Type,
     ItemPreviewScaleMultiplier = previousMultiplier;
 }
 
-void RenderItem3DFittedToSlot(float sx, float sy, float Width, float Height, int Type, int Level, int excellentFlags,
-    int ancientDiscriminator, float fill, bool PickUp)
+float FallbackGridFitScale(int Type, float Width, float Height, float clampedFill)
 {
-    // Inventory models are authored for the item's real grid footprint and anchor, not for a universal square.
-    // Use the same coordinate system as the inventory and uniformly scale that footprint into this slot.
+    // Grid footprint is an estimate of the item's real rendered size, not a measurement of it -
+    // meshes whose silhouette or authored rotation reaches beyond their declared inventory
+    // footprint (bows, scythes, some wings) still cross a tight slot's border under it. Kept only
+    // as the fallback for the handful of items Preview::ComputeFittedScale can't measure (see its
+    // own doc comment).
     const ITEM_ATTRIBUTE& attributes = ItemAttribute[Type];
     constexpr float InventoryCellSize = 20.0f;
     const float nativeWidth = static_cast<float>(std::max(1, static_cast<int>(attributes.Width))) * InventoryCellSize;
     const float nativeHeight = static_cast<float>(std::max(1, static_cast<int>(attributes.Height))) * InventoryCellSize;
+    return std::min(Width / nativeWidth, Height / nativeHeight) * clampedFill;
+}
+
+namespace
+{
+// A measured fit more than this many times away from the grid-based estimate in either direction means
+// the measurement itself is wrong (the first two versions were ~10x off), not that the item is unusual.
+// It is rejected - and logged once per item type, so the cause can be found - instead of being drawn.
+constexpr float MaxPlausibleScaleRatio = 4.0f;
+
+bool IsPlausibleMeasuredScale(int itemType, float measuredScale, float fallbackScale)
+{
+    const bool plausible = fallbackScale > 0.f && measuredScale <= fallbackScale * MaxPlausibleScaleRatio &&
+                           measuredScale >= fallbackScale / MaxPlausibleScaleRatio;
+    if (!plausible)
+    {
+        static std::set<int> reported;
+        if (reported.insert(itemType).second)
+        {
+            mu::log::Get("render")->warn(
+                "ItemPreview: measured scale {:.4f} for item type {} is implausible against grid estimate {:.4f}; "
+                "using the grid estimate",
+                measuredScale, itemType, fallbackScale);
+        }
+    }
+    return plausible;
+}
+} // namespace
+
+void RenderItem3DFittedToSlot(float sx, float sy, float Width, float Height, int Type, int Level, int excellentFlags,
+    int ancientDiscriminator, float fill, bool PickUp)
+{
     const float clampedFill = std::clamp(fill, 0.1f, 1.0f);
-    const float scale = std::min(Width / nativeWidth, Height / nativeHeight) * clampedFill;
-    // RenderItem3D applies the model's authored anchor inside the supplied rectangle. Passing the slot
-    // rectangle through unchanged is essential: translating the origin to a geometric centre would cancel
-    // that anchor and makes swords, wings and armour sit high or to one side of the cell.
-    RenderItem3DScaled(sx, sy, Width, Height, Type, Level, excellentFlags, ancientDiscriminator, scale, PickUp);
+    const float fallbackScale = FallbackGridFitScale(Type, Width, Height, clampedFill);
+    const float depthFraction = PickUp ? Render::Items::Preview::PickedItemDepthFraction
+                                       : Render::Items::Preview::ItemDepthFraction;
+    const std::optional<Render::Items::Preview::Placement> placement =
+        Render::Items::Preview::ComputePlacement(Type, Level, Width, Height, clampedFill, depthFraction);
+
+    if (!placement || !IsPlausibleMeasuredScale(Type, placement->scale, fallbackScale))
+    {
+        RenderItem3DScaled(sx, sy, Width, Height, Type, Level, excellentFlags, ancientDiscriminator, fallbackScale,
+                           PickUp);
+        return;
+    }
+
+    // RenderItem3D places the model's authored origin at its authored anchor inside the rectangle it is
+    // given. The silhouette is centred by moving that rectangle (same size, so the anchor logic and the
+    // hover test are unchanged) rather than by overriding the anchor.
+    RenderItem3DScaled(sx + placement->shiftX, sy + placement->shiftY, Width, Height, Type, Level, excellentFlags,
+                       ancientDiscriminator, placement->scale, PickUp);
 }
 
 void InventoryColor(ITEM* p)

@@ -1305,6 +1305,27 @@ void BMD::EndRenderCoinHeap(int coinCount)
     mu::GetRenderer().RenderTriangles(muVerts, 0u);
 }
 
+bool BMD::IsMeshDrawn(int meshIndex, bool hideSkin) const
+{
+    // Mirrors the early-outs at the top of RenderMesh() and the scripted-hidden check in RenderBody();
+    // keep them in step.
+    if (meshIndex < 0 || meshIndex >= NumMeshs)
+        return false;
+
+    const Mesh_t* m = &Meshs[meshIndex];
+    if (m->NumTriangles == 0)
+        return false;
+    if (m->m_csTScript != nullptr && m->m_csTScript->getHiddenMesh())
+        return false;
+
+    const int textureIndex = IndexTexture[m->Texture];
+    if (textureIndex == BITMAP_HIDE)
+        return false;
+
+    const auto texture = Bitmaps.GetTexture(textureIndex);
+    return !(hideSkin && (texture->IsSkin || texture->IsHair));
+}
+
 void BMD::RenderMesh(int meshIndex, int renderFlags, float alpha, int blendMeshIndex, float blendMeshAlpha, float blendMeshTextureCoordU, float blendMeshTextureCoordV, int explicitTextureIndex)
 {
     if (meshIndex >= NumMeshs || meshIndex < 0) return;
