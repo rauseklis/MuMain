@@ -146,3 +146,37 @@ TEST_CASE("the common create failures say what to do about them [ui][auction_sel
     CHECK(std::wstring(DescribeCreateResult(AuctionResult::ItemNotEligible)).find(L"cannot be sold") != std::wstring::npos);
     CHECK(std::wstring(DescribeCreateResult(AuctionResult::ListingLimitReached)).find(L"limit") != std::wstring::npos);
 }
+
+TEST_CASE("every bid, buyout and cancel result has a message [ui][auction_sell]")
+{
+    for (const auto type : { AuctionOperationType::Bid, AuctionOperationType::Buyout, AuctionOperationType::Cancel })
+    {
+        for (uint32_t value = 0; value <= static_cast<uint32_t>(AuctionResult::ServiceUnavailable); ++value)
+        {
+            const wchar_t* text = DescribeOperationResult(type, static_cast<AuctionResult>(value));
+            REQUIRE(text != nullptr);
+            CHECK(text[0] != L'\0');
+        }
+    }
+}
+
+TEST_CASE("bid failures say why the bid did not go through [ui][auction_sell]")
+{
+    CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Bid, AuctionResult::Success)) == L"Bid placed.");
+    CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Bid, AuctionResult::BidTooLow)).find(L"too low") != std::wstring::npos);
+    CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Bid, AuctionResult::AlreadyHighestBidder)).find(L"highest") != std::wstring::npos);
+    CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Bid, AuctionResult::SelfTrade)).find(L"own") != std::wstring::npos);
+}
+
+TEST_CASE("a purchase and a cancellation point the player to the Mailbox [ui][auction_sell]")
+{
+    CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Buyout, AuctionResult::Success)).find(L"Mailbox") != std::wstring::npos);
+    CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Cancel, AuctionResult::Success)).find(L"Mailbox") != std::wstring::npos);
+    CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Cancel, AuctionResult::CannotCancelWithBid)).find(L"bids") != std::wstring::npos);
+}
+
+TEST_CASE("a create result is described the same through the general function [ui][auction_sell]")
+{
+    CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Create, AuctionResult::InsufficientCurrency))
+        == std::wstring(DescribeCreateResult(AuctionResult::InsufficientCurrency)));
+}

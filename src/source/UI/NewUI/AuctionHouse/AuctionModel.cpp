@@ -406,6 +406,64 @@ namespace AuctionHouse
         }
     }
 
+    const wchar_t* DescribeOperationResult(AuctionOperationType type, AuctionResult result) noexcept
+    {
+        if (type == AuctionOperationType::Create)
+        {
+            return DescribeCreateResult(result);
+        }
+
+        // Reasons that mean the same thing whatever the player was trying to do.
+        switch (result)
+        {
+        case AuctionResult::Disabled: return L"The Auction House is closed right now.";
+        case AuctionResult::StateRestricted: return L"You cannot do that right now.";
+        case AuctionResult::LevelTooLow: return L"Your character level is too low.";
+        case AuctionResult::AccountTooNew: return L"Your account is too new to use the Auction House.";
+        case AuctionResult::AccountRestricted: return L"Your account may not use the Auction House.";
+        case AuctionResult::RateLimited: return L"Please wait a moment and try again.";
+        case AuctionResult::ServiceUnavailable: return L"The Auction House is unavailable. Try again shortly.";
+        case AuctionResult::StaleListing: return L"The listing changed. Review it and try again.";
+        case AuctionResult::ListingNotFound: return L"This listing no longer exists.";
+        case AuctionResult::ListingNotActive:
+        case AuctionResult::ListingExpired: return L"This listing has ended.";
+        case AuctionResult::AlreadyProcessed: return L"That was already done.";
+        default: break;
+        }
+
+        switch (type)
+        {
+        case AuctionOperationType::Bid:
+            switch (result)
+            {
+            case AuctionResult::Success: return L"Bid placed.";
+            case AuctionResult::BidTooLow: return L"Your bid is too low.";
+            case AuctionResult::AlreadyHighestBidder: return L"You are already the highest bidder.";
+            case AuctionResult::SelfTrade: return L"You cannot bid on your own listing.";
+            case AuctionResult::InsufficientCurrency: return L"You do not have enough for that bid.";
+            default: return L"The bid could not be placed.";
+            }
+        case AuctionOperationType::Buyout:
+            switch (result)
+            {
+            case AuctionResult::Success: return L"Purchased. Collect your item from the Mailbox.";
+            case AuctionResult::BuyoutUnavailable: return L"This listing has no buyout.";
+            case AuctionResult::SelfTrade: return L"You cannot buy your own listing.";
+            case AuctionResult::InsufficientCurrency: return L"You do not have enough to buy this.";
+            default: return L"The purchase could not be completed.";
+            }
+        case AuctionOperationType::Cancel:
+            switch (result)
+            {
+            case AuctionResult::Success: return L"Listing cancelled. The item is in your Mailbox.";
+            case AuctionResult::CannotCancelWithBid: return L"A listing with bids cannot be cancelled.";
+            default: return L"The listing could not be cancelled.";
+            }
+        default:
+            return result == AuctionResult::Success ? L"Done." : L"That could not be completed.";
+        }
+    }
+
     std::optional<std::vector<PriceChipPlacement>> PackPriceChips(
         const std::vector<int>& chipWidths, int lineWidth, int gap, int maxLines)
     {

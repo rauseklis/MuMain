@@ -1713,6 +1713,7 @@ void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::Auc
 
         m_bHasOperationResult = true;
         m_LastOperationResult = response.Result;
+        m_LastOperationMessage = AuctionHouse::DescribeOperationResult(response.OperationType, result);
         return;
     }
 
@@ -1727,6 +1728,7 @@ void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::Auc
 
     m_bHasOperationResult = true;
     m_LastOperationResult = result;
+    m_LastOperationMessage = AuctionHouse::DescribeOperationResult(response.OperationType, result);
 }
 
 void SEASON3B::CNewUIAuctionWindow::ReleaseRowItems()
@@ -2898,8 +2900,11 @@ void SEASON3B::CNewUIAuctionWindow::RenderOperationButtons()
             g_pRenderText->SetFont(g_hFont);
             g_pRenderText->SetTextColor(succeeded ? 120 : 255, succeeded ? 220 : 90, 120, 255);
             g_pRenderText->SetBgColor(0, 0, 0, 0);
+            const wchar_t* message = m_LastOperationMessage.empty()
+                ? (succeeded ? I18N::Game::Success : I18N::Game::Failed)
+                : m_LastOperationMessage.c_str();
             g_pRenderText->RenderText((float)m_Pos.x, (float)(m_Pos.y + OPERATION_RESULT_Y_OFFSET),
-                succeeded ? I18N::Game::Success : I18N::Game::Failed, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
+                message, (float)WINDOW_WIDTH, 0, RT3_SORT_CENTER);
         }
         return;
     }
