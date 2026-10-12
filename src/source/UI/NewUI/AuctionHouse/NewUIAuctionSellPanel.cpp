@@ -781,9 +781,18 @@ void CNewUIAuctionSellPanel::RenderPricePanel()
         static_cast<float>(m_Pos.y + PRICE_PANEL_Y), static_cast<float>(CONTENT_WIDTH),
         static_cast<float>(PRICE_PANEL_HEIGHT), CARD_TINT);
 
-    RenderLabel(auction ? L"Bidders compete in one currency. A buyout is optional."
-                     : L"A fixed price in up to five currencies, bought at once. No bidding.",
-        m_Pos.x + PRICE_LABEL_X, m_Pos.y + PRICE_DESCRIPTION_Y, CONTENT_WIDTH - 16, MUTED_COLOUR, false);
+    // Buy Now says so up front when the server cannot take it yet, instead of letting the player fill it in first.
+    if (!auction && !m_bBuyNowSupported)
+    {
+        RenderLabel(L"Buy Now listings are not available on this server yet.", m_Pos.x + PRICE_LABEL_X,
+            m_Pos.y + PRICE_DESCRIPTION_Y, CONTENT_WIDTH - 16, NOTICE_COLOUR, true);
+    }
+    else
+    {
+        RenderLabel(auction ? L"Bidders compete in one currency. A buyout is optional."
+                            : L"A fixed price in up to five currencies, bought at once. No bidding.",
+            m_Pos.x + PRICE_LABEL_X, m_Pos.y + PRICE_DESCRIPTION_Y, CONTENT_WIDTH - 16, MUTED_COLOUR, false);
+    }
 
     if (auction)
     {
@@ -824,12 +833,6 @@ void CNewUIAuctionSellPanel::RenderPricePanel()
     if (m_RowCount < MaxRows)
     {
         m_BtnAdd.Render();
-    }
-
-    if (!m_bBuyNowSupported)
-    {
-        RenderLabel(L"Buy Now listings are not available on this server yet.", m_Pos.x + PRICE_LABEL_X,
-            m_Pos.y + PRICE_PANEL_Y + PRICE_PANEL_HEIGHT - 16, CONTENT_WIDTH - 16, NOTICE_COLOUR, false);
     }
 }
 
