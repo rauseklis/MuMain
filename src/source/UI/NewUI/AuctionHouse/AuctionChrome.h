@@ -4,10 +4,7 @@
 
 typedef struct tagITEM ITEM;
 
-namespace AuctionHouse
-{
-enum class PriceKind;
-}
+#include "UI/NewUI/AuctionHouse/AuctionModel.h"
 
 // The look the Auction House shares between its window and its panels: the nine-slice skins, the rounded item slot
 // and the colours an item's rarity gives its name and slot ring. Pure drawing helpers with no window state.
@@ -31,4 +28,7 @@ void RenderAuctionItemSlot(int x, int y, int size, DWORD tint);
 
 // Short name of a price kind, for places with no icon to carry its identity.
 const wchar_t* PriceKindName(AuctionHouse::PriceKind kind);
+
+// A price spelled out in words, for places with room for a sentence rather than chips: "4 Bless, 2 Soul".
+std::wstring PriceSummaryText(AuctionCurrencyMode currency, const AuctionHouse::AuctionAmount& amount);
 } // namespace UI::AuctionChrome

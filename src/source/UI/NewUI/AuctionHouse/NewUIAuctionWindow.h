@@ -13,6 +13,7 @@
 #include "UI/Legacy/UIControls.h"
 #include "Guild/NewUIGuildInfoWindow.h"
 #include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
+#include "UI/NewUI/AuctionHouse/NewUIAuctionSellPanel.h"
 #include "Core/Globals/_TextureIndex.h"
 
 namespace SEASON3B
@@ -133,7 +134,7 @@ namespace SEASON3B
         void LeaveSellTab();
         void CaptureSellSelection();
         void ValidateSellSelection();
-        void RenderSellTab();
+        void SendCreateRequest(const AuctionHouse::SellDraft& draft, const std::wstring& note);
         void RenderSellItemTooltip() const;
         void RebuildRowItems();
         void ReleaseRowItems();
@@ -188,6 +189,8 @@ namespace SEASON3B
         BYTE m_SellInventorySlot;
         ITEM m_SellItemSnapshot;
         bool m_bPointingSellItem;
+        // The Sell tab's price/duration/note form; the window only supplies the picked item and sends its request.
+        CNewUIAuctionSellPanel m_SellPanel;
 
         // Synced from whichever response arrives most recently (Open or Browse both carry ServerTime), so the
         // Browse tab's countdown can tick down locally between responses instead of only updating on the next

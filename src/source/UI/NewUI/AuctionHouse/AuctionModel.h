@@ -274,6 +274,9 @@ namespace AuctionHouse
     // that one fruit. A buy-now draft has no representation yet and yields nothing.
     [[nodiscard]] std::optional<CreateFields> ToCreateFields(const SellDraft& draft);
 
+    // The message shown to the seller for the outcome of a create-listing request.
+    [[nodiscard]] const wchar_t* DescribeCreateResult(AuctionResult result) noexcept;
+
     // Tracks the offset between the server's reported time (seconds, from a response's ServerTime field) and
     // this client's own GetTickCount()-style local tick clock, so a listing's remaining time can tick down
     // locally between responses instead of only updating on the next server reply. Local tick values are

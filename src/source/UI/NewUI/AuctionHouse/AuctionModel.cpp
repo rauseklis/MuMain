@@ -380,6 +380,32 @@ namespace AuctionHouse
         return fields;
     }
 
+    const wchar_t* DescribeCreateResult(AuctionResult result) noexcept
+    {
+        switch (result)
+        {
+        case AuctionResult::Success: return L"Listing created.";
+        case AuctionResult::Disabled: return L"The Auction House is closed right now.";
+        case AuctionResult::StateRestricted: return L"You cannot list items right now.";
+        case AuctionResult::LevelTooLow: return L"Your character level is too low to sell here.";
+        case AuctionResult::AccountTooNew: return L"Your account is too new to sell here.";
+        case AuctionResult::AccountRestricted: return L"Your account may not use the Auction House.";
+        case AuctionResult::RateLimited: return L"Please wait a moment before listing again.";
+        case AuctionResult::InvalidDuration: return L"That duration is not available.";
+        case AuctionResult::UnsupportedCurrency:
+        case AuctionResult::CurrencyConfigurationInvalid: return L"That currency cannot be used right now.";
+        case AuctionResult::InvalidPrice:
+        case AuctionResult::InvalidFruitBasket: return L"That price is not allowed. Check the amounts.";
+        case AuctionResult::ItemNotFound: return L"The item is no longer in your inventory.";
+        case AuctionResult::ItemNotEligible: return L"This item cannot be sold at the Auction House.";
+        case AuctionResult::ListingLimitReached: return L"You have reached your active listing limit.";
+        case AuctionResult::InsufficientCurrency: return L"You cannot afford the listing fee.";
+        case AuctionResult::AlreadyProcessed: return L"That listing was already created.";
+        case AuctionResult::ServiceUnavailable: return L"The Auction House is unavailable. Try again shortly.";
+        default: return L"The listing could not be created.";
+        }
+    }
+
     std::optional<std::vector<PriceChipPlacement>> PackPriceChips(
         const std::vector<int>& chipWidths, int lineWidth, int gap, int maxLines)
     {

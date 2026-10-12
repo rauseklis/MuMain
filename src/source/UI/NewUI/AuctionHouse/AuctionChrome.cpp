@@ -152,4 +152,25 @@ const wchar_t* PriceKindName(AuctionHouse::PriceKind kind)
         L"Harmony", L"Str", L"Agi", L"Vit", L"Ene", L"Cmd" };
     return names[static_cast<size_t>(kind)];
 }
+
+// A price spelled out in words, for places with room for a sentence rather than chips: "4 Bless, 2 Soul".
+std::wstring PriceSummaryText(AuctionCurrencyMode currency, const AuctionHouse::AuctionAmount& amount)
+{
+    const auto components = AuctionHouse::PriceComponentsOf(currency, amount);
+    if (components.empty())
+    {
+        return L"-";
+    }
+
+    std::wstring text;
+    for (size_t i = 0; i < components.size(); ++i)
+    {
+        if (i != 0)
+        {
+            text += L", ";
+        }
+        text += std::to_wstring(components[i].amount) + L" " + PriceKindName(components[i].kind);
+    }
+    return text;
+}
 } // namespace UI::AuctionChrome

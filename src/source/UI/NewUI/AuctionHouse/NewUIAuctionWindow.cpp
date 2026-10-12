@@ -42,6 +42,9 @@ namespace
     constexpr int CLOSE_BTN_WIDTH = 36;
     constexpr int CLOSE_BTN_HEIGHT = 29;
     constexpr int CLOSE_BTN_MARGIN = 8;
+    // Whether the server's create packet can carry a buy-now (mixed-price) listing yet. It cannot until the
+    // mixed-price protocol lands; the Sell tab shows the mode but refuses to send it.
+    constexpr bool BUY_NOW_SUPPORTED = false;
     constexpr int BROWSE_BODY_X = 11;
     constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 27;
     constexpr int TOOLBAR_X = 11;
@@ -737,27 +740,6 @@ namespace
         }
     }
 
-    // A price spelled out in words, for places with room for a sentence rather than chips: "4 Bless, 2 Soul".
-    std::wstring PriceSummaryText(AuctionCurrencyMode currency, const AuctionHouse::AuctionAmount& amount)
-    {
-        const auto components = AuctionHouse::PriceComponentsOf(currency, amount);
-        if (components.empty())
-        {
-            return L"-";
-        }
-
-        std::wstring text;
-        for (size_t i = 0; i < components.size(); ++i)
-        {
-            if (i != 0)
-            {
-                text += L", ";
-            }
-            text += std::to_wstring(components[i].amount) + L" " + PriceKindName(components[i].kind);
-        }
-        return text;
-    }
-
     const wchar_t* ListingStatusText(AuctionListingStatus status)
     {
         switch (status)
@@ -975,6 +957,7 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN,
         m_Pos.y + BROWSE_BODY_Y + BROWSE_SCROLLBAR_TOP_INSET, BROWSE_SCROLLBAR_HEIGHT);
     m_BrowseScrollBar.Show(false);
+    m_SellPanel.Create(m_Pos.x, m_Pos.y, BUY_NOW_SUPPORTED);
 
     Show(false);
 
@@ -1063,6 +1046,7 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
     m_BrowseScrollBar.SetPos(m_Pos.x + windowWidth - BROWSE_SCROLLBAR_RIGHT_MARGIN,
         m_Pos.y + BROWSE_BODY_Y + BROWSE_SCROLLBAR_TOP_INSET);
     m_BrowseScrollBar.UpdateScrolling();
+    m_SellPanel.SetPos(m_Pos.x, m_Pos.y);
     if (m_iCurrentTab == TAB_SELL && m_bOpenedInventoryForSell)
     {
         g_pMyInventory->SetPos(m_Pos.x + windowWidth + 10, m_Pos.y);
@@ -1090,6 +1074,8 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     m_bOpenedInventoryForSell = false;
     m_bHasSellItem = false;
     m_bPointingSellItem = false;
+    m_SellPanel.ClearForm();
+    m_SellPanel.SetActive(false);
     m_SearchInput.SetText(L"");
     m_SearchInput.SetState(UISTATE_NORMAL);
     m_MinimumLevelInput.SetText(L"");
@@ -1377,6 +1363,48 @@ void SEASON3B::CNewUIAuctionWindow::SendBuyoutRequest()
         m_DetailResponse.ListingId, m_DetailResponse.Version);
 }
 
+void SEASON3B::CNewUIAuctionWindow::SendCreateRequest(const AuctionHouse::SellDraft& draft, const std::wstring& note)
+{
+    if (!m_bHasSellItem || m_bOperationRequestPending)
+    {
+        return;
+    }
+
+    // The create packet has one currency mode with a scalar or fruit-basket price, so only an auction maps onto it
+    // today. The panel already refuses to submit anything else; this is the backstop.
+    const auto fields = AuctionHouse::ToCreateFields(draft);
+    if (!fields)
+    {
+        m_SellPanel.ShowResult(false, L"Buy Now listings are not available on this server yet.");
+        return;
+    }
+
+    std::string noteUtf8;
+    mu_wchar_to_utf8(note.c_str(), noteUtf8);
+    noteUtf8 = AuctionHouse::ClampUtf8ToByteCapacity(noteUtf8, 80);
+
+    m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
+    m_bOperationRequestPending = true;
+    m_bHasOperationResult = false;
+    m_SellPanel.SetBusy(true);
+
+    const auto& starting = fields->starting.Fruits();
+    const auto& buyout = fields->buyout.Fruits();
+    SocketClient->ToGameServer()->SendAuctionCreateRequest(
+        m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()), m_SellInventorySlot,
+        fields->currencyMode,
+        static_cast<uint32_t>(fields->starting.Scalar()),
+        static_cast<uint32_t>(starting.Strength), static_cast<uint32_t>(starting.Agility),
+        static_cast<uint32_t>(starting.Vitality), static_cast<uint32_t>(starting.Energy),
+        static_cast<uint32_t>(starting.Command),
+        static_cast<uint32_t>(fields->buyout.Scalar()),
+        static_cast<uint32_t>(buyout.Strength), static_cast<uint32_t>(buyout.Agility),
+        static_cast<uint32_t>(buyout.Vitality), static_cast<uint32_t>(buyout.Energy),
+        static_cast<uint32_t>(buyout.Command),
+        draft.durationHours, static_cast<BYTE>(noteUtf8.size()),
+        reinterpret_cast<const BYTE*>(noteUtf8.data()), static_cast<uint32_t>(noteUtf8.size()));
+}
+
 void SEASON3B::CNewUIAuctionWindow::RequestCancelConfirmation()
 {
     if (m_iCurrentTab != TAB_MY_LISTINGS || !m_bShowingDetail || !m_bHasDetailResponse || m_bOperationRequestPending
@@ -1534,6 +1562,24 @@ void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::Auc
     m_bOperationRequestPending = false;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     const AuctionResult result = response.Result;
+
+    if (response.OperationType == AuctionOperationType::Create)
+    {
+        m_SellPanel.SetBusy(false);
+        const bool created = result == AuctionResult::Success;
+        m_SellPanel.ShowResult(created, AuctionHouse::DescribeCreateResult(result));
+        if (created)
+        {
+            // The item left the inventory and the fee left the wallet: forget the picked item and refresh the
+            // wallet and Mailbox count from the server instead of adjusting them locally.
+            m_bHasSellItem = false;
+            m_bPointingSellItem = false;
+            m_PendingOpenRequestId = AuctionHouse::NextAuctionRequestId();
+            m_bOpenRequestPending = true;
+            SocketClient->ToGameServer()->SendAuctionOpenRequest(m_PendingOpenRequestId);
+        }
+        return;
+    }
 
     if (response.OperationType == AuctionOperationType::Collect)
     {
@@ -1780,11 +1826,14 @@ void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionO
     m_OpenResponse = response;
     m_PendingMailboxCount = response.PendingMailboxCount;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
+    m_SellPanel.SetServerSettings(response.ListingFeeBasisPoints, response.SuccessFeeBasisPoints, response.DurationMask,
+        response.DefaultDurationHours);
 }
 
 void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
 {
     LeaveSellTab();
+    m_SellPanel.SetActive(false);
     m_bDragging = false;
     m_SearchInput.SetState(UISTATE_HIDE);
     SetCollectionClaimInputsVisible(false);
@@ -1924,6 +1973,15 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         g_pNewUISystem->Hide(SEASON3B::INTERFACE_AUCTION_HOUSE);
         PlayBuffer(SOUND_CLICK01);
         return true;
+    }
+
+    if (m_iCurrentTab == TAB_SELL)
+    {
+        const bool handled = m_SellPanel.UpdateMouseEvent();
+        // Keys go to whichever input has focus (the Sell tab has no other text field), or back to the game.
+        const HWND focusedInput = m_SellPanel.FocusedInputHandle();
+        SetRelatedWnd(focusedInput != nullptr ? focusedInput : g_hWnd);
+        return handled;
     }
 
     if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX) && m_bShowingDetail)
@@ -2168,6 +2226,24 @@ bool SEASON3B::CNewUIAuctionWindow::UpdateKeyEvent()
 {
     if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_AUCTION_HOUSE) == true)
     {
+        if (m_iCurrentTab == TAB_SELL && m_SellPanel.HasInputFocus())
+        {
+            if (SEASON3B::IsPress(VK_RETURN) == true)
+            {
+                m_SellPanel.RequestCreate();
+                m_SellPanel.ReleaseInputFocus();
+                SetRelatedWnd(g_hWnd);
+                return false;
+            }
+            if (SEASON3B::IsPress(VK_ESCAPE) == true)
+            {
+                m_SellPanel.ReleaseInputFocus();
+                SetRelatedWnd(g_hWnd);
+                return false;
+            }
+            return true;
+        }
+
         if (HasCollectionClaimInputFocus())
         {
             if (SEASON3B::IsPress(VK_RETURN) == true)
@@ -2261,6 +2337,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             m_bHasOperationResult = false;
             m_LastOperationMessage.clear();
             ReleaseDetailItem();
+            m_SellPanel.SetActive(m_iCurrentTab == TAB_SELL);
             m_SearchInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
             m_MinimumLevelInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
             m_MaximumLevelInput.SetState(m_iCurrentTab == TAB_BROWSE ? UISTATE_NORMAL : UISTATE_HIDE);
@@ -2332,9 +2409,16 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         {
             CaptureSellSelection();
             ValidateSellSelection();
-            const int iconX = m_Pos.x + SELL_PANEL_X + SELL_ICON_MARGIN;
-            const int iconY = m_Pos.y + SELL_PANEL_Y + (SELL_PANEL_HEIGHT - SELL_ICON_SIZE) / 2;
-            m_bPointingSellItem = m_bHasSellItem && CheckMouseIn(iconX, iconY, SELL_ICON_SIZE, SELL_ICON_SIZE);
+            m_SellPanel.SetItemSelected(m_bHasSellItem);
+            m_SellPanel.SetBusy(m_bOperationRequestPending);
+            m_bPointingSellItem = m_SellPanel.IsMouseOverItemIcon();
+
+            AuctionHouse::SellDraft draft;
+            std::wstring note;
+            if (m_SellPanel.TakeCreateRequest(draft, note))
+            {
+                SendCreateRequest(draft, note);
+            }
         }
         if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS || m_iCurrentTab == TAB_MAILBOX) && m_bShowingDetail)
         {
@@ -2507,7 +2591,7 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
     }
     else if (m_iCurrentTab == TAB_SELL)
     {
-        RenderSellTab();
+        m_SellPanel.Render(m_bHasSellItem ? &m_SellItemSnapshot : nullptr);
     }
 
     DisableAlphaBlend();
@@ -2761,11 +2845,13 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
     {
         if (m_bHasSellItem)
         {
-            const int iconX = m_Pos.x + SELL_PANEL_X + SELL_ICON_MARGIN;
-            const int iconY = m_Pos.y + SELL_PANEL_Y + (SELL_PANEL_HEIGHT - SELL_ICON_SIZE) / 2;
-            RenderItem3D((float)iconX, (float)iconY, (float)SELL_ICON_SIZE, (float)SELL_ICON_SIZE,
+            int iconX = 0;
+            int iconY = 0;
+            int iconSize = 0;
+            m_SellPanel.GetItemIconRect(iconX, iconY, iconSize);
+            RenderItem3DFittedToSlot((float)iconX, (float)iconY, (float)iconSize, (float)iconSize,
                 m_SellItemSnapshot.Type, m_SellItemSnapshot.Level, m_SellItemSnapshot.ExcellentFlags,
-                m_SellItemSnapshot.AncientDiscriminator, false);
+                m_SellItemSnapshot.AncientDiscriminator, BROWSE_ICON_FILL, false);
         }
 
         if (m_bPointingSellItem && m_pNewUI3DRenderMng)
@@ -2867,52 +2953,6 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
     }
 }
 
-void SEASON3B::CNewUIAuctionWindow::RenderSellTab()
-{
-    const int panelX = m_Pos.x + SELL_PANEL_X;
-    const int panelY = m_Pos.y + SELL_PANEL_Y;
-
-    EnableAlphaTest();
-    RenderColorQuadARGB(panelX, panelY, SELL_PANEL_WIDTH, SELL_PANEL_HEIGHT, ARGB(150, 18, 18, 18));
-    RenderColorQuadARGB(panelX, panelY, SELL_PANEL_WIDTH, 1, BROWSE_GRID_COLOR);
-    RenderColorQuadARGB(panelX, panelY + SELL_PANEL_HEIGHT - 1, SELL_PANEL_WIDTH, 1, BROWSE_GRID_COLOR);
-    RenderColorQuadARGB(panelX, panelY, 1, SELL_PANEL_HEIGHT, BROWSE_GRID_COLOR);
-    RenderColorQuadARGB(panelX + SELL_PANEL_WIDTH - 1, panelY, 1, SELL_PANEL_HEIGHT, BROWSE_GRID_COLOR);
-    EndRenderColor();
-
-    g_pRenderText->SetBgColor(0, 0, 0, 0);
-    if (!m_bHasSellItem)
-    {
-        g_pRenderText->SetFont(g_hFontBold);
-        g_pRenderText->SetTextColor(218, 186, 104, 255);
-        g_pRenderText->RenderText((float)(panelX + 12), (float)(panelY + 22), I18N::Game::AuctionSelectItem,
-            (float)(SELL_PANEL_WIDTH - 24), 0, RT3_SORT_CENTER);
-        g_pRenderText->SetFont(g_hFont);
-        g_pRenderText->SetTextColor(185, 185, 185, 255);
-        g_pRenderText->RenderText((float)(panelX + 12), (float)(panelY + 48), I18N::Game::AuctionSelectItemHint,
-            (float)(SELL_PANEL_WIDTH - 24), 0, RT3_SORT_CENTER);
-        return;
-    }
-
-    const int textX = panelX + SELL_ICON_MARGIN + SELL_ICON_SIZE + 14;
-    const int textWidth = SELL_PANEL_WIDTH - (textX - panelX) - 12;
-    g_pRenderText->SetFont(g_hFontBold);
-    g_pRenderText->SetTextColor(218, 186, 104, 255);
-    g_pRenderText->RenderText((float)textX, (float)(panelY + 17), I18N::Game::AuctionSelectedItem,
-        (float)textWidth, 0, RT3_SORT_LEFT);
-
-    SetBrowseItemNameColor(&m_SellItemSnapshot);
-    const std::wstring itemName = GetItemDisplayName(&m_SellItemSnapshot);
-    g_pRenderText->RenderText((float)textX, (float)(panelY + 39), itemName.c_str(),
-        (float)textWidth, 0, RT3_SORT_LEFT);
-
-    const std::wstring slotText = std::wstring(I18N::Game::AuctionInventorySlot) + L": " + std::to_wstring(m_SellInventorySlot);
-    g_pRenderText->SetFont(g_hFont);
-    g_pRenderText->SetTextColor(175, 175, 175, 255);
-    g_pRenderText->RenderText((float)textX, (float)(panelY + 61), slotText.c_str(),
-        (float)textWidth, 0, RT3_SORT_LEFT);
-}
-
 void SEASON3B::CNewUIAuctionWindow::RenderSellItemTooltip() const
 {
     if (!m_bHasSellItem)
@@ -2920,10 +2960,11 @@ void SEASON3B::CNewUIAuctionWindow::RenderSellItemTooltip() const
         return;
     }
 
-    const int iconX = m_Pos.x + SELL_PANEL_X + SELL_ICON_MARGIN;
-    const int iconY = m_Pos.y + SELL_PANEL_Y + (SELL_PANEL_HEIGHT - SELL_ICON_SIZE) / 2;
-    RenderItemInfo(iconX + SELL_ICON_SIZE / 2, iconY + SELL_ICON_SIZE / 2,
-        const_cast<ITEM*>(&m_SellItemSnapshot), false);
+    int iconX = 0;
+    int iconY = 0;
+    int iconSize = 0;
+    m_SellPanel.GetItemIconRect(iconX, iconY, iconSize);
+    RenderItemInfo(iconX + iconSize / 2, iconY + iconSize / 2, const_cast<ITEM*>(&m_SellItemSnapshot), false);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()

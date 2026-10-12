@@ -128,3 +128,21 @@ TEST_CASE("the fee for a sell draft is the listing fee on its starting price [ui
     CHECK(ComputeAuctionFee(zen->starting, 100).Scalar() == 2500);
     CHECK(ComputeAuctionFee(bless->starting, 100).Scalar() == 1);
 }
+
+TEST_CASE("every create result has a message for the seller [ui][auction_sell]")
+{
+    for (uint32_t value = 0; value <= static_cast<uint32_t>(AuctionResult::ServiceUnavailable); ++value)
+    {
+        const wchar_t* text = DescribeCreateResult(static_cast<AuctionResult>(value));
+        REQUIRE(text != nullptr);
+        CHECK(text[0] != L'\0');
+    }
+}
+
+TEST_CASE("the common create failures say what to do about them [ui][auction_sell]")
+{
+    CHECK(std::wstring(DescribeCreateResult(AuctionResult::Success)) == L"Listing created.");
+    CHECK(std::wstring(DescribeCreateResult(AuctionResult::InsufficientCurrency)).find(L"fee") != std::wstring::npos);
+    CHECK(std::wstring(DescribeCreateResult(AuctionResult::ItemNotEligible)).find(L"cannot be sold") != std::wstring::npos);
+    CHECK(std::wstring(DescribeCreateResult(AuctionResult::ListingLimitReached)).find(L"limit") != std::wstring::npos);
+}
