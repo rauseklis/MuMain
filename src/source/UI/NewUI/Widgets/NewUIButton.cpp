@@ -5,6 +5,7 @@
 #include "stdafx.h"
 
 #include "UI/NewUI/Widgets/NewUIButton.h"
+#include "UI/NewUI/Widgets/NineSlice.h"
 #include "UI/Legacy/UIControls.h"
 #include "Render/Sprites/GlobalBitmap.h"
 #include "Render/Textures/ZzzTexture.h"
@@ -285,6 +286,33 @@ void SEASON3B::CNewUIButton::ChangeButtonInfo(int x, int y, int sx, int sy)
     SetSize(sx, sy);
 }
 
+void SEASON3B::CNewUIButton::SetNineSliceSkin(const UI::NineSlice::ButtonSkin* skin)
+{
+    m_pSkin = skin;
+}
+
+void SEASON3B::CNewUIButton::RenderSkinnedFrame()
+{
+    const UI::NineSlice::StateTints& tints = m_pSkin->tints;
+
+    unsigned int tint = tints.normal;
+    if (IsLock())
+    {
+        tint = tints.locked;
+    }
+    else if (GetBTState() == BUTTON_STATE_DOWN)
+    {
+        tint = tints.pressed;
+    }
+    else if (GetBTState() == BUTTON_STATE_OVER)
+    {
+        tint = tints.hover;
+    }
+
+    UI::NineSlice::Render(m_pSkin->texture, static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y),
+        static_cast<float>(m_Size.x), static_cast<float>(m_Size.y), tint);
+}
+
 void SEASON3B::CNewUIButton::RegisterButtonState(BUTTON_STATE eventstate, int imgindex, int btstate)
 {
     ButtonInfo btinfo;
@@ -435,7 +463,11 @@ void SEASON3B::CNewUIButton::UnLock()
 
 bool SEASON3B::CNewUIButton::Render(bool RendOption)
 {
-    if (!m_ButtonInfo.empty())
+    if (m_pSkin != nullptr)
+    {
+        RenderSkinnedFrame();
+    }
+    else if (!m_ButtonInfo.empty())
     {
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         if (RendOption == true)
@@ -461,6 +493,10 @@ bool SEASON3B::CNewUIButton::Render(bool RendOption)
 
         int x = m_Pos.x + ((m_Size.x / 2) - (Fontsize.cx / 2));
         int y = m_Pos.y + ((m_Size.y / 2) - (Fontsize.cy / 2));
+        if (m_pSkin != nullptr && !IsLock() && GetBTState() == BUTTON_STATE_DOWN)
+        {
+            ++y;
+        }
 
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         if ((m_bClickEffect == true) && (GetBTState() == BUTTON_STATE_DOWN))

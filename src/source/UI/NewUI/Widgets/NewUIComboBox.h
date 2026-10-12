@@ -4,6 +4,11 @@
 
 #pragma once
 
+namespace UI::NineSlice
+{
+    struct ButtonSkin;
+}
+
 namespace SEASON3B
 {
     /**
@@ -57,6 +62,13 @@ namespace SEASON3B
         void Close() { m_bOpen = false; }
 
         /**
+         * @brief Draws the closed field from a nine-slice skin (tinted idle/hover/open) with a vector
+         * chevron instead of the flat shaded rectangle and text arrow. The skin outlives the combo;
+         * nullptr restores the default look. The expanded list is unaffected.
+         */
+        void SetFieldSkin(const UI::NineSlice::ButtonSkin* skin) { m_pFieldSkin = skin; }
+
+        /**
          * @brief True if the mouse is over the closed combo or (when open) over any
          * part of the expanded dropdown list. The owner should consume clicks in
          * this region so the overflowing dropdown doesn't leak to other UI or the
@@ -86,6 +98,7 @@ namespace SEASON3B
         int m_ItemCount = 0;
         int m_SelectedIndex = 0;
         bool m_bOpen = false;
+        const UI::NineSlice::ButtonSkin* m_pFieldSkin = nullptr;
 
         // Scrolling
         int m_MaxVisibleItems = 0;  // 0 = show all, no scrollbar
@@ -100,5 +113,8 @@ namespace SEASON3B
         int  GetItemIndexAtMouse() const;   // -1 if no visible item hit
         void ClampScrollOffset();
         void ScrollToShowIndex(int idx);    // Ensure `idx` is in the visible window
+        void RenderClosedField();
+        void RenderSkinnedField(bool hovered);
+        void RenderChevron();
     };
 }

@@ -13,6 +13,7 @@
 #include "Network/Server/WSclient.h"
 #include "Network/Server/SocketSystem.h"
 #include "Core/Text/Utf8.h"
+#include "UI/NewUI/Widgets/NineSlice.h"
 
 #include <algorithm>
 
@@ -24,7 +25,7 @@ namespace
     constexpr int TAB_REGION_Y = 40;
     // A compact, equal-width tab cluster leaves the title bar's close control unobstructed. The widest label
     // ("My Listings") still has symmetrical horizontal padding, and every tab shares this exact width.
-    constexpr int TAB_WIDTH = 80;
+    constexpr int TAB_WIDTH = 88;
     // Treat the four views as one compact navigation group. The old 14-pixel gaps made four related
     // choices look like isolated buttons and wasted the most legible part of the window.
     constexpr int TAB_GAP = 6;
@@ -39,44 +40,61 @@ namespace
     constexpr int CLOSE_BTN_WIDTH = 36;
     constexpr int CLOSE_BTN_HEIGHT = 29;
     constexpr int CLOSE_BTN_MARGIN = 8;
+    constexpr int BROWSE_BODY_X = 11;
+    constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 27;
     constexpr int TOOLBAR_X = 11;
-    constexpr int TOOLBAR_Y = 69;
-    // Trimmed from 105 to make room for the wider Search/Reset buttons below.
-    constexpr int CURRENCY_COMBO_WIDTH = 90;
-    constexpr int CURRENCY_COMBO_ITEM_HEIGHT = 22;
-    constexpr int CATEGORY_COMBO_X_OFFSET = CURRENCY_COMBO_WIDTH + 8;
+    constexpr int TOOLBAR_Y = 73;
+    constexpr int TOOLBAR_FIELD_HEIGHT = 23;
+    // Glyph tops sit this far below a toolbar field's top edge. The UI font's text box is about 8 logical
+    // pixels tall (not the 14 it looks like at the 2x screen scale), so centring it in a 23-pixel field puts the
+    // top at 7. Typed text, placeholder, the "Lv." label and the range dash all share it so they align.
+    constexpr int TOOLBAR_TEXT_Y_OFFSET = 7;
+    constexpr int TOOLBAR_FIELD_TEXT_INSET = 6;
+    constexpr int LEVEL_FIELD_TEXT_INSET = 5;
+    constexpr int CURRENCY_COMBO_ITEM_HEIGHT = TOOLBAR_FIELD_HEIGHT;
+    // The category rail replaced the category dropdown on screen; the combo only remembers the selection now.
+    constexpr int CATEGORY_COMBO_X_OFFSET = 98;
     constexpr int CATEGORY_COMBO_WIDTH = 210;
     constexpr int BROWSE_TABLE_X = 132;
     constexpr int SEARCH_INPUT_X_OFFSET = 0;
-    constexpr int SEARCH_INPUT_Y_OFFSET = TOOLBAR_Y + 3;
+    constexpr int SEARCH_INPUT_Y_OFFSET = TOOLBAR_Y + TOOLBAR_TEXT_Y_OFFSET;
     constexpr int SEARCH_INPUT_HEIGHT = 16;
-    constexpr int TOOLBAR_FIELD_HEIGHT = 23;
     // Equal widths so Search/Reset read as a matched pair (not two arbitrarily-different sizes), and wide
     // enough that "Reset" (the longer-looking word at this font) doesn't clip against its own border.
     constexpr int SEARCH_BUTTON_WIDTH = 56;
     constexpr int RESET_BUTTON_WIDTH = 56;
-    constexpr int SEARCH_INPUT_WIDTH = 188;
+    constexpr int SEARCH_INPUT_WIDTH = 190;
     constexpr int SEARCH_BUTTON_X_OFFSET = SEARCH_INPUT_X_OFFSET + SEARCH_INPUT_WIDTH + 6;
     constexpr int RESET_BUTTON_X_OFFSET = SEARCH_BUTTON_X_OFFSET + SEARCH_BUTTON_WIDTH + 5;
-    constexpr int LEVEL_LABEL_X_OFFSET = RESET_BUTTON_X_OFFSET + RESET_BUTTON_WIDTH + 10;
-    constexpr int LEVEL_MINIMUM_X_OFFSET = LEVEL_LABEL_X_OFFSET + 20;
-    constexpr int LEVEL_MAXIMUM_X_OFFSET = LEVEL_MINIMUM_X_OFFSET + 38;
-    constexpr int LEVEL_INPUT_WIDTH = 30;
-    // Sits right after the Level range inputs on the same toolbar row - BROWSE_TABLE_X (132) used to overlap
-    // the search box and Search button, since that constant is a table-content X, not a toolbar-row X.
-    constexpr int CURRENCY_COMBO_X_OFFSET = LEVEL_MAXIMUM_X_OFFSET + LEVEL_INPUT_WIDTH + 8;
+    constexpr int LEVEL_LABEL_X_OFFSET = RESET_BUTTON_X_OFFSET + RESET_BUTTON_WIDTH + 12;
+    constexpr int LEVEL_LABEL_WIDTH = 22;
+    constexpr int LEVEL_INPUT_WIDTH = 34;
+    constexpr int LEVEL_RANGE_SEPARATOR_WIDTH = 10;
+    constexpr int LEVEL_MINIMUM_X_OFFSET = LEVEL_LABEL_X_OFFSET + LEVEL_LABEL_WIDTH;
+    constexpr int LEVEL_MAXIMUM_X_OFFSET = LEVEL_MINIMUM_X_OFFSET + LEVEL_INPUT_WIDTH + LEVEL_RANGE_SEPARATOR_WIDTH;
+    // The currency combo takes whatever is left, so the toolbar's right edge lines up with the results table's
+    // (window width minus the body margin and the scrollbar gutter) rather than stopping short of it.
+    constexpr int CURRENCY_COMBO_X_OFFSET = LEVEL_MAXIMUM_X_OFFSET + LEVEL_INPUT_WIDTH + 12;
+    constexpr int CURRENCY_COMBO_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - BROWSE_BODY_X
+        - BROWSE_SCROLLBAR_RESERVED_WIDTH - TOOLBAR_X - CURRENCY_COMBO_X_OFFSET;
     constexpr size_t SEARCH_PACKET_CAPACITY = 32;
     constexpr BYTE ALL_CURRENCIES = 0xFF;
-    static_assert(SEARCH_INPUT_WIDTH > 0, "Auction search controls exceed the toolbar width");
-    constexpr int BROWSE_BODY_X = 11;
+    static_assert(CURRENCY_COMBO_WIDTH >= 90, "Auction toolbar controls exceed the toolbar width");
     constexpr int BROWSE_HEADER_Y = 105;
-    constexpr int BROWSE_HEADER_HEIGHT = 21;
+    constexpr int BROWSE_HEADER_HEIGHT = 20;
     constexpr int BROWSE_BODY_Y = BROWSE_HEADER_Y + BROWSE_HEADER_HEIGHT;
     constexpr int BROWSE_ROW_HEIGHT = 29;
-    constexpr int BROWSE_ROW_PADDING = 1;
     constexpr int BROWSE_ICON_CELL_SIZE = 27;
     constexpr int BROWSE_ICON_SIZE = 23;
     constexpr int BROWSE_ICON_MARGIN = (BROWSE_ICON_CELL_SIZE - BROWSE_ICON_SIZE) / 2;
+    // The slot sits one pixel inside its row; the 3D icon rectangle, the slot's hit-test and its tooltip
+    // anchor all derive from this same origin so the item is centred in the slot it is drawn in.
+    constexpr int BROWSE_ICON_CELL_OFFSET = 1;
+    // Native size of newui_auction_item_slot, authored at twice the slot's logical size so it stays crisp.
+    constexpr float ITEM_SLOT_TEXTURE_SIZE = 54.f;
+    // Share of the icon area the item's measured silhouette occupies on its tightest axis. The silhouette is
+    // measured, not estimated, so this can be close to 1 and still guarantee the item stays inside the slot.
+    constexpr float BROWSE_ICON_FILL = 0.9f;
     constexpr int BROWSE_TEXT_X_OFFSET = BROWSE_ICON_CELL_SIZE + 6;
     // Keep the native scrollbar inside the content gutter. Its original position sat against the ornate
     // frame edge, which made the chunky legacy thumb look clipped rather than intentionally contained.
@@ -86,47 +104,100 @@ namespace
     // with the existing scrollbar.
     constexpr int BROWSE_TABLE_HEIGHT = BROWSE_ROW_HEIGHT * 9;
     constexpr int BROWSE_SCROLLBAR_HEIGHT = BROWSE_TABLE_HEIGHT - BROWSE_SCROLLBAR_TOP_INSET * 2;
-    constexpr int BROWSE_SCROLLBAR_RESERVED_WIDTH = 27;
     constexpr int BROWSE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - 2 * BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
     constexpr int BROWSE_TABLE_CONTENT_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - BROWSE_TABLE_X - BROWSE_BODY_X - BROWSE_SCROLLBAR_RESERVED_WIDTH;
-    constexpr int BROWSE_ITEM_COLUMN_X = 0;
-    constexpr int BROWSE_ITEM_COLUMN_WIDTH = 164;
-    constexpr int BROWSE_LEVEL_COLUMN_X = BROWSE_ITEM_COLUMN_X + BROWSE_ITEM_COLUMN_WIDTH;
-    constexpr int BROWSE_LEVEL_COLUMN_WIDTH = 36;
-    constexpr int BROWSE_TIME_COLUMN_X = BROWSE_LEVEL_COLUMN_X + BROWSE_LEVEL_COLUMN_WIDTH;
-    constexpr int BROWSE_TIME_COLUMN_WIDTH = 58;
-    constexpr int BROWSE_SELLER_COLUMN_X = BROWSE_TIME_COLUMN_X + BROWSE_TIME_COLUMN_WIDTH;
-    constexpr int BROWSE_SELLER_COLUMN_WIDTH = 60;
-    constexpr int BROWSE_PRICE_COLUMN_X = BROWSE_SELLER_COLUMN_X + BROWSE_SELLER_COLUMN_WIDTH;
-    constexpr int BROWSE_PRICE_COLUMN_WIDTH = 60;
-    constexpr int BROWSE_BUYOUT_COLUMN_X = BROWSE_PRICE_COLUMN_X + BROWSE_PRICE_COLUMN_WIDTH;
-    constexpr int BROWSE_BUYOUT_COLUMN_WIDTH = BROWSE_TABLE_CONTENT_WIDTH - BROWSE_BUYOUT_COLUMN_X;
+    // The listing tables are one rounded container holding a header and a stack of row cards. The cards sit
+    // TABLE_INSET inside the container; the item slot overlaps each card's left end so the two read as one piece.
+    constexpr int TABLE_INSET = 3;
+    constexpr int TABLE_BOTTOM_PAD = 2;
+    constexpr int TABLE_CONTAINER_HEIGHT = BROWSE_HEADER_HEIGHT + BROWSE_TABLE_HEIGHT + TABLE_BOTTOM_PAD;
+    // Right-anchored columns: the Item column takes whatever the table has left, so Browse (beside the category
+    // rail) and My Listings (full width) share one set of columns and only the name column differs. The two
+    // price columns are wide enough for a price of up to five components on two lines.
+    constexpr int TABLE_TIME_COLUMN_WIDTH = 56;
+    constexpr int TABLE_STATUS_COLUMN_WIDTH = 54;
+    constexpr int TABLE_PRICE_COLUMN_WIDTH = 104;
+    constexpr int TABLE_BUYOUT_COLUMN_WIDTH = 104;
+    // Where the row card starts, relative to the table's inner left edge: the middle of the slot, so the slot
+    // covers the card's rounded left end.
+    constexpr int ROW_CARD_START = BROWSE_ICON_CELL_OFFSET + BROWSE_ICON_CELL_SIZE / 2;
+    // Text tops inside a row: single-line cells use BROWSE_ROW_TEXT_Y_OFFSET; the item cell's two lines (name over
+    // seller) straddle it.
+    constexpr int ROW_NAME_Y_OFFSET = 4;
+    constexpr int ROW_SUB_Y_OFFSET = 15;
+
+    // Where a listing table sits and where its columns fall. Column positions are relative to the inner left
+    // edge (innerX), where the cards start.
+    struct TableLayout
+    {
+        int x = 0;
+        int width = 0;
+        bool statusColumn = false;
+
+        int innerX() const { return x + TABLE_INSET; }
+        int innerWidth() const { return width - 2 * TABLE_INSET; }
+        int statusWidth() const { return statusColumn ? TABLE_STATUS_COLUMN_WIDTH : 0; }
+        int buyoutX() const { return innerWidth() - TABLE_BUYOUT_COLUMN_WIDTH; }
+        int priceX() const { return buyoutX() - TABLE_PRICE_COLUMN_WIDTH; }
+        int statusX() const { return priceX() - statusWidth(); }
+        int timeX() const { return statusX() - TABLE_TIME_COLUMN_WIDTH; }
+        int itemWidth() const { return timeX(); }
+    };
+
+    TableLayout GetTableLayout(bool hasCategoryRail, bool statusColumn = false)
+    {
+        return hasCategoryRail ? TableLayout{ BROWSE_TABLE_X, BROWSE_TABLE_CONTENT_WIDTH, statusColumn }
+                               : TableLayout{ BROWSE_BODY_X, BROWSE_CONTENT_WIDTH, statusColumn };
+    }
+    static_assert(BROWSE_TABLE_CONTENT_WIDTH - 2 * TABLE_INSET - TABLE_TIME_COLUMN_WIDTH - TABLE_PRICE_COLUMN_WIDTH
+        - TABLE_BUYOUT_COLUMN_WIDTH >= 140, "Auction browse columns exceed their content region");
     constexpr int CATEGORY_RAIL_X = BROWSE_BODY_X;
     constexpr int CATEGORY_RAIL_Y = BROWSE_HEADER_Y;
     constexpr int CATEGORY_RAIL_WIDTH = BROWSE_TABLE_X - BROWSE_BODY_X - 7;
-    constexpr int CATEGORY_RAIL_ROW_HEIGHT = 20;
-    // Keep the character's spending resources where a buyer naturally looks for them: a compact, labelled
-    // left rail below categories.  The previous two-row strip consumed the table footer and made Zen look
-    // like another listing column instead of a balance.
+    constexpr int CATEGORY_RAIL_ROW_HEIGHT = 19;
+    constexpr int CATEGORY_RAIL_ROW_INSET = 1;
+    // Keep the character's spending resources where a buyer naturally looks for them: a compact left rail
+    // below the categories. Jewels sit in a grid, stat fruits in one row, then Zen. A jewel or fruit card is
+    // an icon with its count underneath and no caption: players know their jewels and fruits on sight, and
+    // the room goes to the count, which has to stay readable once a jewel bank holds thousands.
     constexpr int WALLET_X = CATEGORY_RAIL_X;
     constexpr int WALLET_Y = CATEGORY_RAIL_Y + CATEGORY_RAIL_ROW_HEIGHT * 8 + 4;
     constexpr int WALLET_WIDTH = CATEGORY_RAIL_WIDTH;
-    constexpr int WALLET_JEWELS_HEIGHT = 40;
-    constexpr int WALLET_FRUITS_HEIGHT = 30;
-    constexpr int WALLET_ZEN_HEIGHT = 43;
     constexpr int WALLET_PANEL_GAP = 2;
-    constexpr int WALLET_FRUITS_Y = WALLET_Y + WALLET_JEWELS_HEIGHT + WALLET_PANEL_GAP;
-    constexpr int WALLET_ZEN_Y = WALLET_FRUITS_Y + WALLET_FRUITS_HEIGHT + WALLET_PANEL_GAP;
-    constexpr int WALLET_ICON_SIZE = 12;
-    constexpr int WALLET_FRUIT_ICON_SIZE = 10;
-    constexpr int WALLET_TITLE_HEIGHT = 11;
-    // A small per-row currency icon (same 3D-rendered jewel model the wallet panel already uses, just
-    // smaller) replaces the "<amount> <currency name>" text suffix for jewel-priced rows, freeing enough of
-    // the narrow Price/Buyout columns for the number to read clearly. Zen and Fruits have no single item
-    // identity to render this way, so they keep their existing text-only format.
-    constexpr int BROWSE_PRICE_ICON_SIZE = 12;
-    constexpr int BROWSE_PRICE_ICON_GAP = 2;
-    constexpr int BROWSE_PRICE_ICON_COLUMN_WIDTH = BROWSE_PRICE_ICON_SIZE + BROWSE_PRICE_ICON_GAP;
+    constexpr int WALLET_PANEL_PAD_TOP = 4;
+    constexpr int WALLET_PANEL_PAD_BOTTOM = 4;
+    // Four jewels per row leaves each card 28 pixels, enough for "99.9k" in the bold font; fruits are at most
+    // five and share one row.
+    constexpr int WALLET_JEWEL_COLUMNS = 4;
+    constexpr int WALLET_FRUIT_COLUMNS = 5;
+    // Every icon in a section is fitted into the same square, so models of different sizes still share one
+    // centre line and one visual size. Both squares are centred in the same 14-pixel band above the count, so
+    // the counts line up across panels. Jewels are round and fill their square, so theirs is smaller.
+    constexpr int WALLET_ICON_ZONE = 14;
+    constexpr int WALLET_JEWEL_ICON_SIZE = 12;
+    constexpr int WALLET_FRUIT_ICON_SIZE = 14;
+    constexpr float WALLET_ICON_FILL = 0.92f;
+    constexpr int WALLET_NUMBER_GAP = 1;
+    constexpr int WALLET_NUMBER_HEIGHT = 8;
+    constexpr int WALLET_NUMBER_SIDE_PAD = 1;
+    constexpr int WALLET_ROW_CONTENT_HEIGHT = WALLET_ICON_ZONE + WALLET_NUMBER_GAP + WALLET_NUMBER_HEIGHT;
+    constexpr int WALLET_ROW_PITCH = WALLET_ROW_CONTENT_HEIGHT + 1;
+    constexpr int WALLET_ZEN_HEIGHT = 30;
+    // Zen is a title and one value centred between the panel's rings.
+    constexpr int WALLET_ZEN_TITLE_Y_OFFSET = 4;
+    constexpr int WALLET_ZEN_VALUE_Y_OFFSET = 18;
+    // A price is shown as chips: a small icon (the same 3D jewel/fruit model the wallet uses) followed by the
+    // amount, or just "<amount> Zen". Up to five components share one price cell over at most two lines.
+    constexpr int PRICE_ICON_SIZE = 11;
+    constexpr float PRICE_ICON_FILL = 0.92f;
+    constexpr int PRICE_ICON_GAP = 2;
+    constexpr int PRICE_CHIP_GAP = 6;
+    constexpr int PRICE_LINE_HEIGHT = 12;
+    constexpr int PRICE_CELL_PAD = 3;
+    constexpr int PRICE_MAX_LINES = 2;
+    constexpr int PRICE_ICON_Y_OFFSET = 0;
+    // Top of the text line inside a table row; shared by Browse, My Listings and Mailbox so they agree.
+    constexpr int BROWSE_ROW_TEXT_Y_OFFSET = 9;
     constexpr int MAILBOX_KIND_COLUMN_WIDTH = 145;
     constexpr int MAILBOX_CONTENT_COLUMN_X = MAILBOX_KIND_COLUMN_WIDTH;
     constexpr int MAILBOX_CONTENT_COLUMN_WIDTH = 245;
@@ -134,56 +205,6 @@ namespace
     constexpr int MAILBOX_SOURCE_COLUMN_WIDTH = 80;
     constexpr int MAILBOX_STATUS_COLUMN_X = MAILBOX_SOURCE_COLUMN_X + MAILBOX_SOURCE_COLUMN_WIDTH;
     constexpr int MAILBOX_STATUS_COLUMN_WIDTH = BROWSE_CONTENT_WIDTH - MAILBOX_STATUS_COLUMN_X;
-    static_assert(BROWSE_BUYOUT_COLUMN_WIDTH > 0, "Auction browse columns exceed their content region");
-
-    // Inventory meshes do not share a common footprint: long weapons and wings occupy far more
-    // screen space than gloves or jewels at the same model scale. Tune by item group so each
-    // Auction slot stays contained while its contents remain recognisable.
-    float GetAuctionPreviewScale(int itemType)
-    {
-        // Jewel of Chaos is historically filed under item group 12 (Wing) in MU's original item table —
-        // a numbering quirk, not a visual one. It is a small jewel like the other six, not an oversized
-        // wing mesh, so the Wing group's heavily-shrunk scale (tuned for meshes much bigger than a jewel)
-        // rendered it as a barely visible speck everywhere this function is used at small preview sizes.
-        // The model itself has a markedly smaller footprint than the group-14 jewel models, even after
-        // correcting the group classification. Give it the larger calibrated scale so it is equally readable
-        // inside the compact wallet and price cells.
-        constexpr int ItemTypeJewelOfChaos = ITEM_GROUP_WING * MAX_ITEM_INDEX + 15;
-        if (itemType == ItemTypeJewelOfChaos)
-        {
-            return 1.50f;
-        }
-
-        switch (itemType / MAX_ITEM_INDEX)
-        {
-        case ITEM_GROUP_SWORD:
-        case ITEM_GROUP_AXE:
-        case ITEM_GROUP_MACE:
-        case ITEM_GROUP_SPEAR:
-        case ITEM_GROUP_BOW:
-        case ITEM_GROUP_STAFF:
-            return 0.14f;
-        case ITEM_GROUP_SHIELD:
-        case ITEM_GROUP_HELM:
-        case ITEM_GROUP_ARMOR:
-        case ITEM_GROUP_PANTS:
-            return 0.28f;
-        case ITEM_GROUP_GLOVES:
-            return 0.34f;
-        case ITEM_GROUP_BOOTS:
-            return 0.38f;
-        case ITEM_GROUP_WING:
-            return 0.15f;
-        case ITEM_GROUP_HELPER:
-            return 0.70f;
-        case ITEM_GROUP_POTION:
-            return 0.90f;
-        case ITEM_GROUP_ETC:
-            return 0.65f;
-        default:
-            return 0.50f;
-        }
-    }
 
     std::wstring FormatWalletAmount(uint32_t amount)
     {
@@ -208,14 +229,11 @@ namespace
         const unsigned long parsed = wcstoul(text, nullptr, 10);
         return static_cast<BYTE>(std::min(parsed, 255ul));
     }
-    // A visible panel behind every row, so each listing reads as a distinct card rather than bare text
-    // floating on the window background — the same idea as WoW's Auction House row cards, built from plain
-    // colored quads since no card-panel texture exists in this project's asset set.
     // Browse is the data-dense focal area. Keep its chrome quiet and black so item art and rarity colour
     // do the work, instead of letting the stone frame texture compete with every row.
-    constexpr unsigned int BROWSE_CARD_COLOR = 0xD0080808u;
-    constexpr unsigned int BROWSE_CARD_HOVER_COLOR = 0xD22B2410u;
-    constexpr unsigned int BROWSE_HEADER_COLOR = 0xE0101010u;
+    // Row cards: a dark steel ring at rest, gold when pointed at, with a faint gold wash inside.
+    constexpr unsigned int ROW_HOVER_WASH = 0x22C8A45Au;
+    constexpr unsigned int BROWSE_HEADER_LINE_COLOR = 0x30FFFFFFu;
     constexpr unsigned int BROWSE_GRID_COLOR = 0x50C8A45Au;
     constexpr int PAGE_BTN_WIDTH = 53;
     constexpr int PAGE_BTN_HEIGHT = 23;
@@ -227,8 +245,28 @@ namespace
     // leaving the rest of the bottom bar as a reserved blank panel, matching the reference layout exactly.
     constexpr int PAGE_CLUSTER_GAP = 40;
     constexpr int PAGE_CLUSTER_WIDTH = PAGE_BTN_WIDTH * 2 + PAGE_CLUSTER_GAP;
-    constexpr int PAGE_CLUSTER_X = BROWSE_TABLE_X;
-    constexpr int PAGE_NEXT_BTN_X = PAGE_CLUSTER_X + PAGE_BTN_WIDTH + PAGE_CLUSTER_GAP;
+    // Page label top inside the 23-pixel button row; matches the buttons' own centred labels.
+    constexpr int PAGE_LABEL_Y_OFFSET = 7;
+    // The pager lines up with the left edge of whichever table is showing.
+    int PageClusterX(int tab)
+    {
+        return tab == SEASON3B::CNewUIAuctionWindow::TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X;
+    }
+    int PageNextButtonX(int tab)
+    {
+        return PageClusterX(tab) + PAGE_BTN_WIDTH + PAGE_CLUSTER_GAP;
+    }
+    // X of the first item slot in a table row: Browse's table, My Listings' full-width table, or the Mailbox
+    // contents column.
+    int RowSlotX(int tab)
+    {
+        switch (tab)
+        {
+        case SEASON3B::CNewUIAuctionWindow::TAB_BROWSE: return BROWSE_TABLE_X + TABLE_INSET;
+        case SEASON3B::CNewUIAuctionWindow::TAB_MAILBOX: return BROWSE_BODY_X + MAILBOX_CONTENT_COLUMN_X;
+        default: return BROWSE_BODY_X + TABLE_INSET;
+        }
+    }
     constexpr int DETAIL_ICON_SIZE = 32;
     constexpr int DETAIL_TEXT_X_OFFSET = DETAIL_ICON_SIZE + 10;
     constexpr int DETAIL_LINE_HEIGHT = 18;
@@ -294,24 +332,6 @@ namespace
         return static_cast<BYTE>(currency) == ALL_CURRENCIES;
     }
 
-    std::wstring BrowsePriceText(AuctionCurrencyMode currency, const AuctionHouse::AuctionAmount& amount)
-    {
-        if (amount.IsZero())
-        {
-            return L"-";
-        }
-
-        if (amount.IsFruitBasket())
-        {
-            return I18N::Game::FruitBasket;
-        }
-
-        static const wchar_t* names[] = { L"Zen", L"Chaos", L"Bless", L"Soul", L"Life", L"Creation", L"Guardian", L"Harmony" };
-        const auto index = static_cast<size_t>(currency);
-        const wchar_t* name = index < std::size(names) ? names[index] : L"Units";
-        return std::to_wstring(amount.Scalar()) + L" " + name;
-    }
-
     // Finds the Open response's descriptor for a jewel currency with a real item identity to render as an
     // icon. Returns null for Zen (no single item represents money) and Fruits (a five-component basket has no
     // one icon), and for any currency the Open response has not reported yet (e.g. before it has arrived, or a
@@ -333,13 +353,6 @@ namespace
         }
 
         return nullptr;
-    }
-
-    // The number alone, used when an icon (not text) will carry the currency identity. Still "-" for a zero
-    // amount so an icon is never drawn beside an empty buyout.
-    std::wstring BrowseScalarOnlyText(const AuctionHouse::AuctionAmount& amount)
-    {
-        return amount.IsZero() ? L"-" : std::to_wstring(amount.Scalar());
     }
 
     bool IsAuctionJewelItem(const ITEM* item)
@@ -390,25 +403,501 @@ namespace
         g_pRenderText->SetTextColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, color >> 24);
     }
 
-    void RenderRoundedAuctionIconSlot(int x, int y, int size, DWORD borderColor, DWORD fillColor)
+    DWORD BlendRgb(DWORD from, DWORD to, float toShare)
     {
-        // A one-pixel outline is enough at the client's native scale. The prior doubled segments looked
-        // like a bright selection frame around every listing rather than a subtle rarity marker.
-        constexpr int Corner = 2;
-        RenderColorQuadARGB(x + Corner, y, size - Corner * 2, 1, borderColor);
-        RenderColorQuadARGB(x, y + Corner, 1, size - Corner * 2, borderColor);
-        RenderColorQuadARGB(x + size - 1, y + Corner, 1, size - Corner * 2, borderColor);
-        RenderColorQuadARGB(x + Corner, y + size - 1, size - Corner * 2, 1, borderColor);
-        RenderColorQuadARGB(x + 1, y + 1, size - 2, size - 2, fillColor);
+        const auto mix = [toShare](DWORD a, DWORD b)
+        {
+            return static_cast<DWORD>(static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * toShare);
+        };
+        return 0xFF000000u | (mix((from >> 16) & 0xFFu, (to >> 16) & 0xFFu) << 16)
+            | (mix((from >> 8) & 0xFFu, (to >> 8) & 0xFFu) << 8) | mix(from & 0xFFu, to & 0xFFu);
     }
 
-    DWORD GetAuctionItemSlotBorderColor(const ITEM* item)
+    // The slot texture's ring is a neutral steel, tinted at draw time. The tint leans toward the item's rarity
+    // colour without adopting it fully, so the list stays calm and a rarity reads as an accent, not a neon frame.
+    constexpr DWORD ITEM_SLOT_NEUTRAL_RING = 0xFF78808Au;
+    constexpr float ITEM_SLOT_RARITY_SHARE = 0.55f;
+    constexpr float ITEM_SLOT_HOVER_BRIGHTEN = 0.28f;
+
+    DWORD GetAuctionItemSlotTint(const ITEM* item, bool hovered)
     {
-        const DWORD rarity = GetAuctionItemRarityColor(item);
-        const DWORD red = ((rarity >> 16) & 0xFF) * 2 / 5;
-        const DWORD green = ((rarity >> 8) & 0xFF) * 2 / 5;
-        const DWORD blue = (rarity & 0xFF) * 2 / 5;
-        return 0xFF000000u | (red << 16) | (green << 8) | blue;
+        const DWORD tint = BlendRgb(ITEM_SLOT_NEUTRAL_RING, GetAuctionItemRarityColor(item), ITEM_SLOT_RARITY_SHARE);
+        return hovered ? BlendRgb(tint, 0xFFFFFFFFu, ITEM_SLOT_HOVER_BRIGHTEN) : tint;
+    }
+
+    // A rounded, anti-aliased container drawn from one native-size texture (ring, recessed dark fill, faint top
+    // highlight). A texture rather than coloured quads: flat quads cannot be rounded or anti-aliased, so the
+    // previous pixel-notched version always read as a blocky outline.
+    void RenderAuctionItemSlot(int x, int y, int size, DWORD tint)
+    {
+        RenderImageStretch(SEASON3B::CNewUIAuctionWindow::IMAGE_AUCTION_ITEM_SLOT, (float)x, (float)y, (float)size,
+            (float)size, 0.f, 0.f, ITEM_SLOT_TEXTURE_SIZE, ITEM_SLOT_TEXTURE_SIZE,
+            RGBA((tint >> 16) & 0xFFu, (tint >> 8) & 0xFFu, tint & 0xFFu, 255));
+    }
+
+    // The button and field textures are neutral steel authored at two texels per logical pixel; their caps
+    // are the 4px corner radius plus the ring and bevel. State is carried by the draw-time tint, so one
+    // texture serves normal, hover, pressed, locked, active and focused.
+    constexpr float CHROME_TEXELS_PER_PIXEL = 2.f;
+    constexpr float CHROME_CAP_TEXELS = 12.f;
+    constexpr float CHROME_BUTTON_TEXTURE_WIDTH = 80.f;
+    constexpr float CHROME_FIELD_TEXTURE_WIDTH = 96.f;
+    constexpr float CHROME_TEXTURE_HEIGHT = 48.f;
+
+    UI::NineSlice::Texture MakeChromeTexture(int imageIndex, float width)
+    {
+        UI::NineSlice::Texture texture;
+        texture.imageIndex = imageIndex;
+        texture.width = width;
+        texture.height = CHROME_TEXTURE_HEIGHT;
+        texture.texelsPerPixel = CHROME_TEXELS_PER_PIXEL;
+        texture.insets = { CHROME_CAP_TEXELS, CHROME_CAP_TEXELS, CHROME_CAP_TEXELS, CHROME_CAP_TEXELS };
+        return texture;
+    }
+
+    const UI::NineSlice::ButtonSkin& AuctionButtonSkin()
+    {
+        static const UI::NineSlice::ButtonSkin skin{
+            MakeChromeTexture(SEASON3B::CNewUIAuctionWindow::IMAGE_AUCTION_BUTTON, CHROME_BUTTON_TEXTURE_WIDTH),
+            { RGBA(172, 178, 190, 255), RGBA(236, 241, 250, 255), RGBA(112, 116, 126, 255), RGBA(88, 90, 96, 255) } };
+        return skin;
+    }
+
+    // For recessed fields (inputs, combos, wallet panels). "pressed" is the open/focused state, a gold ring.
+    const UI::NineSlice::ButtonSkin& AuctionFieldSkin()
+    {
+        static const UI::NineSlice::ButtonSkin skin{
+            MakeChromeTexture(SEASON3B::CNewUIAuctionWindow::IMAGE_AUCTION_FIELD, CHROME_FIELD_TEXTURE_WIDTH),
+            { RGBA(142, 148, 160, 255), RGBA(200, 206, 218, 255), RGBA(232, 198, 112, 255), RGBA(142, 148, 160, 255) } };
+        return skin;
+    }
+
+    const UI::NineSlice::ButtonSkin& AuctionPanelSkin()
+    {
+        static const UI::NineSlice::ButtonSkin skin{
+            MakeChromeTexture(SEASON3B::CNewUIAuctionWindow::IMAGE_AUCTION_FIELD, CHROME_FIELD_TEXTURE_WIDTH),
+            { RGBA(150, 128, 78, 255), RGBA(150, 128, 78, 255), RGBA(150, 128, 78, 255), RGBA(150, 128, 78, 255) } };
+        return skin;
+    }
+
+    // Flat dark cards for table rows and the table's own container: steel at rest, gold when pointed at.
+    const UI::NineSlice::ButtonSkin& AuctionRowSkin()
+    {
+        static const UI::NineSlice::ButtonSkin skin{
+            MakeChromeTexture(SEASON3B::CNewUIAuctionWindow::IMAGE_AUCTION_ROW, CHROME_FIELD_TEXTURE_WIDTH),
+            { RGBA(68, 74, 86, 255), RGBA(224, 192, 108, 255), RGBA(68, 74, 86, 255), RGBA(68, 74, 86, 255) } };
+        return skin;
+    }
+
+    const DWORD TABLE_CONTAINER_TINT = RGBA(104, 110, 122, 255);
+    const DWORD TAB_TINT_ACTIVE = RGBA(255, 214, 118, 255);
+    const DWORD TAB_TINT_HOVER = RGBA(206, 212, 224, 255);
+    const DWORD TAB_TINT_IDLE = RGBA(150, 156, 168, 255);
+    const DWORD CATEGORY_TINT_SELECTED = RGBA(255, 214, 118, 255);
+    const DWORD CATEGORY_TINT_HOVER = RGBA(206, 212, 224, 255);
+    const DWORD CATEGORY_TINT_IDLE = RGBA(118, 124, 136, 255);
+    constexpr int TAB_BADGE_GAP = 4;
+
+    // True over the whole skinned toolbar field (frame included), not only the text input inside it.
+    bool IsMouseOverToolbarField(int windowX, int windowY, int fieldOffset, int fieldWidth)
+    {
+        return SEASON3B::CheckMouseIn(windowX + TOOLBAR_X + fieldOffset, windowY + TOOLBAR_Y, fieldWidth, TOOLBAR_FIELD_HEIGHT);
+    }
+
+    bool IsMouseOverAnyToolbarInputField(int windowX, int windowY)
+    {
+        return IsMouseOverToolbarField(windowX, windowY, SEARCH_INPUT_X_OFFSET, SEARCH_INPUT_WIDTH)
+            || IsMouseOverToolbarField(windowX, windowY, LEVEL_MINIMUM_X_OFFSET, LEVEL_INPUT_WIDTH)
+            || IsMouseOverToolbarField(windowX, windowY, LEVEL_MAXIMUM_X_OFFSET, LEVEL_INPUT_WIDTH);
+    }
+
+    // The input box only occupies the inset text area; a press on the frame around it should still focus it.
+    void FocusInputOnFieldPress(CUITextInputBox& input, int windowX, int windowY, int fieldOffset, int fieldWidth)
+    {
+        if (IsPress(VK_LBUTTON) && !input.HaveFocus() && IsMouseOverToolbarField(windowX, windowY, fieldOffset, fieldWidth))
+        {
+            input.GiveFocus();
+        }
+    }
+
+    void RenderTabLabel(int tabX, int tabY, int tabWidth, const wchar_t* label, int badgeCount, bool active)
+    {
+        g_pRenderText->SetTextColor(active ? 255 : 205, active ? 215 : 205, active ? 100 : 205, 255);
+        const SIZE labelSize = g_pRenderText->MeasureText(label, static_cast<int>(wcslen(label)));
+        const float textY = static_cast<float>(tabY + (TAB_HEIGHT - labelSize.cy) / 2);
+        if (badgeCount <= 0)
+        {
+            g_pRenderText->RenderText(static_cast<float>(tabX), textY, label, static_cast<float>(tabWidth), 0, RT3_SORT_CENTER);
+            return;
+        }
+
+        // Label and pending-count badge are laid out as one centred run, so the count never overprints the name.
+        wchar_t badge[16];
+        mu_swprintf(badge, L"[%d]", badgeCount);
+        const SIZE badgeSize = g_pRenderText->MeasureText(badge, static_cast<int>(wcslen(badge)));
+        const float runX = static_cast<float>(tabX) + (tabWidth - (labelSize.cx + TAB_BADGE_GAP + badgeSize.cx)) / 2.f;
+        g_pRenderText->RenderText(runX, textY, label, static_cast<float>(labelSize.cx + 2), 0, RT3_SORT_LEFT);
+        g_pRenderText->SetTextColor(255, 190, 70, 255);
+        g_pRenderText->RenderText(runX + labelSize.cx + TAB_BADGE_GAP, textY, badge,
+            static_cast<float>(badgeSize.cx + 2), 0, RT3_SORT_LEFT);
+    }
+
+    // What the wallet cards show, read once from the Open response so the 2D pass (counts, panels) and the 3D
+    // pass (icons) lay out from the same data. A jewel bank later feeds the same view from a different source.
+    struct WalletEntry
+    {
+        int itemType = 0;
+        int itemLevel = 0;
+        uint64_t amount = 0;
+    };
+
+    struct WalletView
+    {
+        std::vector<WalletEntry> jewels;
+        std::vector<WalletEntry> fruits;
+        bool hasZen = false;
+        uint32_t zen = 0;
+    };
+
+    WalletView BuildWalletView(const AuctionHouse::AuctionOpenResponse& openResponse)
+    {
+        WalletView view;
+        for (const auto& currency : openResponse.Currencies)
+        {
+            if (!currency.Enabled)
+            {
+                continue;
+            }
+
+            if (currency.CurrencyMode == AuctionCurrencyMode::Zen)
+            {
+                view.hasZen = true;
+                view.zen = static_cast<uint32_t>(std::max<int64_t>(currency.Spendable.Scalar(), 0));
+            }
+            else if (currency.CurrencyMode == AuctionCurrencyMode::Fruits)
+            {
+                const auto& fruits = currency.Spendable.Fruits();
+                const std::array<int64_t, 5> amounts = { fruits.Strength, fruits.Agility, fruits.Vitality, fruits.Energy,
+                    fruits.Command };
+                for (size_t fruit = 0; fruit < currency.FruitItemTypes.size(); ++fruit)
+                {
+                    if (currency.FruitItemTypes[fruit] != 0)
+                    {
+                        view.fruits.push_back({ currency.FruitItemTypes[fruit], currency.FruitItemLevels[fruit],
+                            static_cast<uint64_t>(std::max<int64_t>(amounts[fruit], 0)) });
+                    }
+                }
+            }
+            else if (currency.LooseItemType != 0)
+            {
+                view.jewels.push_back({ currency.LooseItemType, 0,
+                    static_cast<uint64_t>(std::max<int64_t>(currency.Spendable.Scalar(), 0)) });
+            }
+        }
+        return view;
+    }
+
+    // Vertical placement of the wallet panels, window-relative. A panel with nothing to show is skipped and
+    // the ones below move up.
+    struct WalletLayout
+    {
+        int jewelsY = 0;
+        int fruitsY = 0;
+        int zenY = 0;
+        int jewelsHeight = 0;
+        int fruitsHeight = 0;
+    };
+
+    int WalletPanelHeight(size_t cellCount, int columns)
+    {
+        const int rows = AuctionHouse::WalletRowCount(cellCount, columns);
+        return WALLET_PANEL_PAD_TOP + (rows - 1) * WALLET_ROW_PITCH + WALLET_ROW_CONTENT_HEIGHT + WALLET_PANEL_PAD_BOTTOM;
+    }
+
+    WalletLayout ComputeWalletLayout(const WalletView& view)
+    {
+        WalletLayout layout;
+        int y = WALLET_Y;
+        if (!view.jewels.empty())
+        {
+            layout.jewelsY = y;
+            layout.jewelsHeight = WalletPanelHeight(view.jewels.size(), WALLET_JEWEL_COLUMNS);
+            y += layout.jewelsHeight + WALLET_PANEL_GAP;
+        }
+        if (!view.fruits.empty())
+        {
+            layout.fruitsY = y;
+            layout.fruitsHeight = WalletPanelHeight(view.fruits.size(), WALLET_FRUIT_COLUMNS);
+            y += layout.fruitsHeight + WALLET_PANEL_GAP;
+        }
+        layout.zenY = y;
+        return layout;
+    }
+
+    struct WalletCellRect
+    {
+        int x = 0;
+        int y = 0;
+        int width = 0;
+    };
+
+    WalletCellRect GetWalletCell(int panelY, size_t index, size_t cellCount, int columns)
+    {
+        const AuctionHouse::WalletCellSlot slot = AuctionHouse::LayoutWalletCell(index, cellCount, columns, WALLET_WIDTH);
+        return { WALLET_X + slot.x, panelY + WALLET_PANEL_PAD_TOP + slot.row * WALLET_ROW_PITCH, slot.width };
+    }
+
+    // The counts under the icons, in one font and colour. A count that does not fit its card as exact digits
+    // drops to the most precise compact form that does.
+    void RenderWalletCounts(int windowX, int windowY, int panelY, const std::vector<WalletEntry>& entries, int columns)
+    {
+        const auto measureWidth = [](const std::wstring& text)
+        {
+            return static_cast<int>(g_pRenderText->MeasureText(text.c_str(), static_cast<int>(text.size())).cx);
+        };
+
+        for (size_t index = 0; index < entries.size(); ++index)
+        {
+            const WalletCellRect cell = GetWalletCell(panelY, index, entries.size(), columns);
+            const std::wstring text = AuctionHouse::FormatWalletCountToFit(
+                entries[index].amount, cell.width - 2 * WALLET_NUMBER_SIDE_PAD, measureWidth);
+            g_pRenderText->RenderText(static_cast<float>(windowX + cell.x),
+                static_cast<float>(windowY + cell.y + WALLET_ICON_ZONE + WALLET_NUMBER_GAP), text.c_str(),
+                static_cast<float>(cell.width), 0, RT3_SORT_CENTER);
+        }
+    }
+
+    // The icons, each fitted into the same square (iconSize) centred over its card in the icon band.
+    void RenderWalletIcons(int windowX, int windowY, int panelY, const std::vector<WalletEntry>& entries, int columns,
+        int iconSize)
+    {
+        for (size_t index = 0; index < entries.size(); ++index)
+        {
+            const WalletCellRect cell = GetWalletCell(panelY, index, entries.size(), columns);
+            RenderItem3DFittedToSlot(static_cast<float>(windowX + cell.x + (cell.width - iconSize) / 2),
+                static_cast<float>(windowY + cell.y + (WALLET_ICON_ZONE - iconSize) / 2), static_cast<float>(iconSize),
+                static_cast<float>(iconSize), entries[index].itemType, entries[index].itemLevel, 0, 0,
+                WALLET_ICON_FILL, false);
+        }
+    }
+
+    // Sort indicator drawn as a tiny solid triangle instead of a "^"/"v" character, which is thin and sits
+    // at an arbitrary height in the text box. Direction: 1 ascending (points up), -1 descending, 0 unsorted.
+    constexpr int SORT_ARROW_WIDTH = 5;
+    constexpr int SORT_ARROW_ROWS = 3;
+    constexpr int SORT_ARROW_GAP = 4;
+    constexpr int SORT_ARROW_Y_OFFSET = 3;
+    constexpr unsigned int SORT_ARROW_COLOR = 0xFFFFFFFFu;
+
+    void RenderSortableHeader(int columnX, int columnWidth, int textY, const wchar_t* text, int direction)
+    {
+        if (direction == 0)
+        {
+            g_pRenderText->RenderText(static_cast<float>(columnX), static_cast<float>(textY), text,
+                static_cast<float>(columnWidth), 0, RT3_SORT_CENTER);
+            return;
+        }
+
+        // Label and arrow are centred together as one run.
+        const SIZE textSize = g_pRenderText->MeasureText(text, static_cast<int>(wcslen(text)));
+        const int runWidth = textSize.cx + SORT_ARROW_GAP + SORT_ARROW_WIDTH;
+        const int startX = columnX + std::max(1, (columnWidth - runWidth) / 2);
+        g_pRenderText->RenderText(static_cast<float>(startX), static_cast<float>(textY), text,
+            static_cast<float>(textSize.cx + 2), 0, RT3_SORT_LEFT);
+
+        const int arrowX = startX + textSize.cx + SORT_ARROW_GAP;
+        EnableAlphaTest();
+        for (int row = 0; row < SORT_ARROW_ROWS; ++row)
+        {
+            const int width = direction > 0 ? 1 + 2 * row : SORT_ARROW_WIDTH - 2 * row;
+            RenderColorQuadARGB(arrowX + (SORT_ARROW_WIDTH - width) / 2, textY + SORT_ARROW_Y_OFFSET + row, width, 1,
+                SORT_ARROW_COLOR);
+        }
+        EndRenderColor();
+    }
+
+    // The rounded container that holds a listing table's header and its row cards.
+    void RenderTableContainer(int x, int y, int width)
+    {
+        UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(x), static_cast<float>(y),
+            static_cast<float>(width), static_cast<float>(TABLE_CONTAINER_HEIGHT), TABLE_CONTAINER_TINT);
+    }
+
+    // One row card, as tall as an item slot and one pixel inside its row. Gold ring and a faint wash when pointed at.
+    void RenderRowCard(int x, int rowY, int width, bool hovered)
+    {
+        const UI::NineSlice::StateTints& tints = AuctionRowSkin().tints;
+        const int y = rowY + BROWSE_ICON_CELL_OFFSET;
+        UI::NineSlice::Render(AuctionRowSkin().texture, static_cast<float>(x), static_cast<float>(y),
+            static_cast<float>(width), static_cast<float>(BROWSE_ICON_CELL_SIZE), hovered ? tints.hover : tints.normal);
+        if (hovered)
+        {
+            EnableAlphaTest();
+            RenderColorQuadARGB(x + 2, y + 2, width - 4, BROWSE_ICON_CELL_SIZE - 4, ROW_HOVER_WASH);
+            EndRenderColor();
+        }
+    }
+
+    // Short names used when a price component has no icon to carry its identity.
+    const wchar_t* PriceKindName(AuctionHouse::PriceKind kind)
+    {
+        static const wchar_t* const names[] = { L"Zen", L"Chaos", L"Bless", L"Soul", L"Life", L"Creation", L"Guardian",
+            L"Harmony", L"Str", L"Agi", L"Vit", L"Ene", L"Cmd" };
+        return names[static_cast<size_t>(kind)];
+    }
+
+    // The item that stands for a price component: a jewel or a stat fruit, as the Open response names them.
+    // Zen has no item, and a component whose currency the server has not described yet has none either.
+    struct PriceIcon
+    {
+        int itemType = 0;
+        int itemLevel = 0;
+    };
+
+    std::optional<PriceIcon> ResolvePriceIcon(const AuctionHouse::AuctionOpenResponse& openResponse, AuctionHouse::PriceKind kind)
+    {
+        using AuctionHouse::PriceKind;
+        if (kind == PriceKind::Zen)
+        {
+            return std::nullopt;
+        }
+
+        if (kind <= PriceKind::Harmony)
+        {
+            const auto* descriptor = FindJewelCurrencyDescriptor(openResponse,
+                static_cast<AuctionCurrencyMode>(static_cast<int>(kind)));
+            return descriptor == nullptr ? std::nullopt : std::optional<PriceIcon>(PriceIcon{ descriptor->LooseItemType, 0 });
+        }
+
+        const size_t fruit = static_cast<size_t>(kind) - static_cast<size_t>(PriceKind::StrengthFruit);
+        for (const auto& currency : openResponse.Currencies)
+        {
+            if (currency.Enabled && currency.CurrencyMode == AuctionCurrencyMode::Fruits
+                && currency.FruitItemTypes[fruit] != 0)
+            {
+                return PriceIcon{ currency.FruitItemTypes[fruit], currency.FruitItemLevels[fruit] };
+            }
+        }
+        return std::nullopt;
+    }
+
+    // One chip of a price cell, placed relative to the cell's left edge and the row's top edge.
+    struct PriceChip
+    {
+        AuctionHouse::PriceKind kind = AuctionHouse::PriceKind::Zen;
+        std::wstring text;
+        std::optional<PriceIcon> icon;
+        int x = 0;
+        int textY = 0;
+    };
+
+    // Lays a price's components out as chips over at most two lines, each line centred in the cell. The amounts
+    // start as exact digits and drop to compact forms (12.3k, 1.5M) only as far as it takes to fit; the 2D pass
+    // (text) and the 3D pass (icons) both call this so they always agree. Needs the bold font set by the caller
+    // for measuring; sets it itself to be safe.
+    std::vector<PriceChip> LayoutPriceCell(const std::vector<AuctionHouse::PriceComponent>& components, int cellWidth,
+        const AuctionHouse::AuctionOpenResponse* openResponse)
+    {
+        std::vector<PriceChip> chips(components.size());
+        for (size_t i = 0; i < components.size(); ++i)
+        {
+            chips[i].kind = components[i].kind;
+            if (openResponse != nullptr)
+            {
+                chips[i].icon = ResolvePriceIcon(*openResponse, components[i].kind);
+            }
+        }
+
+        g_pRenderText->SetFont(g_hFontBold);
+        const auto measureWidth = [](const std::wstring& text)
+        {
+            return static_cast<int>(g_pRenderText->MeasureText(text.c_str(), static_cast<int>(text.size())).cx);
+        };
+
+        const int lineWidth = cellWidth - 2 * PRICE_CELL_PAD;
+        std::vector<int> widths(components.size());
+        std::optional<std::vector<AuctionHouse::PriceChipPlacement>> placements;
+        for (size_t precision = 0; precision < 3 && !placements; ++precision)
+        {
+            for (size_t i = 0; i < components.size(); ++i)
+            {
+                const auto candidates = AuctionHouse::WalletCountCandidates(
+                    static_cast<uint64_t>(std::max<int64_t>(components[i].amount, 0)));
+                chips[i].text = candidates[std::min(precision, candidates.size() - 1)];
+                if (!chips[i].icon)
+                {
+                    chips[i].text += L" ";
+                    chips[i].text += PriceKindName(chips[i].kind);
+                }
+                widths[i] = (chips[i].icon ? PRICE_ICON_SIZE + PRICE_ICON_GAP : 0) + measureWidth(chips[i].text);
+            }
+            placements = AuctionHouse::PackPriceChips(widths, lineWidth, PRICE_CHIP_GAP, PRICE_MAX_LINES);
+        }
+        if (!placements)
+        {
+            // Even the most compact text needs more than two lines; let it run to as many as it takes.
+            placements = AuctionHouse::PackPriceChips(widths, lineWidth, PRICE_CHIP_GAP, static_cast<int>(widths.size()) + 1);
+        }
+        if (!placements)
+        {
+            return {};
+        }
+
+        int lines = 0;
+        for (const auto& placement : *placements)
+        {
+            lines = std::max(lines, placement.line + 1);
+        }
+        for (size_t i = 0; i < chips.size(); ++i)
+        {
+            const AuctionHouse::PriceChipPlacement& placement = (*placements)[i];
+            chips[i].x = PRICE_CELL_PAD + placement.x;
+            chips[i].textY = BROWSE_ROW_TEXT_Y_OFFSET + (placement.line * 2 - (lines - 1)) * (PRICE_LINE_HEIGHT / 2);
+        }
+        return chips;
+    }
+
+    // The amounts of a price cell, in the price colour. An empty price (no buyout set) is a quiet dash.
+    void RenderPriceCellText(int cellX, int cellWidth, int rowY, const std::vector<PriceChip>& chips)
+    {
+        if (chips.empty())
+        {
+            g_pRenderText->SetFont(g_hFont);
+            g_pRenderText->SetTextColor(120, 126, 138, 255);
+            g_pRenderText->RenderText(static_cast<float>(cellX), static_cast<float>(rowY + BROWSE_ROW_TEXT_Y_OFFSET),
+                L"-", static_cast<float>(cellWidth), 0, RT3_SORT_CENTER);
+            return;
+        }
+
+        g_pRenderText->SetFont(g_hFontBold);
+        g_pRenderText->SetTextColor(238, 224, 168, 255);
+        for (const PriceChip& chip : chips)
+        {
+            const int textX = cellX + chip.x + (chip.icon ? PRICE_ICON_SIZE + PRICE_ICON_GAP : 0);
+            g_pRenderText->RenderText(static_cast<float>(textX), static_cast<float>(rowY + chip.textY),
+                chip.text.c_str(), 0.f, 0, RT3_SORT_LEFT);
+        }
+    }
+
+    // A price spelled out in words, for places with room for a sentence rather than chips: "4 Bless, 2 Soul".
+    std::wstring PriceSummaryText(AuctionCurrencyMode currency, const AuctionHouse::AuctionAmount& amount)
+    {
+        const auto components = AuctionHouse::PriceComponentsOf(currency, amount);
+        if (components.empty())
+        {
+            return L"-";
+        }
+
+        std::wstring text;
+        for (size_t i = 0; i < components.size(); ++i)
+        {
+            if (i != 0)
+            {
+                text += L", ";
+            }
+            text += std::to_wstring(components[i].amount) + L" " + PriceKindName(components[i].kind);
+        }
+        return text;
     }
 
     const wchar_t* ListingStatusText(AuctionListingStatus status)
@@ -532,9 +1021,10 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CurrencyLabels[6] = I18N::Game::JewelOfCreation;
     m_CurrencyLabels[7] = I18N::Game::JewelOfGuardian;
     m_CurrencyLabels[8] = I18N::Game::JewelOfHarmony;
-    m_CurrencyLabels[9] = I18N::Game::FruitBasket;
+    m_CurrencyLabels[9] = I18N::Game::Fruits;
     m_CurrencyCombo.Setup(m_Pos.x + TOOLBAR_X + CURRENCY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y, CURRENCY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
         m_CurrencyLabels, 10, 0);
+    m_CurrencyCombo.SetFieldSkin(&AuctionFieldSkin());
 
     // Index 0 is "All Categories" (the server's own 0xFF sentinel); indices 1-7 are AuctionCategory's seven
     // wire values in declaration order (Weapon, Armor, Wing, Pet & Helper, Jewel & Material, Consumable,
@@ -558,6 +1048,7 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_StatusLabels[5] = I18N::Game::AuctionAdminRemoved;
     m_StatusCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH,
         CURRENCY_COMBO_ITEM_HEIGHT, m_StatusLabels, 6, m_SelectedStatusIndex);
+    m_StatusCombo.SetFieldSkin(&AuctionFieldSkin());
 
     m_CollectionKindLabels[0] = I18N::Game::AuctionAllCollections;
     m_CollectionKindLabels[1] = I18N::Game::AuctionPurchasedItem;
@@ -568,11 +1059,14 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CollectionKindLabels[6] = I18N::Game::AuctionAdminRefund;
     m_CollectionKindCombo.Setup(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH,
         CURRENCY_COMBO_ITEM_HEIGHT, m_CollectionKindLabels, 7, m_SelectedCollectionKindIndex);
+    m_CollectionKindCombo.SetFieldSkin(&AuctionFieldSkin());
 
-    m_SearchInput.Init(g_hWnd, SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT, 32, false);
-    m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    // The inputs sit inside a skinned field drawn behind them, so they paint no background of their own and
+    // are inset to leave the field's frame clear.
+    m_SearchInput.Init(g_hWnd, SEARCH_INPUT_WIDTH - 2 * TOOLBAR_FIELD_TEXT_INSET, SEARCH_INPUT_HEIGHT, 32, false);
+    m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET + TOOLBAR_FIELD_TEXT_INSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_SearchInput.SetTextColor(255, 255, 230, 210);
-    m_SearchInput.SetBackColor(210, 20, 14, 8);
+    m_SearchInput.SetBackColor(0, 0, 0, 0);
     m_SearchInput.SetSelectBackColor(255, 95, 68, 24);
     m_SearchInput.SetFont(g_hFont);
     m_SearchInput.SetParentUIID(SEASON3B::INTERFACE_AUCTION_HOUSE);
@@ -580,17 +1074,17 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
 
     for (auto* levelInput : { &m_MinimumLevelInput, &m_MaximumLevelInput })
     {
-        levelInput->Init(g_hWnd, LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT, 3, false);
+        levelInput->Init(g_hWnd, LEVEL_INPUT_WIDTH - 2 * LEVEL_FIELD_TEXT_INSET, SEARCH_INPUT_HEIGHT, 3, false);
         levelInput->SetTextColor(255, 255, 230, 210);
-        levelInput->SetBackColor(210, 20, 14, 8);
+        levelInput->SetBackColor(0, 0, 0, 0);
         levelInput->SetSelectBackColor(255, 95, 68, 24);
         levelInput->SetFont(g_hFont);
         levelInput->SetParentUIID(SEASON3B::INTERFACE_AUCTION_HOUSE);
         levelInput->SetOption(UIOPTION_NUMBERONLY);
         levelInput->SetState(UISTATE_NORMAL);
     }
-    m_MinimumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
-    m_MaximumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_MinimumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET + LEVEL_FIELD_TEXT_INSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_MaximumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET + LEVEL_FIELD_TEXT_INSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
 
     for (size_t i = 0; i < std::size(m_CollectionClaimInputs); ++i)
     {
@@ -607,8 +1101,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
         input.SetState(UISTATE_HIDE);
     }
 
-    InitPageButton(&m_BtnPrevPage, m_Pos.x + PAGE_CLUSTER_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
-    InitPageButton(&m_BtnNextPage, m_Pos.x + PAGE_NEXT_BTN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
+    InitPageButton(&m_BtnPrevPage, m_Pos.x + PageClusterX(m_iCurrentTab), m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Previous);
+    InitPageButton(&m_BtnNextPage, m_Pos.x + PageNextButtonX(m_iCurrentTab), m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Next);
     InitPageButton(&m_BtnBack, m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, I18N::Game::Back);
     InitPageButton(&m_BtnBid, m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Bid);
     InitPageButton(&m_BtnBuyout, m_Pos.x + WINDOW_WIDTH - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::Buyout);
@@ -618,6 +1112,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
         m_Pos.y + PAGE_BTN_Y_OFFSET, I18N::Game::AuctionCollect);
     InitPageButton(&m_BtnSearch, m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, I18N::Game::AuctionSearch);
     InitPageButton(&m_BtnReset, m_Pos.x + TOOLBAR_X + RESET_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, L"Reset");
+    m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnReset.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + RESET_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, RESET_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BrowseScrollBar.Create(m_Pos.x + WINDOW_WIDTH - BROWSE_SCROLLBAR_RIGHT_MARGIN,
         m_Pos.y + BROWSE_BODY_Y + BROWSE_SCROLLBAR_TOP_INSET, BROWSE_SCROLLBAR_HEIGHT);
     m_BrowseScrollBar.Show(false);
@@ -663,6 +1159,7 @@ void SEASON3B::CNewUIAuctionWindow::InitPageButton(CNewUIButton* pButton, int x,
     pButton->ChangeButtonInfo(x, y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     pButton->ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
     pButton->ChangeImgColor(BUTTON_STATE_DOWN, RGBA(255, 255, 255, 255));
+    pButton->SetNineSliceSkin(&AuctionButtonSkin());
 }
 
 void SEASON3B::CNewUIAuctionWindow::SetPos(int x, int y)
@@ -690,14 +1187,14 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
             m_Pos.x + TOOLBAR_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH,
             m_Pos.y + CLAIM_INPUT_Y_OFFSET + 15);
     }
-    m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
-    m_MinimumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
-    m_MaximumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_SearchInput.SetPosition(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET + TOOLBAR_FIELD_TEXT_INSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_MinimumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET + LEVEL_FIELD_TEXT_INSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
+    m_MaximumLevelInput.SetPosition(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET + LEVEL_FIELD_TEXT_INSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET);
     m_BtnSearch.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + SEARCH_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y, SEARCH_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnReset.ChangeButtonInfo(m_Pos.x + TOOLBAR_X + RESET_BUTTON_X_OFFSET, m_Pos.y + TOOLBAR_Y,
         RESET_BUTTON_WIDTH, PAGE_BTN_HEIGHT);
-    m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PAGE_CLUSTER_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
-    m_BtnNextPage.ChangeButtonInfo(m_Pos.x + PAGE_NEXT_BTN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnPrevPage.ChangeButtonInfo(m_Pos.x + PageClusterX(m_iCurrentTab), m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
+    m_BtnNextPage.ChangeButtonInfo(m_Pos.x + PageNextButtonX(m_iCurrentTab), m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBack.ChangeButtonInfo(m_Pos.x + TOOLBAR_X, m_Pos.y + TOOLBAR_Y, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBid.ChangeButtonInfo(m_Pos.x + PAGE_BTN_MARGIN_X, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
     m_BtnBuyout.ChangeButtonInfo(m_Pos.x + windowWidth - PAGE_BTN_MARGIN_X - PAGE_BTN_WIDTH, m_Pos.y + PAGE_BTN_Y_OFFSET, PAGE_BTN_WIDTH, PAGE_BTN_HEIGHT);
@@ -1329,9 +1826,8 @@ void SEASON3B::CNewUIAuctionWindow::RenderRowItemTooltip(int row) const
         return;
     }
 
-    const int iconX = m_Pos.x + (m_iCurrentTab == TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X)
-        + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0) + BROWSE_ICON_MARGIN;
-    const int iconY = m_Pos.y + BROWSE_BODY_Y + row * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
+    const int iconX = m_Pos.x + RowSlotX(m_iCurrentTab) + BROWSE_ICON_CELL_OFFSET + BROWSE_ICON_MARGIN;
+    const int iconY = m_Pos.y + BROWSE_BODY_Y + row * BROWSE_ROW_HEIGHT + BROWSE_ICON_CELL_OFFSET + BROWSE_ICON_MARGIN;
     RenderItemInfo(iconX + BROWSE_ICON_SIZE / 2, iconY + BROWSE_ICON_SIZE / 2, m_RowItems[row], false);
 }
 
@@ -1634,12 +2130,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
     }
 
     if ((m_SearchInput.HaveFocus() || m_MinimumLevelInput.HaveFocus() || m_MaximumLevelInput.HaveFocus()) && IsPress(VK_LBUTTON)
-        && !CheckMouseIn(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-            SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT)
-        && !CheckMouseIn(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-            LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT)
-        && !CheckMouseIn(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-            LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
+        && !IsMouseOverAnyToolbarInputField(m_Pos.x, m_Pos.y))
     {
         CUITextInputBox::ReleaseFocus();
         SetRelatedWnd(g_hWnd);
@@ -1678,6 +2169,9 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             m_SearchInput.DoAction();
             m_MinimumLevelInput.DoAction();
             m_MaximumLevelInput.DoAction();
+            FocusInputOnFieldPress(m_SearchInput, m_Pos.x, m_Pos.y, SEARCH_INPUT_X_OFFSET, SEARCH_INPUT_WIDTH);
+            FocusInputOnFieldPress(m_MinimumLevelInput, m_Pos.x, m_Pos.y, LEVEL_MINIMUM_X_OFFSET, LEVEL_INPUT_WIDTH);
+            FocusInputOnFieldPress(m_MaximumLevelInput, m_Pos.x, m_Pos.y, LEVEL_MAXIMUM_X_OFFSET, LEVEL_INPUT_WIDTH);
             if (m_SearchInput.HaveFocus())
             {
                 SetRelatedWnd(m_SearchInput.GetHandle());
@@ -1690,12 +2184,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             {
                 SetRelatedWnd(m_MaximumLevelInput.GetHandle());
             }
-            if (CheckMouseIn(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-                SEARCH_INPUT_WIDTH, SEARCH_INPUT_HEIGHT)
-                || CheckMouseIn(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-                    LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT)
-                || CheckMouseIn(m_Pos.x + TOOLBAR_X + LEVEL_MAXIMUM_X_OFFSET, m_Pos.y + SEARCH_INPUT_Y_OFFSET,
-                    LEVEL_INPUT_WIDTH, SEARCH_INPUT_HEIGHT))
+            if (IsMouseOverAnyToolbarInputField(m_Pos.x, m_Pos.y))
             {
                 return true;
             }
@@ -1727,8 +2216,8 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
         }
 
         if (m_BrowseScrollBar.IsVisible()
-            && CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_BODY_Y,
-            BROWSE_TABLE_CONTENT_WIDTH, BROWSE_TABLE_HEIGHT) && MouseWheel != 0)
+            && CheckMouseIn(m_Pos.x + GetTableLayout(m_iCurrentTab == TAB_BROWSE).x, m_Pos.y + BROWSE_BODY_Y,
+            GetTableLayout(m_iCurrentTab == TAB_BROWSE).width, BROWSE_TABLE_HEIGHT) && MouseWheel != 0)
         {
             m_BrowseScrollBar.SetCurPos(m_BrowseScrollBar.GetCurPos() - MouseWheel);
             MouseWheel = 0;
@@ -1741,18 +2230,19 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             return true;
         }
 
+        const TableLayout browseTable = GetTableLayout(true);
         if (m_iCurrentTab == TAB_BROWSE && IsRelease(VK_LBUTTON)
-            && CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_HEADER_Y,
-                BROWSE_TABLE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT))
+            && CheckMouseIn(m_Pos.x + browseTable.x, m_Pos.y + BROWSE_HEADER_Y,
+                browseTable.width, BROWSE_HEADER_HEIGHT))
         {
-            const int localX = MouseX - (m_Pos.x + BROWSE_TABLE_X);
+            const int localX = MouseX - (m_Pos.x + browseTable.innerX());
             AuctionSort requestedSort = m_SelectedSort;
-            if (localX >= BROWSE_TIME_COLUMN_X && localX < BROWSE_TIME_COLUMN_X + BROWSE_TIME_COLUMN_WIDTH)
+            if (localX >= browseTable.timeX() && localX < browseTable.timeX() + TABLE_TIME_COLUMN_WIDTH)
             {
                 requestedSort = AuctionHouse::NextBrowseSort(AuctionHouse::AuctionBrowseSortColumn::TimeLeft, m_SelectedSort);
             }
             else if (!IsAllCurrencies(m_SelectedCurrency) && m_SelectedCurrency != AuctionCurrencyMode::Fruits
-                && localX >= BROWSE_PRICE_COLUMN_X && localX < BROWSE_PRICE_COLUMN_X + BROWSE_PRICE_COLUMN_WIDTH)
+                && localX >= browseTable.priceX() && localX < browseTable.priceX() + TABLE_PRICE_COLUMN_WIDTH)
             {
                 requestedSort = AuctionHouse::NextBrowseSort(AuctionHouse::AuctionBrowseSortColumn::Price, m_SelectedSort);
             }
@@ -1936,13 +2426,6 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
             }
         }
 
-        if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CategoryCombo.UpdateMouseEvent())
-        {
-            m_SelectedCategoryIndex = m_CategoryCombo.GetSelectedIndex();
-            m_CurrentPage = 1;
-            SendBrowseRequest();
-        }
-
         if (m_iCurrentTab == TAB_BROWSE && !m_bShowingDetail && m_CurrencyCombo.UpdateMouseEvent())
         {
             // Combo index 0 is the "All Currencies" sentinel; indices 1-9 map directly onto
@@ -2003,13 +2486,15 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         {
             const auto remainingRows = m_ListingResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_ListingResponse.Listings.size());
             const auto rowCount = std::min(MaxBrowseRows, remainingRows);
+            const TableLayout table = GetTableLayout(m_iCurrentTab == TAB_BROWSE);
             for (size_t row = 0; row < rowCount; ++row)
             {
-                if (CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT,
-                    BROWSE_TABLE_CONTENT_WIDTH, BROWSE_ROW_HEIGHT))
+                if (CheckMouseIn(m_Pos.x + table.x, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT,
+                    table.width, BROWSE_ROW_HEIGHT))
                 {
                     m_iPointedRow = static_cast<int>(row);
-                    if (CheckMouseIn(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + 1,
+                    if (CheckMouseIn(m_Pos.x + table.innerX() + BROWSE_ICON_CELL_OFFSET,
+                        m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_CELL_OFFSET,
                         BROWSE_ICON_CELL_SIZE, BROWSE_ICON_CELL_SIZE))
                     {
                         m_iPointedItemRow = static_cast<int>(row);
@@ -2043,12 +2528,9 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
     RenderFrame();
 
-    // Chrome reuses the bordered-box art Previous/Next use (newui_btn_empty_very_small, native 54x23).
-    // Unlike the previous label-sized pass, every tab has one fixed width and its caption is measured before
-    // rendering so it is centered on both axes.
+    // Tabs share the buttons' nine-slice chrome: one fixed width each, gold when active and brightened steel
+    // when hovered. RenderTabLabel lays out a pending-Mailbox count with its label so they never overprint.
     {
-        constexpr float PAGE_BTN_TEX_NATIVE_WIDTH = 54.f;
-        constexpr float PAGE_BTN_TEX_NATIVE_HEIGHT = 23.f;
         const wchar_t* const tabLabelPtrs[TAB_COUNT] = {
             I18N::Game::Browse, I18N::Game::Sell, I18N::Game::MyListings, I18N::Game::Mailbox,
         };
@@ -2057,36 +2539,17 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
         ComputeTabLayout(tabX, tabWidths);
         g_pRenderText->SetFont(g_hFontBold);
         g_pRenderText->SetBgColor(0, 0, 0, 0);
+        const int tabY = m_Pos.y + TAB_REGION_Y;
         for (int tab = 0; tab < TAB_COUNT; ++tab)
         {
-            const int tabY = m_Pos.y + TAB_REGION_Y;
             const bool active = tab == m_iCurrentTab;
-            RenderImageStretch(IMAGE_AUCTION_PAGE_BTN, (float)tabX[tab], (float)tabY, (float)tabWidths[tab], (float)TAB_HEIGHT,
-                0.f, 0.f, PAGE_BTN_TEX_NATIVE_WIDTH, PAGE_BTN_TEX_NATIVE_HEIGHT,
-                active ? RGBA(255, 210, 110, 255) : RGBA(150, 150, 150, 255));
-            g_pRenderText->SetTextColor(active ? 255 : 205, active ? 215 : 205, active ? 100 : 205, 255);
-            const SIZE labelSize = g_pRenderText->MeasureText(tabLabelPtrs[tab], static_cast<int>(wcslen(tabLabelPtrs[tab])));
-            g_pRenderText->RenderText((float)tabX[tab], (float)(tabY + (TAB_HEIGHT - labelSize.cy) / 2), tabLabelPtrs[tab],
-                (float)tabWidths[tab], 0, RT3_SORT_CENTER);
+            const bool hovered = !active && CheckMouseIn(tabX[tab], tabY, tabWidths[tab], TAB_HEIGHT);
+            UI::NineSlice::Render(AuctionButtonSkin().texture, static_cast<float>(tabX[tab]), static_cast<float>(tabY),
+                static_cast<float>(tabWidths[tab]), static_cast<float>(TAB_HEIGHT),
+                active ? TAB_TINT_ACTIVE : (hovered ? TAB_TINT_HOVER : TAB_TINT_IDLE));
+            RenderTabLabel(tabX[tab], tabY, tabWidths[tab], tabLabelPtrs[tab],
+                tab == TAB_MAILBOX ? static_cast<int>(m_PendingMailboxCount) : 0, active);
         }
-    }
-    // The native inventory frame already contains its own top-right close artwork. Rendering a second
-    // exit sprite on top produced the doubled-X reported in visual review; keep the frame's single visual
-    // control and handle its hit rectangle directly in BtnProcess().
-
-    if (m_PendingMailboxCount > 0)
-    {
-        int tabX[TAB_COUNT];
-        int tabWidths[TAB_COUNT];
-        ComputeTabLayout(tabX, tabWidths);
-        wchar_t badge[16];
-        mu_swprintf(badge, L"[%d]", m_PendingMailboxCount);
-        g_pRenderText->SetFont(g_hFontBold);
-        g_pRenderText->SetTextColor(255, 190, 70, 255);
-        g_pRenderText->SetBgColor(0, 0, 0, 0);
-        g_pRenderText->RenderText(
-            (float)(tabX[TAB_MAILBOX] + tabWidths[TAB_MAILBOX] - 38),
-            (float)(m_Pos.y + TAB_REGION_Y + 8), badge, 34.0f, 0, RT3_SORT_CENTER);
     }
 
     g_pRenderText->SetFont(g_hFontBold);
@@ -2121,18 +2584,19 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
 
         if (m_iCurrentTab == TAB_BROWSE)
         {
-            // Inputs get the same capped MU treatment as the Search, Reset, and paging buttons. The text
-            // controls still own their keyboard behaviour; this is only the shared rounded visual shell.
-            const int fieldY = m_Pos.y + TOOLBAR_Y;
-            const auto renderToolbarField = [this, fieldY](int xOffset, int width)
+            // Every toolbar control shares the nine-slice chrome: recessed fields behind the text inputs (a gold
+            // ring while one has focus), raised buttons, and a field-skinned currency combo. The inputs paint no
+            // background of their own and own only the keyboard behaviour.
+            const auto renderToolbarField = [this](int xOffset, int width, bool focused)
             {
-                RenderImageStretch(IMAGE_AUCTION_PAGE_BTN, (float)(m_Pos.x + TOOLBAR_X + xOffset), (float)fieldY,
-                    (float)width, (float)TOOLBAR_FIELD_HEIGHT, 0.f, 0.f, 54.f, 23.f,
-                    RGBA(150, 150, 150, 255));
+                const UI::NineSlice::StateTints& tints = AuctionFieldSkin().tints;
+                UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(m_Pos.x + TOOLBAR_X + xOffset),
+                    static_cast<float>(m_Pos.y + TOOLBAR_Y), static_cast<float>(width),
+                    static_cast<float>(TOOLBAR_FIELD_HEIGHT), focused ? tints.pressed : tints.normal);
             };
-            renderToolbarField(SEARCH_INPUT_X_OFFSET, SEARCH_INPUT_WIDTH);
-            renderToolbarField(LEVEL_MINIMUM_X_OFFSET, LEVEL_INPUT_WIDTH);
-            renderToolbarField(LEVEL_MAXIMUM_X_OFFSET, LEVEL_INPUT_WIDTH);
+            renderToolbarField(SEARCH_INPUT_X_OFFSET, SEARCH_INPUT_WIDTH, m_SearchInput.HaveFocus());
+            renderToolbarField(LEVEL_MINIMUM_X_OFFSET, LEVEL_INPUT_WIDTH, m_MinimumLevelInput.HaveFocus());
+            renderToolbarField(LEVEL_MAXIMUM_X_OFFSET, LEVEL_INPUT_WIDTH, m_MaximumLevelInput.HaveFocus());
             m_SearchInput.Render();
             m_MinimumLevelInput.Render();
             m_MaximumLevelInput.Render();
@@ -2141,22 +2605,25 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
             if (searchText[0] == L'\0' && !m_SearchInput.HaveFocus())
             {
                 g_pRenderText->SetFont(g_hFont);
-                g_pRenderText->SetTextColor(130, 130, 130, 255);
+                g_pRenderText->SetTextColor(128, 134, 146, 255);
                 g_pRenderText->SetBgColor(0, 0, 0, 0);
-                g_pRenderText->RenderText((float)(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET + 5),
-                    (float)(m_Pos.y + SEARCH_INPUT_Y_OFFSET + 2), L"Search item name...",
-                    (float)(SEARCH_INPUT_WIDTH - 8), 0, RT3_SORT_LEFT);
+                g_pRenderText->RenderText(
+                    static_cast<float>(m_Pos.x + TOOLBAR_X + SEARCH_INPUT_X_OFFSET + TOOLBAR_FIELD_TEXT_INSET),
+                    static_cast<float>(m_Pos.y + SEARCH_INPUT_Y_OFFSET), L"Search item name...",
+                    static_cast<float>(SEARCH_INPUT_WIDTH - 2 * TOOLBAR_FIELD_TEXT_INSET), 0, RT3_SORT_LEFT);
             }
             m_BtnSearch.Render();
             m_BtnReset.Render();
-            m_CurrencyCombo.Render();
             g_pRenderText->SetFont(g_hFontBold);
-            g_pRenderText->SetTextColor(218, 186, 104, 255);
+            g_pRenderText->SetTextColor(190, 196, 208, 255);
             g_pRenderText->SetBgColor(0, 0, 0, 0);
-            g_pRenderText->RenderText((float)(m_Pos.x + TOOLBAR_X + LEVEL_LABEL_X_OFFSET),
-                (float)(m_Pos.y + SEARCH_INPUT_Y_OFFSET + 2), L"Lv.", 18.0f, 0, RT3_SORT_LEFT);
-            g_pRenderText->RenderText((float)(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET + LEVEL_INPUT_WIDTH),
-                (float)(m_Pos.y + SEARCH_INPUT_Y_OFFSET + 2), L"-", 8.0f, 0, RT3_SORT_CENTER);
+            g_pRenderText->RenderText(static_cast<float>(m_Pos.x + TOOLBAR_X + LEVEL_LABEL_X_OFFSET),
+                static_cast<float>(m_Pos.y + SEARCH_INPUT_Y_OFFSET), L"Lv.", static_cast<float>(LEVEL_LABEL_WIDTH), 0,
+                RT3_SORT_LEFT);
+            g_pRenderText->RenderText(static_cast<float>(m_Pos.x + TOOLBAR_X + LEVEL_MINIMUM_X_OFFSET + LEVEL_INPUT_WIDTH),
+                static_cast<float>(m_Pos.y + SEARCH_INPUT_Y_OFFSET), L"-", static_cast<float>(LEVEL_RANGE_SEPARATOR_WIDTH),
+                0, RT3_SORT_CENTER);
+            m_CurrencyCombo.Render();
         }
         else
         {
@@ -2208,10 +2675,10 @@ void SEASON3B::CNewUIAuctionWindow::RenderDetailPanel()
     const uint32_t estimatedServerTime = m_ServerClock.EstimatedServerTime(GetTickCount());
     const auto remainingSeconds = detail.EndsAt > estimatedServerTime ? (detail.EndsAt - estimatedServerTime) : 0;
     const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
-    const std::wstring priceText = detail.CurrentPrice.IsFruitBasket() ? L"(fruits)" : std::to_wstring(detail.CurrentPrice.Scalar());
+    const std::wstring priceText = PriceSummaryText(detail.CurrencyMode, detail.CurrentPrice);
     const std::wstring buyoutText = detail.BuyoutPrice.IsZero()
         ? L"\x2014" // em dash: no buyout set, per the design spec's own "buyout price, or an em dash" wording.
-        : (detail.BuyoutPrice.IsFruitBasket() ? L"(fruits)" : std::to_wstring(detail.BuyoutPrice.Scalar()));
+        : PriceSummaryText(detail.CurrencyMode, detail.BuyoutPrice);
 
     const int textX = m_Pos.x + BROWSE_BODY_X + DETAIL_TEXT_X_OFFSET;
     int textY = m_Pos.y + BROWSE_BODY_Y;
@@ -2421,7 +2888,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderPageControls()
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
-    g_pRenderText->RenderText((float)(m_Pos.x + PAGE_CLUSTER_X + PAGE_BTN_WIDTH), (float)(m_Pos.y + PAGE_BTN_Y_OFFSET + 4),
+    g_pRenderText->RenderText((float)(m_Pos.x + PageClusterX(m_iCurrentTab) + PAGE_BTN_WIDTH), (float)(m_Pos.y + PAGE_BTN_Y_OFFSET + PAGE_LABEL_Y_OFFSET),
         pageText, (float)PAGE_CLUSTER_GAP, 0, RT3_SORT_CENTER);
 }
 
@@ -2484,6 +2951,7 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         ? m_MailboxResponse.Entries.size() : m_ListingResponse.Listings.size();
     const auto remainingRows = entryCount - std::min(m_BrowseScrollOffset, entryCount);
     const auto rowCount = std::min(MaxBrowseRows, remainingRows);
+    const TableLayout table = GetTableLayout(m_iCurrentTab == TAB_BROWSE);
     for (size_t row = 0; row < rowCount; ++row)
     {
         const ITEM* item = m_RowItems[row];
@@ -2492,115 +2960,45 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
             continue;
         }
 
-        const int iconX = m_Pos.x + (m_iCurrentTab == TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X)
-            + (m_iCurrentTab == TAB_MAILBOX ? MAILBOX_CONTENT_COLUMN_X : 0) + BROWSE_ICON_MARGIN;
-        const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_MARGIN;
+        const int iconX = m_Pos.x + RowSlotX(m_iCurrentTab) + BROWSE_ICON_CELL_OFFSET + BROWSE_ICON_MARGIN;
+        const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_CELL_OFFSET
+            + BROWSE_ICON_MARGIN;
         RenderItem3DFittedToSlot((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
-            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, 0.68f, false);
+            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, BROWSE_ICON_FILL, false);
 
-        // Small per-row currency icons beside the Price/Buyout numbers (see RenderBrowseTab's matching text
-        // offset). Only the Browse/My Listings table has these two columns; Mailbox's layout does not.
+        // The icons of each price chip, laid out by the same function that places the amounts (see
+        // RenderBrowseTab). Only the Browse/My Listings table has price columns; Mailbox's layout does not.
         if ((m_iCurrentTab == TAB_BROWSE || m_iCurrentTab == TAB_MY_LISTINGS) && m_bHasListingResponse
             && m_BrowseScrollOffset + row < m_ListingResponse.Listings.size())
         {
             const auto& rowListing = m_ListingResponse.Listings[m_BrowseScrollOffset + row];
-            const int priceIconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT
-                + (BROWSE_ROW_HEIGHT - BROWSE_PRICE_ICON_SIZE) / 2;
-
-            if (!rowListing.CurrentPrice.IsZero())
+            const int rowY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
+            const auto renderPriceIcons = [&](const AuctionHouse::AuctionAmount& amount, int cellX, int cellWidth)
             {
-                if (const auto* descriptor = FindJewelCurrencyDescriptor(m_OpenResponse, rowListing.CurrencyMode))
+                const auto chips = LayoutPriceCell(AuctionHouse::PriceComponentsOf(rowListing.CurrencyMode, amount),
+                    cellWidth, m_bHasOpenResponse ? &m_OpenResponse : nullptr);
+                for (const PriceChip& chip : chips)
                 {
-                    RenderItem3DScaled((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X), (float)priceIconY,
-                        (float)BROWSE_PRICE_ICON_SIZE, (float)BROWSE_PRICE_ICON_SIZE,
-                        descriptor->LooseItemType, 0, 0, 0, GetAuctionPreviewScale(descriptor->LooseItemType) * 0.6f, false);
+                    if (chip.icon)
+                    {
+                        RenderItem3DFittedToSlot(static_cast<float>(cellX + chip.x),
+                            static_cast<float>(rowY + chip.textY + PRICE_ICON_Y_OFFSET),
+                            static_cast<float>(PRICE_ICON_SIZE), static_cast<float>(PRICE_ICON_SIZE),
+                            chip.icon->itemType, chip.icon->itemLevel, 0, 0, PRICE_ICON_FILL, false);
+                    }
                 }
-            }
-
-            if (!rowListing.BuyoutPrice.IsZero())
-            {
-                if (const auto* descriptor = FindJewelCurrencyDescriptor(m_OpenResponse, rowListing.CurrencyMode))
-                {
-                    RenderItem3DScaled((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X), (float)priceIconY,
-                        (float)BROWSE_PRICE_ICON_SIZE, (float)BROWSE_PRICE_ICON_SIZE,
-                        descriptor->LooseItemType, 0, 0, 0, GetAuctionPreviewScale(descriptor->LooseItemType) * 0.6f, false);
-                }
-            }
+            };
+            renderPriceIcons(rowListing.CurrentPrice, m_Pos.x + table.innerX() + table.priceX(), TABLE_PRICE_COLUMN_WIDTH);
+            renderPriceIcons(rowListing.BuyoutPrice, m_Pos.x + table.innerX() + table.buyoutX(), TABLE_BUYOUT_COLUMN_WIDTH);
         }
     }
 
     if (m_iCurrentTab == TAB_BROWSE && m_bHasOpenResponse)
     {
-        size_t jewelCount = 0;
-        const AuctionHouse::AuctionCurrencyDescriptor* fruitsCurrency = nullptr;
-        for (const auto& currency : m_OpenResponse.Currencies)
-        {
-            if (!currency.Enabled)
-            {
-                continue;
-            }
-
-            if (currency.CurrencyMode == AuctionCurrencyMode::Fruits)
-            {
-                fruitsCurrency = &currency;
-            }
-            else if (currency.LooseItemType != 0)
-            {
-                ++jewelCount;
-            }
-        }
-
-        if (jewelCount > 0)
-        {
-            const int unitWidth = WALLET_WIDTH / static_cast<int>(jewelCount);
-            int unit = 0;
-            for (const auto& currency : m_OpenResponse.Currencies)
-            {
-                if (!currency.Enabled || currency.CurrencyMode == AuctionCurrencyMode::Fruits)
-                {
-                    continue;
-                }
-
-                if (currency.LooseItemType != 0)
-                {
-                    const int iconX = m_Pos.x + WALLET_X + unit * unitWidth + (unitWidth - WALLET_ICON_SIZE) / 2;
-                    // Harmony's model origin sits one logical pixel higher than the other jewel models. Keep
-                    // the wallet's icon baselines visually aligned without changing the item itself.
-                    const int iconYOffset = currency.CurrencyMode == AuctionCurrencyMode::Harmony ? 1 : 0;
-                    RenderItem3DScaled((float)iconX,
-                        (float)(m_Pos.y + WALLET_Y + WALLET_TITLE_HEIGHT + iconYOffset),
-                        (float)WALLET_ICON_SIZE, (float)WALLET_ICON_SIZE,
-                        currency.LooseItemType, 0, 0, 0, GetAuctionPreviewScale(currency.LooseItemType) * 0.65f, false);
-                    ++unit;
-                }
-            }
-        }
-
-        if (fruitsCurrency != nullptr)
-        {
-            const size_t fruitCount = std::count_if(fruitsCurrency->FruitItemTypes.begin(), fruitsCurrency->FruitItemTypes.end(),
-                [](uint16_t itemType) { return itemType != 0; });
-            if (fruitCount > 0)
-            {
-                const int segmentWidth = WALLET_WIDTH / static_cast<int>(fruitCount);
-                int segment = 0;
-                for (size_t fruit = 0; fruit < fruitsCurrency->FruitItemTypes.size(); ++fruit)
-                {
-                    if (fruitsCurrency->FruitItemTypes[fruit] == 0)
-                    {
-                        continue;
-                    }
-
-                    const int iconX = m_Pos.x + WALLET_X + segment * segmentWidth + (segmentWidth - WALLET_FRUIT_ICON_SIZE) / 2;
-                    RenderItem3DScaled((float)iconX,
-                        (float)(m_Pos.y + WALLET_FRUITS_Y + WALLET_TITLE_HEIGHT),
-                        (float)WALLET_FRUIT_ICON_SIZE, (float)WALLET_FRUIT_ICON_SIZE,
-                        fruitsCurrency->FruitItemTypes[fruit], fruitsCurrency->FruitItemLevels[fruit], 0, 0,
-                        GetAuctionPreviewScale(fruitsCurrency->FruitItemTypes[fruit]) * 0.90f, false);
-                    ++segment;
-                }
-            }
-        }
+        const WalletView view = BuildWalletView(m_OpenResponse);
+        const WalletLayout layout = ComputeWalletLayout(view);
+        RenderWalletIcons(m_Pos.x, m_Pos.y, layout.jewelsY, view.jewels, WALLET_JEWEL_COLUMNS, WALLET_JEWEL_ICON_SIZE);
+        RenderWalletIcons(m_Pos.x, m_Pos.y, layout.fruitsY, view.fruits, WALLET_FRUIT_COLUMNS, WALLET_FRUIT_ICON_SIZE);
     }
 
     // Deferred to the shared 3D render manager so the tooltip draws after every window's own icons, the same
@@ -2672,69 +3070,51 @@ void SEASON3B::CNewUIAuctionWindow::RenderSellItemTooltip() const
 
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()
 {
-    // EnableAlphaBlend is the engine's additive "glow" mode, not conventional alpha blending. It turns
-    // translucent table panels into the opaque white/yellow blocks seen during the first in-game pass.
+    const TableLayout table = GetTableLayout(m_iCurrentTab == TAB_BROWSE, m_iCurrentTab == TAB_MY_LISTINGS);
     EnableAlphaTest();
-    RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X, m_Pos.y + BROWSE_HEADER_Y,
-        BROWSE_TABLE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT, BROWSE_HEADER_COLOR);
-
-    const int separators[] = {
-        BROWSE_LEVEL_COLUMN_X,
-        BROWSE_TIME_COLUMN_X,
-        BROWSE_SELLER_COLUMN_X,
-        BROWSE_PRICE_COLUMN_X,
-        BROWSE_BUYOUT_COLUMN_X,
-    };
-    for (const int separator : separators)
-    {
-        RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X + separator, m_Pos.y + BROWSE_HEADER_Y,
-            1, BROWSE_HEADER_HEIGHT + BROWSE_TABLE_HEIGHT, BROWSE_GRID_COLOR);
-    }
+    RenderTableContainer(m_Pos.x + table.x, m_Pos.y + BROWSE_HEADER_Y, table.width);
+    RenderColorQuadARGB(m_Pos.x + table.innerX(), m_Pos.y + BROWSE_BODY_Y - 1, table.innerWidth(), 1,
+        BROWSE_HEADER_LINE_COLOR);
     EndRenderColor();
 
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
-    const float headerY = static_cast<float>(m_Pos.y + BROWSE_HEADER_Y + 5);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_ITEM_COLUMN_X), headerY,
-        L"Icon", (float)BROWSE_ICON_CELL_SIZE, 0, RT3_SORT_CENTER);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_TEXT_X_OFFSET), headerY,
-        I18N::Game::ItemName, (float)(BROWSE_ITEM_COLUMN_WIDTH - BROWSE_TEXT_X_OFFSET - 4), 0, RT3_SORT_LEFT);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_LEVEL_COLUMN_X), headerY,
-        I18N::Game::Level, (float)BROWSE_LEVEL_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+    const int headerTextY = m_Pos.y + BROWSE_HEADER_Y + 5;
+    const int innerX = m_Pos.x + table.innerX();
+    g_pRenderText->RenderText((float)(innerX + BROWSE_TEXT_X_OFFSET), (float)headerTextY, I18N::Game::ItemName,
+        (float)(table.itemWidth() - BROWSE_TEXT_X_OFFSET - 4), 0, RT3_SORT_LEFT);
 
-    std::wstring timeHeader = I18N::Game::TimeLeft;
-    if (m_iCurrentTab == TAB_BROWSE && m_SelectedSort == AuctionSort::EndingSoonest)
+    const int timeDirection = m_iCurrentTab == TAB_BROWSE && m_SelectedSort == AuctionSort::EndingSoonest ? 1 : 0;
+    RenderSortableHeader(innerX + table.timeX(), TABLE_TIME_COLUMN_WIDTH, headerTextY, I18N::Game::TimeLeft,
+        timeDirection);
+    if (table.statusColumn)
     {
-        timeHeader += L" ^";
+        g_pRenderText->RenderText((float)(innerX + table.statusX()), (float)headerTextY, I18N::Game::Status,
+            (float)TABLE_STATUS_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
     }
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_TIME_COLUMN_X), headerY,
-        timeHeader.c_str(), (float)BROWSE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_SELLER_COLUMN_X), headerY,
-        m_iCurrentTab == TAB_MY_LISTINGS ? I18N::Game::Status : I18N::Game::Seller,
-        (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 
-    std::wstring priceHeader = L"Current Price";
+    int priceDirection = 0;
     if (m_iCurrentTab == TAB_BROWSE && m_SelectedSort == AuctionSort::PriceAscending)
     {
-        priceHeader += L" ^";
+        priceDirection = 1;
     }
     else if (m_iCurrentTab == TAB_BROWSE && m_SelectedSort == AuctionSort::PriceDescending)
     {
-        priceHeader += L" v";
+        priceDirection = -1;
     }
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X), headerY,
-        priceHeader.c_str(), (float)BROWSE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+    RenderSortableHeader(innerX + table.priceX(), TABLE_PRICE_COLUMN_WIDTH, headerTextY, L"Current Price", priceDirection);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X), headerY,
-        I18N::Game::Buyout, (float)BROWSE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText((float)(innerX + table.buyoutX()), (float)headerTextY, I18N::Game::Buyout,
+        (float)TABLE_BUYOUT_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 {
-    // Eight compact table rows. Item icons remain in the engine's 3D pass; the text columns and grid are
-    // ordinary UI rendering. The countdown uses m_ServerClock's live estimate, not the frozen response time.
-    constexpr int BodyWidth = BROWSE_TABLE_CONTENT_WIDTH;
+    const TableLayout table = GetTableLayout(m_iCurrentTab == TAB_BROWSE, m_iCurrentTab == TAB_MY_LISTINGS);
+    // Nine compact rows. Item icons remain in the engine's 3D pass; the cards, text and price amounts are ordinary
+    // UI rendering. The countdown uses m_ServerClock's live estimate, not the frozen response time.
+    const int innerX = m_Pos.x + table.innerX();
 
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
@@ -2742,83 +3122,84 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
 
     if (!m_bHasListingResponse)
     {
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::PleaseWait, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)innerX, (float)(m_Pos.y + BROWSE_BODY_Y + 8), I18N::Game::PleaseWait,
+            (float)table.innerWidth(), 0, RT3_SORT_CENTER);
         return;
     }
 
     if (m_ListingResponse.Listings.empty())
     {
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X), (float)(m_Pos.y + BROWSE_BODY_Y), I18N::Game::NoListingsFound, (float)BodyWidth, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText((float)innerX, (float)(m_Pos.y + BROWSE_BODY_Y + 8), I18N::Game::NoListingsFound,
+            (float)table.innerWidth(), 0, RT3_SORT_CENTER);
         return;
     }
 
     const uint32_t estimatedServerTime = m_ServerClock.EstimatedServerTime(GetTickCount());
     const auto remainingRows = m_ListingResponse.Listings.size() - std::min(m_BrowseScrollOffset, m_ListingResponse.Listings.size());
     const auto rowCount = std::min(MaxBrowseRows, remainingRows);
+    const AuctionHouse::AuctionOpenResponse* openResponse = m_bHasOpenResponse ? &m_OpenResponse : nullptr;
     for (size_t row = 0; row < rowCount; ++row)
     {
         const auto& listing = m_ListingResponse.Listings[m_BrowseScrollOffset + row];
         const int rowY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
         const bool isHovered = static_cast<int>(row) == m_iPointedRow;
 
+        // The card runs from the middle of the slot to the table's right edge; the slot, drawn over its left end,
+        // keeps each preview contained and shows its rarity before the user opens the tooltip. Every slot shares
+        // the same dark interior; only its thin ring is tinted.
         EnableAlphaTest();
-        RenderColorQuadARGB(m_Pos.x + BROWSE_TABLE_X, rowY + BROWSE_ROW_PADDING,
-            BodyWidth, BROWSE_ROW_HEIGHT - 2 * BROWSE_ROW_PADDING,
-            isHovered ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
-        EndRenderColor();
-
-        // A fixed, rounded slot keeps each preview contained and makes its rarity visible before the user
-        // opens the tooltip. The black fill is intentionally shared by every item; only the thin outline
-        // changes with rarity so the list stays calm and readable.
-        const int cellX = m_Pos.x + BROWSE_TABLE_X + 1;
-        const DWORD cellFill = isHovered ? 0xFF17130Au : 0xFF050505u;
-        const DWORD cellBorder = GetAuctionItemSlotBorderColor(m_RowItems[row]);
-        EnableAlphaTest();
-        RenderRoundedAuctionIconSlot(cellX, rowY + 1, BROWSE_ICON_CELL_SIZE, cellBorder, cellFill);
-        EndRenderColor();
+        RenderRowCard(innerX + ROW_CARD_START, rowY, table.innerWidth() - ROW_CARD_START, isHovered);
+        RenderAuctionItemSlot(innerX + BROWSE_ICON_CELL_OFFSET, rowY + BROWSE_ICON_CELL_OFFSET, BROWSE_ICON_CELL_SIZE,
+            GetAuctionItemSlotTint(m_RowItems[row], isHovered));
 
         const auto remainingSeconds = listing.EndsAt > estimatedServerTime ? (listing.EndsAt - estimatedServerTime) : 0;
         const auto countdown = AuctionHouse::FormatAuctionCountdown(std::chrono::seconds(remainingSeconds));
-        // A jewel-priced amount shows a small icon (drawn alongside the other row icons in Render3D, the
-        // engine's 3D pass) instead of appending the currency's name as text, which is what actually makes
-        // room for the number in these narrow columns. Zen and Fruits have no single item identity to render
-        // this way and keep their existing "<amount> <name>" text.
-        const auto* priceCurrencyIcon = m_bHasOpenResponse && !listing.CurrentPrice.IsZero()
-            ? FindJewelCurrencyDescriptor(m_OpenResponse, listing.CurrencyMode) : nullptr;
-        const auto* buyoutCurrencyIcon = m_bHasOpenResponse && !listing.BuyoutPrice.IsZero()
-            ? FindJewelCurrencyDescriptor(m_OpenResponse, listing.CurrencyMode) : nullptr;
-        const std::wstring priceText = priceCurrencyIcon != nullptr
-            ? BrowseScalarOnlyText(listing.CurrentPrice) : BrowsePriceText(listing.CurrencyMode, listing.CurrentPrice);
-        const std::wstring buyoutText = buyoutCurrencyIcon != nullptr
-            ? BrowseScalarOnlyText(listing.BuyoutPrice) : BrowsePriceText(listing.CurrencyMode, listing.BuyoutPrice);
         const std::wstring itemName = m_RowItems[row] != nullptr ? GetItemDisplayName(m_RowItems[row]) : std::wstring();
 
-        const int textX = m_Pos.x + BROWSE_TABLE_X + BROWSE_TEXT_X_OFFSET;
-        const int textWidth = BROWSE_ITEM_COLUMN_WIDTH - BROWSE_TEXT_X_OFFSET - 4;
-        const float textY = static_cast<float>(rowY + 7);
-
+        // Item cell: the name, with the seller under it on Browse (My Listings shows its own status column).
+        const bool showSeller = m_iCurrentTab == TAB_BROWSE;
+        const int textX = innerX + BROWSE_TEXT_X_OFFSET;
+        const int textWidth = table.itemWidth() - BROWSE_TEXT_X_OFFSET - 4;
         g_pRenderText->SetFont(g_hFontBold);
         SetBrowseItemNameColor(m_RowItems[row]);
-        g_pRenderText->RenderText((float)textX, textY, itemName.c_str(), (float)textWidth, 0, RT3_SORT_LEFT);
-
+        g_pRenderText->RenderText((float)textX, (float)(rowY + (showSeller ? ROW_NAME_Y_OFFSET : BROWSE_ROW_TEXT_Y_OFFSET)),
+            itemName.c_str(), (float)textWidth, 0, RT3_SORT_LEFT);
         g_pRenderText->SetFont(g_hFont);
-        g_pRenderText->SetTextColor(200, 200, 200, 255);
-        const std::wstring levelText = L"+" + std::to_wstring(m_RowItems[row] != nullptr ? m_RowItems[row]->Level : 0);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_LEVEL_COLUMN_X), textY,
-            levelText.c_str(), (float)BROWSE_LEVEL_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_TIME_COLUMN_X), textY,
-            countdown.c_str(), (float)BROWSE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_SELLER_COLUMN_X), textY,
-            m_iCurrentTab == TAB_MY_LISTINGS ? ListingStatusText(listing.Status) : listing.SellerName.c_str(),
-            (float)BROWSE_SELLER_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        const int priceIconOffset = priceCurrencyIcon != nullptr ? BROWSE_PRICE_ICON_COLUMN_WIDTH : 0;
-        const int buyoutIconOffset = buyoutCurrencyIcon != nullptr ? BROWSE_PRICE_ICON_COLUMN_WIDTH : 0;
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_PRICE_COLUMN_X + priceIconOffset), textY,
-            priceText.c_str(), (float)(BROWSE_PRICE_COLUMN_WIDTH - priceIconOffset), 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_TABLE_X + BROWSE_BUYOUT_COLUMN_X + buyoutIconOffset), textY,
-            buyoutText.c_str(), (float)(BROWSE_BUYOUT_COLUMN_WIDTH - buyoutIconOffset), 0, RT3_SORT_CENTER);
-    }
+        if (showSeller)
+        {
+            g_pRenderText->SetTextColor(142, 148, 160, 255);
+            g_pRenderText->RenderText((float)textX, (float)(rowY + ROW_SUB_Y_OFFSET), listing.SellerName.c_str(),
+                (float)textWidth, 0, RT3_SORT_LEFT);
+        }
 
+        // Time left turns warm in its last hour so an ending auction stands out in the list.
+        constexpr uint32_t UrgentSeconds = 3600;
+        if (remainingSeconds < UrgentSeconds)
+        {
+            g_pRenderText->SetTextColor(255, 132, 100, 255);
+        }
+        else
+        {
+            g_pRenderText->SetTextColor(196, 200, 210, 255);
+        }
+        g_pRenderText->RenderText((float)(innerX + table.timeX()), (float)(rowY + BROWSE_ROW_TEXT_Y_OFFSET),
+            countdown.c_str(), (float)TABLE_TIME_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        if (table.statusColumn)
+        {
+            g_pRenderText->SetTextColor(196, 200, 210, 255);
+            g_pRenderText->RenderText((float)(innerX + table.statusX()), (float)(rowY + BROWSE_ROW_TEXT_Y_OFFSET),
+                ListingStatusText(listing.Status), (float)TABLE_STATUS_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        }
+
+        // Asking prices: one chip per component (amounts here, icons in Render3D). A price paid in several
+        // things at once is shown in full - never as a label - because it is what the buyer needs to see.
+        RenderPriceCellText(innerX + table.priceX(), TABLE_PRICE_COLUMN_WIDTH, rowY,
+            LayoutPriceCell(AuctionHouse::PriceComponentsOf(listing.CurrencyMode, listing.CurrentPrice),
+                TABLE_PRICE_COLUMN_WIDTH, openResponse));
+        RenderPriceCellText(innerX + table.buyoutX(), TABLE_BUYOUT_COLUMN_WIDTH, rowY,
+            LayoutPriceCell(AuctionHouse::PriceComponentsOf(listing.CurrencyMode, listing.BuyoutPrice),
+                TABLE_BUYOUT_COLUMN_WIDTH, openResponse));
+    }
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
@@ -2828,19 +3209,23 @@ void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
     // rather than borrowing the reference game's artwork.
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
+    const SIZE lineSize = g_pRenderText->MeasureText(L"Ag", 2);
+    constexpr int RowHeight = CATEGORY_RAIL_ROW_HEIGHT - 2 * CATEGORY_RAIL_ROW_INSET;
+    const int textOffsetY = CATEGORY_RAIL_ROW_INSET + (RowHeight - lineSize.cy) / 2;
     for (int category = 0; category < static_cast<int>(std::size(m_CategoryLabels)); ++category)
     {
         const int y = m_Pos.y + CATEGORY_RAIL_Y + category * CATEGORY_RAIL_ROW_HEIGHT;
         const bool selected = category == m_SelectedCategoryIndex;
-        EnableAlphaTest();
-        RenderColorQuadARGB(m_Pos.x + CATEGORY_RAIL_X, y + 1, CATEGORY_RAIL_WIDTH, CATEGORY_RAIL_ROW_HEIGHT - 2,
-            selected ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
-        EndRenderColor();
+        const bool hovered = !selected && CheckMouseIn(m_Pos.x + CATEGORY_RAIL_X, y, CATEGORY_RAIL_WIDTH, CATEGORY_RAIL_ROW_HEIGHT);
+        UI::NineSlice::Render(AuctionButtonSkin().texture, static_cast<float>(m_Pos.x + CATEGORY_RAIL_X),
+            static_cast<float>(y + CATEGORY_RAIL_ROW_INSET), static_cast<float>(CATEGORY_RAIL_WIDTH),
+            static_cast<float>(RowHeight),
+            selected ? CATEGORY_TINT_SELECTED : (hovered ? CATEGORY_TINT_HOVER : CATEGORY_TINT_IDLE));
 
         g_pRenderText->SetTextColor(selected ? 255 : 205, selected ? 215 : 205, selected ? 100 : 205, 255);
-        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + 7), (float)(y + 4),
+        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + 8), (float)(y + textOffsetY),
             m_CategoryLabels[category], (float)(CATEGORY_RAIL_WIDTH - 12), 0, RT3_SORT_LEFT);
-        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + CATEGORY_RAIL_WIDTH - 16), (float)(y + 4),
+        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + CATEGORY_RAIL_WIDTH - 16), (float)(y + textOffsetY),
             L">", 12.0f, 0, RT3_SORT_LEFT);
     }
 }
@@ -2852,134 +3237,64 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
         return;
     }
 
-    size_t jewelCount = 0;
-    const AuctionHouse::AuctionCurrencyDescriptor* fruitsCurrency = nullptr;
-    for (const auto& currency : m_OpenResponse.Currencies)
-    {
-        if (!currency.Enabled)
-        {
-            continue;
-        }
-
-        if (currency.CurrencyMode == AuctionCurrencyMode::Fruits)
-        {
-            fruitsCurrency = &currency;
-        }
-        else if (currency.LooseItemType != 0)
-        {
-            ++jewelCount;
-        }
-    }
-    const size_t fruitCount = fruitsCurrency == nullptr ? 0 : std::count_if(
-        fruitsCurrency->FruitItemTypes.begin(), fruitsCurrency->FruitItemTypes.end(),
-        [](uint16_t itemType) { return itemType != 0; });
-    if (jewelCount == 0 && fruitCount == 0)
+    const WalletView view = BuildWalletView(m_OpenResponse);
+    if (view.jewels.empty() && view.fruits.empty())
     {
         return;
     }
 
+    const WalletLayout layout = ComputeWalletLayout(view);
     const auto renderPanel = [this](int y, int height)
     {
-        EnableAlphaTest();
-        RenderColorQuadARGB(m_Pos.x + WALLET_X, m_Pos.y + y, WALLET_WIDTH, height, 0xC0141414u);
-        RenderColorQuadARGB(m_Pos.x + WALLET_X, m_Pos.y + y, WALLET_WIDTH, 1, BROWSE_GRID_COLOR);
-        RenderColorQuadARGB(m_Pos.x + WALLET_X, m_Pos.y + y + height - 1, WALLET_WIDTH, 1, BROWSE_GRID_COLOR);
-        RenderColorQuadARGB(m_Pos.x + WALLET_X, m_Pos.y + y, 1, height, BROWSE_GRID_COLOR);
-        RenderColorQuadARGB(m_Pos.x + WALLET_X + WALLET_WIDTH - 1, m_Pos.y + y, 1, height, BROWSE_GRID_COLOR);
-        EndRenderColor();
+        UI::NineSlice::Render(AuctionPanelSkin().texture, static_cast<float>(m_Pos.x + WALLET_X),
+            static_cast<float>(m_Pos.y + y), static_cast<float>(WALLET_WIDTH), static_cast<float>(height),
+            AuctionPanelSkin().tints.normal);
     };
-    renderPanel(WALLET_Y, WALLET_JEWELS_HEIGHT);
-    renderPanel(WALLET_FRUITS_Y, WALLET_FRUITS_HEIGHT);
-    renderPanel(WALLET_ZEN_Y, WALLET_ZEN_HEIGHT);
+    if (!view.jewels.empty())
+    {
+        renderPanel(layout.jewelsY, layout.jewelsHeight);
+    }
+    if (!view.fruits.empty())
+    {
+        renderPanel(layout.fruitsY, layout.fruitsHeight);
+    }
+    if (view.hasZen)
+    {
+        renderPanel(layout.zenY, WALLET_ZEN_HEIGHT);
+    }
 
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetTextColor(235, 210, 120, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
 
-    g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_Y + 1), L"JEWELS",
-        (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
-    g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_FRUITS_Y + 1), L"FRUITS",
-        (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
-    g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_ZEN_Y + 1), L"ZEN",
-        (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
-    g_pRenderText->SetFont(g_hFont);
-    g_pRenderText->SetTextColor(190, 190, 190, 255);
-    g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X), (float)(m_Pos.y + WALLET_ZEN_Y + WALLET_TITLE_HEIGHT + 2),
-        L"Zen Balance:", (float)WALLET_WIDTH, 0, RT3_SORT_CENTER);
-    g_pRenderText->SetFont(g_hFontBold);
-    g_pRenderText->SetTextColor(235, 210, 120, 255);
+    RenderWalletCounts(m_Pos.x, m_Pos.y, layout.jewelsY, view.jewels, WALLET_JEWEL_COLUMNS);
+    RenderWalletCounts(m_Pos.x, m_Pos.y, layout.fruitsY, view.fruits, WALLET_FRUIT_COLUMNS);
 
-    const int jewelUnitWidth = jewelCount > 0 ? WALLET_WIDTH / static_cast<int>(jewelCount) : WALLET_WIDTH;
-    int jewelUnit = 0;
-    for (const auto& currency : m_OpenResponse.Currencies)
+    if (view.hasZen)
     {
-        if (!currency.Enabled || currency.CurrencyMode == AuctionCurrencyMode::Fruits
-            || (currency.CurrencyMode != AuctionCurrencyMode::Zen && currency.LooseItemType == 0))
-        {
-            continue;
-        }
-
-        if (currency.CurrencyMode == AuctionCurrencyMode::Zen || currency.LooseItemType == 0)
-        {
-            continue;
-        }
-
-        const int x = m_Pos.x + WALLET_X + jewelUnit * jewelUnitWidth;
-        const std::wstring amount = std::to_wstring(currency.Spendable.Scalar());
-        g_pRenderText->RenderText((float)x, (float)(m_Pos.y + WALLET_Y + WALLET_TITLE_HEIGHT + WALLET_ICON_SIZE + 1),
-            amount.c_str(), (float)jewelUnitWidth, 0, RT3_SORT_CENTER);
-        ++jewelUnit;
-    }
-    if (fruitsCurrency != nullptr && fruitCount > 0)
-    {
-        const auto& fruits = fruitsCurrency->Spendable.Fruits();
-        const std::array<uint32_t, 5> amounts = { fruits.Strength, fruits.Agility, fruits.Vitality, fruits.Energy, fruits.Command };
-        const int fruitUnitWidth = WALLET_WIDTH / static_cast<int>(fruitCount);
-        int fruitUnit = 0;
-        for (size_t fruit = 0; fruit < fruitsCurrency->FruitItemTypes.size(); ++fruit)
-        {
-            if (fruitsCurrency->FruitItemTypes[fruit] == 0)
-            {
-                continue;
-            }
-            const int x = m_Pos.x + WALLET_X + fruitUnit * fruitUnitWidth;
-            const std::wstring amount = std::to_wstring(amounts[fruit]);
-            g_pRenderText->RenderText((float)x, (float)(m_Pos.y + WALLET_FRUITS_Y + WALLET_TITLE_HEIGHT + WALLET_ICON_SIZE + 1),
-                amount.c_str(), (float)fruitUnitWidth, 0, RT3_SORT_CENTER);
-            ++fruitUnit;
-        }
-    }
-
-    for (const auto& currency : m_OpenResponse.Currencies)
-    {
-        if (currency.Enabled && currency.CurrencyMode == AuctionCurrencyMode::Zen)
-        {
-            const std::wstring amount = FormatWalletAmount(currency.Spendable.Scalar());
-            g_pRenderText->RenderText((float)(m_Pos.x + WALLET_X + 4), (float)(m_Pos.y + WALLET_ZEN_Y + WALLET_TITLE_HEIGHT + 16),
-                amount.c_str(), (float)(WALLET_WIDTH - 8), 0, RT3_SORT_CENTER);
-            break;
-        }
+        g_pRenderText->RenderText(static_cast<float>(m_Pos.x + WALLET_X),
+            static_cast<float>(m_Pos.y + layout.zenY + WALLET_ZEN_TITLE_Y_OFFSET), L"ZEN",
+            static_cast<float>(WALLET_WIDTH), 0, RT3_SORT_CENTER);
+        const std::wstring amount = FormatWalletAmount(view.zen);
+        g_pRenderText->RenderText(static_cast<float>(m_Pos.x + WALLET_X + 4),
+            static_cast<float>(m_Pos.y + layout.zenY + WALLET_ZEN_VALUE_Y_OFFSET), amount.c_str(),
+            static_cast<float>(WALLET_WIDTH - 8), 0, RT3_SORT_CENTER);
     }
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderMailboxHeader()
 {
     EnableAlphaTest();
-    RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y,
-        BROWSE_CONTENT_WIDTH, BROWSE_HEADER_HEIGHT, BROWSE_HEADER_COLOR);
-    const int separators[] = { MAILBOX_CONTENT_COLUMN_X, MAILBOX_SOURCE_COLUMN_X, MAILBOX_STATUS_COLUMN_X };
-    for (const int separator : separators)
-    {
-        RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X + separator, m_Pos.y + BROWSE_HEADER_Y,
-            1, BROWSE_HEADER_HEIGHT + BROWSE_TABLE_HEIGHT, BROWSE_GRID_COLOR);
-    }
+    RenderTableContainer(m_Pos.x + BROWSE_BODY_X, m_Pos.y + BROWSE_HEADER_Y, BROWSE_CONTENT_WIDTH);
+    RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X + TABLE_INSET, m_Pos.y + BROWSE_BODY_Y - 1,
+        BROWSE_CONTENT_WIDTH - 2 * TABLE_INSET, 1, BROWSE_HEADER_LINE_COLOR);
     EndRenderColor();
 
     g_pRenderText->SetFont(g_hFontBold);
-    g_pRenderText->SetTextColor(218, 186, 104, 255);
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     const float y = static_cast<float>(m_Pos.y + BROWSE_HEADER_Y + 5);
-    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + 5), y, I18N::Game::Mailbox,
+    g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + TABLE_INSET + 5), y, I18N::Game::Mailbox,
         (float)(MAILBOX_KIND_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
     g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_CONTENT_COLUMN_X + 5), y,
         I18N::Game::AuctionContents, (float)(MAILBOX_CONTENT_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
@@ -3029,25 +3344,30 @@ void SEASON3B::CNewUIAuctionWindow::RenderMailboxTab()
     {
         const auto& entry = m_MailboxResponse.Entries[m_BrowseScrollOffset + row];
         const int y = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT;
+        const bool isHovered = m_iPointedRow == static_cast<int>(row);
         EnableAlphaTest();
-        RenderColorQuadARGB(m_Pos.x + BROWSE_BODY_X, y, BROWSE_CONTENT_WIDTH, BROWSE_ROW_HEIGHT - BROWSE_ROW_PADDING,
-            m_iPointedRow == static_cast<int>(row) ? BROWSE_CARD_HOVER_COLOR : BROWSE_CARD_COLOR);
-        EndRenderColor();
+        RenderRowCard(m_Pos.x + BROWSE_BODY_X + TABLE_INSET, y, BROWSE_CONTENT_WIDTH - 2 * TABLE_INSET, isHovered);
+        if (entry.HasItem)
+        {
+            EnableAlphaTest();
+            RenderAuctionItemSlot(m_Pos.x + BROWSE_BODY_X + MAILBOX_CONTENT_COLUMN_X + BROWSE_ICON_CELL_OFFSET,
+                y + BROWSE_ICON_CELL_OFFSET, BROWSE_ICON_CELL_SIZE, GetAuctionItemSlotTint(m_RowItems[row], isHovered));
+        }
 
         g_pRenderText->SetTextColor(220, 220, 220, 255);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + 5), (float)(y + 10),
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + TABLE_INSET + 5), (float)(y + BROWSE_ROW_TEXT_Y_OFFSET),
             CollectionKindText(entry.CollectionKind), (float)(MAILBOX_KIND_COLUMN_WIDTH - 10), 0, RT3_SORT_LEFT);
         const auto contents = entry.HasItem ? std::wstring(I18N::Game::Item)
             : AuctionAmountText(entry.CurrencyMode, entry.Remaining);
         const int contentTextX = m_Pos.x + BROWSE_BODY_X + MAILBOX_CONTENT_COLUMN_X
             + (entry.HasItem ? BROWSE_TEXT_X_OFFSET : 5);
-        g_pRenderText->RenderText((float)contentTextX, (float)(y + 10), contents.c_str(),
+        g_pRenderText->RenderText((float)contentTextX, (float)(y + BROWSE_ROW_TEXT_Y_OFFSET), contents.c_str(),
             (float)(MAILBOX_CONTENT_COLUMN_WIDTH - (entry.HasItem ? BROWSE_TEXT_X_OFFSET : 10)), 0, RT3_SORT_LEFT);
         wchar_t source[32];
         mu_swprintf(source, L"%llu", entry.SourceListingId);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_SOURCE_COLUMN_X), (float)(y + 10),
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_SOURCE_COLUMN_X), (float)(y + BROWSE_ROW_TEXT_Y_OFFSET),
             source, (float)MAILBOX_SOURCE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
-        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_STATUS_COLUMN_X), (float)(y + 10),
+        g_pRenderText->RenderText((float)(m_Pos.x + BROWSE_BODY_X + MAILBOX_STATUS_COLUMN_X), (float)(y + BROWSE_ROW_TEXT_Y_OFFSET),
             CollectionStatusText(entry.CollectionStatus), (float)MAILBOX_STATUS_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
     }
 
@@ -3097,6 +3417,10 @@ void SEASON3B::CNewUIAuctionWindow::LoadImages()
     LoadBitmap(L"Interface\\newui_exit_00.tga", IMAGE_AUCTION_CLOSE_BTN, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_guild_tab04.tga", IMAGE_AUCTION_TAB_BTN, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_btn_empty_very_small.tga", IMAGE_AUCTION_PAGE_BTN, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_item_slot.tga", IMAGE_AUCTION_ITEM_SLOT, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_button.tga", IMAGE_AUCTION_BUTTON, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_field.tga", IMAGE_AUCTION_FIELD, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_row.tga", IMAGE_AUCTION_ROW, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIAuctionWindow::UnloadImages()
@@ -3109,6 +3433,10 @@ void SEASON3B::CNewUIAuctionWindow::UnloadImages()
     DeleteBitmap(IMAGE_AUCTION_CLOSE_BTN);
     DeleteBitmap(IMAGE_AUCTION_TAB_BTN);
     DeleteBitmap(IMAGE_AUCTION_PAGE_BTN);
+    DeleteBitmap(IMAGE_AUCTION_ITEM_SLOT);
+    DeleteBitmap(IMAGE_AUCTION_BUTTON);
+    DeleteBitmap(IMAGE_AUCTION_FIELD);
+    DeleteBitmap(IMAGE_AUCTION_ROW);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderFrame()

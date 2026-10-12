@@ -13,6 +13,7 @@
 #include "UI/Legacy/UIControls.h"
 #include "Guild/NewUIGuildInfoWindow.h"
 #include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
+#include "Core/Globals/_TextureIndex.h"
 
 namespace SEASON3B
 {
@@ -40,6 +41,13 @@ namespace SEASON3B
             IMAGE_AUCTION_CLOSE_BTN = CNewUIMyInventory::IMAGE_INVENTORY_EXIT_BTN, // newui_exit_00.tga
             IMAGE_AUCTION_TAB_BTN = CNewUIGuildInfoWindow::IMAGE_GUILDINFO_TAB_BUTTON, // newui_guild_tab04.tga
             IMAGE_AUCTION_PAGE_BTN = CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_EMPTY_VERY_SMALL, // newui_btn_empty_very_small.tga
+
+            // Dedicated slot: a texture only this window uses, so it gets its own reserved bitmap index range
+            // (_TextureIndex.h) rather than borrowing another window's.
+            IMAGE_AUCTION_ITEM_SLOT = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 2, // newui_auction_item_slot.tga
+            IMAGE_AUCTION_BUTTON = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 3,    // newui_auction_button.tga (nine-slice)
+            IMAGE_AUCTION_FIELD = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 4,     // newui_auction_field.tga (nine-slice)
+            IMAGE_AUCTION_ROW = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 5,       // newui_auction_row.tga (nine-slice)
         };
 
         // The original 400-pixel design could not fit the owner-approved search/filter bar and six-column

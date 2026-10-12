@@ -6,6 +6,11 @@
 
 #pragma once
 
+namespace UI::NineSlice
+{
+    struct ButtonSkin;
+}
+
 namespace SEASON3B
 {
     enum BUTTON_STATE
@@ -127,9 +132,15 @@ namespace SEASON3B
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
         void ChangeButtonInfo(int x, int y, int sx, int sy);
 
+        // Draws the button's frame from a nine-slice skin (corners fixed, edges stretched) tinted by its
+        // hover/pressed/locked state, instead of blitting its registered sprite 1:1. The skin outlives the
+        // button; pass nullptr to go back to the sprite. The label, tooltip and input handling are unchanged.
+        void SetNineSliceSkin(const UI::NineSlice::ButtonSkin* skin);
+
     private:
         void Initialize();
         void Destroy();
+        void RenderSkinnedFrame();
 
     public:
         void RegisterButtonState(BUTTON_STATE eventstate, int imgindex, int btstate);
@@ -205,6 +216,7 @@ namespace SEASON3B
         bool                    m_IsImgWidth;
 
         unsigned char			m_fAlpha;
+        const UI::NineSlice::ButtonSkin* m_pSkin = nullptr;
 
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         bool					m_bClickEffect;

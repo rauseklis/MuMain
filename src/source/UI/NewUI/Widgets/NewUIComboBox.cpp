@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "UI/NewUI/Widgets/NewUIComboBox.h"
+#include "UI/NewUI/Widgets/NineSlice.h"
 #include "UI/Legacy/UIControls.h"  // for g_pRenderText macro
 #include "Render/Renderer/MuRenderer.h"
 #include "Render/Renderer/RenderUtils.h"
@@ -29,6 +30,15 @@ namespace
     constexpr int TEXT_PAD_Y     = 4;   // top  padding inside rows
     constexpr int ARROW_WIDTH    = 14;  // width reserved for the dropdown-arrow glyph
     constexpr int SCROLLBAR_WIDTH = 6;  // vertical scrollbar width inside the list
+
+    // Vector chevron drawn on a skinned field: a stack of centred one-pixel bars narrowing to a point.
+    constexpr int CHEVRON_ROWS        = 3;
+    constexpr int CHEVRON_TOP_WIDTH   = 7;
+    constexpr int CHEVRON_ROW_NARROW  = 2;    // each row is this much narrower than the one above
+    constexpr int CHEVRON_RIGHT_INSET = 11;   // from the field's right edge to the chevron's centre
+    constexpr float CHEVRON_BRIGHTNESS = 0.78f;
+    // A skinned dropdown is framed by the field art; rows are inset so they sit inside its one-pixel ring.
+    constexpr int SKINNED_LIST_ROW_INSET = 2;
 
     // Draws a solid-color axis-aligned rectangle in UI coordinates.
     // Matches the raw-GL pattern used by NewUIOptionWindow.
@@ -198,26 +208,62 @@ bool CNewUIComboBox::UpdateMouseEvent()
     return changed;
 }
 
+void CNewUIComboBox::RenderSkinnedField(bool hovered)
+{
+    const UI::NineSlice::StateTints& tints = m_pFieldSkin->tints;
+    const unsigned int tint = m_bOpen ? tints.pressed : (hovered ? tints.hover : tints.normal);
+    UI::NineSlice::Render(m_pFieldSkin->texture, static_cast<float>(m_X), static_cast<float>(m_Y),
+        static_cast<float>(m_Width), static_cast<float>(m_ItemHeight), tint);
+}
+
+void CNewUIComboBox::RenderChevron()
+{
+    const int centreX = m_X + m_Width - CHEVRON_RIGHT_INSET;
+    const int top = m_Y + (m_ItemHeight - CHEVRON_ROWS) / 2;
+    for (int row = 0; row < CHEVRON_ROWS; ++row)
+    {
+        const int index = m_bOpen ? (CHEVRON_ROWS - 1 - row) : row;
+        const int width = CHEVRON_TOP_WIDTH - index * CHEVRON_ROW_NARROW;
+        DrawSolidRect(centreX - width / 2, top + row, width, 1, CHEVRON_BRIGHTNESS);
+    }
+}
+
+void CNewUIComboBox::RenderClosedField()
+{
+    const bool hoverClosed = CheckMouseIn(m_X, m_Y, m_Width, m_ItemHeight);
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetBgColor(0);
+
+    if (m_pFieldSkin == nullptr)
+    {
+        const float closedBrightness = m_bOpen ? BG_BRIGHTNESS_OPEN
+                                                : (hoverClosed ? BG_BRIGHTNESS_HOVER
+                                                               : BG_BRIGHTNESS_IDLE);
+        DrawSolidRect(m_X, m_Y, m_Width, m_ItemHeight, closedBrightness);
+
+        g_pRenderText->SetTextColor(255, 255, 255, 255);
+        g_pRenderText->RenderText(m_X + TEXT_PAD_X, m_Y + TEXT_PAD_Y, m_Labels[m_SelectedIndex]);
+
+        // Dropdown arrow glyph (plain text -- no asset needed)
+        g_pRenderText->SetTextColor(255, 230, 200, 255);
+        g_pRenderText->RenderText(m_X + m_Width - ARROW_WIDTH, m_Y + TEXT_PAD_Y, m_bOpen ? L"^" : L"v");
+        return;
+    }
+
+    RenderSkinnedField(hoverClosed);
+    const SIZE textSize = g_pRenderText->MeasureText(m_Labels[m_SelectedIndex],
+        static_cast<int>(wcslen(m_Labels[m_SelectedIndex])));
+    g_pRenderText->SetTextColor(255, 255, 255, 255);
+    g_pRenderText->RenderText(m_X + TEXT_PAD_X, m_Y + (m_ItemHeight - textSize.cy) / 2, m_Labels[m_SelectedIndex]);
+    RenderChevron();
+}
+
 void CNewUIComboBox::Render()
 {
     if (m_ItemCount <= 0 || m_Labels == nullptr)
         return;
 
-    // --- Closed field ---
-    const bool hoverClosed = CheckMouseIn(m_X, m_Y, m_Width, m_ItemHeight);
-    const float closedBrightness = m_bOpen ? BG_BRIGHTNESS_OPEN
-                                            : (hoverClosed ? BG_BRIGHTNESS_HOVER
-                                                           : BG_BRIGHTNESS_IDLE);
-    DrawSolidRect(m_X, m_Y, m_Width, m_ItemHeight, closedBrightness);
-
-    g_pRenderText->SetFont(g_hFont);
-    g_pRenderText->SetBgColor(0);
-    g_pRenderText->SetTextColor(255, 255, 255, 255);
-    g_pRenderText->RenderText(m_X + TEXT_PAD_X, m_Y + TEXT_PAD_Y, m_Labels[m_SelectedIndex]);
-
-    // Dropdown arrow glyph (plain text -- no asset needed)
-    g_pRenderText->SetTextColor(255, 230, 200, 255);
-    g_pRenderText->RenderText(m_X + m_Width - ARROW_WIDTH, m_Y + TEXT_PAD_Y, m_bOpen ? L"^" : L"v");
+    RenderClosedField();
 
     // --- Expanded list (drawn on top of anything below) ---
     if (!m_bOpen)
@@ -227,6 +273,14 @@ void CNewUIComboBox::Render()
     const int visible = GetVisibleCount();
     const bool hasScrollbar = IsScrollable();
     const int rowWidth = hasScrollbar ? (m_Width - SCROLLBAR_WIDTH) : m_Width;
+    const int rowInset = m_pFieldSkin != nullptr ? SKINNED_LIST_ROW_INSET : 0;
+
+    if (m_pFieldSkin != nullptr)
+    {
+        // Starts one pixel up so its top ring coincides with the closed field's bottom ring.
+        UI::NineSlice::Render(m_pFieldSkin->texture, static_cast<float>(m_X), static_cast<float>(listY - 1),
+            static_cast<float>(m_Width), static_cast<float>(GetListHeight() + 2), m_pFieldSkin->tints.normal);
+    }
 
     g_pRenderText->SetTextColor(255, 255, 255, 255);
 
@@ -241,7 +295,10 @@ void CNewUIComboBox::Render()
         if (hoverItem)      bright = BG_BRIGHTNESS_HOVER;
         else if (isSelected) bright = BG_BRIGHTNESS_OPEN;
 
-        DrawSolidRect(m_X, itemY, rowWidth, m_ItemHeight, bright);
+        if (m_pFieldSkin == nullptr || hoverItem || isSelected)
+        {
+            DrawSolidRect(m_X + rowInset, itemY, rowWidth - 2 * rowInset, m_ItemHeight, bright);
+        }
         g_pRenderText->RenderText(m_X + TEXT_PAD_X, itemY + TEXT_PAD_Y, m_Labels[absIdx]);
     }
 

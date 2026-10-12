@@ -188,6 +188,157 @@ namespace AuctionHouse
         return std::to_wstring(total) + L"s";
     }
 
+    std::vector<std::wstring> WalletCountCandidates(uint64_t value)
+    {
+        struct Unit
+        {
+            uint64_t size;
+            wchar_t suffix;
+        };
+        static constexpr Unit units[] = { { 1000000000ull, L'B' }, { 1000000ull, L'M' }, { 1000ull, L'k' } };
+
+        std::vector<std::wstring> candidates{ std::to_wstring(value) };
+        for (const Unit& unit : units)
+        {
+            if (value < unit.size)
+            {
+                continue;
+            }
+
+            const uint64_t whole = value / unit.size;
+            const uint64_t tenth = (value % unit.size) * 10 / unit.size;
+            if (tenth != 0)
+            {
+                candidates.push_back(std::to_wstring(whole) + L'.' + std::to_wstring(tenth) + unit.suffix);
+            }
+            candidates.push_back(std::to_wstring(whole) + unit.suffix);
+            break;
+        }
+
+        return candidates;
+    }
+
+    std::wstring FormatWalletCountToFit(uint64_t value, int maxWidth,
+        const std::function<int(const std::wstring&)>& measureWidth)
+    {
+        const std::vector<std::wstring> candidates = WalletCountCandidates(value);
+        for (const std::wstring& candidate : candidates)
+        {
+            if (measureWidth(candidate) <= maxWidth)
+            {
+                return candidate;
+            }
+        }
+
+        return candidates.back();
+    }
+
+    int WalletRowCount(size_t cellCount, int maxColumns) noexcept
+    {
+        if (cellCount == 0 || maxColumns <= 0)
+        {
+            return 0;
+        }
+
+        const auto columns = static_cast<size_t>(maxColumns);
+        return static_cast<int>((cellCount + columns - 1) / columns);
+    }
+
+    WalletCellSlot LayoutWalletCell(size_t index, size_t cellCount, int maxColumns, int panelWidth) noexcept
+    {
+        if (cellCount == 0 || maxColumns <= 0 || index >= cellCount)
+        {
+            return {};
+        }
+
+        const size_t columns = std::min(cellCount, static_cast<size_t>(maxColumns));
+        const size_t row = index / columns;
+        const size_t column = index % columns;
+        const size_t cellsInRow = std::min(columns, cellCount - row * columns);
+        const int width = panelWidth / static_cast<int>(columns);
+        const int rowStart = (panelWidth - width * static_cast<int>(cellsInRow)) / 2;
+        return WalletCellSlot{ static_cast<int>(row), rowStart + width * static_cast<int>(column), width };
+    }
+
+    std::vector<PriceComponent> PriceComponentsOf(AuctionCurrencyMode currency, const AuctionAmount& amount)
+    {
+        std::vector<PriceComponent> components;
+        if (amount.IsFruitBasket())
+        {
+            const FruitBasket& basket = amount.Fruits();
+            const PriceComponent parts[] = {
+                { PriceKind::StrengthFruit, basket.Strength },
+                { PriceKind::AgilityFruit, basket.Agility },
+                { PriceKind::VitalityFruit, basket.Vitality },
+                { PriceKind::EnergyFruit, basket.Energy },
+                { PriceKind::CommandFruit, basket.Command },
+            };
+            for (const PriceComponent& part : parts)
+            {
+                if (part.amount > 0)
+                {
+                    components.push_back(part);
+                }
+            }
+            return components;
+        }
+
+        const auto index = static_cast<int>(currency);
+        if (amount.Scalar() > 0 && index >= 0 && index <= static_cast<int>(PriceKind::Harmony))
+        {
+            components.push_back({ static_cast<PriceKind>(index), amount.Scalar() });
+        }
+        return components;
+    }
+
+    std::optional<std::vector<PriceChipPlacement>> PackPriceChips(
+        const std::vector<int>& chipWidths, int lineWidth, int gap, int maxLines)
+    {
+        std::vector<PriceChipPlacement> placements;
+        placements.reserve(chipWidths.size());
+
+        int line = 0;
+        int lineUsed = 0;
+        size_t lineStart = 0;
+        const auto centreLine = [&](size_t end)
+        {
+            const int offset = (lineWidth - lineUsed) / 2;
+            for (size_t i = lineStart; i < end; ++i)
+            {
+                placements[i].x += offset;
+            }
+        };
+
+        for (size_t i = 0; i < chipWidths.size(); ++i)
+        {
+            const int width = chipWidths[i];
+            if (width > lineWidth)
+            {
+                return std::nullopt;
+            }
+
+            const bool startsLine = i == lineStart;
+            if (!startsLine && lineUsed + gap + width > lineWidth)
+            {
+                centreLine(i);
+                ++line;
+                if (line >= maxLines)
+                {
+                    return std::nullopt;
+                }
+                lineStart = i;
+                lineUsed = 0;
+            }
+
+            const int x = i == lineStart ? 0 : lineUsed + gap;
+            placements.push_back({ line, x });
+            lineUsed = x + width;
+        }
+
+        centreLine(chipWidths.size());
+        return placements;
+    }
+
     uint32_t NextAuctionRequestId() noexcept
     {
         // Starts at 1 so a default-constructed/zeroed request id never collides with a real one.

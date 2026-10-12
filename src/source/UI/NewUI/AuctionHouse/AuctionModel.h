@@ -8,8 +8,11 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "Dotnet/PacketFunctions_CommonEnums.h"
 
@@ -146,6 +149,74 @@ namespace AuctionHouse
     // Formats the time remaining on a listing for the countdown display: "Ended" once it has reached zero, otherwise the two
     // most significant units ("1d 1h", "1h 1m", "2m 5s", or "45s" under a minute).
     [[nodiscard]] std::wstring FormatAuctionCountdown(std::chrono::seconds remaining);
+
+    // Wallet cards show how many jewels or fruits the player holds. The count has to stay readable once it
+    // reaches the thousands (a jewel bank holds far more than an inventory), so it is shown as its exact digits
+    // when they fit and otherwise as a truncated compact form: "12.3k", "1.5M", "2B". Truncated, never
+    // rounded, so a card can never claim more than the player has. Candidates run from the exact digits to
+    // the shortest form.
+    [[nodiscard]] std::vector<std::wstring> WalletCountCandidates(uint64_t value);
+
+    // The most precise candidate whose measured width fits maxWidth; the shortest one when none does.
+    // measureWidth is injected so the caller supplies the real font's metrics.
+    [[nodiscard]] std::wstring FormatWalletCountToFit(uint64_t value, int maxWidth,
+        const std::function<int(const std::wstring&)>& measureWidth);
+
+    // Where one cell of a wallet grid sits inside its panel, relative to the panel's left edge. Cells fill
+    // rows of up to maxColumns; a short last row is centred under the full ones.
+    struct WalletCellSlot
+    {
+        int row = 0;
+        int x = 0;
+        int width = 0;
+    };
+
+    [[nodiscard]] int WalletRowCount(size_t cellCount, int maxColumns) noexcept;
+    [[nodiscard]] WalletCellSlot LayoutWalletCell(size_t index, size_t cellCount, int maxColumns, int panelWidth) noexcept;
+
+    // What a price is made of. A listing's asking price is a list of components - an amount of Zen, of a jewel,
+    // of one stat fruit - so a price paid in several things at once reads as exactly what it is, one chip per
+    // component, instead of a label standing in for the mix. The first eight kinds match the scalar currency
+    // modes in order; the five fruits follow in the order of FruitBasket's fields.
+    enum class PriceKind
+    {
+        Zen,
+        Chaos,
+        Bless,
+        Soul,
+        Life,
+        Creation,
+        Guardian,
+        Harmony,
+        StrengthFruit,
+        AgilityFruit,
+        VitalityFruit,
+        EnergyFruit,
+        CommandFruit,
+    };
+
+    struct PriceComponent
+    {
+        PriceKind kind = PriceKind::Zen;
+        int64_t amount = 0;
+    };
+
+    // The nonzero components of a price: one for a scalar price, one per nonzero fruit for a fruit price,
+    // none when the price is zero (no buyout set, for instance).
+    [[nodiscard]] std::vector<PriceComponent> PriceComponentsOf(AuctionCurrencyMode currency, const AuctionAmount& amount);
+
+    // Where one price chip sits in a price cell: its line, and its x relative to the cell's left edge.
+    struct PriceChipPlacement
+    {
+        int line = 0;
+        int x = 0;
+    };
+
+    // Packs chips of the given widths left to right into at most maxLines lines of lineWidth, gap apart, and
+    // centres each line on its own. Returns nothing when a chip is wider than a line or the chips need more
+    // than maxLines lines, so the caller can retry with shorter text instead of overflowing the cell.
+    [[nodiscard]] std::optional<std::vector<PriceChipPlacement>> PackPriceChips(
+        const std::vector<int>& chipWidths, int lineWidth, int gap, int maxLines);
 
     // Tracks the offset between the server's reported time (seconds, from a response's ServerTime field) and
     // this client's own GetTickCount()-style local tick clock, so a listing's remaining time can tick down

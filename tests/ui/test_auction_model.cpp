@@ -1,5 +1,9 @@
 #include <doctest.h>
 
+#include <optional>
+#include <string>
+#include <vector>
+
 #include "UI/NewUI/AuctionHouse/AuctionModel.h"
 
 using namespace AuctionHouse;
@@ -309,4 +313,201 @@ TEST_CASE("partial mailbox claims stay within the remaining obligation [ui][auct
         AuctionAmount::FromFruits(FruitBasket{ 4, 0, 0, 0, 0 })));
     CHECK_FALSE(IsValidCollectionClaim(AuctionCurrencyMode::Fruits, remaining,
         AuctionAmount::FromFruits(FruitBasket{ 1, 1, 0, 0, 0 })));
+}
+
+TEST_CASE("wallet count candidates list the exact digits first, then shorter compact forms [ui][auction_model]")
+{
+    CHECK(WalletCountCandidates(0) == std::vector<std::wstring>{ L"0" });
+    CHECK(WalletCountCandidates(999) == std::vector<std::wstring>{ L"999" });
+    CHECK(WalletCountCandidates(1000) == std::vector<std::wstring>{ L"1000", L"1k" });
+    CHECK(WalletCountCandidates(12345) == std::vector<std::wstring>{ L"12345", L"12.3k", L"12k" });
+    CHECK(WalletCountCandidates(1500000) == std::vector<std::wstring>{ L"1500000", L"1.5M", L"1M" });
+    CHECK(WalletCountCandidates(2000000000) == std::vector<std::wstring>{ L"2000000000", L"2B" });
+}
+
+TEST_CASE("compact wallet counts truncate instead of rounding up to the next unit [ui][auction_model]")
+{
+    // 999,999 must never read as "1000k" or "1M": that would claim more than the player has.
+    CHECK(WalletCountCandidates(999999) == std::vector<std::wstring>{ L"999999", L"999.9k", L"999k" });
+}
+
+TEST_CASE("a wallet count keeps its exact digits when they fit the available width [ui][auction_model]")
+{
+    // Every glyph is five pixels wide except the decimal point, which is narrow like a real font's.
+    const auto measure = [](const std::wstring& text)
+    {
+        int width = 0;
+        for (const wchar_t glyph : text)
+        {
+            width += glyph == L'.' ? 2 : 5;
+        }
+        return width;
+    };
+
+    CHECK(FormatWalletCountToFit(8, 30, measure) == L"8");
+    CHECK(FormatWalletCountToFit(1234, 20, measure) == L"1234");
+}
+
+TEST_CASE("a wallet count falls back to the most precise compact form that fits [ui][auction_model]")
+{
+    // Every glyph is five pixels wide except the decimal point, which is narrow like a real font's.
+    const auto measure = [](const std::wstring& text)
+    {
+        int width = 0;
+        for (const wchar_t glyph : text)
+        {
+            width += glyph == L'.' ? 2 : 5;
+        }
+        return width;
+    };
+
+    CHECK(FormatWalletCountToFit(12345, 22, measure) == L"12.3k");
+    CHECK(FormatWalletCountToFit(12345, 20, measure) == L"12k");
+}
+
+TEST_CASE("a wallet count that fits nowhere still returns its shortest form [ui][auction_model]")
+{
+    // Every glyph is five pixels wide except the decimal point, which is narrow like a real font's.
+    const auto measure = [](const std::wstring& text)
+    {
+        int width = 0;
+        for (const wchar_t glyph : text)
+        {
+            width += glyph == L'.' ? 2 : 5;
+        }
+        return width;
+    };
+
+    CHECK(FormatWalletCountToFit(123456789, 5, measure) == L"123M");
+}
+
+TEST_CASE("wallet rows hold at most the given number of columns [ui][auction_model]")
+{
+    CHECK(WalletRowCount(0, 4) == 0);
+    CHECK(WalletRowCount(1, 4) == 1);
+    CHECK(WalletRowCount(4, 4) == 1);
+    CHECK(WalletRowCount(7, 4) == 2);
+    CHECK(WalletRowCount(5, 5) == 1);
+}
+
+TEST_CASE("a full wallet row splits the panel width evenly [ui][auction_model]")
+{
+    const auto first = LayoutWalletCell(0, 7, 4, 114);
+    const auto last = LayoutWalletCell(3, 7, 4, 114);
+
+    CHECK(first.row == 0);
+    CHECK(first.width == 28);
+    CHECK(last.row == 0);
+    CHECK(last.x - first.x == 3 * 28);
+}
+
+TEST_CASE("a short last wallet row is centred under the full rows [ui][auction_model]")
+{
+    const auto topLeft = LayoutWalletCell(0, 7, 4, 114);
+    const auto bottomLeft = LayoutWalletCell(4, 7, 4, 114);
+    const auto bottomRight = LayoutWalletCell(6, 7, 4, 114);
+
+    CHECK(bottomLeft.row == 1);
+    CHECK(bottomLeft.x > topLeft.x);
+    // Equal margin each side of the three cells.
+    CHECK(bottomLeft.x + 3 * bottomLeft.width + bottomLeft.x == 114);
+    CHECK(bottomRight.x == bottomLeft.x + 2 * bottomLeft.width);
+}
+
+TEST_CASE("fewer cells than columns widen to share the panel [ui][auction_model]")
+{
+    const auto only = LayoutWalletCell(0, 1, 4, 114);
+    const auto second = LayoutWalletCell(1, 2, 4, 114);
+
+    CHECK(only.width == 114);
+    CHECK(only.x == 0);
+    CHECK(second.width == 57);
+    CHECK(second.x == 57);
+}
+
+TEST_CASE("a zero price has no components [ui][auction_model]")
+{
+    CHECK(PriceComponentsOf(AuctionCurrencyMode::Zen, AuctionAmount::FromScalar(0)).empty());
+    CHECK(PriceComponentsOf(AuctionCurrencyMode::Fruits, AuctionAmount::FromFruits(FruitBasket{})).empty());
+}
+
+TEST_CASE("a scalar price is one component in its own currency [ui][auction_model]")
+{
+    const auto zen = PriceComponentsOf(AuctionCurrencyMode::Zen, AuctionAmount::FromScalar(137500));
+    REQUIRE(zen.size() == 1);
+    CHECK(zen[0].kind == PriceKind::Zen);
+    CHECK(zen[0].amount == 137500);
+
+    const auto bless = PriceComponentsOf(AuctionCurrencyMode::Bless, AuctionAmount::FromScalar(4));
+    REQUIRE(bless.size() == 1);
+    CHECK(bless[0].kind == PriceKind::Bless);
+    CHECK(bless[0].amount == 4);
+
+    const auto harmony = PriceComponentsOf(AuctionCurrencyMode::Harmony, AuctionAmount::FromScalar(9));
+    REQUIRE(harmony.size() == 1);
+    CHECK(harmony[0].kind == PriceKind::Harmony);
+}
+
+TEST_CASE("a fruit price lists each nonzero fruit as its own component, in fruit order [ui][auction_model]")
+{
+    const auto components = PriceComponentsOf(AuctionCurrencyMode::Fruits,
+        AuctionAmount::FromFruits(FruitBasket{ .Strength = 500, .Energy = 12, .Command = 3 }));
+
+    REQUIRE(components.size() == 3);
+    CHECK(components[0].kind == PriceKind::StrengthFruit);
+    CHECK(components[0].amount == 500);
+    CHECK(components[1].kind == PriceKind::EnergyFruit);
+    CHECK(components[1].amount == 12);
+    CHECK(components[2].kind == PriceKind::CommandFruit);
+    CHECK(components[2].amount == 3);
+}
+
+TEST_CASE("packing no price chips succeeds with no placements [ui][auction_model]")
+{
+    const auto placements = PackPriceChips({}, 100, 4, 2);
+
+    REQUIRE(placements.has_value());
+    CHECK(placements->empty());
+}
+
+TEST_CASE("a single price chip is centred in its line [ui][auction_model]")
+{
+    const auto placements = PackPriceChips({ 30 }, 100, 4, 2);
+
+    REQUIRE(placements.has_value());
+    REQUIRE(placements->size() == 1);
+    CHECK((*placements)[0].line == 0);
+    CHECK((*placements)[0].x == 35);
+}
+
+TEST_CASE("price chips share a line until the next one would not fit [ui][auction_model]")
+{
+    const auto placements = PackPriceChips({ 30, 30, 30 }, 100, 4, 2);
+
+    REQUIRE(placements.has_value());
+    REQUIRE(placements->size() == 3);
+    CHECK((*placements)[0].line == 0);
+    CHECK((*placements)[2].line == 0);
+    CHECK((*placements)[1].x - (*placements)[0].x == 34);
+    // 30+4+30+4+30 = 98 wide, centred in 100.
+    CHECK((*placements)[0].x == 1);
+}
+
+TEST_CASE("five price chips wrap to a second line that is centred on its own [ui][auction_model]")
+{
+    const auto placements = PackPriceChips({ 30, 30, 30, 30, 30 }, 100, 4, 2);
+
+    REQUIRE(placements.has_value());
+    REQUIRE(placements->size() == 5);
+    CHECK((*placements)[3].line == 1);
+    CHECK((*placements)[4].line == 1);
+    // 30+4+30 = 64 wide, centred in 100.
+    CHECK((*placements)[3].x == 18);
+    CHECK((*placements)[4].x == 52);
+}
+
+TEST_CASE("price chips that cannot be packed report failure rather than overflowing [ui][auction_model]")
+{
+    CHECK_FALSE(PackPriceChips({ 120 }, 100, 4, 2).has_value());
+    CHECK_FALSE(PackPriceChips({ 60, 60, 60, 60, 60 }, 100, 4, 2).has_value());
 }
