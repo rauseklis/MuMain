@@ -1,0 +1,34 @@
+#pragma once
+
+#include "UI/NewUI/Widgets/NineSlice.h"
+
+typedef struct tagITEM ITEM;
+
+namespace AuctionHouse
+{
+enum class PriceKind;
+}
+
+// The look the Auction House shares between its window and its panels: the nine-slice skins, the rounded item slot
+// and the colours an item's rarity gives its name and slot ring. Pure drawing helpers with no window state.
+namespace UI::AuctionChrome
+{
+// A raised button, a recessed field, the dim-gold wallet panel and a flat table row card. State is carried by the
+// tint, so one texture serves normal, hover, pressed, locked, active and focused.
+const NineSlice::ButtonSkin& AuctionButtonSkin();
+const NineSlice::ButtonSkin& AuctionFieldSkin();
+const NineSlice::ButtonSkin& AuctionPanelSkin();
+const NineSlice::ButtonSkin& AuctionRowSkin();
+
+// ARGB colour for an item's rarity (ancient, socket, excellent, +7 and up, option, plain).
+DWORD GetAuctionItemRarityColor(const ITEM* item);
+// Sets the text colour to the item's rarity colour.
+void SetBrowseItemNameColor(const ITEM* item);
+// The ring tint of an item's slot: neutral steel leaning toward the rarity colour, brightened when hovered.
+DWORD GetAuctionItemSlotTint(const ITEM* item, bool hovered);
+// A rounded item slot drawn from one native-size texture, tinted.
+void RenderAuctionItemSlot(int x, int y, int size, DWORD tint);
+
+// Short name of a price kind, for places with no icon to carry its identity.
+const wchar_t* PriceKindName(AuctionHouse::PriceKind kind);
+} // namespace UI::AuctionChrome

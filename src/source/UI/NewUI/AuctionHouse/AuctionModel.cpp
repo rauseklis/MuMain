@@ -291,6 +291,95 @@ namespace AuctionHouse
         return components;
     }
 
+    SellDraftIssue ValidateSellDraft(const SellDraft& draft, bool buyNowSupported, int maximumComponents)
+    {
+        if (draft.mode == SellMode::BuyNow && !buyNowSupported)
+        {
+            return SellDraftIssue::BuyNowUnavailable;
+        }
+
+        if (draft.rows.empty())
+        {
+            return SellDraftIssue::NoPrice;
+        }
+
+        if (draft.mode == SellMode::Auction)
+        {
+            if (draft.rows.size() > 1)
+            {
+                return SellDraftIssue::TooManyComponents;
+            }
+
+            const int64_t starting = draft.rows.front().quantity;
+            if (starting <= 0)
+            {
+                return SellDraftIssue::ZeroQuantity;
+            }
+
+            const bool hasBuyout = draft.auctionBuyoutQuantity != 0;
+            return hasBuyout && draft.auctionBuyoutQuantity < starting ? SellDraftIssue::BuyoutBelowStart : SellDraftIssue::None;
+        }
+
+        if (static_cast<int>(draft.rows.size()) > maximumComponents)
+        {
+            return SellDraftIssue::TooManyComponents;
+        }
+
+        for (size_t i = 0; i < draft.rows.size(); ++i)
+        {
+            if (draft.rows[i].quantity <= 0)
+            {
+                return SellDraftIssue::ZeroQuantity;
+            }
+
+            for (size_t j = i + 1; j < draft.rows.size(); ++j)
+            {
+                if (draft.rows[i].kind == draft.rows[j].kind)
+                {
+                    return SellDraftIssue::DuplicateKind;
+                }
+            }
+        }
+
+        return SellDraftIssue::None;
+    }
+
+    std::optional<CreateFields> ToCreateFields(const SellDraft& draft)
+    {
+        if (draft.mode != SellMode::Auction || draft.rows.size() != 1)
+        {
+            return std::nullopt;
+        }
+
+        const SellPriceRow& row = draft.rows.front();
+        CreateFields fields;
+        if (row.kind <= PriceKind::Harmony)
+        {
+            fields.currencyMode = static_cast<AuctionCurrencyMode>(static_cast<int>(row.kind));
+            fields.starting = AuctionAmount::FromScalar(row.quantity);
+            fields.buyout = AuctionAmount::FromScalar(draft.auctionBuyoutQuantity);
+            return fields;
+        }
+
+        const auto basketOf = [&row](int64_t quantity)
+        {
+            FruitBasket basket;
+            switch (row.kind)
+            {
+            case PriceKind::StrengthFruit: basket.Strength = quantity; break;
+            case PriceKind::AgilityFruit: basket.Agility = quantity; break;
+            case PriceKind::VitalityFruit: basket.Vitality = quantity; break;
+            case PriceKind::EnergyFruit: basket.Energy = quantity; break;
+            default: basket.Command = quantity; break;
+            }
+            return basket;
+        };
+        fields.currencyMode = AuctionCurrencyMode::Fruits;
+        fields.starting = AuctionAmount::FromFruits(basketOf(row.quantity));
+        fields.buyout = AuctionAmount::FromFruits(basketOf(draft.auctionBuyoutQuantity));
+        return fields;
+    }
+
     std::optional<std::vector<PriceChipPlacement>> PackPriceChips(
         const std::vector<int>& chipWidths, int lineWidth, int gap, int maxLines)
     {

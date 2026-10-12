@@ -81,6 +81,7 @@ mu_add_test(
     NAME auction_model_tests
     SOURCES
         test_auction_model.cpp
+        test_auction_sell_draft.cpp
         ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/AuctionHouse/AuctionModel.cpp
 )
 

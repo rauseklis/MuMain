@@ -218,6 +218,62 @@ namespace AuctionHouse
     [[nodiscard]] std::optional<std::vector<PriceChipPlacement>> PackPriceChips(
         const std::vector<int>& chipWidths, int lineWidth, int gap, int maxLines);
 
+    // How a seller lists an item. An auction has a single-component starting price, an optional buyout of the same
+    // kind, and takes bids. A buy-now listing has only a fixed price of one to five components and no bids; a price
+    // paid in several things at once is always buy now, because bids on a mix could not be ranked.
+    enum class SellMode
+    {
+        Auction,
+        BuyNow,
+    };
+
+    struct SellPriceRow
+    {
+        PriceKind kind = PriceKind::Zen;
+        int64_t quantity = 0;
+    };
+
+    struct SellDraft
+    {
+        SellMode mode = SellMode::Auction;
+        // Auction: the one starting-price row. Buy now: every component of the fixed price.
+        std::vector<SellPriceRow> rows;
+        // Auction only: a buyout in the starting price's kind; zero means no buyout.
+        int64_t auctionBuyoutQuantity = 0;
+        uint8_t durationHours = 24;
+    };
+
+    enum class SellDraftIssue
+    {
+        None,
+        NoPrice,
+        ZeroQuantity,
+        TooManyComponents,
+        DuplicateKind,
+        BuyoutBelowStart,
+        BuyNowUnavailable,
+    };
+
+    inline constexpr int MaximumSellComponents = 5;
+
+    // Advisory client-side check of a draft, so the Create button can say why it is disabled. The server remains
+    // the authority on ranges, eligibility and fees. buyNowSupported is false while the server's protocol only has
+    // single-currency listings.
+    [[nodiscard]] SellDraftIssue ValidateSellDraft(
+        const SellDraft& draft, bool buyNowSupported, int maximumComponents = MaximumSellComponents);
+
+    // The fields of the current create request, which has one currency mode with a scalar or fruit-basket price.
+    struct CreateFields
+    {
+        AuctionCurrencyMode currencyMode = AuctionCurrencyMode::Zen;
+        AuctionAmount starting = AuctionAmount::FromScalar(0);
+        AuctionAmount buyout = AuctionAmount::FromScalar(0);
+    };
+
+    // Maps an auction draft onto the create request: Zen and jewels as scalars, a stat fruit as a fruit basket holding
+    // that one fruit. A buy-now draft has no representation yet and yields nothing.
+    [[nodiscard]] std::optional<CreateFields> ToCreateFields(const SellDraft& draft);
+
     // Tracks the offset between the server's reported time (seconds, from a response's ServerTime field) and
     // this client's own GetTickCount()-style local tick clock, so a listing's remaining time can tick down
     // locally between responses instead of only updating on the next server reply. Local tick values are
