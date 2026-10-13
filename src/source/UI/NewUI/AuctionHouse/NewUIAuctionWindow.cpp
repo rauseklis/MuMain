@@ -15,8 +15,10 @@
 #include "Core/Text/Utf8.h"
 #include "UI/NewUI/Widgets/NineSlice.h"
 #include "UI/NewUI/AuctionHouse/AuctionChrome.h"
+#include "UI/Scaling/UITransform.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace SEASON3B;
 using namespace UI::AuctionChrome;
@@ -304,13 +306,9 @@ namespace
     constexpr int CLAIM_INPUT_Y = CLAIM_FIELD_Y + 7;
     constexpr int CLAIM_FIELD_X = BROWSE_BODY_X + 8;
     constexpr int CLAIM_INPUT_X = CLAIM_FIELD_X + CLAIM_FIELD_INSET;
-    constexpr int SELL_PANEL_X = 20;
-    constexpr int SELL_PANEL_Y = 112;
-    constexpr int SELL_WINDOW_WIDTH = 400;
-    constexpr int SELL_PANEL_WIDTH = SELL_WINDOW_WIDTH - 2 * SELL_PANEL_X;
-    constexpr int SELL_PANEL_HEIGHT = 92;
-    constexpr int SELL_ICON_SIZE = 52;
-    constexpr int SELL_ICON_MARGIN = 12;
+    // The stock inventory is 190 wide with its right edge on the 640-unit reference canvas; Sell docks to its
+    // left, a few units clear of it.
+    constexpr int SELL_INVENTORY_GAP = 10;
 
     const wchar_t* CollectionKindText(AuctionCollectionKind kind)
     {
@@ -860,7 +858,8 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
     : m_pNewUIMng(nullptr), m_pNewUI3DRenderMng(nullptr), m_Pos{ 0, 0 },
       m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_iCurrentTab(TAB_BROWSE),
       m_bOpenRequestPending(false), m_PendingOpenRequestId(0), m_bHasOpenResponse(false),
-      m_bOpenedInventoryForSell(false), m_bHasSellItem(false), m_SellInventorySlot(0),
+      m_bOpenedInventoryForSell(false), m_bSellDocked(false), m_BrowsePos{ 0, 0 },
+      m_SellDockedForWidth(0), m_SellDockedForHeight(0), m_bHasSellItem(false), m_SellInventorySlot(0),
       m_SellItemSnapshot{}, m_bPointingSellItem(false),
       m_SelectedCurrency(static_cast<AuctionCurrencyMode>(ALL_CURRENCIES)), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasListingResponse(false),
@@ -1109,10 +1108,6 @@ void SEASON3B::CNewUIAuctionWindow::RepositionChildren()
         m_Pos.y + BROWSE_BODY_Y + BROWSE_SCROLLBAR_TOP_INSET);
     m_BrowseScrollBar.UpdateScrolling();
     m_SellPanel.SetPos(m_Pos.x, m_Pos.y);
-    if (m_iCurrentTab == TAB_SELL && m_bOpenedInventoryForSell)
-    {
-        g_pMyInventory->SetPos(m_Pos.x + windowWidth + 10, m_Pos.y);
-    }
 }
 
 void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
@@ -1911,24 +1906,53 @@ void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
 
 void SEASON3B::CNewUIAuctionWindow::EnterSellTab()
 {
-    // Browse needs the owner's 600-wide table, but that cannot coexist with the stock 190-wide inventory on
-    // the 640-unit panel canvas. Sell returns to the approved original 400-wide geometry and uses the same
-    // right-docked transform as inventory, putting the two windows side by side at every supported aspect.
+    // Sell is the same size as Browse but needs the inventory beside it, so it leaves the centred dialog layout
+    // for the one inventory uses (docked to the right edge) and sits directly to the inventory's left.
+    m_BrowsePos = m_Pos;
+    m_bSellDocked = true;
     SetLayoutMode(UI::Scaling::LayoutMode::DockRight);
-    RepositionChildren();
     if (!g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY))
     {
         m_bOpenedInventoryForSell = true;
-        g_pMyInventory->SetPos(m_Pos.x + CurrentWindowWidth() + 10, m_Pos.y);
         g_pNewUISystem->Show(SEASON3B::INTERFACE_INVENTORY);
     }
+    DockSellWindow();
+
+    // Items are chosen by pointing at them; nothing in the inventory can be picked up while Sell is open.
+    g_pMyInventory->SetSelectionOnly(true);
+}
+
+void SEASON3B::CNewUIAuctionWindow::DockSellWindow()
+{
+    // Left edge of the screen in the docked layout's units: the dock is anchored to the right edge, so a wide
+    // screen shows more of the world to the left of the 640-unit canvas.
+    const UI::Scaling::Transform dock = UI::Scaling::DockRightTransform(WindowWidth, WindowHeight);
+    const int screenLeft = static_cast<int>(std::ceil(UI::Scaling::LogicalX(dock, 0.0f)));
+
+    const POINT inventoryPos = g_pMyInventory->GetPos();
+    m_Pos.x = std::max(static_cast<int>(inventoryPos.x) - SELL_INVENTORY_GAP - WINDOW_WIDTH, screenLeft);
+    m_Pos.y = inventoryPos.y;
+    m_SellDockedForWidth = WindowWidth;
+    m_SellDockedForHeight = WindowHeight;
+    RepositionChildren();
 }
 
 void SEASON3B::CNewUIAuctionWindow::LeaveSellTab()
 {
+    if (g_pMyInventory != nullptr)
+    {
+        g_pMyInventory->SetSelectionOnly(false);
+    }
+
     if (m_bOpenedInventoryForSell && g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY))
     {
         g_pNewUISystem->Hide(SEASON3B::INTERFACE_INVENTORY);
+    }
+
+    if (m_bSellDocked)
+    {
+        m_Pos = m_BrowsePos;
+        m_bSellDocked = false;
     }
 
     m_bOpenedInventoryForSell = false;
@@ -1937,36 +1961,32 @@ void SEASON3B::CNewUIAuctionWindow::LeaveSellTab()
 
 void SEASON3B::CNewUIAuctionWindow::CaptureSellSelection()
 {
-    auto* picked = CNewUIInventoryCtrl::GetPickedItem();
-    if (picked == nullptr || picked->GetSourceStorageType() != STORAGE_TYPE::INVENTORY)
+    // The inventory is locked against picking items up while Sell is open, so a click on an item arrives as a
+    // plain release over its square. Nothing moves: the item is only noted as the one to list.
+    if (!IsRelease(VK_LBUTTON) || !g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY))
     {
         return;
     }
 
-    const int slot = picked->GetSourceLinealPos();
-    ITEM* item = picked->GetItem();
-    if (item != nullptr && IsPlayerInventorySlot(slot))
+    CNewUIInventoryCtrl* inventory = g_pMyInventory->GetInventoryCtrl();
+    if (inventory == nullptr)
+    {
+        return;
+    }
+
+    ITEM* item = inventory->FindItemPointedSquareIndex();
+    if (item == nullptr)
+    {
+        return;
+    }
+
+    const int slot = inventory->GetIndexByItem(item);
+    if (IsPlayerInventorySlot(slot))
     {
         m_SellInventorySlot = static_cast<BYTE>(slot);
         m_SellItemSnapshot = *item;
         m_bHasSellItem = true;
     }
-
-    // Selection is not an item move. Put the engine-owned picked item back in its source slot immediately.
-    // If the legacy restore cannot reinsert it (for example because its client slot map is already stale),
-    // request the authoritative inventory and release the cursor copy so Sell never leaves the giant red
-    // invalid-drop overlay seen in the first real-game pass.
-    CNewUIInventoryCtrl::BackupPickedItem();
-    if (CNewUIInventoryCtrl::GetPickedItem() == picked)
-    {
-        SocketClient->ToGameServer()->SendInventoryRequest();
-        CNewUIInventoryCtrl::DeletePickedItem();
-    }
-
-    // Inventory pickup is release-triggered. Consume that release after restoring the item, otherwise
-    // the inventory control can see it again on the next update and immediately pick the same item back up.
-    g_pMyInventory->ResetMouseLButton();
-    g_pNewKeyInput->SetKeyState(VK_LBUTTON, CNewKeyInput::KEY_NONE);
 }
 
 void SEASON3B::CNewUIAuctionWindow::ValidateSellSelection()
@@ -2472,6 +2492,10 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         m_bPointingSellItem = false;
         if (m_iCurrentTab == TAB_SELL)
         {
+            if (m_bSellDocked && !m_bDragging && (WindowWidth != m_SellDockedForWidth || WindowHeight != m_SellDockedForHeight))
+            {
+                DockSellWindow();
+            }
             CaptureSellSelection();
             ValidateSellSelection();
             m_SellPanel.SetItemSelected(m_bHasSellItem);
@@ -2524,6 +2548,13 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
                     break;
                 }
             }
+        }
+
+        // An open dropdown owns the mouse: the rows beneath its list are neither hovered nor given a tooltip.
+        if (m_CurrencyCombo.IsOpen() || m_StatusCombo.IsOpen() || m_CollectionKindCombo.IsOpen())
+        {
+            m_iPointedRow = -1;
+            m_iPointedItemRow = -1;
         }
     }
 
@@ -3078,8 +3109,11 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         const int iconX = m_Pos.x + RowSlotX(m_iCurrentTab) + BROWSE_ICON_CELL_OFFSET + BROWSE_ICON_MARGIN;
         const int iconY = m_Pos.y + BROWSE_BODY_Y + static_cast<int>(row) * BROWSE_ROW_HEIGHT + BROWSE_ICON_CELL_OFFSET
             + BROWSE_ICON_MARGIN;
-        RenderItem3DFittedToSlot((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
-            item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, BROWSE_ICON_FILL, false);
+        if (!IsCoveredByOpenDropdown(iconX, iconY, BROWSE_ICON_SIZE, BROWSE_ICON_SIZE))
+        {
+            RenderItem3DFittedToSlot((float)iconX, (float)iconY, (float)BROWSE_ICON_SIZE, (float)BROWSE_ICON_SIZE,
+                item->Type, item->Level, item->ExcellentFlags, item->AncientDiscriminator, BROWSE_ICON_FILL, false);
+        }
 
         // The icons of each price chip, laid out by the same function that places the amounts (see
         // RenderBrowseTab). Only the Browse/My Listings table has price columns; Mailbox's layout does not.
@@ -3094,7 +3128,8 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
                     cellWidth, m_bHasOpenResponse ? &m_OpenResponse : nullptr);
                 for (const PriceChip& chip : chips)
                 {
-                    if (chip.icon)
+                    if (chip.icon
+                        && !IsCoveredByOpenDropdown(cellX + chip.x, rowY + chip.textY + PRICE_ICON_Y_OFFSET, PRICE_ICON_SIZE, PRICE_ICON_SIZE))
                     {
                         RenderItem3DFittedToSlot(static_cast<float>(cellX + chip.x),
                             static_cast<float>(rowY + chip.textY + PRICE_ICON_Y_OFFSET),
@@ -3122,6 +3157,24 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
     {
         m_pNewUI3DRenderMng->RenderUI2DEffect(INFORMATION_CAMERA_Z_ORDER, UI2DEffectCallback, this, static_cast<DWORD>(m_iPointedItemRow), 0);
     }
+}
+
+bool SEASON3B::CNewUIAuctionWindow::IsCoveredByOpenDropdown(int x, int y, int width, int height) const
+{
+    const CNewUIComboBox* const combos[] = { &m_CurrencyCombo, &m_CategoryCombo, &m_StatusCombo, &m_CollectionKindCombo };
+    for (const CNewUIComboBox* combo : combos)
+    {
+        int listX = 0;
+        int listY = 0;
+        int listWidth = 0;
+        int listHeight = 0;
+        if (combo->GetOpenListRect(listX, listY, listWidth, listHeight)
+            && x < listX + listWidth && x + width > listX && y < listY + listHeight && y + height > listY)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderSellItemTooltip() const
@@ -3463,7 +3516,7 @@ float SEASON3B::CNewUIAuctionWindow::GetLayerDepth()
 
 int SEASON3B::CNewUIAuctionWindow::CurrentWindowWidth() const
 {
-    return m_iCurrentTab == TAB_SELL ? SELL_WINDOW_WIDTH : WINDOW_WIDTH;
+    return WINDOW_WIDTH;
 }
 
 void SEASON3B::CNewUIAuctionWindow::ComputeTabLayout(int (&outX)[TAB_COUNT], int (&outWidth)[TAB_COUNT]) const

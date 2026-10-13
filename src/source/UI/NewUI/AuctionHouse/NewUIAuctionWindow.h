@@ -132,10 +132,14 @@ namespace SEASON3B
         void RenderMailboxTab();
         void EnterSellTab();
         void LeaveSellTab();
+        void DockSellWindow();
         void CaptureSellSelection();
         void ValidateSellSelection();
         void SendCreateRequest(const AuctionHouse::SellDraft& draft, const std::wstring& note);
         void RenderSellItemTooltip() const;
+        // Whether an open dropdown list covers any part of the rectangle. The item icons are drawn in the 3D pass,
+        // after every 2D control, so an icon under an open list has to be skipped or it shows through the list.
+        bool IsCoveredByOpenDropdown(int x, int y, int width, int height) const;
         void RebuildRowItems();
         void ReleaseRowItems();
         void RenderRowItemTooltip(int row) const;
@@ -183,8 +187,16 @@ namespace SEASON3B
         AuctionHouse::AuctionOpenResponse m_OpenResponse;
 
         // Sell owns the inventory only when it opened a previously hidden window. A selected lot is a value
-        // snapshot plus its authoritative source slot; restoring the picked item immediately avoids moving it.
+        // snapshot plus its authoritative source slot; the player points at it in the inventory (which is locked
+        // against picking items up) instead of dragging it out.
         bool m_bOpenedInventoryForSell;
+        // Sell docks to the left of the inventory, while the other tabs sit in the centred dialog layout. The
+        // dialog position is kept here while Sell is up and restored when it is left; the window size the dock
+        // was computed for lets a resized game window dock again.
+        bool m_bSellDocked;
+        POINT m_BrowsePos;
+        unsigned int m_SellDockedForWidth;
+        unsigned int m_SellDockedForHeight;
         bool m_bHasSellItem;
         BYTE m_SellInventorySlot;
         ITEM m_SellItemSnapshot;

@@ -93,6 +93,8 @@ namespace SEASON3B
         DWORD m_dwStandbyItemKey;
 
         bool m_bRepairEnableLevel;
+        bool m_bSelectionOnly;
+        bool m_bLockedBeforeSelectionOnly;
         bool m_bMyShopOpen;
 
     public:
@@ -124,6 +126,11 @@ namespace SEASON3B
         const POINT& GetPos() const;
 
         void SetRepairMode(bool bRepair);
+
+        // Selection-only: items still show and give tooltips, but nothing in the grid or the equipment slots can
+        // be picked up. A window that only needs the player to point at an item (the Auction House's Sell tab)
+        // turns it on while it is open and off again when it closes.
+        void SetSelectionOnly(bool selectionOnly);
 
 #ifdef LJH_ADD_SYSTEM_OF_EQUIPPING_ITEM_FROM_INVENTORY
         BOOL IsInvenItem(const short sType);

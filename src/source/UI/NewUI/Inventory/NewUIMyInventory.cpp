@@ -57,6 +57,8 @@ CNewUIMyInventory::CNewUIMyInventory()
     m_dwStandbyItemKey = 0;
 
     m_bRepairEnableLevel = false;
+    m_bSelectionOnly = false;
+    m_bLockedBeforeSelectionOnly = false;
     m_bMyShopOpen = false;
 }
 
@@ -413,6 +415,30 @@ void CNewUIMyInventory::DeleteAllItems() const
 {
     if (m_pNewInventoryCtrl)
         m_pNewInventoryCtrl->RemoveAllItems();
+}
+
+void CNewUIMyInventory::SetSelectionOnly(bool selectionOnly)
+{
+    if (m_bSelectionOnly == selectionOnly)
+    {
+        return;
+    }
+
+    m_bSelectionOnly = selectionOnly;
+    if (m_pNewInventoryCtrl == nullptr)
+    {
+        return;
+    }
+
+    if (selectionOnly)
+    {
+        m_bLockedBeforeSelectionOnly = m_pNewInventoryCtrl->IsLocked();
+        m_pNewInventoryCtrl->LockInventory();
+    }
+    else if (!m_bLockedBeforeSelectionOnly)
+    {
+        m_pNewInventoryCtrl->UnlockInventory();
+    }
 }
 
 void CNewUIMyInventory::SetPos(int x, int y)
@@ -1469,7 +1495,7 @@ bool CNewUIMyInventory::EquipmentWindowProcess()
             }
 
             ITEM* pEquippedItem = &CharacterMachine->Equipment[m_iPointedSlot];
-            if (pEquippedItem->Type >= 0 && CheckTakeOff(m_iPointedSlot))
+            if (!m_bSelectionOnly && pEquippedItem->Type >= 0 && CheckTakeOff(m_iPointedSlot))
             {
                 if (CNewUIInventoryCtrl::CreatePickedItem(nullptr, pEquippedItem))
                 {

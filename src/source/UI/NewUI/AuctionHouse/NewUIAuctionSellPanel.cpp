@@ -11,75 +11,96 @@
 #include "I18N/All.h"
 #include "Audio/DSPlaySound.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
+#include "Core/Text/TextLineWrap.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <vector>
 
 using namespace SEASON3B;
 using namespace UI::AuctionChrome;
 
 namespace
 {
-    // Everything is positioned in the Sell window's own coordinates (400 wide, 429 tall).
-    constexpr int WINDOW_WIDTH = 400;
+    // Everything is positioned in the Sell window's own coordinates. The window is the same 600 x 429 as Browse and
+    // laid out the same way: a narrow rail on the left (here the item and the fees, there the categories and the
+    // wallet) and the form to its right where Browse has its table. Rows start at the toolbar line (y 73).
+    constexpr int WINDOW_WIDTH = SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH;
     constexpr int CONTENT_X = 11;
-    constexpr int CONTENT_WIDTH = 378;
+    constexpr int RAIL_X = CONTENT_X;
+    constexpr int RAIL_WIDTH = 114;
+    constexpr int FORM_X = 132;
+    constexpr int FORM_WIDTH = WINDOW_WIDTH - CONTENT_X - FORM_X;
+    constexpr int FORM_INNER_RIGHT = FORM_X + FORM_WIDTH - 8;
     constexpr int FIELD_HEIGHT = 23;
     // Text tops that centre the UI font's 8-pixel text box in a 23-pixel field, and the gap between a field's frame
     // and the typed text inside it (the same values the Browse toolbar uses).
     constexpr int TEXT_Y_OFFSET = 7;
     constexpr int INPUT_INSET = 6;
     constexpr int INPUT_HEIGHT = 16;
+    constexpr int TEXT_LINE_HEIGHT = 11;
 
-    constexpr int ITEM_CARD_Y = 73;
-    constexpr int ITEM_CARD_HEIGHT = 56;
-    constexpr int ITEM_SLOT_X = CONTENT_X + 8;
-    constexpr int ITEM_SLOT_Y = ITEM_CARD_Y + 4;
-    constexpr int ITEM_SLOT_SIZE = 48;
+    constexpr int TOP_Y = 73;
+    constexpr int ITEM_CARD_Y = TOP_Y;
+    constexpr int ITEM_CARD_HEIGHT = 150;
+    constexpr int ITEM_SLOT_SIZE = 56;
+    constexpr int ITEM_SLOT_X = RAIL_X + (RAIL_WIDTH - ITEM_SLOT_SIZE) / 2;
+    constexpr int ITEM_SLOT_Y = ITEM_CARD_Y + 10;
     constexpr int ITEM_ICON_INSET = 4;
-    constexpr int ITEM_TEXT_X = ITEM_SLOT_X + ITEM_SLOT_SIZE + 12;
+    constexpr int ITEM_NAME_Y = ITEM_CARD_Y + 74;
+    constexpr int ITEM_NAME_MAX_LINES = 2;
+    constexpr int ITEM_HINT_Y = ITEM_CARD_Y + 102;
+    constexpr int ITEM_HINT_MAX_LINES = 4;
+    constexpr int RAIL_TEXT_PAD = 6;
 
-    constexpr int MODE_Y = 135;
-    constexpr int MODE_HEIGHT = 22;
+    constexpr int FEE_CARD_Y = ITEM_CARD_Y + ITEM_CARD_HEIGHT + 6;
+    constexpr int FEE_CARD_HEIGHT = 102;
+    constexpr int FEE_TITLE_Y = FEE_CARD_Y + 8;
+    constexpr int FEE_LISTING_LABEL_Y = FEE_CARD_Y + 25;
+    constexpr int FEE_SUCCESS_LABEL_Y = FEE_CARD_Y + 61;
+
+    constexpr int MODE_Y = TOP_Y;
+    constexpr int MODE_HEIGHT = FIELD_HEIGHT;
     constexpr int MODE_GAP = 4;
-    constexpr int MODE_WIDTH = (CONTENT_WIDTH - MODE_GAP) / 2;
+    constexpr int MODE_WIDTH = (FORM_WIDTH - MODE_GAP) / 2;
 
-    constexpr int PRICE_PANEL_Y = 161;
-    constexpr int PRICE_PANEL_HEIGHT = 156;
-    constexpr int PRICE_DESCRIPTION_Y = 166;
-    constexpr int ROWS_Y = 182;
-    constexpr int ROW_PITCH = 26;
-    constexpr int PRICE_LABEL_X = CONTENT_X + 8;
+    constexpr int PRICE_PANEL_Y = 102;
+    constexpr int PRICE_PANEL_HEIGHT = 177;
+    constexpr int PRICE_DESCRIPTION_Y = PRICE_PANEL_Y + 7;
+    constexpr int ROWS_Y = PRICE_PANEL_Y + 26;
+    constexpr int ROW_PITCH = 30;
+    constexpr int PRICE_LABEL_X = FORM_X + 8;
 
-    constexpr int AUCTION_KIND_X = 108;
-    constexpr int AUCTION_KIND_WIDTH = 118;
-    constexpr int AUCTION_QUANTITY_X = 232;
-    constexpr int AUCTION_QUANTITY_WIDTH = 100;
+    constexpr int AUCTION_KIND_X = 250;
+    constexpr int AUCTION_KIND_WIDTH = 150;
+    constexpr int AUCTION_QUANTITY_X = 408;
+    constexpr int AUCTION_QUANTITY_WIDTH = FORM_INNER_RIGHT - AUCTION_QUANTITY_X;
 
-    constexpr int BUYNOW_KIND_X = 19;
-    constexpr int BUYNOW_KIND_WIDTH = 128;
-    constexpr int BUYNOW_QUANTITY_X = 153;
-    constexpr int BUYNOW_QUANTITY_WIDTH = 110;
-    constexpr int BUYNOW_REMOVE_X = 269;
+    constexpr int BUYNOW_KIND_X = FORM_X + 8;
+    constexpr int BUYNOW_KIND_WIDTH = 190;
+    constexpr int BUYNOW_QUANTITY_X = BUYNOW_KIND_X + BUYNOW_KIND_WIDTH + 8;
+    constexpr int BUYNOW_QUANTITY_WIDTH = 190;
+    constexpr int BUYNOW_REMOVE_X = BUYNOW_QUANTITY_X + BUYNOW_QUANTITY_WIDTH + 8;
     constexpr int BUYNOW_REMOVE_SIZE = FIELD_HEIGHT;
 
-    constexpr int OPTIONS_Y = 323;
-    constexpr int DURATION_LABEL_X = 15;
-    constexpr int DURATION_X = 70;
-    constexpr int DURATION_WIDTH = 82;
-    constexpr int NOTE_LABEL_X = 162;
-    constexpr int NOTE_X = 190;
-    constexpr int NOTE_WIDTH = CONTENT_X + CONTENT_WIDTH - NOTE_X;
+    constexpr int OPTIONS_CARD_Y = PRICE_PANEL_Y + PRICE_PANEL_HEIGHT + 8;
+    constexpr int OPTIONS_CARD_HEIGHT = 44;
+    constexpr int OPTIONS_Y = OPTIONS_CARD_Y + (OPTIONS_CARD_HEIGHT - FIELD_HEIGHT) / 2;
+    constexpr int DURATION_LABEL_X = FORM_X + 8;
+    constexpr int DURATION_X = DURATION_LABEL_X + 56;
+    constexpr int DURATION_WIDTH = 100;
+    constexpr int NOTE_LABEL_X = DURATION_X + DURATION_WIDTH + 16;
+    constexpr int NOTE_X = NOTE_LABEL_X + 34;
+    constexpr int NOTE_WIDTH = FORM_INNER_RIGHT - NOTE_X;
     constexpr int NOTE_MAX_CHARACTERS = 40;
 
-    constexpr int FEE_Y = 351;
-    constexpr int FEE_LINE_HEIGHT = 11;
-    constexpr int STATUS_Y = 374;
+    constexpr int STATUS_Y = OPTIONS_CARD_Y + OPTIONS_CARD_HEIGHT + 10;
 
     constexpr int BUTTON_HEIGHT = 23;
     constexpr int BUTTON_Y = 429 - 45 + (45 - BUTTON_HEIGHT) / 2;
     constexpr int BUTTON_MARGIN = 20;
-    constexpr int CREATE_WIDTH = 110;
-    constexpr int CLEAR_WIDTH = 60;
+    constexpr int CREATE_WIDTH = 130;
+    constexpr int CLEAR_WIDTH = 80;
 
     constexpr int DEFAULT_DURATION_HOURS = 24;
 
@@ -100,6 +121,25 @@ namespace
         g_pRenderText->SetBgColor(0, 0, 0, 0);
         g_pRenderText->RenderText(static_cast<float>(x), static_cast<float>(y), text, static_cast<float>(width), 0,
             RT3_SORT_LEFT);
+    }
+
+    // Draws text wrapped to the width, one line per row of lineHeight, centred or left-aligned, up to maxLines
+    // (anything beyond is dropped). Returns the number of lines drawn.
+    int RenderWrapped(const std::wstring& text, int x, int y, int width, DWORD colour, bool bold, bool centred,
+        int maxLines, int lineHeight)
+    {
+        g_pRenderText->SetFont(bold ? g_hFontBold : g_hFont);
+        const std::vector<std::wstring> lines = WrapTextToWidth(text, width,
+            [](const wchar_t* line, size_t length) { return static_cast<int>(g_pRenderText->MeasureText(line, static_cast<int>(length)).cx); });
+        const int count = std::min(static_cast<int>(lines.size()), maxLines);
+        for (int line = 0; line < count; ++line)
+        {
+            g_pRenderText->SetTextColor((colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF, 255);
+            g_pRenderText->SetBgColor(0, 0, 0, 0);
+            g_pRenderText->RenderText(static_cast<float>(x), static_cast<float>(y + line * lineHeight), lines[line].c_str(),
+                static_cast<float>(width), 0, centred ? RT3_SORT_CENTER : RT3_SORT_LEFT);
+        }
+        return count;
     }
 
     constexpr DWORD Rgb(int r, int g, int b)
@@ -539,7 +579,7 @@ bool CNewUIAuctionSellPanel::UpdateMouseEvent()
     {
         for (int mode = 0; mode < 2; ++mode)
         {
-            const int x = m_Pos.x + CONTENT_X + mode * (MODE_WIDTH + MODE_GAP);
+            const int x = m_Pos.x + FORM_X + mode * (MODE_WIDTH + MODE_GAP);
             if (SEASON3B::CheckMouseIn(x, m_Pos.y + MODE_Y, MODE_WIDTH, MODE_HEIGHT))
             {
                 SetMode(mode == 0 ? AuctionHouse::SellMode::Auction : AuctionHouse::SellMode::BuyNow);
@@ -729,28 +769,38 @@ bool CNewUIAuctionSellPanel::IsMouseOverItemIcon() const
 
 void CNewUIAuctionSellPanel::RenderItemCard(const ITEM* item)
 {
-    UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(m_Pos.x + CONTENT_X),
-        static_cast<float>(m_Pos.y + ITEM_CARD_Y), static_cast<float>(CONTENT_WIDTH), static_cast<float>(ITEM_CARD_HEIGHT),
+    UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(m_Pos.x + RAIL_X),
+        static_cast<float>(m_Pos.y + ITEM_CARD_Y), static_cast<float>(RAIL_WIDTH), static_cast<float>(ITEM_CARD_HEIGHT),
         CARD_TINT);
     RenderAuctionItemSlot(m_Pos.x + ITEM_SLOT_X, m_Pos.y + ITEM_SLOT_Y, ITEM_SLOT_SIZE,
         GetAuctionItemSlotTint(item, IsMouseOverItemIcon()));
 
-    const int textX = m_Pos.x + ITEM_TEXT_X;
-    const int textWidth = CONTENT_X + CONTENT_WIDTH - ITEM_TEXT_X - 8;
+    const int textX = m_Pos.x + RAIL_X + RAIL_TEXT_PAD;
+    const int textWidth = RAIL_WIDTH - 2 * RAIL_TEXT_PAD;
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     if (item == nullptr)
     {
-        RenderLabel(I18N::Game::AuctionSelectItem, textX, m_Pos.y + ITEM_CARD_Y + 14, textWidth, NOTICE_COLOUR, true);
-        RenderLabel(I18N::Game::AuctionSelectItemHint, textX, m_Pos.y + ITEM_CARD_Y + 30, textWidth, MUTED_COLOUR, false);
+        RenderWrapped(I18N::Game::AuctionSelectItem, textX, m_Pos.y + ITEM_NAME_Y, textWidth, NOTICE_COLOUR, true, true,
+            ITEM_NAME_MAX_LINES, TEXT_LINE_HEIGHT + 1);
+        RenderWrapped(I18N::Game::AuctionSelectItemHint, textX, m_Pos.y + ITEM_HINT_Y, textWidth, MUTED_COLOUR, false, true,
+            ITEM_HINT_MAX_LINES, TEXT_LINE_HEIGHT);
         return;
     }
 
+    // The name takes the item's rarity colour, which RenderWrapped cannot take as a plain RGB, so wrap it here.
     g_pRenderText->SetFont(g_hFontBold);
-    SetBrowseItemNameColor(item);
     const std::wstring name = GetItemDisplayName(const_cast<ITEM*>(item));
-    g_pRenderText->RenderText(static_cast<float>(textX), static_cast<float>(m_Pos.y + ITEM_CARD_Y + 14), name.c_str(),
-        static_cast<float>(textWidth), 0, RT3_SORT_LEFT);
-    RenderLabel(I18N::Game::AuctionSelectItemHint, textX, m_Pos.y + ITEM_CARD_Y + 30, textWidth, MUTED_COLOUR, false);
+    const std::vector<std::wstring> lines = WrapTextToWidth(name, textWidth,
+        [](const wchar_t* line, size_t length) { return static_cast<int>(g_pRenderText->MeasureText(line, static_cast<int>(length)).cx); });
+    const int lineCount = std::min(static_cast<int>(lines.size()), ITEM_NAME_MAX_LINES);
+    for (int line = 0; line < lineCount; ++line)
+    {
+        SetBrowseItemNameColor(item);
+        g_pRenderText->RenderText(static_cast<float>(textX), static_cast<float>(m_Pos.y + ITEM_NAME_Y + line * (TEXT_LINE_HEIGHT + 1)),
+            lines[line].c_str(), static_cast<float>(textWidth), 0, RT3_SORT_CENTER);
+    }
+    RenderWrapped(I18N::Game::AuctionSelectItemHint, textX, m_Pos.y + ITEM_HINT_Y, textWidth, MUTED_COLOUR, false, true,
+        ITEM_HINT_MAX_LINES, TEXT_LINE_HEIGHT);
 }
 
 void CNewUIAuctionSellPanel::RenderModeButtons()
@@ -758,7 +808,7 @@ void CNewUIAuctionSellPanel::RenderModeButtons()
     for (int mode = 0; mode < 2; ++mode)
     {
         const bool selected = (mode == 0) == (m_Mode == AuctionHouse::SellMode::Auction);
-        const int x = m_Pos.x + CONTENT_X + mode * (MODE_WIDTH + MODE_GAP);
+        const int x = m_Pos.x + FORM_X + mode * (MODE_WIDTH + MODE_GAP);
         const bool hovered = !selected && SEASON3B::CheckMouseIn(x, m_Pos.y + MODE_Y, MODE_WIDTH, MODE_HEIGHT);
         UI::NineSlice::Render(AuctionButtonSkin().texture, static_cast<float>(x), static_cast<float>(m_Pos.y + MODE_Y),
             static_cast<float>(MODE_WIDTH), static_cast<float>(MODE_HEIGHT),
@@ -777,29 +827,29 @@ void CNewUIAuctionSellPanel::RenderModeButtons()
 void CNewUIAuctionSellPanel::RenderPricePanel()
 {
     const bool auction = m_Mode == AuctionHouse::SellMode::Auction;
-    UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(m_Pos.x + CONTENT_X),
-        static_cast<float>(m_Pos.y + PRICE_PANEL_Y), static_cast<float>(CONTENT_WIDTH),
+    UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(m_Pos.x + FORM_X),
+        static_cast<float>(m_Pos.y + PRICE_PANEL_Y), static_cast<float>(FORM_WIDTH),
         static_cast<float>(PRICE_PANEL_HEIGHT), CARD_TINT);
 
     // Buy Now says so up front when the server cannot take it yet, instead of letting the player fill it in first.
     if (!auction && !m_bBuyNowSupported)
     {
         RenderLabel(L"Buy Now listings are not available on this server yet.", m_Pos.x + PRICE_LABEL_X,
-            m_Pos.y + PRICE_DESCRIPTION_Y, CONTENT_WIDTH - 16, NOTICE_COLOUR, true);
+            m_Pos.y + PRICE_DESCRIPTION_Y, FORM_WIDTH - 16, NOTICE_COLOUR, true);
     }
     else
     {
         RenderLabel(auction ? L"Bidders compete in one currency. A buyout is optional."
                             : L"A fixed price in up to five currencies, bought at once. No bidding.",
-            m_Pos.x + PRICE_LABEL_X, m_Pos.y + PRICE_DESCRIPTION_Y, CONTENT_WIDTH - 16, MUTED_COLOUR, false);
+            m_Pos.x + PRICE_LABEL_X, m_Pos.y + PRICE_DESCRIPTION_Y, FORM_WIDTH - 16, MUTED_COLOUR, false);
     }
 
     if (auction)
     {
         const int rowY = m_Pos.y + ROWS_Y;
-        RenderLabel(L"Starting price", m_Pos.x + PRICE_LABEL_X, rowY + TEXT_Y_OFFSET, 90, LABEL_COLOUR, true);
+        RenderLabel(L"Starting price", m_Pos.x + PRICE_LABEL_X, rowY + TEXT_Y_OFFSET, 100, LABEL_COLOUR, true);
         RenderField(m_Pos.x + AUCTION_QUANTITY_X, rowY, AUCTION_QUANTITY_WIDTH, m_QuantityInputs[0].HaveFocus());
-        RenderLabel(L"Buyout (optional)", m_Pos.x + PRICE_LABEL_X, rowY + ROW_PITCH + TEXT_Y_OFFSET, 96, LABEL_COLOUR, true);
+        RenderLabel(L"Buyout (optional)", m_Pos.x + PRICE_LABEL_X, rowY + ROW_PITCH + TEXT_Y_OFFSET, 100, LABEL_COLOUR, true);
         // The buyout is in the starting price's currency, so it shows that currency instead of offering a choice.
         RenderField(m_Pos.x + AUCTION_KIND_X, rowY + ROW_PITCH, AUCTION_KIND_WIDTH, false);
         RenderLabel(m_KindLabels[m_KindCombos[0].GetSelectedIndex()], m_Pos.x + AUCTION_KIND_X + INPUT_INSET,
@@ -838,6 +888,9 @@ void CNewUIAuctionSellPanel::RenderPricePanel()
 
 void CNewUIAuctionSellPanel::RenderOptions()
 {
+    UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(m_Pos.x + FORM_X),
+        static_cast<float>(m_Pos.y + OPTIONS_CARD_Y), static_cast<float>(FORM_WIDTH),
+        static_cast<float>(OPTIONS_CARD_HEIGHT), CARD_TINT);
     RenderLabel(L"Duration", m_Pos.x + DURATION_LABEL_X, m_Pos.y + OPTIONS_Y + TEXT_Y_OFFSET, 52, LABEL_COLOUR, true);
     RenderLabel(L"Note", m_Pos.x + NOTE_LABEL_X, m_Pos.y + OPTIONS_Y + TEXT_Y_OFFSET, 28, LABEL_COLOUR, true);
     RenderField(m_Pos.x + NOTE_X, m_Pos.y + OPTIONS_Y, NOTE_WIDTH, m_NoteInput.HaveFocus());
@@ -854,18 +907,29 @@ void CNewUIAuctionSellPanel::RenderOptions()
 
 void CNewUIAuctionSellPanel::RenderFees(const AuctionHouse::SellDraft& draft)
 {
-    const auto fields = AuctionHouse::ToCreateFields(draft);
-    if (!fields || fields->starting.IsZero())
-    {
-        return;
-    }
+    UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(m_Pos.x + RAIL_X),
+        static_cast<float>(m_Pos.y + FEE_CARD_Y), static_cast<float>(RAIL_WIDTH), static_cast<float>(FEE_CARD_HEIGHT),
+        CARD_TINT);
+
+    const int textX = m_Pos.x + RAIL_X + RAIL_TEXT_PAD;
+    const int textWidth = RAIL_WIDTH - 2 * RAIL_TEXT_PAD;
+    RenderLabel(L"Fees", textX, m_Pos.y + FEE_TITLE_Y, textWidth, LABEL_COLOUR, true);
 
     // What the server charges today: a listing fee taken now and a success fee taken from the proceeds.
-    const AuctionHouse::AuctionAmount listingFee = AuctionHouse::ComputeAuctionFee(fields->starting, m_ListingFeeBasisPoints);
-    const std::wstring listing = L"Listing fee: " + PriceSummaryText(fields->currencyMode, listingFee) + L" (charged now)";
-    const std::wstring success = L"Success fee: " + PercentText(m_SuccessFeeBasisPoints) + L" of the final price when it sells";
-    RenderLabel(listing.c_str(), m_Pos.x + CONTENT_X + 4, m_Pos.y + FEE_Y, CONTENT_WIDTH - 8, FEE_COLOUR, false);
-    RenderLabel(success.c_str(), m_Pos.x + CONTENT_X + 4, m_Pos.y + FEE_Y + FEE_LINE_HEIGHT, CONTENT_WIDTH - 8, MUTED_COLOUR, false);
+    RenderLabel(L"Listing fee (now)", textX, m_Pos.y + FEE_LISTING_LABEL_Y, textWidth, MUTED_COLOUR, false);
+    const auto fields = AuctionHouse::ToCreateFields(draft);
+    std::wstring listing = L"-";
+    if (fields && !fields->starting.IsZero())
+    {
+        const AuctionHouse::AuctionAmount listingFee = AuctionHouse::ComputeAuctionFee(fields->starting, m_ListingFeeBasisPoints);
+        listing = PriceSummaryText(fields->currencyMode, listingFee);
+    }
+    RenderWrapped(listing, textX, m_Pos.y + FEE_LISTING_LABEL_Y + TEXT_LINE_HEIGHT, textWidth, FEE_COLOUR, false, false, 2,
+        TEXT_LINE_HEIGHT);
+
+    RenderLabel(L"Success fee", textX, m_Pos.y + FEE_SUCCESS_LABEL_Y, textWidth, MUTED_COLOUR, false);
+    RenderWrapped(PercentText(m_SuccessFeeBasisPoints) + L" of the final price when it sells", textX,
+        m_Pos.y + FEE_SUCCESS_LABEL_Y + TEXT_LINE_HEIGHT, textWidth, FEE_COLOUR, false, false, 3, TEXT_LINE_HEIGHT);
 }
 
 void CNewUIAuctionSellPanel::Render(const ITEM* item)
@@ -884,7 +948,7 @@ void CNewUIAuctionSellPanel::Render(const ITEM* item)
     const std::wstring status = StatusText(issue);
     if (!status.empty())
     {
-        RenderLabel(status.c_str(), m_Pos.x + CONTENT_X + 4, m_Pos.y + STATUS_Y, CONTENT_WIDTH - 8,
+        RenderLabel(status.c_str(), m_Pos.x + FORM_X + 4, m_Pos.y + STATUS_Y, FORM_WIDTH - 8,
             m_bHasResult ? (m_bResultSuccess ? SUCCESS_COLOUR : ERROR_COLOUR) : ERROR_COLOUR, false);
     }
 

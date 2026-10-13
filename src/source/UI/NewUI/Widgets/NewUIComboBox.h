@@ -62,6 +62,24 @@ namespace SEASON3B
         void Close() { m_bOpen = false; }
 
         /**
+         * @brief The expanded list's rectangle while the combo is open. Owners that draw 3D content (item
+         * icons are drawn in a later pass than the 2D list) use it to keep that content from showing through.
+         * @return false when the combo is closed.
+         */
+        bool GetOpenListRect(int& x, int& y, int& width, int& height) const
+        {
+            if (!m_bOpen)
+            {
+                return false;
+            }
+            x = m_X;
+            y = GetListY();
+            width = m_Width;
+            height = GetListHeight();
+            return true;
+        }
+
+        /**
          * @brief Draws the closed field from a nine-slice skin (tinted idle/hover/open) with a vector
          * chevron instead of the flat shaded rectangle and text arrow. The skin outlives the combo;
          * nullptr restores the default look. The expanded list is unaffected.
