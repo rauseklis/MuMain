@@ -406,7 +406,7 @@ typedef void(CORECLR_DELEGATE_CALLTYPE* SendChatCommandListRequest)(int32_t);
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionOpenRequest)(int32_t, uint32_t );
 
-typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBrowseRequest)(int32_t, uint32_t , uint16_t , BYTE , AuctionCurrencyMode , AuctionSort , uint32_t , BYTE , BYTE , uint16_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint16_t , BYTE , const BYTE* , uint32_t);
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBrowseRequest)(int32_t, uint32_t , uint16_t , BYTE , AuctionCurrencyMode , AuctionSort , uint32_t , BYTE , BYTE , uint16_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint16_t , BYTE , const BYTE* , uint32_t, BYTE );
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionDetailRequest)(int32_t, uint32_t , uint64_t );
 

@@ -6818,12 +6818,13 @@ public unsafe partial class ConnectionManager
     /// <param name="nameLength">The name length.</param>
     /// <param name="name">The name.</param>
     /// <param name="nameByteLength">The length of <paramref name="name"/>.</param>
+    /// <param name="subCategory">The sub category.</param>
     /// <remarks>
     /// Is sent by the client when: Auction House request AuctionBrowseRequest (sub 01).
     /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendAuctionBrowseRequest")]
-    public static void SendAuctionBrowseRequest(int handle, uint @requestId, ushort @page, byte @category, AuctionCurrencyMode @currencyMode, AuctionSort @sort, uint @classMask, byte @levelMinimum, byte @levelMaximum, ushort @optionFlags, uint @minimumScalar, uint @minimumStrength, uint @minimumAgility, uint @minimumVitality, uint @minimumEnergy, uint @minimumCommand, uint @maximumScalar, uint @maximumStrength, uint @maximumAgility, uint @maximumVitality, uint @maximumEnergy, uint @maximumCommand, ushort @maxRemainingHours, byte @nameLength, byte* @name, uint nameByteLength)
+    public static void SendAuctionBrowseRequest(int handle, uint @requestId, ushort @page, byte @category, AuctionCurrencyMode @currencyMode, AuctionSort @sort, uint @classMask, byte @levelMinimum, byte @levelMaximum, ushort @optionFlags, uint @minimumScalar, uint @minimumStrength, uint @minimumAgility, uint @minimumVitality, uint @minimumEnergy, uint @minimumCommand, uint @maximumScalar, uint @maximumStrength, uint @maximumAgility, uint @maximumVitality, uint @maximumEnergy, uint @maximumCommand, ushort @maxRemainingHours, byte @nameLength, byte* @name, uint nameByteLength, byte @subCategory)
     {
         if (!Connections.TryGetValue(handle, out var connection))
         {
@@ -6860,6 +6861,7 @@ public unsafe partial class ConnectionManager
                 packet.MaxRemainingHours = @maxRemainingHours;
                 packet.NameLength = @nameLength;
                 new Span<byte>(@name, (int)nameByteLength).CopyTo(packet.Name);
+                packet.SubCategory = @subCategory;
 
                 return length;
             });

@@ -2119,11 +2119,12 @@ public:
     /// <param name="nameLength">The name length.</param>
     /// <param name="name">The name.</param>
     /// <param name="nameByteLength">The length of <paramref name="name"/> in bytes.
+    /// <param name="subCategory">The sub category.</param>
     /// <remarks>
     /// Is sent by the client when: Auction House request AuctionBrowseRequest (sub 01).
     /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
     /// </remarks>
-    void SendAuctionBrowseRequest(uint32_t requestId, uint16_t page, BYTE category, AuctionCurrencyMode currencyMode, AuctionSort sort, uint32_t classMask, BYTE levelMinimum, BYTE levelMaximum, uint16_t optionFlags, uint32_t minimumScalar, uint32_t minimumStrength, uint32_t minimumAgility, uint32_t minimumVitality, uint32_t minimumEnergy, uint32_t minimumCommand, uint32_t maximumScalar, uint32_t maximumStrength, uint32_t maximumAgility, uint32_t maximumVitality, uint32_t maximumEnergy, uint32_t maximumCommand, uint16_t maxRemainingHours, BYTE nameLength, const BYTE* name, uint32_t nameByteLength);
+    void SendAuctionBrowseRequest(uint32_t requestId, uint16_t page, BYTE category, AuctionCurrencyMode currencyMode, AuctionSort sort, uint32_t classMask, BYTE levelMinimum, BYTE levelMaximum, uint16_t optionFlags, uint32_t minimumScalar, uint32_t minimumStrength, uint32_t minimumAgility, uint32_t minimumVitality, uint32_t minimumEnergy, uint32_t minimumCommand, uint32_t maximumScalar, uint32_t maximumStrength, uint32_t maximumAgility, uint32_t maximumVitality, uint32_t maximumEnergy, uint32_t maximumCommand, uint16_t maxRemainingHours, BYTE nameLength, const BYTE* name, uint32_t nameByteLength, BYTE subCategory);
 
     /// <summary>
     /// Sends a AuctionDetailRequest to this connection.

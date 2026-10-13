@@ -2141,7 +2141,7 @@ void PacketFunctions_ClientToServer::SendAuctionOpenRequest(uint32_t requestId)
     dotnet_SendAuctionOpenRequest(this->GetHandle(), requestId);
 }
 
-void PacketFunctions_ClientToServer::SendAuctionBrowseRequest(uint32_t requestId, uint16_t page, BYTE category, AuctionCurrencyMode currencyMode, AuctionSort sort, uint32_t classMask, BYTE levelMinimum, BYTE levelMaximum, uint16_t optionFlags, uint32_t minimumScalar, uint32_t minimumStrength, uint32_t minimumAgility, uint32_t minimumVitality, uint32_t minimumEnergy, uint32_t minimumCommand, uint32_t maximumScalar, uint32_t maximumStrength, uint32_t maximumAgility, uint32_t maximumVitality, uint32_t maximumEnergy, uint32_t maximumCommand, uint16_t maxRemainingHours, BYTE nameLength, const BYTE* name, uint32_t nameByteLength)
+void PacketFunctions_ClientToServer::SendAuctionBrowseRequest(uint32_t requestId, uint16_t page, BYTE category, AuctionCurrencyMode currencyMode, AuctionSort sort, uint32_t classMask, BYTE levelMinimum, BYTE levelMaximum, uint16_t optionFlags, uint32_t minimumScalar, uint32_t minimumStrength, uint32_t minimumAgility, uint32_t minimumVitality, uint32_t minimumEnergy, uint32_t minimumCommand, uint32_t maximumScalar, uint32_t maximumStrength, uint32_t maximumAgility, uint32_t maximumVitality, uint32_t maximumEnergy, uint32_t maximumCommand, uint16_t maxRemainingHours, BYTE nameLength, const BYTE* name, uint32_t nameByteLength, BYTE subCategory)
 {
     static const auto dotnet_SendAuctionBrowseRequest = LoadManagedSymbol<::SendAuctionBrowseRequest>("SendAuctionBrowseRequest");
     if (!dotnet_SendAuctionBrowseRequest)
@@ -2149,7 +2149,7 @@ void PacketFunctions_ClientToServer::SendAuctionBrowseRequest(uint32_t requestId
         return;
     }
 
-    dotnet_SendAuctionBrowseRequest(this->GetHandle(), requestId, page, category, currencyMode, sort, classMask, levelMinimum, levelMaximum, optionFlags, minimumScalar, minimumStrength, minimumAgility, minimumVitality, minimumEnergy, minimumCommand, maximumScalar, maximumStrength, maximumAgility, maximumVitality, maximumEnergy, maximumCommand, maxRemainingHours, nameLength, name, nameByteLength);
+    dotnet_SendAuctionBrowseRequest(this->GetHandle(), requestId, page, category, currencyMode, sort, classMask, levelMinimum, levelMaximum, optionFlags, minimumScalar, minimumStrength, minimumAgility, minimumVitality, minimumEnergy, minimumCommand, maximumScalar, maximumStrength, maximumAgility, maximumVitality, maximumEnergy, maximumCommand, maxRemainingHours, nameLength, name, nameByteLength, subCategory);
 }
 
 void PacketFunctions_ClientToServer::SendAuctionDetailRequest(uint32_t requestId, uint64_t listingId)

@@ -159,6 +159,7 @@ PetHelper = 3, ///< PetHelper.
 JewelMaterial = 4, ///< JewelMaterial.
 Consumable = 5, ///< Consumable.
 Miscellaneous = 6, ///< Miscellaneous.
+ScrollOrb = 7, ///< ScrollOrb.
 };
 
 enum class AuctionSort : uint32_t

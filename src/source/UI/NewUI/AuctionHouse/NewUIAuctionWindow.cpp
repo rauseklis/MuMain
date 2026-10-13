@@ -1193,7 +1193,8 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
         0, // max remaining hours: no limit
         static_cast<BYTE>(searchUtf8.size()),
         searchUtf8.empty() ? nullptr : reinterpret_cast<const BYTE*>(searchUtf8.data()),
-        static_cast<uint32_t>(searchUtf8.size()));
+        static_cast<uint32_t>(searchUtf8.size()),
+        0xFF); // sub-category: every one (Task 9 sends the picked leaf)
 }
 
 void SEASON3B::CNewUIAuctionWindow::SubmitSearch()
