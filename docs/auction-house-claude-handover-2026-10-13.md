@@ -19,7 +19,7 @@ Database: `openmu_auction_test` only (never `openmu`).
   are chips (icon + amount, up to five over two lines) laid out by `LayoutPriceCell`, used by both the 2D and 3D passes.
   Fruit Basket no longer appears anywhere in the UI (resx key replaced by "Fruits").
 - **Wallet cards** (jewels in a 4-column grid, fruits in a row, Zen) with counts that shorten (`12.3k`, `1.5M`) to fit.
-- **Sell tab** (`NewUIAuctionSellPanel`): item card, Auction / Buy Now modes, price rows (auction: one starting price and
+- **Sell tab** (`NewUIAuctionSellPanel`) is the same 600 x 429 as Browse and laid out like it: a rail on the left (item card, fees) and the form to its right. It docks to the left of the inventory (`DockRight` layout, `DockSellWindow`), and the inventory is selection-only while Sell is open (`CNewUIMyInventory::SetSelectionOnly`): items are clicked, never picked up. Form contents: item card, Auction / Buy Now modes, price rows (auction: one starting price and
   optional buyout; buy now: up to five distinct currencies with add/remove), duration, note, the fee the server charges
   today, Create/Clear. An auction is sent with today's create packet (Zen/jewel scalar, or a stat fruit as a one-fruit
   basket). **Buy Now is built but Create is disabled** (`BUY_NOW_SUPPORTED = false` in `NewUIAuctionWindow.cpp`) until
