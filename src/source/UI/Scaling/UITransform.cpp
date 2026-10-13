@@ -173,6 +173,13 @@ UI::Scaling::Transform UI::Scaling::DockRightTransform(int windowWidth, int wind
     return transform;
 }
 
+UI::Scaling::Transform UI::Scaling::PanelDockRightTransform(int windowWidth, int windowHeight)
+{
+    Transform transform = PanelTransform(windowWidth, windowHeight);
+    transform.offsetX = static_cast<float>(windowWidth) - kReferenceWidth * transform.scaleX;
+    return transform;
+}
+
 UI::Scaling::Transform UI::Scaling::FloatingWorkspaceTransform(int windowWidth, int windowHeight)
 {
     const float scale = CappedUniformScale(windowWidth, windowHeight, kMaximumDockScale);
@@ -256,6 +263,8 @@ UI::Scaling::Transform UI::Scaling::TransformForLayout(LayoutMode mode, int wind
         return DockLeftTransform(windowWidth, windowHeight);
     if (mode == LayoutMode::DockRight)
         return DockRightTransform(windowWidth, windowHeight);
+    if (mode == LayoutMode::PanelDockRight)
+        return PanelDockRightTransform(windowWidth, windowHeight);
     if (mode == LayoutMode::FloatingWorkspace)
         return FloatingWorkspaceTransform(windowWidth, windowHeight);
     return PanelTransform(windowWidth, windowHeight);

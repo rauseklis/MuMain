@@ -1791,7 +1791,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderRowItemTooltip(int row) const
 
     const int iconX = m_Pos.x + RowSlotX(m_iCurrentTab) + BROWSE_ICON_CELL_OFFSET + BROWSE_ICON_MARGIN;
     const int iconY = m_Pos.y + BROWSE_BODY_Y + row * BROWSE_ROW_HEIGHT + BROWSE_ICON_CELL_OFFSET + BROWSE_ICON_MARGIN;
-    RenderItemInfo(iconX + BROWSE_ICON_SIZE / 2, iconY + BROWSE_ICON_SIZE / 2, m_RowItems[row], false);
+    RenderItemInfo(iconX + BROWSE_ICON_SIZE / 2, iconY + BROWSE_ICON_SIZE / 2, m_RowItems[row], false, TOOLTIP_TYPE_AUCTION);
 }
 
 void SEASON3B::CNewUIAuctionWindow::ReleaseDetailItem()
@@ -1846,7 +1846,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderDetailItemTooltip() const
     const int iconSize = DETAIL_SLOT_SIZE - 2 * DETAIL_ICON_INSET;
     const int iconX = m_Pos.x + DETAIL_SLOT_X + DETAIL_ICON_INSET;
     const int iconY = m_Pos.y + DETAIL_SLOT_Y + DETAIL_ICON_INSET;
-    RenderItemInfo(iconX + iconSize / 2, iconY + iconSize / 2, m_DetailItem, false);
+    RenderItemInfo(iconX + iconSize / 2, iconY + iconSize / 2, m_DetailItem, false, TOOLTIP_TYPE_AUCTION);
 }
 
 void SEASON3B::CNewUIAuctionWindow::UI2DEffectCallback(LPVOID pClass, DWORD dwParamA, DWORD /*dwParamB*/)
@@ -1907,10 +1907,11 @@ void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
 void SEASON3B::CNewUIAuctionWindow::EnterSellTab()
 {
     // Sell is the same size as Browse but needs the inventory beside it, so it leaves the centred dialog layout
-    // for the one inventory uses (docked to the right edge) and sits directly to the inventory's left.
+    // for one anchored to the right edge like the inventory's, at the dialog scale so it does not grow, and sits
+    // directly to the inventory's left.
     m_BrowsePos = m_Pos;
     m_bSellDocked = true;
-    SetLayoutMode(UI::Scaling::LayoutMode::DockRight);
+    SetLayoutMode(UI::Scaling::LayoutMode::PanelDockRight);
     if (!g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY))
     {
         m_bOpenedInventoryForSell = true;
@@ -1924,14 +1925,20 @@ void SEASON3B::CNewUIAuctionWindow::EnterSellTab()
 
 void SEASON3B::CNewUIAuctionWindow::DockSellWindow()
 {
-    // Left edge of the screen in the docked layout's units: the dock is anchored to the right edge, so a wide
-    // screen shows more of the world to the left of the 640-unit canvas.
-    const UI::Scaling::Transform dock = UI::Scaling::DockRightTransform(WindowWidth, WindowHeight);
-    const int screenLeft = static_cast<int>(std::ceil(UI::Scaling::LogicalX(dock, 0.0f)));
+    // The inventory is drawn at the dock scale (a little larger than the dialog scale on big screens), so the
+    // gap between the two windows is worked out on screen: Sell's right edge goes one gap left of the
+    // inventory's left edge, then that is converted back into the Sell layout's own units.
+    const UI::Scaling::Transform inventoryDock = UI::Scaling::DockRightTransform(WindowWidth, WindowHeight);
+    const UI::Scaling::Transform sellDock = UI::Scaling::PanelDockRightTransform(WindowWidth, WindowHeight);
 
     const POINT inventoryPos = g_pMyInventory->GetPos();
-    m_Pos.x = std::max(static_cast<int>(inventoryPos.x) - SELL_INVENTORY_GAP - WINDOW_WIDTH, screenLeft);
-    m_Pos.y = inventoryPos.y;
+    const float inventoryLeft = UI::Scaling::PositionX(inventoryDock, static_cast<float>(inventoryPos.x));
+    const float sellRight = inventoryLeft - SELL_INVENTORY_GAP * sellDock.scaleX;
+    const int screenLeft = static_cast<int>(std::ceil(UI::Scaling::LogicalX(sellDock, 0.0f)));
+
+    // Same height as the other tabs, so the window only slides sideways when Sell is picked.
+    m_Pos.x = std::max(static_cast<int>(std::floor(UI::Scaling::LogicalX(sellDock, sellRight))) - WINDOW_WIDTH, screenLeft);
+    m_Pos.y = m_BrowsePos.y;
     m_SellDockedForWidth = WindowWidth;
     m_SellDockedForHeight = WindowHeight;
     RepositionChildren();
@@ -3188,7 +3195,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderSellItemTooltip() const
     int iconY = 0;
     int iconSize = 0;
     m_SellPanel.GetItemIconRect(iconX, iconY, iconSize);
-    RenderItemInfo(iconX + iconSize / 2, iconY + iconSize / 2, const_cast<ITEM*>(&m_SellItemSnapshot), false);
+    RenderItemInfo(iconX + iconSize / 2, iconY + iconSize / 2, const_cast<ITEM*>(&m_SellItemSnapshot), false, TOOLTIP_TYPE_AUCTION);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderBrowseHeader()

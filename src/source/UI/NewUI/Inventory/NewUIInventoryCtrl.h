@@ -44,6 +44,9 @@ namespace SEASON3B
         TOOLTIP_TYPE_NPC_SHOP,
         TOOLTIP_TYPE_MY_SHOP,
         TOOLTIP_TYPE_PURCHASE_SHOP,
+        // Items shown by the Auction House: they are not in any of the player's storages, so the Dark Lord pet
+        // tooltip (which needs the server's pet info for an owned pet) cannot describe them.
+        TOOLTIP_TYPE_AUCTION,
     };
     enum SQUARE_COLOR_STATE
     {

@@ -193,6 +193,24 @@ TEST_CASE("docks use a moderate large-screen cap without changing dialogs [ui][s
     CHECK(fourKDialog.scaleY == doctest::Approx(2.0f));
 }
 
+TEST_CASE("panel dock keeps the dialog scale but anchors to the right edge [ui][scaling]")
+{
+    const auto panel = UI::Scaling::PanelTransform(1920, 1080);
+    const auto dock = UI::Scaling::DockRightTransform(1920, 1080);
+    const auto panelDock = UI::Scaling::PanelDockRightTransform(1920, 1080);
+
+    CHECK(panelDock.scaleX == doctest::Approx(panel.scaleX));
+    CHECK(panelDock.scaleY == doctest::Approx(panel.scaleY));
+    CHECK(panelDock.typographyScale == doctest::Approx(panel.typographyScale));
+    CHECK(panelDock.scaleX < dock.scaleX);
+    CHECK(panelDock.offsetY == doctest::Approx(panel.offsetY));
+    CHECK(UI::Scaling::PositionX(panelDock, 640.0f) == doctest::Approx(1920.0f));
+
+    const auto viaLayout = UI::Scaling::TransformForLayout(UI::Scaling::LayoutMode::PanelDockRight, 1920, 1080);
+    CHECK(viaLayout.scaleX == doctest::Approx(panelDock.scaleX));
+    CHECK(viaLayout.offsetX == doctest::Approx(panelDock.offsetX));
+}
+
 TEST_CASE("inventory drag keeps the clicked point anchored to the item [ui][inventory]")
 {
     const POINT offset = UI::Items::Drag::PickupOffset(180, 260, 40, 60, 183, 317, true);

@@ -44,6 +44,9 @@ namespace UI::Scaling
         HudExperience,
         DockLeft,
         DockRight,
+        // The dialog scale, but anchored to the right edge like DockRight: a dialog-sized window that has to sit beside
+        // a docked one (the Auction House's Sell tab beside the inventory) without growing past the other dialogs.
+        PanelDockRight,
         FloatingWorkspace,
         Dialog,
         WorldOverlay,
@@ -75,6 +78,7 @@ namespace UI::Scaling
     Transform BottomHudExperienceTransform(int windowWidth, int windowHeight);
     Transform DockLeftTransform(int windowWidth, int windowHeight);
     Transform DockRightTransform(int windowWidth, int windowHeight);
+    Transform PanelDockRightTransform(int windowWidth, int windowHeight);
     Transform FloatingWorkspaceTransform(int windowWidth, int windowHeight);
     Viewport FloatingWorkspaceBounds(int windowWidth, int windowHeight);
     float ScreenOverlayContentHeight(int windowWidth, int windowHeight);

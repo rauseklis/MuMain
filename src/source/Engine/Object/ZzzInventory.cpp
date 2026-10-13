@@ -1866,7 +1866,7 @@ void RenderItemInfo(int sx, int sy, ITEM* ip, bool Sell, int Inventype, bool bIt
         TextList[i][0] = 0;
     }
 
-    if (!Sell && (GameLogic::Items::IsDarkLordPet(ip)))
+    if (!Sell && (GameLogic::Items::IsDarkLordPet(ip)) && Inventype != SEASON3B::TOOLTIP_TYPE_AUCTION)
     {
         static DebouncedAction debouncedPetInfoRequest([ip, Inventype]()
             {
