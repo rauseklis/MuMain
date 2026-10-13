@@ -1925,19 +1925,23 @@ void SEASON3B::CNewUIAuctionWindow::EnterSellTab()
 
 void SEASON3B::CNewUIAuctionWindow::DockSellWindow()
 {
-    // The inventory is drawn at the dock scale (a little larger than the dialog scale on big screens), so the
-    // gap between the two windows is worked out on screen: Sell's right edge goes one gap left of the
-    // inventory's left edge, then that is converted back into the Sell layout's own units.
+    // Sell stays exactly where the other tabs are on screen. Only when that would put it over the inventory does it
+    // slide left, by just the overlap. The inventory is drawn at the dock scale (a little larger than the dialog scale
+    // on big screens), so all of this is worked out in screen pixels and converted into Sell's own units at the end.
     const UI::Scaling::Transform inventoryDock = UI::Scaling::DockRightTransform(WindowWidth, WindowHeight);
+    const UI::Scaling::Transform dialog = UI::Scaling::PanelTransform(WindowWidth, WindowHeight);
     const UI::Scaling::Transform sellDock = UI::Scaling::PanelDockRightTransform(WindowWidth, WindowHeight);
 
     const POINT inventoryPos = g_pMyInventory->GetPos();
     const float inventoryLeft = UI::Scaling::PositionX(inventoryDock, static_cast<float>(inventoryPos.x));
-    const float sellRight = inventoryLeft - SELL_INVENTORY_GAP * sellDock.scaleX;
+    const float rightLimit = inventoryLeft - SELL_INVENTORY_GAP * sellDock.scaleX;
+    const float sameSpotLeft = UI::Scaling::PositionX(dialog, static_cast<float>(m_BrowsePos.x));
+
+    const int desiredLeft = static_cast<int>(std::lround(UI::Scaling::LogicalX(sellDock, sameSpotLeft)));
+    const int limit = static_cast<int>(std::floor(UI::Scaling::LogicalX(sellDock, rightLimit)));
     const int screenLeft = static_cast<int>(std::ceil(UI::Scaling::LogicalX(sellDock, 0.0f)));
 
-    // Same height as the other tabs, so the window only slides sideways when Sell is picked.
-    m_Pos.x = std::max(static_cast<int>(std::floor(UI::Scaling::LogicalX(sellDock, sellRight))) - WINDOW_WIDTH, screenLeft);
+    m_Pos.x = AuctionHouse::SideBySideLeft(desiredLeft, WINDOW_WIDTH, limit, screenLeft);
     m_Pos.y = m_BrowsePos.y;
     m_SellDockedForWidth = WindowWidth;
     m_SellDockedForHeight = WindowHeight;

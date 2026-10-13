@@ -329,4 +329,9 @@ namespace AuctionHouse
     // are set) since the server only needs practical per-account uniqueness, not interoperability with other
     // UUID consumers.
     [[nodiscard]] std::array<uint8_t, 16> GenerateAuctionOperationId();
+
+    // Where a window `width` wide should start so it can sit beside another window whose left edge is `rightLimit`:
+    // it keeps `desiredLeft` when its right edge already clears the limit, and otherwise slides left by exactly the
+    // overlap. It never starts left of `minLeft` (the screen edge), even if that means it cannot clear the limit.
+    [[nodiscard]] int SideBySideLeft(int desiredLeft, int width, int rightLimit, int minLeft) noexcept;
 }

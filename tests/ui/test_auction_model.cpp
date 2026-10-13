@@ -511,3 +511,17 @@ TEST_CASE("price chips that cannot be packed report failure rather than overflow
     CHECK_FALSE(PackPriceChips({ 120 }, 100, 4, 2).has_value());
     CHECK_FALSE(PackPriceChips({ 60, 60, 60, 60, 60 }, 100, 4, 2).has_value());
 }
+
+TEST_CASE("a window beside another keeps its place when it fits and slides left only as far as it must [ui][auction_model]")
+{
+    // Fits: right edge 100 + 600 = 700 is left of the limit 900.
+    CHECK(SideBySideLeft(100, 600, 900, -500) == 100);
+    // Exactly touching the limit still fits.
+    CHECK(SideBySideLeft(300, 600, 900, -500) == 300);
+    // Overlaps by 50, so it slides left by 50.
+    CHECK(SideBySideLeft(350, 600, 900, -500) == 300);
+    // Sliding is bounded by the left edge of the screen.
+    CHECK(SideBySideLeft(350, 600, 900, 320) == 320);
+    // The screen edge wins even when the window cannot fit at all.
+    CHECK(SideBySideLeft(0, 600, 500, 10) == 10);
+}

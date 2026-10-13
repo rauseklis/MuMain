@@ -535,4 +535,11 @@ namespace AuctionHouse
 
         return id;
     }
+
+    int SideBySideLeft(int desiredLeft, int width, int rightLimit, int minLeft) noexcept
+    {
+        const int overlap = desiredLeft + width - rightLimit;
+        const int left = overlap > 0 ? desiredLeft - overlap : desiredLeft;
+        return left < minLeft ? minLeft : left;
+    }
 }
