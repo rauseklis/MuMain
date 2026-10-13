@@ -82,7 +82,9 @@ mu_add_test(
     SOURCES
         test_auction_model.cpp
         test_auction_sell_draft.cpp
+        test_auction_taxonomy.cpp
         ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/AuctionHouse/AuctionModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/AuctionHouse/AuctionTaxonomy.cpp
 )
 
 mu_add_test(
