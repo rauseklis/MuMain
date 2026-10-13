@@ -16,6 +16,7 @@
 #include "UI/NewUI/Widgets/NineSlice.h"
 #include "UI/NewUI/AuctionHouse/AuctionChrome.h"
 #include "UI/Scaling/UITransform.h"
+#include "Data/GameData/ItemData/ItemType.h"
 
 #include <algorithm>
 #include <cmath>
@@ -159,14 +160,25 @@ namespace
     constexpr int CATEGORY_RAIL_X = BROWSE_BODY_X;
     constexpr int CATEGORY_RAIL_Y = BROWSE_HEADER_Y;
     constexpr int CATEGORY_RAIL_WIDTH = BROWSE_TABLE_X - BROWSE_BODY_X - 7;
-    constexpr int CATEGORY_RAIL_ROW_HEIGHT = 19;
+    constexpr int CATEGORY_RAIL_ROW_COUNT = 9;
+    constexpr int CATEGORY_RAIL_ROW_HEIGHT = 17;
     constexpr int CATEGORY_RAIL_ROW_INSET = 1;
+    constexpr int CATEGORY_RAIL_ICON_X = 4;
+    constexpr int CATEGORY_RAIL_ICON_SIZE = 12;
+    constexpr float CATEGORY_RAIL_ICON_FILL = 0.92f;
+    constexpr int CATEGORY_RAIL_TEXT_X = 22;
+    constexpr int CATEGORY_RAIL_TEXT_PAD = 6;
+    // The flyout meets the rail (a few units into the table) and is as tall as its rows need, kept inside the table area.
+    constexpr int FLYOUT_X = CATEGORY_RAIL_X + CATEGORY_RAIL_WIDTH + 3;
+    constexpr int FLYOUT_WIDTH = 132;
+    constexpr int FLYOUT_PADDING = 3;
+    constexpr int FLYOUT_ROW_INSET = 1;
     // Keep the character's spending resources where a buyer naturally looks for them: a compact left rail
     // below the categories. Jewels sit in a grid, stat fruits in one row, then Zen. A jewel or fruit card is
     // an icon with its count underneath and no caption: players know their jewels and fruits on sight, and
     // the room goes to the count, which has to stay readable once a jewel bank holds thousands.
     constexpr int WALLET_X = CATEGORY_RAIL_X;
-    constexpr int WALLET_Y = CATEGORY_RAIL_Y + CATEGORY_RAIL_ROW_HEIGHT * 8 + 4;
+    constexpr int WALLET_Y = CATEGORY_RAIL_Y + CATEGORY_RAIL_ROW_HEIGHT * CATEGORY_RAIL_ROW_COUNT + 4;
     constexpr int WALLET_WIDTH = CATEGORY_RAIL_WIDTH;
     constexpr int WALLET_PANEL_GAP = 2;
     constexpr int WALLET_PANEL_PAD_TOP = 4;
@@ -861,7 +873,7 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_bOpenedInventoryForSell(false), m_bSellDocked(false), m_BrowsePos{ 0, 0 },
       m_SellDockedForWidth(0), m_SellDockedForHeight(0), m_bHasSellItem(false), m_SellInventorySlot(0),
       m_SellItemSnapshot{}, m_bPointingSellItem(false),
-      m_SelectedCurrency(static_cast<AuctionCurrencyMode>(ALL_CURRENCIES)), m_SelectedCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
+      m_SelectedCurrency(static_cast<AuctionCurrencyMode>(ALL_CURRENCIES)), m_SelectedCategoryIndex(0), m_SelectedSubCategory(AuctionHouse::WireAll), m_bFlyoutOpen(false), m_FlyoutCategoryIndex(0), m_CurrentPage(1), m_SelectedSort(AuctionSort::EndingSoonest),
       m_bBrowseRequestPending(false), m_PendingBrowseRequestId(0), m_bHasListingResponse(false),
       m_SelectedStatusIndex(0), m_bMyListingsRequestPending(false), m_PendingMyListingsRequestId(0),
       m_SelectedCollectionKindIndex(0), m_bMailboxRequestPending(false), m_PendingMailboxRequestId(0),
@@ -929,9 +941,8 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
         m_CurrencyLabels, 10, 0);
     m_CurrencyCombo.SetFieldSkin(&AuctionFieldSkin());
 
-    // Index 0 is "All Categories" (the server's own 0xFF sentinel); indices 1-7 are AuctionCategory's seven
-    // wire values in declaration order (Weapon, Armor, Wing, Pet & Helper, Jewel & Material, Consumable,
-    // Miscellaneous) — see AuctionCategory.cs server-side.
+    // Index 0 is "All Categories" (the wire's 0xFF); 1 to 8 follow AuctionHouse::RailCategories(): Weapon, Armor, Wing,
+    // Pet & Helper, Jewel & Material, Consumable, Scrolls & Orbs, Miscellaneous.
     m_CategoryLabels[0] = I18N::Game::AllCategories;
     m_CategoryLabels[1] = I18N::Game::Weapon;
     m_CategoryLabels[2] = I18N::Game::Armor;
@@ -939,9 +950,10 @@ bool SEASON3B::CNewUIAuctionWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRen
     m_CategoryLabels[4] = I18N::Game::PetHelper;
     m_CategoryLabels[5] = I18N::Game::JewelMaterial;
     m_CategoryLabels[6] = I18N::Game::Consumable;
-    m_CategoryLabels[7] = I18N::Game::Miscellaneous;
+    m_CategoryLabels[7] = L"Scrolls & Orbs";
+    m_CategoryLabels[8] = I18N::Game::Miscellaneous;
     m_CategoryCombo.Setup(m_Pos.x + TOOLBAR_X + CATEGORY_COMBO_X_OFFSET, m_Pos.y + TOOLBAR_Y, CATEGORY_COMBO_WIDTH, CURRENCY_COMBO_ITEM_HEIGHT,
-        m_CategoryLabels, 8, m_SelectedCategoryIndex);
+        m_CategoryLabels, 9, m_SelectedCategoryIndex);
 
     m_StatusLabels[0] = I18N::Game::AuctionAllStatuses;
     m_StatusLabels[1] = I18N::Game::AuctionActive;
@@ -1121,6 +1133,7 @@ void SEASON3B::CNewUIAuctionWindow::OpeningProcess()
     SetLayoutMode(UI::Scaling::LayoutMode::Dialog);
     RepositionChildren();
 
+    m_bFlyoutOpen = false;
     m_bShowingDetail = false;
     m_bHasSelectedCollection = false;
     SetCollectionClaimInputsVisible(false);
@@ -1160,8 +1173,8 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
     // to that sentinel, otherwise it's (index - 1) as the wire AuctionCategory value. Name is taken from the
     // search box; the remaining fields are sent as the widest possible range because they have no UI control
     // yet, which the server reads as "no filter" rather than as a server-side limitation.
-    constexpr BYTE AllCategories = 0xFF;
-    const BYTE category = m_SelectedCategoryIndex == 0 ? AllCategories : static_cast<BYTE>(m_SelectedCategoryIndex - 1);
+    const BYTE category = AuctionHouse::WireCategoryForRailIndex(m_SelectedCategoryIndex);
+    const BYTE subCategory = m_SelectedCategoryIndex == 0 ? AuctionHouse::WireAll : m_SelectedSubCategory;
     wchar_t searchText[33]{};
     m_SearchInput.GetText(searchText, static_cast<int>(std::size(searchText)));
     const std::string searchUtf8 = AuctionHouse::ClampUtf8ToByteCapacity(Core::Text::ToUtf8(searchText), SEARCH_PACKET_CAPACITY);
@@ -1194,7 +1207,7 @@ void SEASON3B::CNewUIAuctionWindow::SendBrowseRequest()
         static_cast<BYTE>(searchUtf8.size()),
         searchUtf8.empty() ? nullptr : reinterpret_cast<const BYTE*>(searchUtf8.data()),
         static_cast<uint32_t>(searchUtf8.size()),
-        0xFF); // sub-category: every one (Task 9 sends the picked leaf)
+        subCategory);
 }
 
 void SEASON3B::CNewUIAuctionWindow::SubmitSearch()
@@ -1893,6 +1906,7 @@ void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionO
 
 void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
 {
+    m_bFlyoutOpen = false;
     LeaveSellTab();
     m_SellPanel.SetActive(false);
     m_bDragging = false;
@@ -2163,18 +2177,16 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
     {
         if (m_iCurrentTab == TAB_BROWSE)
         {
+            if (m_bFlyoutOpen && HandleCategoryFlyoutMouse())
+            {
+                return true;
+            }
+
             if (IsRelease(VK_LBUTTON)
                 && CheckMouseIn(m_Pos.x + CATEGORY_RAIL_X, m_Pos.y + CATEGORY_RAIL_Y,
-                    CATEGORY_RAIL_WIDTH, CATEGORY_RAIL_ROW_HEIGHT * static_cast<int>(std::size(m_CategoryLabels))))
+                    CATEGORY_RAIL_WIDTH, CATEGORY_RAIL_ROW_HEIGHT * CATEGORY_RAIL_ROW_COUNT))
             {
-                const int selectedCategory = (MouseY - (m_Pos.y + CATEGORY_RAIL_Y)) / CATEGORY_RAIL_ROW_HEIGHT;
-                if (selectedCategory != m_SelectedCategoryIndex)
-                {
-                    m_SelectedCategoryIndex = selectedCategory;
-                    m_CategoryCombo.SetSelectedIndex(selectedCategory);
-                    m_CurrentPage = 1;
-                    SendBrowseRequest();
-                }
+                OnCategoryRailClicked((MouseY - (m_Pos.y + CATEGORY_RAIL_Y)) / CATEGORY_RAIL_ROW_HEIGHT);
                 PlayBuffer(SOUND_CLICK01);
                 return true;
             }
@@ -2214,6 +2226,8 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
                 m_MaximumLevelInput.SetText(L"");
                 m_SelectedCurrency = static_cast<AuctionCurrencyMode>(ALL_CURRENCIES);
                 m_SelectedCategoryIndex = 0;
+                m_SelectedSubCategory = AuctionHouse::WireAll;
+                m_bFlyoutOpen = false;
                 m_SelectedSort = AuctionSort::EndingSoonest;
                 m_CategoryCombo.SetSelectedIndex(m_SelectedCategoryIndex);
                 m_CurrentPage = 1;
@@ -2323,6 +2337,12 @@ bool SEASON3B::CNewUIAuctionWindow::UpdateKeyEvent()
 {
     if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_AUCTION_HOUSE) == true)
     {
+        if (m_bFlyoutOpen && SEASON3B::IsPress(VK_ESCAPE) == true)
+        {
+            m_bFlyoutOpen = false;
+            return false;
+        }
+
         if (m_iCurrentTab == TAB_SELL && m_SellPanel.HasInputFocus())
         {
             if (SEASON3B::IsPress(VK_RETURN) == true)
@@ -2417,6 +2437,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
                 LeaveSellTab();
             }
 
+            m_bFlyoutOpen = false;
             m_iCurrentTab = selected;
             if (m_iCurrentTab == TAB_SELL)
             {
@@ -2563,7 +2584,7 @@ bool SEASON3B::CNewUIAuctionWindow::Update()
         }
 
         // An open dropdown owns the mouse: the rows beneath its list are neither hovered nor given a tooltip.
-        if (m_CurrencyCombo.IsOpen() || m_StatusCombo.IsOpen() || m_CollectionKindCombo.IsOpen())
+        if (m_CurrencyCombo.IsOpen() || m_StatusCombo.IsOpen() || m_CollectionKindCombo.IsOpen() || m_bFlyoutOpen)
         {
             m_iPointedRow = -1;
             m_iPointedItemRow = -1;
@@ -2675,6 +2696,7 @@ bool SEASON3B::CNewUIAuctionWindow::Render()
                 static_cast<float>(m_Pos.y + SEARCH_INPUT_Y_OFFSET), L"-", static_cast<float>(LEVEL_RANGE_SEPARATOR_WIDTH),
                 0, RT3_SORT_CENTER);
             m_CurrencyCombo.Render();
+            RenderCategoryFlyout();
         }
         else
         {
@@ -3099,6 +3121,26 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         return;
     }
 
+    if (m_iCurrentTab == TAB_BROWSE)
+    {
+        for (int railIndex = 1; railIndex <= CATEGORY_RAIL_ROW_COUNT - 1; ++railIndex)
+        {
+            const AuctionHouse::CategoryInfo* category = AuctionHouse::CategoryForRailIndex(railIndex);
+            const int itemType = Data::Items::MakeItemType(category->icon.group, category->icon.number);
+            if (!Data::Items::IsValidItemType(itemType))
+            {
+                continue;
+            }
+
+            const int iconX = m_Pos.x + CATEGORY_RAIL_X + CATEGORY_RAIL_ICON_X;
+            const int iconY = m_Pos.y + CATEGORY_RAIL_Y + railIndex * CATEGORY_RAIL_ROW_HEIGHT
+                + (CATEGORY_RAIL_ROW_HEIGHT - CATEGORY_RAIL_ICON_SIZE) / 2;
+            RenderItem3DFittedToSlot(static_cast<float>(iconX), static_cast<float>(iconY),
+                static_cast<float>(CATEGORY_RAIL_ICON_SIZE), static_cast<float>(CATEGORY_RAIL_ICON_SIZE), itemType, 0, 0, 0,
+                CATEGORY_RAIL_ICON_FILL, false);
+        }
+    }
+
     const bool hasResponse = m_iCurrentTab == TAB_MAILBOX ? m_bHasMailboxResponse : m_bHasListingResponse;
     if (!hasResponse)
     {
@@ -3186,6 +3228,20 @@ bool SEASON3B::CNewUIAuctionWindow::IsCoveredByOpenDropdown(int x, int y, int wi
             return true;
         }
     }
+    if (m_bFlyoutOpen)
+    {
+        if (const AuctionHouse::CategoryInfo* category = AuctionHouse::CategoryForRailIndex(m_FlyoutCategoryIndex))
+        {
+            const AuctionHouse::Rect panel = FlyoutLayoutFor(*category, m_FlyoutCategoryIndex).panel;
+            const int panelX = m_Pos.x + panel.x;
+            const int panelY = m_Pos.y + panel.y;
+            if (x < panelX + panel.width && x + width > panelX && y < panelY + panel.height && y + height > panelY)
+            {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
@@ -3337,17 +3393,153 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
     }
 }
 
+AuctionHouse::FlyoutLayout SEASON3B::CNewUIAuctionWindow::FlyoutLayoutFor(const AuctionHouse::CategoryInfo& category, int railIndex) const
+{
+    return AuctionHouse::LayoutFlyout(FLYOUT_X, CATEGORY_RAIL_Y + railIndex * CATEGORY_RAIL_ROW_HEIGHT,
+        static_cast<int>(category.subs.size()), CATEGORY_RAIL_ROW_HEIGHT, FLYOUT_WIDTH, FLYOUT_PADDING,
+        BROWSE_HEADER_Y, BROWSE_BODY_Y + BROWSE_TABLE_HEIGHT + TABLE_BOTTOM_PAD);
+}
+
+void SEASON3B::CNewUIAuctionWindow::SelectCategory(int railIndex, uint8_t subCategory)
+{
+    if (railIndex == m_SelectedCategoryIndex && subCategory == m_SelectedSubCategory)
+    {
+        return;
+    }
+
+    m_SelectedCategoryIndex = railIndex;
+    m_SelectedSubCategory = subCategory;
+    m_CategoryCombo.SetSelectedIndex(railIndex);
+    m_CurrentPage = 1;
+    SendBrowseRequest();
+}
+
+void SEASON3B::CNewUIAuctionWindow::OnCategoryRailClicked(int railIndex)
+{
+    const AuctionHouse::CategoryInfo* category = AuctionHouse::CategoryForRailIndex(railIndex);
+    if (category == nullptr || category->subs.empty())
+    {
+        // "All Categories" and Miscellaneous have nothing to open: select them straight away.
+        m_bFlyoutOpen = false;
+        SelectCategory(railIndex, AuctionHouse::WireAll);
+        return;
+    }
+
+    // A category with sub-categories toggles its flyout; nothing is requested until a row is picked.
+    m_bFlyoutOpen = !(m_bFlyoutOpen && m_FlyoutCategoryIndex == railIndex);
+    m_FlyoutCategoryIndex = railIndex;
+}
+
+bool SEASON3B::CNewUIAuctionWindow::HandleCategoryFlyoutMouse()
+{
+    const AuctionHouse::CategoryInfo* category = AuctionHouse::CategoryForRailIndex(m_FlyoutCategoryIndex);
+    if (category == nullptr)
+    {
+        m_bFlyoutOpen = false;
+        return false;
+    }
+
+    const AuctionHouse::FlyoutLayout layout = FlyoutLayoutFor(*category, m_FlyoutCategoryIndex);
+    const int localX = MouseX - m_Pos.x;
+    const int localY = MouseY - m_Pos.y;
+    const bool overPanel = layout.panel.Contains(localX, localY);
+    if (!IsRelease(VK_LBUTTON))
+    {
+        // While open, the panel owns the mouse over itself.
+        return overPanel;
+    }
+
+    const int row = AuctionHouse::FlyoutRowAt(layout, localX, localY);
+    if (row >= 0)
+    {
+        m_bFlyoutOpen = false;
+        SelectCategory(m_FlyoutCategoryIndex, row == 0 ? AuctionHouse::WireAll : category->subs[row - 1].wire);
+        PlayBuffer(SOUND_CLICK01);
+        return true;
+    }
+
+    if (overPanel)
+    {
+        return true;
+    }
+
+    // A release over the rail goes on to the rail's own handling (it toggles or switches the flyout); anywhere else
+    // closes the flyout and is consumed.
+    if (CheckMouseIn(m_Pos.x + CATEGORY_RAIL_X, m_Pos.y + CATEGORY_RAIL_Y, CATEGORY_RAIL_WIDTH,
+            CATEGORY_RAIL_ROW_HEIGHT * CATEGORY_RAIL_ROW_COUNT))
+    {
+        return false;
+    }
+
+    m_bFlyoutOpen = false;
+    return true;
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderCategoryFlyout()
+{
+    if (!m_bFlyoutOpen)
+    {
+        return;
+    }
+
+    const AuctionHouse::CategoryInfo* category = AuctionHouse::CategoryForRailIndex(m_FlyoutCategoryIndex);
+    if (category == nullptr)
+    {
+        return;
+    }
+
+    const AuctionHouse::FlyoutLayout layout = FlyoutLayoutFor(*category, m_FlyoutCategoryIndex);
+    UI::NineSlice::Render(AuctionPanelSkin().texture, static_cast<float>(m_Pos.x + layout.panel.x),
+        static_cast<float>(m_Pos.y + layout.panel.y), static_cast<float>(layout.panel.width),
+        static_cast<float>(layout.panel.height), AuctionPanelSkin().tints.normal);
+
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    const SIZE lineSize = g_pRenderText->MeasureText(L"Ag", 2);
+    const int rowHeight = layout.rowHeight - 2 * FLYOUT_ROW_INSET;
+    const int textOffsetY = FLYOUT_ROW_INSET + (rowHeight - lineSize.cy) / 2;
+    const int textWidth = layout.panel.width - 2 * layout.padding - 12;
+    const bool ownCategorySelected = m_SelectedCategoryIndex == m_FlyoutCategoryIndex;
+    const auto measure = [](const std::wstring& text)
+    {
+        return static_cast<int>(g_pRenderText->MeasureText(text.c_str(), static_cast<int>(text.size())).cx);
+    };
+
+    for (int row = 0; row < layout.rowCount; ++row)
+    {
+        const int y = m_Pos.y + layout.firstRowY + row * layout.rowHeight;
+        const uint8_t wire = row == 0 ? AuctionHouse::WireAll : category->subs[row - 1].wire;
+        const bool selected = ownCategorySelected && wire == m_SelectedSubCategory;
+        const bool hovered = !selected && AuctionHouse::FlyoutRowAt(layout, MouseX - m_Pos.x, MouseY - m_Pos.y) == row;
+        UI::NineSlice::Render(AuctionButtonSkin().texture, static_cast<float>(m_Pos.x + layout.panel.x + layout.padding),
+            static_cast<float>(y + FLYOUT_ROW_INSET), static_cast<float>(layout.panel.width - 2 * layout.padding),
+            static_cast<float>(rowHeight),
+            selected ? CATEGORY_TINT_SELECTED : (hovered ? CATEGORY_TINT_HOVER : CATEGORY_TINT_IDLE));
+
+        const std::wstring label = row == 0 ? std::wstring(L"All ") + m_CategoryLabels[m_FlyoutCategoryIndex]
+                                            : std::wstring(category->subs[row - 1].label);
+        g_pRenderText->SetTextColor(selected ? 255 : 205, selected ? 215 : 205, selected ? 100 : 205, 255);
+        g_pRenderText->RenderText(static_cast<float>(m_Pos.x + layout.panel.x + layout.padding + 6),
+            static_cast<float>(y + textOffsetY), AuctionHouse::EllipsizeToWidth(label, textWidth, measure).c_str(),
+            static_cast<float>(textWidth), 0, RT3_SORT_LEFT);
+    }
+}
+
 void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
 {
-    // A persistent category rail makes filtering a single, visible action instead of hiding the server's
-    // seven real auction categories inside a dropdown. It deliberately uses the existing MU table materials
-    // rather than borrowing the reference game's artwork.
+    // A persistent category rail makes filtering a single, visible action instead of hiding the server's real auction
+    // categories inside a dropdown. Each row has a small item icon (drawn in the 3D pass) and shows the picked
+    // sub-category's name instead of the category's when one is picked.
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     const SIZE lineSize = g_pRenderText->MeasureText(L"Ag", 2);
     constexpr int RowHeight = CATEGORY_RAIL_ROW_HEIGHT - 2 * CATEGORY_RAIL_ROW_INSET;
     const int textOffsetY = CATEGORY_RAIL_ROW_INSET + (RowHeight - lineSize.cy) / 2;
-    for (int category = 0; category < static_cast<int>(std::size(m_CategoryLabels)); ++category)
+    const auto measure = [](const std::wstring& text)
+    {
+        return static_cast<int>(g_pRenderText->MeasureText(text.c_str(), static_cast<int>(text.size())).cx);
+    };
+    for (int category = 0; category < CATEGORY_RAIL_ROW_COUNT; ++category)
     {
         const int y = m_Pos.y + CATEGORY_RAIL_Y + category * CATEGORY_RAIL_ROW_HEIGHT;
         const bool selected = category == m_SelectedCategoryIndex;
@@ -3357,11 +3549,15 @@ void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
             static_cast<float>(RowHeight),
             selected ? CATEGORY_TINT_SELECTED : (hovered ? CATEGORY_TINT_HOVER : CATEGORY_TINT_IDLE));
 
+        const int textX = category == 0 ? 8 : CATEGORY_RAIL_TEXT_X;
+        const int textWidth = CATEGORY_RAIL_WIDTH - textX - CATEGORY_RAIL_TEXT_PAD;
+        const std::wstring text = AuctionHouse::EllipsizeToWidth(
+            AuctionHouse::RailRowText(m_CategoryLabels[category], AuctionHouse::CategoryForRailIndex(category),
+                selected ? m_SelectedSubCategory : AuctionHouse::WireAll),
+            textWidth, measure);
         g_pRenderText->SetTextColor(selected ? 255 : 205, selected ? 215 : 205, selected ? 100 : 205, 255);
-        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + 8), (float)(y + textOffsetY),
-            m_CategoryLabels[category], (float)(CATEGORY_RAIL_WIDTH - 12), 0, RT3_SORT_LEFT);
-        g_pRenderText->RenderText((float)(m_Pos.x + CATEGORY_RAIL_X + CATEGORY_RAIL_WIDTH - 16), (float)(y + textOffsetY),
-            L">", 12.0f, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText(static_cast<float>(m_Pos.x + CATEGORY_RAIL_X + textX), static_cast<float>(y + textOffsetY),
+            text.c_str(), static_cast<float>(textWidth), 0, RT3_SORT_LEFT);
     }
 }
 

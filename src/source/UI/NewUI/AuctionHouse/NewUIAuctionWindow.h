@@ -13,6 +13,7 @@
 #include "UI/Legacy/UIControls.h"
 #include "Guild/NewUIGuildInfoWindow.h"
 #include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
+#include "UI/NewUI/AuctionHouse/AuctionTaxonomy.h"
 #include "UI/NewUI/AuctionHouse/NewUIAuctionSellPanel.h"
 #include "Core/Globals/_TextureIndex.h"
 
@@ -123,6 +124,11 @@ namespace SEASON3B
         void RenderBrowseHeader();
         void RenderBrowseTab();
         void RenderCategoryRail();
+        void RenderCategoryFlyout();
+        void OnCategoryRailClicked(int railIndex);
+        void SelectCategory(int railIndex, uint8_t subCategory);
+        bool HandleCategoryFlyoutMouse();
+        AuctionHouse::FlyoutLayout FlyoutLayoutFor(const AuctionHouse::CategoryInfo& category, int railIndex) const;
         // Tabs are sized to their own label (not stretched to equal quarters of the window, matching the
         // reference's left-clustered, content-width tab row). Computed once per frame and shared by the
         // click-hit-test and the renderer so they can never drift apart.
@@ -215,8 +221,14 @@ namespace SEASON3B
         // option flags, price range, and max remaining time are still sent as "no filter" because they have no
         // UI control yet, not because the server would ignore them.
         AuctionCurrencyMode m_SelectedCurrency;
-        // 0 = "All Categories"; 1-7 map to AuctionCategory's seven wire values (index - 1).
+        // 0 = "All Categories"; 1 to 8 are the rail rows, which AuctionHouse::CategoryForRailIndex maps to wire values.
         int m_SelectedCategoryIndex;
+        // The picked sub-category of that category, or AuctionHouse::WireAll. It belongs to the category: picking
+        // another category resets it.
+        uint8_t m_SelectedSubCategory;
+        // The sub-category flyout: open or closed, and the rail row it belongs to.
+        bool m_bFlyoutOpen;
+        int m_FlyoutCategoryIndex;
         uint16_t m_CurrentPage;
         AuctionSort m_SelectedSort;
         bool m_bBrowseRequestPending;
@@ -276,10 +288,8 @@ namespace SEASON3B
         const wchar_t* m_CurrencyLabels[10];
         CNewUIComboBox m_CurrencyCombo;
 
-        // Index 0 is "All Categories" (sent on the wire as the server's own 0xFF "every category" sentinel);
-        // indices 1-7 are AuctionCategory's seven wire values in order, so GetSelectedIndex() - 1 is the wire
-        // category value whenever a specific category is selected.
-        const wchar_t* m_CategoryLabels[8];
+        // Index 0 is "All Categories"; 1 to 8 follow AuctionHouse::RailCategories() order.
+        const wchar_t* m_CategoryLabels[9];
         CNewUIComboBox m_CategoryCombo;
 
         // All statuses followed by Active/Sold/Expired/Cancelled/Admin Removed, matching the status-filter
