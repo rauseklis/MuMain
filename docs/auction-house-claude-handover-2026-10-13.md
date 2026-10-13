@@ -43,6 +43,16 @@ a description, is re-read within seconds of a save (no restart), logs and skips 
 configuration. The test server's file has `Enabled=false` (that is what the database stored): set `Enabled=true` to allow
 Sell/Bid/Buyout/Cancel/Collect.
 
+### Sub-categories and the category rail (2026-10-13 evening)
+
+Spec `docs/superpowers/specs/2026-10-13-auction-categories-design.md`, plan `docs/superpowers/plans/2026-10-13-auction-categories.md`.
+
+- Server: `AuctionTaxonomy` (Persistence/AuctionHouse) maps item group and number to a category and sub-category; `AuctionCategory.ScrollOrb = 7` is new. Listings store `SubCategory` (migration `20261013120000_AddAuctionSubCategory`, default 255 = unclassified); the maintenance task (`AuctionExpiryPlugIn`) re-classifies those rows in batches. The browse filter and handler use it. The catalog test checks every Item.txt entry by name (`Fixtures/ItemCatalog.tsv`).
+- Wire: `AuctionBrowseRequest` is 105 bytes with `SubCategory` at index 104. The three packages (Network, PlugIns, Network.Packets) are packed as 0.9.12 into `C:/Users/rause/.local-nuget/auction-house`; the client csproj references 0.9.12. A stale DLL once got packed, so after repacking check the DLL contains `SubCategory` and `ScrollOrb` (rebuild with `-t:Rebuild`, then `dotnet pack --no-build`), and clear `client/.nuget/munique.openmu.network.packets/<version>`.
+- Client: `AuctionTaxonomy.{h,cpp}` (ids, labels, icons, flyout layout, label fitting; tested). Nine-row rail (17-pixel pitch) with item icons and no arrow; a click-open flyout lists "All <category>" and the leaves; a picked leaf replaces the category's name on its row; Reset clears it; Escape or an outside click closes the flyout; table icons are skipped under it.
+- Build note: the NativeAOT link of the client library needs `vswhere.exe` on PATH (`C:/Program Files (x86)/Microsoft Visual Studio/Installer`).
+- The PostgreSQL tests (filter, unknown sub-category, re-classification) stayed skipped: they need a disposable database and `AUCTION_TEST_CONNECTION_STRING`.
+
 ## Decisions recorded (owner, 2026-10-12)
 
 Buy-now listings take up to five mixed currencies and no bids; only single-component listings are biddable. Flat sale

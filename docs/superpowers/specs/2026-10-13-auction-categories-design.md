@@ -100,6 +100,7 @@ wing or a potion. The existing wire values 0 to 6 are unchanged; Scrolls & Orbs 
   Luck. All Categories has no icon. Each icon is verified to exist in `item.bmd` before it is used. The selected row keeps
   the gold tint, and shows the leaf's name instead of the category's when a leaf is picked; long names are cut with an
   ellipsis by measuring the text.
+- **Rail order** is the taxonomy array order: Weapon, Armor, Wing, Pet & Helper, Jewel & Material, Consumable, Scrolls & Orbs, Miscellaneous (wire 7 is listed before wire 6).
 - **Flyout.** Clicking a category with leaves opens a panel whose left edge meets the rail and whose top aligns with the
   clicked row (moved up if it would run past the table's bottom). Rows use the rail's styling: "All <category>" first, then
   the leaves. The panel is 132 pixels wide, which fits "Bows & Crossbows" and "Elixirs & Buffs". Picking a row selects it,
