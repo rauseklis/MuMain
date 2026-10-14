@@ -539,3 +539,121 @@ TEST_CASE("an open response shorter than its own fixed header fails to parse [ui
 
     CHECK_FALSE(AuctionOpenResponse::Parse(packet).has_value());
 }
+
+namespace
+{
+    void PutBasket(std::vector<uint8_t>& buffer, size_t offset, const BasketQuantities& quantities)
+    {
+        for (size_t kind = 0; kind < PriceKindCount; ++kind)
+        {
+            PutU32(buffer, offset + kind * 4, static_cast<uint32_t>(quantities[kind]));
+        }
+    }
+}
+
+TEST_CASE("a mixed listing summary reads its prices as baskets [ui][auction_wire]")
+{
+    std::vector<uint8_t> entry(AuctionListingSummary::WireLength, 0);
+    PutListingSummary(entry, 0, 888ULL, "Seller2");
+    PutU8(entry, 13, static_cast<uint8_t>(AuctionCurrencyMode::Mixed));
+    PutBasket(entry, 95, BasketQuantities{ 50000, 0, 0, 3 });
+    PutBasket(entry, 147, BasketQuantities{ 80000, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 2 });
+
+    const auto summary = AuctionListingSummary::Parse(entry);
+
+    REQUIRE(summary.has_value());
+    CHECK(AuctionListingSummary::WireLength == 199);
+    CHECK(summary->CurrencyMode == AuctionCurrencyMode::Mixed);
+    REQUIRE(summary->CurrentPrice.IsBasket());
+    CHECK(summary->CurrentPrice.Basket() == BasketQuantities{ 50000, 0, 0, 3 });
+    CHECK(summary->BuyoutPrice.Basket() == BasketQuantities{ 80000, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 2 });
+}
+
+TEST_CASE("a mixed detail response shows the current bid, or the starting price before any bid [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionDetailResponse::FullWireLength, 0);
+    PutU8(packet, 27, static_cast<uint8_t>(AuctionCurrencyMode::Mixed));
+    PutBasket(packet, 204, BasketQuantities{ 50000, 0, 0, 3 });
+    PutBasket(packet, 308, BasketQuantities{ 0, 0, 0, 5 });
+
+    const auto before = AuctionDetailResponse::Parse(packet);
+    PutBasket(packet, 256, BasketQuantities{ 50000, 0, 0, 4 });
+    const auto after = AuctionDetailResponse::Parse(packet);
+
+    REQUIRE(before.has_value());
+    REQUIRE(after.has_value());
+    CHECK(AuctionDetailResponse::FullWireLength == 360);
+    CHECK(before->StartingPrice.Basket() == BasketQuantities{ 50000, 0, 0, 3 });
+    CHECK(before->CurrentPrice.Basket() == BasketQuantities{ 50000, 0, 0, 3 });
+    CHECK(after->CurrentPrice.Basket() == BasketQuantities{ 50000, 0, 0, 4 });
+    CHECK(after->BuyoutPrice.Basket() == BasketQuantities{ 0, 0, 0, 5 });
+}
+
+TEST_CASE("a buy now detail response has an empty starting price and a buyout [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionDetailResponse::FullWireLength, 0);
+    PutU8(packet, 27, static_cast<uint8_t>(AuctionCurrencyMode::Mixed));
+    PutBasket(packet, 308, BasketQuantities{ 0, 0, 2 });
+
+    const auto detail = AuctionDetailResponse::Parse(packet);
+
+    REQUIRE(detail.has_value());
+    CHECK(detail->StartingPrice.IsZero());
+    CHECK(detail->CurrentPrice.IsZero());
+    CHECK(detail->BuyoutPrice.Basket() == BasketQuantities{ 0, 0, 2 });
+}
+
+TEST_CASE("a mixed mailbox entry reads its amounts as baskets [ui][auction_wire]")
+{
+    std::vector<uint8_t> entry(AuctionMailboxEntry::WireLength, 0);
+    PutU8(entry, 10, static_cast<uint8_t>(AuctionCurrencyMode::Mixed));
+    PutBasket(entry, 88, BasketQuantities{ 20000, 0, 0, 3 });
+    PutBasket(entry, 140, BasketQuantities{ 0, 0, 0, 3 });
+
+    const auto parsed = AuctionMailboxEntry::Parse(entry);
+
+    REQUIRE(parsed.has_value());
+    CHECK(AuctionMailboxEntry::WireLength == 192);
+    CHECK(parsed->Original.Basket() == BasketQuantities{ 20000, 0, 0, 3 });
+    CHECK(parsed->Remaining.Basket() == BasketQuantities{ 0, 0, 0, 3 });
+}
+
+TEST_CASE("a version five open response carries the flat sale fee and the mixed switch [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLengthV5 + AuctionCurrencyDescriptor::WireLength, 0);
+    PutU32(packet, 14, 5U);
+    PutU8(packet, 27, 1U);
+    PutU32(packet, 28, 100000U);
+    PutU8(packet, 32, 1U);
+    PutCurrencyDescriptor(packet, 33, AuctionCurrencyMode::Zen, true);
+
+    const auto response = AuctionOpenResponse::Parse(packet);
+
+    REQUIRE(response.has_value());
+    CHECK(response->SaleFee == 100000U);
+    CHECK(response->MixedPricesEnabled);
+    REQUIRE(response->Currencies.size() == 1U);
+    CHECK(response->Currencies[0].CurrencyMode == AuctionCurrencyMode::Zen);
+}
+
+TEST_CASE("an older open response has no sale fee and no mixed prices [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength + AuctionCurrencyDescriptor::WireLength, 0);
+    PutU32(packet, 14, 4U);
+    PutU8(packet, 27, 1U);
+    PutCurrencyDescriptor(packet, 28, AuctionCurrencyMode::Zen, true);
+
+    const auto response = AuctionOpenResponse::Parse(packet);
+
+    REQUIRE(response.has_value());
+    CHECK(response->SaleFee == 0U);
+    CHECK_FALSE(response->MixedPricesEnabled);
+}
+
+TEST_CASE("a version five open response shorter than its fixed header fails to parse [ui][auction_wire]")
+{
+    std::vector<uint8_t> packet(AuctionOpenResponse::FixedWireLength + 2, 0);
+    PutU32(packet, 14, 5U);
+
+    CHECK_FALSE(AuctionOpenResponse::Parse(packet).has_value());
+}

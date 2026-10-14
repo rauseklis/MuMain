@@ -410,9 +410,9 @@ typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBrowseRequest)(int32_t, uint3
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionDetailRequest)(int32_t, uint32_t , uint64_t );
 
-typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionCreateRequest)(int32_t, const BYTE* , uint32_t, BYTE , AuctionCurrencyMode , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , BYTE , BYTE , const BYTE* , uint32_t);
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionCreateRequest)(int32_t, const BYTE* , uint32_t, BYTE , AuctionCurrencyMode , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , BYTE , BYTE , const BYTE* , uint32_t, const BYTE* , uint32_t, const BYTE* , uint32_t);
 
-typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBidRequest)(int32_t, const BYTE* , uint32_t, uint64_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t );
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBidRequest)(int32_t, const BYTE* , uint32_t, uint64_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , const BYTE* , uint32_t);
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionBuyoutRequest)(int32_t, const BYTE* , uint32_t, uint64_t , uint32_t );
 

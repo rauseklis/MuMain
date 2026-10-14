@@ -13,7 +13,8 @@ typedef struct tagITEM ITEM;
 namespace SEASON3B
 {
     // The Sell tab below the item the player picked in the inventory: how to sell it (Auction or Buy Now), the
-    // price as rows of (currency, amount), the duration, an optional note, and the fee the server will charge.
+    // price as rows of (currency, amount) - an auction row also has an optional buyout - the duration, an optional
+    // note, and the flat tax the server holds.
     // The panel owns its controls and turns them into a SellDraft; the window sends the request and reports the
     // outcome back with ShowResult(). It draws with the Auction House's shared chrome and knows nothing of packets.
     class CNewUIAuctionSellPanel
@@ -25,9 +26,14 @@ namespace SEASON3B
 
         CNewUIAuctionSellPanel();
 
-        // Creates the controls for a window at the given position. buyNowSupported says whether the server can take a
-        // buy-now listing yet; until it can, the mode is shown but Create stays disabled for it, with a note.
-        void Create(int windowX, int windowY, bool buyNowSupported);
+        // Creates the controls for a window at the given position. mixedSupported says whether the server takes mixed
+        // prices (a Buy Now listing, or an auction in several currencies); until the Open response says it does, those
+        // are shown but Create stays disabled for them, with a note.
+        void Create(int windowX, int windowY, bool mixedSupported);
+
+        // Applies the Open response's mixed-price switch and the flat listing tax in Zen (0 = none).
+        void SetMixedSupported(bool mixedSupported);
+        void SetSaleFee(uint32_t saleFee);
         void SetPos(int windowX, int windowY);
 
         // Shows the form's text inputs while the Sell tab is up and hides them (dropping focus) otherwise.
@@ -94,6 +100,7 @@ namespace SEASON3B
         POINT m_Pos;
         bool m_bActive;
         bool m_bBuyNowSupported;
+        uint32_t m_SaleFee;
         bool m_bBusy;
         bool m_bHasItem;
         bool m_bCreateRequested;
@@ -112,7 +119,8 @@ namespace SEASON3B
         int m_KindIndex[MaxRows];
         CNewUIComboBox m_KindCombos[MaxRows];
         CUITextInputBox m_QuantityInputs[MaxRows];
-        CUITextInputBox m_BuyoutInput;
+        // The auction's optional buyout beside each row's starting amount.
+        CUITextInputBox m_BuyoutInputs[MaxRows];
 
         const wchar_t* m_DurationLabels[DurationChoices];
         int m_DurationHours[DurationChoices];

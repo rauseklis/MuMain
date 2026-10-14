@@ -2163,7 +2163,7 @@ void PacketFunctions_ClientToServer::SendAuctionDetailRequest(uint32_t requestId
     dotnet_SendAuctionDetailRequest(this->GetHandle(), requestId, listingId);
 }
 
-void PacketFunctions_ClientToServer::SendAuctionCreateRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE inventorySlot, AuctionCurrencyMode currencyMode, uint32_t startingScalar, uint32_t startingStrength, uint32_t startingAgility, uint32_t startingVitality, uint32_t startingEnergy, uint32_t startingCommand, uint32_t buyoutScalar, uint32_t buyoutStrength, uint32_t buyoutAgility, uint32_t buyoutVitality, uint32_t buyoutEnergy, uint32_t buyoutCommand, BYTE durationHours, BYTE noteLength, const BYTE* note, uint32_t noteByteLength)
+void PacketFunctions_ClientToServer::SendAuctionCreateRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE inventorySlot, AuctionCurrencyMode currencyMode, uint32_t startingScalar, uint32_t startingStrength, uint32_t startingAgility, uint32_t startingVitality, uint32_t startingEnergy, uint32_t startingCommand, uint32_t buyoutScalar, uint32_t buyoutStrength, uint32_t buyoutAgility, uint32_t buyoutVitality, uint32_t buyoutEnergy, uint32_t buyoutCommand, BYTE durationHours, BYTE noteLength, const BYTE* note, uint32_t noteByteLength, const BYTE* startingBasket, uint32_t startingBasketByteLength, const BYTE* buyoutBasket, uint32_t buyoutBasketByteLength)
 {
     static const auto dotnet_SendAuctionCreateRequest = LoadManagedSymbol<::SendAuctionCreateRequest>("SendAuctionCreateRequest");
     if (!dotnet_SendAuctionCreateRequest)
@@ -2171,10 +2171,10 @@ void PacketFunctions_ClientToServer::SendAuctionCreateRequest(const BYTE* operat
         return;
     }
 
-    dotnet_SendAuctionCreateRequest(this->GetHandle(), operationId, operationIdByteLength, inventorySlot, currencyMode, startingScalar, startingStrength, startingAgility, startingVitality, startingEnergy, startingCommand, buyoutScalar, buyoutStrength, buyoutAgility, buyoutVitality, buyoutEnergy, buyoutCommand, durationHours, noteLength, note, noteByteLength);
+    dotnet_SendAuctionCreateRequest(this->GetHandle(), operationId, operationIdByteLength, inventorySlot, currencyMode, startingScalar, startingStrength, startingAgility, startingVitality, startingEnergy, startingCommand, buyoutScalar, buyoutStrength, buyoutAgility, buyoutVitality, buyoutEnergy, buyoutCommand, durationHours, noteLength, note, noteByteLength, startingBasket, startingBasketByteLength, buyoutBasket, buyoutBasketByteLength);
 }
 
-void PacketFunctions_ClientToServer::SendAuctionBidRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion, uint32_t bidScalar, uint32_t bidStrength, uint32_t bidAgility, uint32_t bidVitality, uint32_t bidEnergy, uint32_t bidCommand)
+void PacketFunctions_ClientToServer::SendAuctionBidRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion, uint32_t bidScalar, uint32_t bidStrength, uint32_t bidAgility, uint32_t bidVitality, uint32_t bidEnergy, uint32_t bidCommand, const BYTE* bidBasket, uint32_t bidBasketByteLength)
 {
     static const auto dotnet_SendAuctionBidRequest = LoadManagedSymbol<::SendAuctionBidRequest>("SendAuctionBidRequest");
     if (!dotnet_SendAuctionBidRequest)
@@ -2182,7 +2182,7 @@ void PacketFunctions_ClientToServer::SendAuctionBidRequest(const BYTE* operation
         return;
     }
 
-    dotnet_SendAuctionBidRequest(this->GetHandle(), operationId, operationIdByteLength, listingId, expectedVersion, bidScalar, bidStrength, bidAgility, bidVitality, bidEnergy, bidCommand);
+    dotnet_SendAuctionBidRequest(this->GetHandle(), operationId, operationIdByteLength, listingId, expectedVersion, bidScalar, bidStrength, bidAgility, bidVitality, bidEnergy, bidCommand, bidBasket, bidBasketByteLength);
 }
 
 void PacketFunctions_ClientToServer::SendAuctionBuyoutRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion)

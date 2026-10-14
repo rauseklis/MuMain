@@ -52,6 +52,22 @@ namespace AuctionHouse
             });
         }
 
+        // Reads a mixed price: thirteen little-endian quantities in price-kind order.
+        AuctionAmount ReadBasket(std::span<const uint8_t> packet, size_t offset)
+        {
+            BasketQuantities quantities{};
+            for (size_t kind = 0; kind < PriceKindCount; ++kind)
+            {
+                quantities[kind] = static_cast<int64_t>(ReadU32(packet, offset + kind * sizeof(uint32_t)));
+            }
+            return AuctionAmount::FromBasket(quantities);
+        }
+
+        bool IsMixed(AuctionCurrencyMode currency) noexcept
+        {
+            return currency == AuctionCurrencyMode::Mixed;
+        }
+
         // Reads up to length raw ASCII bytes as a wide string, stopping at the first NUL (the field may be
         // shorter than its fixed width and zero-padded, same convention as the legacy character name fields).
         std::wstring ReadFixedAscii(std::span<const uint8_t> packet, size_t offset, size_t length)
@@ -90,8 +106,10 @@ namespace AuctionHouse
             summary.Status = static_cast<AuctionListingStatus>(packet[offset + 12]);
             summary.CurrencyMode = static_cast<AuctionCurrencyMode>(packet[offset + 13]);
             summary.Category = static_cast<AuctionCategory>(packet[offset + 14]);
-            summary.CurrentPrice = ReadAmount(packet, offset + 15, summary.CurrencyMode);
-            summary.BuyoutPrice = ReadAmount(packet, offset + 39, summary.CurrencyMode);
+            summary.CurrentPrice = IsMixed(summary.CurrencyMode) ? ReadBasket(packet, offset + 95)
+                                                                  : ReadAmount(packet, offset + 15, summary.CurrencyMode);
+            summary.BuyoutPrice = IsMixed(summary.CurrencyMode) ? ReadBasket(packet, offset + 147)
+                                                                 : ReadAmount(packet, offset + 39, summary.CurrencyMode);
             summary.BidCount = ReadU16(packet, offset + 63);
             summary.EndsAt = ReadU32(packet, offset + 65);
             summary.SellerName = ReadFixedAscii(packet, offset + 69, SellerNameLength);
@@ -192,8 +210,20 @@ namespace AuctionHouse
         response.Status = static_cast<AuctionListingStatus>(packet[26]);
         response.CurrencyMode = static_cast<AuctionCurrencyMode>(packet[27]);
         response.Category = static_cast<AuctionCategory>(packet[28]);
-        response.CurrentPrice = ReadAmount(packet, 29, response.CurrencyMode);
-        response.BuyoutPrice = ReadAmount(packet, 53, response.CurrencyMode);
+        if (IsMixed(response.CurrencyMode))
+        {
+            response.StartingPrice = ReadBasket(packet, 204);
+            const AuctionAmount current = ReadBasket(packet, 256);
+            // The effective price: the current bid once there is one, else the starting price.
+            response.CurrentPrice = current.IsZero() ? response.StartingPrice : current;
+            response.BuyoutPrice = ReadBasket(packet, 308);
+        }
+        else
+        {
+            response.CurrentPrice = ReadAmount(packet, 29, response.CurrencyMode);
+            response.StartingPrice = response.CurrentPrice;
+            response.BuyoutPrice = ReadAmount(packet, 53, response.CurrencyMode);
+        }
         response.BidCount = ReadU16(packet, 77);
         response.OriginalEndsAt = ReadU32(packet, 79);
         response.EndsAt = ReadU32(packet, 83);
@@ -221,8 +251,8 @@ namespace AuctionHouse
         parsed.CollectionKind = static_cast<AuctionCollectionKind>(entry[8]);
         parsed.CollectionStatus = static_cast<AuctionCollectionStatus>(entry[9]);
         parsed.CurrencyMode = static_cast<AuctionCurrencyMode>(entry[10]);
-        parsed.Original = ReadAmount(entry, 11, parsed.CurrencyMode);
-        parsed.Remaining = ReadAmount(entry, 35, parsed.CurrencyMode);
+        parsed.Original = IsMixed(parsed.CurrencyMode) ? ReadBasket(entry, 88) : ReadAmount(entry, 11, parsed.CurrencyMode);
+        parsed.Remaining = IsMixed(parsed.CurrencyMode) ? ReadBasket(entry, 140) : ReadAmount(entry, 35, parsed.CurrencyMode);
         parsed.SourceListingId = ReadU64(entry, 59);
         parsed.HasItem = entry[67] != 0;
         parsed.ItemDataLength = entry[68];
@@ -322,6 +352,18 @@ namespace AuctionHouse
         response.PageSize = packet[24];
         response.PendingMailboxCount = ReadU16(packet, 25);
 
+        size_t descriptorStart = FixedWireLength;
+        if (response.ConfigurationVersion >= 5)
+        {
+            if (packet.size() < FixedWireLengthV5)
+            {
+                return std::nullopt;
+            }
+            response.SaleFee = ReadU32(packet, 28);
+            response.MixedPricesEnabled = packet[32] != 0;
+            descriptorStart = FixedWireLengthV5;
+        }
+
         const auto currencyCount = packet[27];
         const auto descriptorWireLength = response.ConfigurationVersion >= 4
             ? AuctionCurrencyDescriptor::WireLength
@@ -333,7 +375,7 @@ namespace AuctionHouse
         response.Currencies.reserve(currencyCount);
         for (uint8_t i = 0; i < currencyCount; ++i)
         {
-            const auto offset = FixedWireLength + static_cast<size_t>(i) * descriptorWireLength;
+            const auto offset = descriptorStart + static_cast<size_t>(i) * descriptorWireLength;
             if (packet.size() < offset + descriptorWireLength)
             {
                 return std::nullopt;

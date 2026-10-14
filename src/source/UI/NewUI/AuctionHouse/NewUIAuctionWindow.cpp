@@ -302,6 +302,13 @@ namespace
     constexpr int DETAIL_PRICE_CARD_HEIGHT = 96;
     // Where a price block's chip row sits inside its card; the chip layout centres two lines on a 29-pixel row.
     constexpr int DETAIL_CHIP_ROW_Y = 33;
+    // The bid form of a mixed listing sits under the price card: a caption, then a currency label and a field per currency.
+    constexpr int BID_CARD_Y = DETAIL_PRICE_CARD_Y + DETAIL_PRICE_CARD_HEIGHT + DETAIL_CARD_GAP;
+    constexpr int BID_CARD_HEIGHT = 66;
+    constexpr int BID_CAPTION_Y = BID_CARD_Y + 7;
+    constexpr int BID_LABEL_Y = BID_CARD_Y + 22;
+    constexpr int BID_FIELD_Y = BID_CARD_Y + 34;
+    constexpr int BID_INPUT_Y = BID_FIELD_Y + 7;
     constexpr int AMOUNT_CARD_Y = DETAIL_CARD_Y + DETAIL_CARD_HEIGHT + DETAIL_CARD_GAP;
     constexpr int AMOUNT_CARD_HEIGHT = 62;
     constexpr int AMOUNT_CHIP_ROW_Y = 26;
@@ -335,6 +342,7 @@ namespace
         case AuctionCollectionKind::OutbidRefund: return I18N::Game::AuctionOutbidRefund;
         case AuctionCollectionKind::TenderChange: return I18N::Game::AuctionTenderChange;
         case AuctionCollectionKind::AdminRefund: return I18N::Game::AuctionAdminRefund;
+        case AuctionCollectionKind::FeeRefund: return L"Listing tax refund";
         default: return L"-";
         }
     }
@@ -884,7 +892,7 @@ SEASON3B::CNewUIAuctionWindow::CNewUIAuctionWindow()
       m_BrowseScrollOffset(0), m_iPointedRow(-1), m_iPointedItemRow(-1),
       m_bShowingDetail(false), m_bDetailRequestPending(false), m_PendingDetailRequestId(0),
       m_bHasDetailResponse(false), m_DetailItem(nullptr), m_bPointingDetailItem(false),
-      m_bOperationRequestPending(false), m_PendingOperationId{}, m_bHasOperationResult(false),
+      m_MixedBidKinds{}, m_MixedBidCount(0), m_bOperationRequestPending(false), m_PendingOperationId{}, m_bHasOperationResult(false),
       m_LastOperationResult(AuctionResult::Success)
 {
     std::fill(std::begin(m_RowItems), std::end(m_RowItems), nullptr);
@@ -1395,6 +1403,69 @@ void SEASON3B::CNewUIAuctionWindow::SetDetailResponse(const AuctionHouse::Auctio
     m_DetailResponse = response;
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     RebuildDetailItem();
+    PopulateMixedBidInputs();
+}
+
+bool SEASON3B::CNewUIAuctionWindow::IsMixedBidActive() const
+{
+    return m_iCurrentTab == TAB_BROWSE && m_bShowingDetail && m_bHasDetailResponse
+        && m_DetailResponse.CurrencyMode == AuctionCurrencyMode::Mixed
+        && m_DetailResponse.Status == AuctionListingStatus::Active && !m_DetailResponse.StartingPrice.IsZero();
+}
+
+void SEASON3B::CNewUIAuctionWindow::PopulateMixedBidInputs()
+{
+    m_MixedBidCount = 0;
+    if (!IsMixedBidActive())
+    {
+        SetCollectionClaimInputsVisible(false);
+        return;
+    }
+
+    // The form asks for the currencies of the current bid (or of the starting price before any bid), with the smallest
+    // raise the rule allows already filled in.
+    const bool hasBid = m_DetailResponse.BidCount > 0;
+    const AuctionHouse::BasketQuantities& floor = m_DetailResponse.CurrentPrice.Basket();
+    const AuctionHouse::BasketQuantities suggestion = AuctionHouse::SuggestedMixedBid(floor, hasBid);
+    for (size_t kind = 0; kind < floor.size() && m_MixedBidCount < 5; ++kind)
+    {
+        if (floor[kind] > 0)
+        {
+            m_MixedBidKinds[m_MixedBidCount] = static_cast<AuctionHouse::PriceKind>(kind);
+            wchar_t value[16];
+            mu_swprintf(value, L"%lld", suggestion[kind]);
+            m_CollectionClaimInputs[m_MixedBidCount].SetText(value);
+            m_CollectionClaimInputs[m_MixedBidCount].SetPosition(
+                m_Pos.x + CLAIM_INPUT_X + m_MixedBidCount * CLAIM_INPUT_COLUMN_WIDTH, m_Pos.y + BID_INPUT_Y);
+            ++m_MixedBidCount;
+        }
+    }
+    SetCollectionClaimInputsVisible(true);
+}
+
+bool SEASON3B::CNewUIAuctionWindow::TryGetMixedBid(AuctionHouse::BasketQuantities& bid)
+{
+    bid = {};
+    if (!IsMixedBidActive() || m_MixedBidCount == 0)
+    {
+        return false;
+    }
+
+    for (int i = 0; i < m_MixedBidCount; ++i)
+    {
+        wchar_t text[16]{};
+        m_CollectionClaimInputs[i].GetText(text, static_cast<int>(std::size(text)));
+        wchar_t* end = nullptr;
+        const unsigned long long parsed = std::wcstoull(text, &end, 10);
+        if (end == text || *end != L'\0' || parsed > UINT32_MAX)
+        {
+            return false;
+        }
+        bid[static_cast<size_t>(m_MixedBidKinds[i])] = static_cast<int64_t>(parsed);
+    }
+
+    const bool hasBid = m_DetailResponse.BidCount > 0;
+    return AuctionHouse::IsMixedBidAllowed(m_DetailResponse.StartingPrice.Basket(), m_DetailResponse.CurrentPrice.Basket(), hasBid, bid);
 }
 
 void SEASON3B::CNewUIAuctionWindow::SendBidRequest()
@@ -1406,11 +1477,26 @@ void SEASON3B::CNewUIAuctionWindow::SendBidRequest()
         return;
     }
 
-    const auto minimumBid = AuctionHouse::ComputeMinimumNextBid(m_DetailResponse.CurrencyMode, m_DetailResponse.CurrentPrice, m_DetailResponse.BidCount);
+    const bool mixed = m_DetailResponse.CurrencyMode == AuctionCurrencyMode::Mixed;
+    AuctionHouse::BasketQuantities mixedBid{};
+    if (mixed && !TryGetMixedBid(mixedBid))
+    {
+        return;
+    }
+
+    const auto minimumBid = mixed ? AuctionHouse::AuctionAmount::FromScalar(0)
+        : AuctionHouse::ComputeMinimumNextBid(m_DetailResponse.CurrencyMode, m_DetailResponse.CurrentPrice, m_DetailResponse.BidCount);
 
     m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
     m_bOperationRequestPending = true;
     m_bHasOperationResult = false;
+
+    std::array<BYTE, 52> basketBytes{};
+    for (size_t kind = 0; kind < mixedBid.size(); ++kind)
+    {
+        const uint32_t quantity = static_cast<uint32_t>(mixedBid[kind]);
+        std::memcpy(basketBytes.data() + kind * sizeof(quantity), &quantity, sizeof(quantity));
+    }
 
     const auto& fruits = minimumBid.Fruits();
     SocketClient->ToGameServer()->SendAuctionBidRequest(
@@ -1418,7 +1504,8 @@ void SEASON3B::CNewUIAuctionWindow::SendBidRequest()
         m_DetailResponse.ListingId, m_DetailResponse.Version,
         static_cast<uint32_t>(minimumBid.Scalar()),
         static_cast<uint32_t>(fruits.Strength), static_cast<uint32_t>(fruits.Agility),
-        static_cast<uint32_t>(fruits.Vitality), static_cast<uint32_t>(fruits.Energy), static_cast<uint32_t>(fruits.Command));
+        static_cast<uint32_t>(fruits.Vitality), static_cast<uint32_t>(fruits.Energy), static_cast<uint32_t>(fruits.Command),
+        basketBytes.data(), static_cast<uint32_t>(basketBytes.size()));
 }
 
 void SEASON3B::CNewUIAuctionWindow::SendBuyoutRequest()
@@ -1444,12 +1531,12 @@ void SEASON3B::CNewUIAuctionWindow::SendCreateRequest(const AuctionHouse::SellDr
         return;
     }
 
-    // The create packet has one currency mode with a scalar or fruit-basket price, so only an auction maps onto it
-    // today. The panel already refuses to submit anything else; this is the backstop.
+    // A single-currency auction keeps the scalar / fruit-basket fields; a Buy Now listing or an auction in several
+    // currencies is sent as Mixed baskets. The panel already refuses to submit an empty draft; this is the backstop.
     const auto fields = AuctionHouse::ToCreateFields(draft);
     if (!fields)
     {
-        m_SellPanel.ShowResult(false, L"Buy Now listings are not available on this server yet.");
+        m_SellPanel.ShowResult(false, L"Enter a price first.");
         return;
     }
 
@@ -1461,6 +1548,19 @@ void SEASON3B::CNewUIAuctionWindow::SendCreateRequest(const AuctionHouse::SellDr
     m_bOperationRequestPending = true;
     m_bHasOperationResult = false;
     m_SellPanel.SetBusy(true);
+
+    const auto writeBasket = [](const AuctionHouse::BasketQuantities& quantities)
+    {
+        std::array<BYTE, 52> bytes{};
+        for (size_t kind = 0; kind < quantities.size(); ++kind)
+        {
+            const uint32_t quantity = static_cast<uint32_t>(quantities[kind]);
+            std::memcpy(bytes.data() + kind * sizeof(quantity), &quantity, sizeof(quantity));
+        }
+        return bytes;
+    };
+    const auto startingBasket = writeBasket(fields->startingBasket);
+    const auto buyoutBasket = writeBasket(fields->buyoutBasket);
 
     const auto& starting = fields->starting.Fruits();
     const auto& buyout = fields->buyout.Fruits();
@@ -1476,7 +1576,9 @@ void SEASON3B::CNewUIAuctionWindow::SendCreateRequest(const AuctionHouse::SellDr
         static_cast<uint32_t>(buyout.Vitality), static_cast<uint32_t>(buyout.Energy),
         static_cast<uint32_t>(buyout.Command),
         draft.durationHours, static_cast<BYTE>(noteUtf8.size()),
-        reinterpret_cast<const BYTE*>(noteUtf8.data()), static_cast<uint32_t>(noteUtf8.size()));
+        reinterpret_cast<const BYTE*>(noteUtf8.data()), static_cast<uint32_t>(noteUtf8.size()),
+        startingBasket.data(), static_cast<uint32_t>(startingBasket.size()),
+        buyoutBasket.data(), static_cast<uint32_t>(buyoutBasket.size()));
 }
 
 void SEASON3B::CNewUIAuctionWindow::RequestCancelConfirmation()
@@ -1514,9 +1616,10 @@ void SEASON3B::CNewUIAuctionWindow::SetCollectionClaimInputsVisible(bool visible
     const bool isJewel = visible && m_bHasSelectedCollection && !m_SelectedCollection.HasItem
         && m_SelectedCollection.CurrencyMode > AuctionCurrencyMode::Zen
         && m_SelectedCollection.CurrencyMode < AuctionCurrencyMode::Fruits;
+    const bool mixedBid = visible && IsMixedBidActive();
     for (size_t i = 0; i < std::size(m_CollectionClaimInputs); ++i)
     {
-        const bool show = isFruit || (isJewel && i == 0);
+        const bool show = isFruit || (isJewel && i == 0) || (mixedBid && static_cast<int>(i) < m_MixedBidCount);
         m_CollectionClaimInputs[i].SetState(show ? UISTATE_NORMAL : UISTATE_HIDE);
     }
     if (!visible && HasCollectionClaimInputFocus())
@@ -1529,6 +1632,12 @@ void SEASON3B::CNewUIAuctionWindow::SetCollectionClaimInputsVisible(bool visible
 void SEASON3B::CNewUIAuctionWindow::PopulateCollectionClaimInputs()
 {
     SetCollectionClaimInputsVisible(false);
+    for (size_t i = 0; i < std::size(m_CollectionClaimInputs); ++i)
+    {
+        m_CollectionClaimInputs[i].SetPosition(
+            m_Pos.x + CLAIM_INPUT_X + static_cast<int>(i) * CLAIM_INPUT_COLUMN_WIDTH, m_Pos.y + CLAIM_INPUT_Y);
+    }
+
     if (!m_bHasSelectedCollection || m_SelectedCollection.HasItem
         || m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Zen)
     {
@@ -1568,7 +1677,9 @@ bool SEASON3B::CNewUIAuctionWindow::HasCollectionClaimInputFocus()
 bool SEASON3B::CNewUIAuctionWindow::TryGetRequestedCollectionAmount(AuctionHouse::AuctionAmount& amount)
 {
     // The wire's all-zero sentinel is the correct all-or-nothing request for lots and Zen.
-    if (m_SelectedCollection.HasItem || m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Zen)
+    // A basket of several currencies is claimed whole, like a lot.
+    if (m_SelectedCollection.HasItem || m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Zen
+        || m_SelectedCollection.CurrencyMode == AuctionCurrencyMode::Mixed)
     {
         amount = AuctionHouse::AuctionAmount::FromScalar(0);
         return true;
@@ -1905,6 +2016,8 @@ void SEASON3B::CNewUIAuctionWindow::SetOpenResponse(const AuctionHouse::AuctionO
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     m_SellPanel.SetServerSettings(response.ListingFeeBasisPoints, response.SuccessFeeBasisPoints, response.DurationMask,
         response.DefaultDurationHours);
+    m_SellPanel.SetMixedSupported(BUY_NOW_SUPPORTED || response.MixedPricesEnabled);
+    m_SellPanel.SetSaleFee(response.SaleFee);
 }
 
 void SEASON3B::CNewUIAuctionWindow::ClosingProcess()
@@ -2111,7 +2224,7 @@ bool SEASON3B::CNewUIAuctionWindow::BtnProcess()
             return true;
         }
 
-        if (m_iCurrentTab == TAB_MAILBOX)
+        if (m_iCurrentTab == TAB_MAILBOX || IsMixedBidActive())
         {
             for (auto& input : m_CollectionClaimInputs)
             {
@@ -2813,13 +2926,21 @@ void SEASON3B::CNewUIAuctionWindow::RenderDetailPanel()
     RenderColorQuadARGB(x + half, cardY + 8, 1, DETAIL_PRICE_CARD_HEIGHT - 16, BROWSE_HEADER_LINE_COLOR);
     EndRenderColor();
 
-    RenderCardCaption(detail.BidCount > 0 ? L"CURRENT BID" : L"STARTING PRICE", x, cardY + 9, half, RT3_SORT_CENTER);
+    const bool buyNowOnly = detail.CurrencyMode == AuctionCurrencyMode::Mixed && detail.StartingPrice.IsZero();
+    RenderCardCaption(buyNowOnly ? L"BIDDING" : (detail.BidCount > 0 ? L"CURRENT BID" : L"STARTING PRICE"), x, cardY + 9, half, RT3_SORT_CENTER);
     RenderCardCaption(L"BUYOUT", x + half + 1, cardY + 9, half, RT3_SORT_CENTER);
 
     const AuctionHouse::AuctionOpenResponse* openResponse = m_bHasOpenResponse ? &m_OpenResponse : nullptr;
     const int chipRowY = cardY + DETAIL_CHIP_ROW_Y;
-    RenderPriceCellText(x, half, chipRowY,
-        LayoutPriceCell(AuctionHouse::PriceComponentsOf(detail.CurrencyMode, detail.CurrentPrice), half, openResponse));
+    if (buyNowOnly)
+    {
+        RenderCardLine(L"Buy now only - no bids", x, chipRowY + BROWSE_ROW_TEXT_Y_OFFSET, half, false, 120, 126, 138, RT3_SORT_CENTER);
+    }
+    else
+    {
+        RenderPriceCellText(x, half, chipRowY,
+            LayoutPriceCell(AuctionHouse::PriceComponentsOf(detail.CurrencyMode, detail.CurrentPrice), half, openResponse));
+    }
     if (detail.BuyoutPrice.IsZero())
     {
         RenderCardLine(L"No buyout", x + half + 1, chipRowY + BROWSE_ROW_TEXT_Y_OFFSET, half, false, 120, 126, 138,
@@ -2836,6 +2957,29 @@ void SEASON3B::CNewUIAuctionWindow::RenderDetailPanel()
         const auto minimumBid = AuctionHouse::ComputeMinimumNextBid(detail.CurrencyMode, detail.CurrentPrice, detail.BidCount);
         RenderCardLine(L"Minimum bid: " + PriceSummaryText(detail.CurrencyMode, minimumBid), x + 12, cardY + 76, half - 24,
             false, 142, 148, 160);
+    }
+
+    if (IsMixedBidActive())
+    {
+        RenderMixedBidCard(x);
+    }
+}
+
+void SEASON3B::CNewUIAuctionWindow::RenderMixedBidCard(int x)
+{
+    RenderContainer(x, m_Pos.y + BID_CARD_Y, DETAIL_CARD_WIDTH, BID_CARD_HEIGHT);
+    RenderCardCaption(L"YOUR BID", x + 12, m_Pos.y + BID_CAPTION_Y, 90, RT3_SORT_LEFT);
+    RenderCardLine(L"Keep every currency and raise at least one. You may raise any of them.", x + 90, m_Pos.y + BID_CAPTION_Y,
+        DETAIL_CARD_WIDTH - 102, false, 142, 148, 160, RT3_SORT_RIGHT);
+    const UI::NineSlice::StateTints& tints = AuctionFieldSkin().tints;
+    for (int i = 0; i < m_MixedBidCount; ++i)
+    {
+        const int fieldX = m_Pos.x + CLAIM_FIELD_X + i * CLAIM_INPUT_COLUMN_WIDTH;
+        RenderCardCaption(UI::AuctionChrome::PriceKindName(m_MixedBidKinds[i]), fieldX, m_Pos.y + BID_LABEL_Y,
+            CLAIM_INPUT_COLUMN_WIDTH, RT3_SORT_LEFT);
+        UI::NineSlice::Render(AuctionFieldSkin().texture, static_cast<float>(fieldX), static_cast<float>(m_Pos.y + BID_FIELD_Y),
+            static_cast<float>(CLAIM_FIELD_WIDTH), 23.f, m_CollectionClaimInputs[i].HaveFocus() ? tints.pressed : tints.normal);
+        m_CollectionClaimInputs[i].Render();
     }
 }
 
@@ -2900,7 +3044,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderMailboxDetailPanel()
     const wchar_t* fruitLabels[] = {
         I18N::Game::Strength, I18N::Game::Agility, I18N::Game::Vitality, I18N::Game::Energy, I18N::Game::Command
     };
-    if (isMoney && entry.CurrencyMode != AuctionCurrencyMode::Zen)
+    if (isMoney && entry.CurrencyMode != AuctionCurrencyMode::Zen && entry.CurrencyMode != AuctionCurrencyMode::Mixed)
     {
         RenderContainer(x, m_Pos.y + CLAIM_CARD_Y, DETAIL_CARD_WIDTH, CLAIM_CARD_HEIGHT);
         const size_t inputCount = entry.CurrencyMode == AuctionCurrencyMode::Fruits ? 5 : 1;
@@ -2981,8 +3125,12 @@ void SEASON3B::CNewUIAuctionWindow::RenderOperationButtons()
     // (Buyout only) when the listing has no buyout price. The server independently re-validates every other
     // rule (self-trade, stale version, already-highest-bidder, etc.) — this is guidance, not enforcement, the
     // same relationship the page buttons have with their own boundary check.
-    const bool canBid = m_bHasDetailResponse && !m_bOperationRequestPending;
-    const bool canBuyout = canBid && !m_DetailResponse.BuyoutPrice.IsZero();
+    const bool detailReady = m_bHasDetailResponse && !m_bOperationRequestPending;
+    const bool mixedListing = detailReady && m_DetailResponse.CurrencyMode == AuctionCurrencyMode::Mixed;
+    AuctionHouse::BasketQuantities mixedBid{};
+    // A mixed listing takes a bid only while its form holds a valid raise; a buy-now listing takes none.
+    const bool canBid = detailReady && (!mixedListing || (IsMixedBidActive() && TryGetMixedBid(mixedBid)));
+    const bool canBuyout = detailReady && !m_DetailResponse.BuyoutPrice.IsZero();
 
     if (canBid)
     {
@@ -3370,6 +3518,13 @@ void SEASON3B::CNewUIAuctionWindow::RenderBrowseTab()
         RenderPriceCellText(innerX + table.priceX(), TABLE_PRICE_COLUMN_WIDTH, rowY,
             LayoutPriceCell(AuctionHouse::PriceComponentsOf(listing.CurrencyMode, listing.CurrentPrice),
                 TABLE_PRICE_COLUMN_WIDTH, openResponse));
+        if (listing.CurrencyMode == AuctionCurrencyMode::Mixed && listing.CurrentPrice.IsZero())
+        {
+            g_pRenderText->SetFont(g_hFont);
+            g_pRenderText->SetTextColor(142, 148, 160, 255);
+            g_pRenderText->RenderText((float)(innerX + table.priceX()), (float)(rowY + BROWSE_ROW_TEXT_Y_OFFSET), L"Buy now",
+                (float)TABLE_PRICE_COLUMN_WIDTH, 0, RT3_SORT_CENTER);
+        }
         RenderPriceCellText(innerX + table.buyoutX(), TABLE_BUYOUT_COLUMN_WIDTH, rowY,
             LayoutPriceCell(AuctionHouse::PriceComponentsOf(listing.CurrencyMode, listing.BuyoutPrice),
                 TABLE_BUYOUT_COLUMN_WIDTH, openResponse));

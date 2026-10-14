@@ -148,6 +148,7 @@ Creation = 5, ///< Creation.
 Guardian = 6, ///< Guardian.
 Harmony = 7, ///< Harmony.
 Fruits = 8, ///< Fruits.
+Mixed = 9, ///< A basket of several currencies, or a buy-now price.
 };
 
 enum class AuctionCategory : uint32_t
@@ -187,6 +188,7 @@ SaleProceeds = 2, ///< SaleProceeds.
 OutbidRefund = 3, ///< OutbidRefund.
 TenderChange = 4, ///< TenderChange.
 AdminRefund = 5, ///< AdminRefund.
+FeeRefund = 6, ///< The flat sale fee returned because the listing ended unsold.
 };
 
 enum class AuctionCollectionStatus : uint32_t

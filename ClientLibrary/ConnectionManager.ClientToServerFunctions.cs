@@ -6932,12 +6932,16 @@ public unsafe partial class ConnectionManager
     /// <param name="noteLength">The note length.</param>
     /// <param name="note">The note.</param>
     /// <param name="noteByteLength">The length of <paramref name="note"/>.</param>
+    /// <param name="startingBasket">The starting basket.</param>
+    /// <param name="startingBasketByteLength">The length of <paramref name="startingBasket"/>.</param>
+    /// <param name="buyoutBasket">The buyout basket.</param>
+    /// <param name="buyoutBasketByteLength">The length of <paramref name="buyoutBasket"/>.</param>
     /// <remarks>
     /// Is sent by the client when: Auction House request AuctionCreateRequest (sub 03).
     /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendAuctionCreateRequest")]
-    public static void SendAuctionCreateRequest(int handle, byte* @operationId, uint operationIdByteLength, byte @inventorySlot, AuctionCurrencyMode @currencyMode, uint @startingScalar, uint @startingStrength, uint @startingAgility, uint @startingVitality, uint @startingEnergy, uint @startingCommand, uint @buyoutScalar, uint @buyoutStrength, uint @buyoutAgility, uint @buyoutVitality, uint @buyoutEnergy, uint @buyoutCommand, byte @durationHours, byte @noteLength, byte* @note, uint noteByteLength)
+    public static void SendAuctionCreateRequest(int handle, byte* @operationId, uint operationIdByteLength, byte @inventorySlot, AuctionCurrencyMode @currencyMode, uint @startingScalar, uint @startingStrength, uint @startingAgility, uint @startingVitality, uint @startingEnergy, uint @startingCommand, uint @buyoutScalar, uint @buyoutStrength, uint @buyoutAgility, uint @buyoutVitality, uint @buyoutEnergy, uint @buyoutCommand, byte @durationHours, byte @noteLength, byte* @note, uint noteByteLength, byte* @startingBasket, uint startingBasketByteLength, byte* @buyoutBasket, uint buyoutBasketByteLength)
     {
         if (!Connections.TryGetValue(handle, out var connection))
         {
@@ -6968,6 +6972,8 @@ public unsafe partial class ConnectionManager
                 packet.DurationHours = @durationHours;
                 packet.NoteLength = @noteLength;
                 new Span<byte>(@note, (int)noteByteLength).CopyTo(packet.Note);
+                new Span<byte>(@startingBasket, (int)startingBasketByteLength).CopyTo(packet.StartingBasket);
+                new Span<byte>(@buyoutBasket, (int)buyoutBasketByteLength).CopyTo(packet.BuyoutBasket);
 
                 return length;
             });
@@ -6992,12 +6998,14 @@ public unsafe partial class ConnectionManager
     /// <param name="bidVitality">The bid vitality.</param>
     /// <param name="bidEnergy">The bid energy.</param>
     /// <param name="bidCommand">The bid command.</param>
+    /// <param name="bidBasket">The bid basket.</param>
+    /// <param name="bidBasketByteLength">The length of <paramref name="bidBasket"/>.</param>
     /// <remarks>
     /// Is sent by the client when: Auction House request AuctionBidRequest (sub 04).
     /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendAuctionBidRequest")]
-    public static void SendAuctionBidRequest(int handle, byte* @operationId, uint operationIdByteLength, ulong @listingId, uint @expectedVersion, uint @bidScalar, uint @bidStrength, uint @bidAgility, uint @bidVitality, uint @bidEnergy, uint @bidCommand)
+    public static void SendAuctionBidRequest(int handle, byte* @operationId, uint operationIdByteLength, ulong @listingId, uint @expectedVersion, uint @bidScalar, uint @bidStrength, uint @bidAgility, uint @bidVitality, uint @bidEnergy, uint @bidCommand, byte* @bidBasket, uint bidBasketByteLength)
     {
         if (!Connections.TryGetValue(handle, out var connection))
         {
@@ -7019,6 +7027,7 @@ public unsafe partial class ConnectionManager
                 packet.BidVitality = @bidVitality;
                 packet.BidEnergy = @bidEnergy;
                 packet.BidCommand = @bidCommand;
+                new Span<byte>(@bidBasket, (int)bidBasketByteLength).CopyTo(packet.BidBasket);
 
                 return length;
             });

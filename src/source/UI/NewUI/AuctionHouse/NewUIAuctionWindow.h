@@ -162,6 +162,12 @@ namespace SEASON3B
         void SetCollectionClaimInputsVisible(bool visible);
         bool TryGetRequestedCollectionAmount(AuctionHouse::AuctionAmount& amount);
         bool HasCollectionClaimInputFocus();
+        // The bid form of a mixed listing: one field per currency of the current bid (or the starting price), filled with
+        // the smallest valid raise. It reuses the five claim fields, which the Mailbox shows for a different purpose.
+        bool IsMixedBidActive() const;
+        void PopulateMixedBidInputs();
+        bool TryGetMixedBid(AuctionHouse::BasketQuantities& bid);
+        void RenderMixedBidCard(int x);
         void RenderDetailItemTooltip() const;
         void SendBidRequest();
         void SendBuyoutRequest();
@@ -337,6 +343,9 @@ namespace SEASON3B
         // One numeric field for jewel claims, or five fields for a fruit vector. Item and Zen collection stay
         // all-or-nothing and therefore show no quantity input.
         CUITextInputBox m_CollectionClaimInputs[5];
+        // The currencies of the mixed bid form, in field order.
+        AuctionHouse::PriceKind m_MixedBidKinds[5];
+        int m_MixedBidCount;
         bool m_bOperationRequestPending;
         std::array<uint8_t, 16> m_PendingOperationId;
         bool m_bHasOperationResult;

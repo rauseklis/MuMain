@@ -119,6 +119,11 @@ namespace AuctionHouse
             return currentPrice;
         }
 
+        if (currentPrice.IsBasket())
+        {
+            return AuctionAmount::FromBasket(SuggestedMixedBid(currentPrice.Basket(), true));
+        }
+
         if (mode == AuctionCurrencyMode::Fruits)
         {
             const auto& current = currentPrice.Fruits();
@@ -143,6 +148,12 @@ namespace AuctionHouse
 
     AuctionAmount ComputeAuctionFee(const AuctionAmount& amount, uint16_t basisPoints) noexcept
     {
+        if (amount.IsBasket())
+        {
+            // A mixed price takes no percentage fee: the only tax is the flat listing tax.
+            return AuctionAmount::FromBasket(BasketQuantities{});
+        }
+
         if (!amount.IsFruitBasket())
         {
             return AuctionAmount::FromScalar(ComputeFeeComponent(amount.Scalar(), basisPoints));
@@ -263,6 +274,18 @@ namespace AuctionHouse
     std::vector<PriceComponent> PriceComponentsOf(AuctionCurrencyMode currency, const AuctionAmount& amount)
     {
         std::vector<PriceComponent> components;
+        if (amount.IsBasket())
+        {
+            for (size_t kind = 0; kind < PriceKindCount; ++kind)
+            {
+                if (amount.Basket()[kind] > 0)
+                {
+                    components.push_back({ static_cast<PriceKind>(kind), amount.Basket()[kind] });
+                }
+            }
+            return components;
+        }
+
         if (amount.IsFruitBasket())
         {
             const FruitBasket& basket = amount.Fruits();
@@ -303,23 +326,6 @@ namespace AuctionHouse
             return SellDraftIssue::NoPrice;
         }
 
-        if (draft.mode == SellMode::Auction)
-        {
-            if (draft.rows.size() > 1)
-            {
-                return SellDraftIssue::TooManyComponents;
-            }
-
-            const int64_t starting = draft.rows.front().quantity;
-            if (starting <= 0)
-            {
-                return SellDraftIssue::ZeroQuantity;
-            }
-
-            const bool hasBuyout = draft.auctionBuyoutQuantity != 0;
-            return hasBuyout && draft.auctionBuyoutQuantity < starting ? SellDraftIssue::BuyoutBelowStart : SellDraftIssue::None;
-        }
-
         if (static_cast<int>(draft.rows.size()) > maximumComponents)
         {
             return SellDraftIssue::TooManyComponents;
@@ -341,23 +347,73 @@ namespace AuctionHouse
             }
         }
 
+        if (draft.mode == SellMode::BuyNow)
+        {
+            return SellDraftIssue::None;
+        }
+
+        if (draft.rows.size() > 1 && !buyNowSupported)
+        {
+            return SellDraftIssue::MixedUnavailable;
+        }
+
+        // A buyout is named in every currency of the starting price, each at least as high, or in none.
+        size_t withBuyout = 0;
+        for (const SellPriceRow& row : draft.rows)
+        {
+            withBuyout += row.buyoutQuantity > 0 ? 1 : 0;
+        }
+        if (withBuyout == 0)
+        {
+            return SellDraftIssue::None;
+        }
+        if (withBuyout != draft.rows.size())
+        {
+            return SellDraftIssue::BuyoutIncomplete;
+        }
+        for (const SellPriceRow& row : draft.rows)
+        {
+            if (row.buyoutQuantity < row.quantity)
+            {
+                return SellDraftIssue::BuyoutBelowStart;
+            }
+        }
         return SellDraftIssue::None;
     }
 
     std::optional<CreateFields> ToCreateFields(const SellDraft& draft)
     {
-        if (draft.mode != SellMode::Auction || draft.rows.size() != 1)
+        if (draft.rows.empty())
         {
             return std::nullopt;
         }
 
-        const SellPriceRow& row = draft.rows.front();
         CreateFields fields;
+        if (draft.mode == SellMode::BuyNow || draft.rows.size() > 1)
+        {
+            fields.currencyMode = AuctionCurrencyMode::Mixed;
+            for (const SellPriceRow& row : draft.rows)
+            {
+                const auto index = static_cast<size_t>(row.kind);
+                if (draft.mode == SellMode::BuyNow)
+                {
+                    fields.buyoutBasket[index] = row.quantity;
+                }
+                else
+                {
+                    fields.startingBasket[index] = row.quantity;
+                    fields.buyoutBasket[index] = row.buyoutQuantity;
+                }
+            }
+            return fields;
+        }
+
+        const SellPriceRow& row = draft.rows.front();
         if (row.kind <= PriceKind::Harmony)
         {
             fields.currencyMode = static_cast<AuctionCurrencyMode>(static_cast<int>(row.kind));
             fields.starting = AuctionAmount::FromScalar(row.quantity);
-            fields.buyout = AuctionAmount::FromScalar(draft.auctionBuyoutQuantity);
+            fields.buyout = AuctionAmount::FromScalar(row.buyoutQuantity);
             return fields;
         }
 
@@ -376,8 +432,59 @@ namespace AuctionHouse
         };
         fields.currencyMode = AuctionCurrencyMode::Fruits;
         fields.starting = AuctionAmount::FromFruits(basketOf(row.quantity));
-        fields.buyout = AuctionAmount::FromFruits(basketOf(draft.auctionBuyoutQuantity));
+        fields.buyout = AuctionAmount::FromFruits(basketOf(row.buyoutQuantity));
         return fields;
+    }
+
+    bool IsMixedBidAllowed(const BasketQuantities& starting, const BasketQuantities& current, bool hasBid,
+        const BasketQuantities& bid) noexcept
+    {
+        constexpr int64_t WireMaximum = 0xFFFFFFFFLL;
+        int named = 0;
+        bool raised = false;
+        for (size_t kind = 0; kind < PriceKindCount; ++kind)
+        {
+            const int64_t offered = bid[kind];
+            if (offered < 0 || offered > WireMaximum)
+            {
+                return false;
+            }
+            named += offered > 0 ? 1 : 0;
+
+            const int64_t floor = hasBid ? current[kind] : starting[kind];
+            if (offered < floor)
+            {
+                return false;
+            }
+            raised = raised || offered > floor;
+        }
+
+        if (named == 0 || named > MaximumSellComponents)
+        {
+            return false;
+        }
+
+        // Before any bid, matching the starting price is enough; afterwards the bid must raise something.
+        return hasBid ? raised : true;
+    }
+
+    BasketQuantities SuggestedMixedBid(const BasketQuantities& floor, bool hasBid) noexcept
+    {
+        BasketQuantities suggestion = floor;
+        if (!hasBid)
+        {
+            return suggestion;
+        }
+
+        for (int64_t& quantity : suggestion)
+        {
+            if (quantity > 0)
+            {
+                ++quantity;
+                break;
+            }
+        }
+        return suggestion;
     }
 
     const wchar_t* DescribeCreateResult(AuctionResult result) noexcept

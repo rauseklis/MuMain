@@ -10,8 +10,15 @@ namespace
     {
         SellDraft draft;
         draft.mode = SellMode::Auction;
-        draft.rows = { SellPriceRow{ kind, quantity } };
-        draft.auctionBuyoutQuantity = buyout;
+        draft.rows = { SellPriceRow{ kind, quantity, buyout } };
+        return draft;
+    }
+
+    SellDraft MixedAuctionDraft(std::vector<SellPriceRow> rows)
+    {
+        SellDraft draft;
+        draft.mode = SellMode::Auction;
+        draft.rows = std::move(rows);
         return draft;
     }
 
@@ -47,12 +54,37 @@ TEST_CASE("an auction buyout is optional and not below the starting price [ui][a
     CHECK(ValidateSellDraft(AuctionDraft(PriceKind::Soul, 10, 9), true) == SellDraftIssue::BuyoutBelowStart);
 }
 
-TEST_CASE("an auction takes exactly one price row [ui][auction_sell]")
+TEST_CASE("an auction in several currencies needs a server that takes mixed prices [ui][auction_sell]")
 {
-    SellDraft draft = AuctionDraft(PriceKind::Soul, 10);
-    draft.rows.push_back(SellPriceRow{ PriceKind::Bless, 2 });
+    const auto draft = MixedAuctionDraft({ SellPriceRow{ PriceKind::Soul, 10 }, SellPriceRow{ PriceKind::Bless, 2 } });
 
-    CHECK(ValidateSellDraft(draft, true) == SellDraftIssue::TooManyComponents);
+    CHECK(ValidateSellDraft(draft, true) == SellDraftIssue::None);
+    CHECK(ValidateSellDraft(draft, false) == SellDraftIssue::MixedUnavailable);
+}
+
+TEST_CASE("an auction mixes up to five distinct kinds with positive amounts [ui][auction_sell]")
+{
+    auto five = MixedAuctionDraft({ SellPriceRow{ PriceKind::Zen, 5000 }, SellPriceRow{ PriceKind::Chaos, 1 },
+        SellPriceRow{ PriceKind::Bless, 1 }, SellPriceRow{ PriceKind::Soul, 1 }, SellPriceRow{ PriceKind::Life, 1 } });
+    auto six = five;
+    six.rows.push_back(SellPriceRow{ PriceKind::Creation, 1 });
+    auto duplicate = MixedAuctionDraft({ SellPriceRow{ PriceKind::Soul, 1 }, SellPriceRow{ PriceKind::Soul, 2 } });
+    auto zero = MixedAuctionDraft({ SellPriceRow{ PriceKind::Soul, 1 }, SellPriceRow{ PriceKind::Bless, 0 } });
+
+    CHECK(ValidateSellDraft(five, true) == SellDraftIssue::None);
+    CHECK(ValidateSellDraft(six, true) == SellDraftIssue::TooManyComponents);
+    CHECK(ValidateSellDraft(duplicate, true) == SellDraftIssue::DuplicateKind);
+    CHECK(ValidateSellDraft(zero, true) == SellDraftIssue::ZeroQuantity);
+}
+
+TEST_CASE("a mixed auction names a buyout in every currency or in none [ui][auction_sell]")
+{
+    CHECK(ValidateSellDraft(MixedAuctionDraft({ SellPriceRow{ PriceKind::Soul, 10, 12 }, SellPriceRow{ PriceKind::Bless, 2, 2 } }), true)
+        == SellDraftIssue::None);
+    CHECK(ValidateSellDraft(MixedAuctionDraft({ SellPriceRow{ PriceKind::Soul, 10, 12 }, SellPriceRow{ PriceKind::Bless, 2, 0 } }), true)
+        == SellDraftIssue::BuyoutIncomplete);
+    CHECK(ValidateSellDraft(MixedAuctionDraft({ SellPriceRow{ PriceKind::Soul, 10, 12 }, SellPriceRow{ PriceKind::Bless, 2, 1 } }), true)
+        == SellDraftIssue::BuyoutBelowStart);
 }
 
 TEST_CASE("buy now is refused while the server cannot take mixed prices [ui][auction_sell]")
@@ -112,9 +144,34 @@ TEST_CASE("an auction in a stat fruit maps to a fruit basket with that one compo
     CHECK(fields->buyout.Fruits() == FruitBasket{ .Energy = 30 });
 }
 
-TEST_CASE("a buy now draft has no create fields on the current protocol [ui][auction_sell]")
+TEST_CASE("a buy now draft becomes a mixed create with only a buyout basket [ui][auction_sell]")
 {
-    CHECK_FALSE(ToCreateFields(BuyNowDraft({ SellPriceRow{ PriceKind::Bless, 4 } })).has_value());
+    const auto fields = ToCreateFields(BuyNowDraft({ SellPriceRow{ PriceKind::Bless, 4 }, SellPriceRow{ PriceKind::Zen, 50000 },
+        SellPriceRow{ PriceKind::CommandFruit, 7 } }));
+
+    REQUIRE(fields.has_value());
+    CHECK(fields->currencyMode == AuctionCurrencyMode::Mixed);
+    CHECK(fields->startingBasket == BasketQuantities{});
+    CHECK(fields->buyoutBasket == BasketQuantities{ 50000, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7 });
+}
+
+TEST_CASE("an auction in several currencies becomes a mixed create with both baskets [ui][auction_sell]")
+{
+    const auto fields = ToCreateFields(MixedAuctionDraft({ SellPriceRow{ PriceKind::Soul, 3, 5 }, SellPriceRow{ PriceKind::Zen, 50000, 80000 } }));
+
+    REQUIRE(fields.has_value());
+    CHECK(fields->currencyMode == AuctionCurrencyMode::Mixed);
+    CHECK(fields->startingBasket == BasketQuantities{ 50000, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+    CHECK(fields->buyoutBasket == BasketQuantities{ 80000, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+
+    const auto withoutBuyout = ToCreateFields(MixedAuctionDraft({ SellPriceRow{ PriceKind::Soul, 3 }, SellPriceRow{ PriceKind::Zen, 50000 } }));
+    REQUIRE(withoutBuyout.has_value());
+    CHECK(withoutBuyout->buyoutBasket == BasketQuantities{});
+}
+
+TEST_CASE("an empty draft has no create fields [ui][auction_sell]")
+{
+    CHECK_FALSE(ToCreateFields(SellDraft{}).has_value());
 }
 
 TEST_CASE("the fee for a sell draft is the listing fee on its starting price [ui][auction_sell]")
@@ -179,4 +236,66 @@ TEST_CASE("a create result is described the same through the general function [u
 {
     CHECK(std::wstring(DescribeOperationResult(AuctionOperationType::Create, AuctionResult::InsufficientCurrency))
         == std::wstring(DescribeCreateResult(AuctionResult::InsufficientCurrency)));
+}
+
+TEST_CASE("a basket amount lists its priced kinds in kind order [ui][auction_sell]")
+{
+    const auto amount = AuctionAmount::FromBasket(BasketQuantities{ 50000, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 12 });
+
+    const auto components = PriceComponentsOf(AuctionCurrencyMode::Mixed, amount);
+
+    REQUIRE(components.size() == 3);
+    CHECK(components[0].kind == PriceKind::Zen);
+    CHECK(components[0].amount == 50000);
+    CHECK(components[1].kind == PriceKind::Soul);
+    CHECK(components[2].kind == PriceKind::CommandFruit);
+    CHECK_FALSE(amount.IsZero());
+    CHECK(AuctionAmount::FromBasket(BasketQuantities{}).IsZero());
+}
+
+TEST_CASE("the first bid on a mixed listing must reach the starting price in every currency [ui][auction_sell]")
+{
+    const BasketQuantities starting{ 50000, 0, 0, 3 };
+    const BasketQuantities none{};
+
+    CHECK(IsMixedBidAllowed(starting, none, false, BasketQuantities{ 50000, 0, 0, 3 }));
+    CHECK(IsMixedBidAllowed(starting, none, false, BasketQuantities{ 60000, 0, 1, 4 }));
+    CHECK_FALSE(IsMixedBidAllowed(starting, none, false, BasketQuantities{ 50000, 0, 0, 2 }));
+    CHECK_FALSE(IsMixedBidAllowed(starting, none, false, BasketQuantities{ 0, 0, 0, 9 }));
+    CHECK_FALSE(IsMixedBidAllowed(starting, none, false, none));
+}
+
+TEST_CASE("a later bid keeps every currency of the current bid and raises one [ui][auction_sell]")
+{
+    const BasketQuantities starting{ 50000, 0, 0, 3 };
+    const BasketQuantities current{ 50000, 0, 1, 4 };
+
+    CHECK(IsMixedBidAllowed(starting, current, true, BasketQuantities{ 50000, 0, 1, 5 }));
+    CHECK(IsMixedBidAllowed(starting, current, true, BasketQuantities{ 50000, 1, 1, 4 }));
+    CHECK_FALSE(IsMixedBidAllowed(starting, current, true, current));
+    CHECK_FALSE(IsMixedBidAllowed(starting, current, true, BasketQuantities{ 90000, 0, 0, 9 }));
+}
+
+TEST_CASE("a bid names at most five currencies and no more than the wire can carry [ui][auction_sell]")
+{
+    const BasketQuantities starting{ 1, 1, 1, 1, 1 };
+    CHECK_FALSE(IsMixedBidAllowed(starting, BasketQuantities{}, false, BasketQuantities{ 1, 1, 1, 1, 1, 1 }));
+    CHECK_FALSE(IsMixedBidAllowed(BasketQuantities{ 1 }, BasketQuantities{}, false, BasketQuantities{ 5000000000LL }));
+}
+
+TEST_CASE("the suggested mixed bid is the starting price, then the current bid plus one of its first currency [ui][auction_sell]")
+{
+    CHECK(SuggestedMixedBid(BasketQuantities{ 50000, 0, 0, 3 }, false) == BasketQuantities{ 50000, 0, 0, 3 });
+    CHECK(SuggestedMixedBid(BasketQuantities{ 0, 0, 1, 4 }, true) == BasketQuantities{ 0, 0, 2, 4 });
+}
+
+TEST_CASE("the minimum next bid on a mixed listing follows the same rule [ui][auction_sell]")
+{
+    const auto current = AuctionAmount::FromBasket(BasketQuantities{ 50000, 0, 0, 3 });
+
+    const auto first = ComputeMinimumNextBid(AuctionCurrencyMode::Mixed, current, 0);
+    const auto later = ComputeMinimumNextBid(AuctionCurrencyMode::Mixed, current, 2);
+
+    CHECK(first.Basket() == BasketQuantities{ 50000, 0, 0, 3 });
+    CHECK(later.Basket() == BasketQuantities{ 50001, 0, 0, 3 });
 }

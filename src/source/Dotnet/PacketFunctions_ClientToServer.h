@@ -2160,11 +2160,15 @@ public:
     /// <param name="noteLength">The note length.</param>
     /// <param name="note">The note.</param>
     /// <param name="noteByteLength">The length of <paramref name="note"/> in bytes.
+    /// <param name="startingBasket">The starting basket.</param>
+    /// <param name="startingBasketByteLength">The length of <paramref name="startingBasket"/> in bytes.
+    /// <param name="buyoutBasket">The buyout basket.</param>
+    /// <param name="buyoutBasketByteLength">The length of <paramref name="buyoutBasket"/> in bytes.
     /// <remarks>
     /// Is sent by the client when: Auction House request AuctionCreateRequest (sub 03).
     /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
     /// </remarks>
-    void SendAuctionCreateRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE inventorySlot, AuctionCurrencyMode currencyMode, uint32_t startingScalar, uint32_t startingStrength, uint32_t startingAgility, uint32_t startingVitality, uint32_t startingEnergy, uint32_t startingCommand, uint32_t buyoutScalar, uint32_t buyoutStrength, uint32_t buyoutAgility, uint32_t buyoutVitality, uint32_t buyoutEnergy, uint32_t buyoutCommand, BYTE durationHours, BYTE noteLength, const BYTE* note, uint32_t noteByteLength);
+    void SendAuctionCreateRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE inventorySlot, AuctionCurrencyMode currencyMode, uint32_t startingScalar, uint32_t startingStrength, uint32_t startingAgility, uint32_t startingVitality, uint32_t startingEnergy, uint32_t startingCommand, uint32_t buyoutScalar, uint32_t buyoutStrength, uint32_t buyoutAgility, uint32_t buyoutVitality, uint32_t buyoutEnergy, uint32_t buyoutCommand, BYTE durationHours, BYTE noteLength, const BYTE* note, uint32_t noteByteLength, const BYTE* startingBasket, uint32_t startingBasketByteLength, const BYTE* buyoutBasket, uint32_t buyoutBasketByteLength);
 
     /// <summary>
     /// Sends a AuctionBidRequest to this connection.
@@ -2179,11 +2183,13 @@ public:
     /// <param name="bidVitality">The bid vitality.</param>
     /// <param name="bidEnergy">The bid energy.</param>
     /// <param name="bidCommand">The bid command.</param>
+    /// <param name="bidBasket">The bid basket.</param>
+    /// <param name="bidBasketByteLength">The length of <paramref name="bidBasket"/> in bytes.
     /// <remarks>
     /// Is sent by the client when: Auction House request AuctionBidRequest (sub 04).
     /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
     /// </remarks>
-    void SendAuctionBidRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion, uint32_t bidScalar, uint32_t bidStrength, uint32_t bidAgility, uint32_t bidVitality, uint32_t bidEnergy, uint32_t bidCommand);
+    void SendAuctionBidRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t listingId, uint32_t expectedVersion, uint32_t bidScalar, uint32_t bidStrength, uint32_t bidAgility, uint32_t bidVitality, uint32_t bidEnergy, uint32_t bidCommand, const BYTE* bidBasket, uint32_t bidBasketByteLength);
 
     /// <summary>
     /// Sends a AuctionBuyoutRequest to this connection.

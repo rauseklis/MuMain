@@ -65,16 +65,21 @@ namespace
     constexpr int MODE_WIDTH = (FORM_WIDTH - MODE_GAP) / 2;
 
     constexpr int PRICE_PANEL_Y = 102;
-    constexpr int PRICE_PANEL_HEIGHT = 177;
+    constexpr int PRICE_PANEL_HEIGHT = 190;
     constexpr int PRICE_DESCRIPTION_Y = PRICE_PANEL_Y + 7;
-    constexpr int ROWS_Y = PRICE_PANEL_Y + 26;
+    constexpr int ROWS_Y = PRICE_PANEL_Y + 38;
+    constexpr int ROW_HEADER_Y = ROWS_Y - 14;
     constexpr int ROW_PITCH = 30;
     constexpr int PRICE_LABEL_X = FORM_X + 8;
 
-    constexpr int AUCTION_KIND_X = 250;
+    // An auction row: currency, starting amount, optional buyout amount, remove box.
+    constexpr int AUCTION_KIND_X = FORM_X + 8;
     constexpr int AUCTION_KIND_WIDTH = 150;
-    constexpr int AUCTION_QUANTITY_X = 408;
-    constexpr int AUCTION_QUANTITY_WIDTH = FORM_INNER_RIGHT - AUCTION_QUANTITY_X;
+    constexpr int AUCTION_QUANTITY_X = AUCTION_KIND_X + AUCTION_KIND_WIDTH + 8;
+    constexpr int AUCTION_QUANTITY_WIDTH = 110;
+    constexpr int AUCTION_BUYOUT_X = AUCTION_QUANTITY_X + AUCTION_QUANTITY_WIDTH + 8;
+    constexpr int AUCTION_BUYOUT_WIDTH = 110;
+    constexpr int AUCTION_REMOVE_X = AUCTION_BUYOUT_X + AUCTION_BUYOUT_WIDTH + 8;
 
     constexpr int BUYNOW_KIND_X = FORM_X + 8;
     constexpr int BUYNOW_KIND_WIDTH = 190;
@@ -154,6 +159,17 @@ namespace
     constexpr DWORD NOTICE_COLOUR = Rgb(232, 190, 100);
     constexpr DWORD FEE_COLOUR = Rgb(238, 224, 168);
 
+    // 100000 -> "100,000".
+    std::wstring GroupedNumber(uint32_t value)
+    {
+        std::wstring digits = std::to_wstring(value);
+        for (int position = static_cast<int>(digits.size()) - 3; position > 0; position -= 3)
+        {
+            digits.insert(static_cast<size_t>(position), L",");
+        }
+        return digits;
+    }
+
     std::wstring PercentText(uint16_t basisPoints)
     {
         std::wstring text = std::to_wstring(basisPoints / 100);
@@ -168,7 +184,7 @@ namespace
 CNewUIAuctionSellPanel::CNewUIAuctionSellPanel()
     : m_Pos{ 0, 0 }, m_bActive(false), m_bBuyNowSupported(false), m_bBusy(false), m_bHasItem(false),
       m_bCreateRequested(false), m_bHasResult(false), m_bResultSuccess(false), m_Mode(AuctionHouse::SellMode::Auction),
-      m_RowCount(1), m_ListingFeeBasisPoints(0), m_SuccessFeeBasisPoints(0), m_KindLabels{}, m_KindIndex{},
+      m_RowCount(1), m_SaleFee(0), m_ListingFeeBasisPoints(0), m_SuccessFeeBasisPoints(0), m_KindLabels{}, m_KindIndex{},
       m_DurationLabels{}, m_DurationHours{}, m_DurationCount(0)
 {
 }
@@ -218,13 +234,16 @@ void CNewUIAuctionSellPanel::Create(int windowX, int windowY, bool buyNowSupport
     {
         initInput(input, 10, true);
     }
-    initInput(m_BuyoutInput, 10, true);
+    for (auto& input : m_BuyoutInputs)
+    {
+        initInput(input, 10, true);
+    }
     initInput(m_NoteInput, NOTE_MAX_CHARACTERS, false);
 
     SetServerSettings(m_ListingFeeBasisPoints, m_SuccessFeeBasisPoints, 0x0F, 24);
     m_DurationCombo.SetFieldSkin(&AuctionFieldSkin());
 
-    InitButton(m_BtnAdd, 0, 0, BUYNOW_KIND_WIDTH, L"+ Add currency");
+    InitButton(m_BtnAdd, 0, 0, AUCTION_KIND_WIDTH, L"+ Add currency");
     InitButton(m_BtnCreate, 0, 0, CREATE_WIDTH, L"Create Listing");
     InitButton(m_BtnClear, 0, 0, CLEAR_WIDTH, L"Clear");
 
@@ -251,26 +270,26 @@ void CNewUIAuctionSellPanel::SetPos(int windowX, int windowY)
 void CNewUIAuctionSellPanel::LayoutControls()
 {
     const bool auction = m_Mode == AuctionHouse::SellMode::Auction;
+    const int kindX = auction ? AUCTION_KIND_X : BUYNOW_KIND_X;
+    const int kindWidth = auction ? AUCTION_KIND_WIDTH : BUYNOW_KIND_WIDTH;
+    const int quantityX = auction ? AUCTION_QUANTITY_X : BUYNOW_QUANTITY_X;
     const int quantityWidth = (auction ? AUCTION_QUANTITY_WIDTH : BUYNOW_QUANTITY_WIDTH) - 2 * INPUT_INSET;
     for (int row = 0; row < MaxRows; ++row)
     {
         const int rowY = m_Pos.y + ROWS_Y + row * ROW_PITCH;
-        m_KindCombos[row].Setup(m_Pos.x + (auction ? AUCTION_KIND_X : BUYNOW_KIND_X), rowY,
-            auction ? AUCTION_KIND_WIDTH : BUYNOW_KIND_WIDTH, FIELD_HEIGHT, m_KindLabels, KindCount, m_KindIndex[row], 6);
+        m_KindCombos[row].Setup(m_Pos.x + kindX, rowY, kindWidth, FIELD_HEIGHT, m_KindLabels, KindCount, m_KindIndex[row], 6);
         m_KindCombos[row].SetFieldSkin(&AuctionFieldSkin());
         m_QuantityInputs[row].SetSize(quantityWidth, INPUT_HEIGHT);
-        m_QuantityInputs[row].SetPosition(m_Pos.x + (auction ? AUCTION_QUANTITY_X : BUYNOW_QUANTITY_X) + INPUT_INSET,
-            rowY + TEXT_Y_OFFSET);
+        m_QuantityInputs[row].SetPosition(m_Pos.x + quantityX + INPUT_INSET, rowY + TEXT_Y_OFFSET);
+        m_BuyoutInputs[row].SetSize(AUCTION_BUYOUT_WIDTH - 2 * INPUT_INSET, INPUT_HEIGHT);
+        m_BuyoutInputs[row].SetPosition(m_Pos.x + AUCTION_BUYOUT_X + INPUT_INSET, rowY + TEXT_Y_OFFSET);
     }
-
-    m_BuyoutInput.SetSize(quantityWidth, INPUT_HEIGHT);
-    m_BuyoutInput.SetPosition(m_Pos.x + AUCTION_QUANTITY_X + INPUT_INSET, m_Pos.y + ROWS_Y + ROW_PITCH + TEXT_Y_OFFSET);
 
     m_DurationCombo.SetPos(m_Pos.x + DURATION_X, m_Pos.y + OPTIONS_Y);
     m_NoteInput.SetSize(NOTE_WIDTH - 2 * INPUT_INSET, INPUT_HEIGHT);
     m_NoteInput.SetPosition(m_Pos.x + NOTE_X + INPUT_INSET, m_Pos.y + OPTIONS_Y + TEXT_Y_OFFSET);
 
-    m_BtnAdd.ChangeButtonInfo(m_Pos.x + BUYNOW_KIND_X, m_Pos.y + ROWS_Y + m_RowCount * ROW_PITCH, BUYNOW_KIND_WIDTH, BUTTON_HEIGHT);
+    m_BtnAdd.ChangeButtonInfo(m_Pos.x + kindX, m_Pos.y + ROWS_Y + m_RowCount * ROW_PITCH, AUCTION_KIND_WIDTH, BUTTON_HEIGHT);
     m_BtnCreate.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - BUTTON_MARGIN - CREATE_WIDTH, m_Pos.y + BUTTON_Y, CREATE_WIDTH, BUTTON_HEIGHT);
     m_BtnClear.ChangeButtonInfo(m_Pos.x + BUTTON_MARGIN, m_Pos.y + BUTTON_Y, CLEAR_WIDTH, BUTTON_HEIGHT);
 }
@@ -280,10 +299,10 @@ void CNewUIAuctionSellPanel::RefreshVisibility()
     const bool auction = m_Mode == AuctionHouse::SellMode::Auction;
     for (int row = 0; row < MaxRows; ++row)
     {
-        const bool shown = m_bActive && (auction ? row == 0 : row < m_RowCount);
+        const bool shown = m_bActive && row < m_RowCount;
         m_QuantityInputs[row].SetState(shown ? UISTATE_NORMAL : UISTATE_HIDE);
+        m_BuyoutInputs[row].SetState(shown && auction ? UISTATE_NORMAL : UISTATE_HIDE);
     }
-    m_BuyoutInput.SetState(m_bActive && auction ? UISTATE_NORMAL : UISTATE_HIDE);
     m_NoteInput.SetState(m_bActive ? UISTATE_NORMAL : UISTATE_HIDE);
 }
 
@@ -334,6 +353,16 @@ void CNewUIAuctionSellPanel::SetBusy(bool busy)
     m_bBusy = busy;
 }
 
+void CNewUIAuctionSellPanel::SetMixedSupported(bool mixedSupported)
+{
+    m_bBuyNowSupported = mixedSupported;
+}
+
+void CNewUIAuctionSellPanel::SetSaleFee(uint32_t saleFee)
+{
+    m_SaleFee = saleFee;
+}
+
 void CNewUIAuctionSellPanel::SetItemSelected(bool hasItem)
 {
     m_bHasItem = hasItem;
@@ -359,8 +388,8 @@ void CNewUIAuctionSellPanel::ClearForm()
         m_KindIndex[row] = row;
         m_KindCombos[row].SetSelectedIndex(row);
         m_QuantityInputs[row].SetText(L"");
+        m_BuyoutInputs[row].SetText(L"");
     }
-    m_BuyoutInput.SetText(L"");
     m_NoteInput.SetText(L"");
     for (int choice = 0; choice < m_DurationCount; ++choice)
     {
@@ -412,6 +441,7 @@ void CNewUIAuctionSellPanel::AddRow()
     m_KindIndex[m_RowCount] = kind;
     m_KindCombos[m_RowCount].SetSelectedIndex(kind);
     m_QuantityInputs[m_RowCount].SetText(L"");
+    m_BuyoutInputs[m_RowCount].SetText(L"");
     ++m_RowCount;
     LayoutControls();
     RefreshVisibility();
@@ -430,10 +460,14 @@ void CNewUIAuctionSellPanel::RemoveRow(int row)
         wchar_t text[16]{};
         m_QuantityInputs[i + 1].GetText(text, static_cast<int>(std::size(text)));
         m_QuantityInputs[i].SetText(text);
+        wchar_t buyout[16]{};
+        m_BuyoutInputs[i + 1].GetText(buyout, static_cast<int>(std::size(buyout)));
+        m_BuyoutInputs[i].SetText(buyout);
         m_KindIndex[i] = m_KindIndex[i + 1];
         m_KindCombos[i].SetSelectedIndex(m_KindIndex[i]);
     }
     m_QuantityInputs[m_RowCount - 1].SetText(L"");
+    m_BuyoutInputs[m_RowCount - 1].SetText(L"");
     --m_RowCount;
     LayoutControls();
     RefreshVisibility();
@@ -481,29 +515,26 @@ AuctionHouse::SellDraft CNewUIAuctionSellPanel::BuildDraft()
     AuctionHouse::SellDraft draft;
     draft.mode = m_Mode;
     draft.durationHours = static_cast<uint8_t>(SelectedDurationHours());
-    const int rows = m_Mode == AuctionHouse::SellMode::Auction ? 1 : m_RowCount;
-    for (int row = 0; row < rows; ++row)
+    const bool auction = m_Mode == AuctionHouse::SellMode::Auction;
+    for (int row = 0; row < m_RowCount; ++row)
     {
         draft.rows.push_back({ static_cast<AuctionHouse::PriceKind>(m_KindCombos[row].GetSelectedIndex()),
-            ParseQuantity(m_QuantityInputs[row]) });
-    }
-    if (m_Mode == AuctionHouse::SellMode::Auction)
-    {
-        draft.auctionBuyoutQuantity = ParseQuantity(m_BuyoutInput);
+            ParseQuantity(m_QuantityInputs[row]), auction ? ParseQuantity(m_BuyoutInputs[row]) : 0 });
     }
     return draft;
 }
 
 bool CNewUIAuctionSellPanel::AnyInputFocused() const
 {
-    for (const auto& input : m_QuantityInputs)
+    for (int row = 0; row < MaxRows; ++row)
     {
-        if (const_cast<CUITextInputBox&>(input).HaveFocus())
+        if (const_cast<CUITextInputBox&>(m_QuantityInputs[row]).HaveFocus()
+            || const_cast<CUITextInputBox&>(m_BuyoutInputs[row]).HaveFocus())
         {
             return true;
         }
     }
-    return const_cast<CUITextInputBox&>(m_BuyoutInput).HaveFocus() || const_cast<CUITextInputBox&>(m_NoteInput).HaveFocus();
+    return const_cast<CUITextInputBox&>(m_NoteInput).HaveFocus();
 }
 
 bool CNewUIAuctionSellPanel::HasInputFocus() const
@@ -513,16 +544,16 @@ bool CNewUIAuctionSellPanel::HasInputFocus() const
 
 HWND CNewUIAuctionSellPanel::FocusedInputHandle() const
 {
-    for (const auto& input : m_QuantityInputs)
+    for (int row = 0; row < MaxRows; ++row)
     {
-        if (const_cast<CUITextInputBox&>(input).HaveFocus())
+        if (const_cast<CUITextInputBox&>(m_QuantityInputs[row]).HaveFocus())
         {
-            return const_cast<CUITextInputBox&>(input).GetHandle();
+            return const_cast<CUITextInputBox&>(m_QuantityInputs[row]).GetHandle();
         }
-    }
-    if (const_cast<CUITextInputBox&>(m_BuyoutInput).HaveFocus())
-    {
-        return const_cast<CUITextInputBox&>(m_BuyoutInput).GetHandle();
+        if (const_cast<CUITextInputBox&>(m_BuyoutInputs[row]).HaveFocus())
+        {
+            return const_cast<CUITextInputBox&>(m_BuyoutInputs[row]).GetHandle();
+        }
     }
     if (const_cast<CUITextInputBox&>(m_NoteInput).HaveFocus())
     {
@@ -542,19 +573,16 @@ void CNewUIAuctionSellPanel::ReleaseInputFocus()
 bool CNewUIAuctionSellPanel::IsMouseOverAnyField() const
 {
     const bool auction = m_Mode == AuctionHouse::SellMode::Auction;
-    const int rows = auction ? 1 : m_RowCount;
-    for (int row = 0; row < rows; ++row)
+    for (int row = 0; row < m_RowCount; ++row)
     {
+        const int y = m_Pos.y + ROWS_Y + row * ROW_PITCH;
         const int x = m_Pos.x + (auction ? AUCTION_QUANTITY_X : BUYNOW_QUANTITY_X);
         const int width = auction ? AUCTION_QUANTITY_WIDTH : BUYNOW_QUANTITY_WIDTH;
-        if (SEASON3B::CheckMouseIn(x, m_Pos.y + ROWS_Y + row * ROW_PITCH, width, FIELD_HEIGHT))
+        if (SEASON3B::CheckMouseIn(x, y, width, FIELD_HEIGHT)
+            || (auction && SEASON3B::CheckMouseIn(m_Pos.x + AUCTION_BUYOUT_X, y, AUCTION_BUYOUT_WIDTH, FIELD_HEIGHT)))
         {
             return true;
         }
-    }
-    if (auction && SEASON3B::CheckMouseIn(m_Pos.x + AUCTION_QUANTITY_X, m_Pos.y + ROWS_Y + ROW_PITCH, AUCTION_QUANTITY_WIDTH, FIELD_HEIGHT))
-    {
-        return true;
     }
     return SEASON3B::CheckMouseIn(m_Pos.x + NOTE_X, m_Pos.y + OPTIONS_Y, NOTE_WIDTH, FIELD_HEIGHT);
 }
@@ -589,7 +617,7 @@ bool CNewUIAuctionSellPanel::UpdateMouseEvent()
     }
 
     // Combos. A dropdown that is open owns the mouse until it closes; otherwise every visible combo sees it.
-    const int liveRows = auction ? 1 : m_RowCount;
+    const int liveRows = m_RowCount;
     int openKind = -1;
     for (int row = 0; row < liveRows; ++row)
     {
@@ -642,15 +670,14 @@ bool CNewUIAuctionSellPanel::UpdateMouseEvent()
         {
             handleInput(m_QuantityInputs[row], m_Pos.x + (auction ? AUCTION_QUANTITY_X : BUYNOW_QUANTITY_X),
                 m_Pos.y + ROWS_Y + row * ROW_PITCH, auction ? AUCTION_QUANTITY_WIDTH : BUYNOW_QUANTITY_WIDTH);
-        }
-        if (auction)
-        {
-            handleInput(m_BuyoutInput, m_Pos.x + AUCTION_QUANTITY_X, m_Pos.y + ROWS_Y + ROW_PITCH, AUCTION_QUANTITY_WIDTH);
+            if (auction)
+            {
+                handleInput(m_BuyoutInputs[row], m_Pos.x + AUCTION_BUYOUT_X, m_Pos.y + ROWS_Y + row * ROW_PITCH, AUCTION_BUYOUT_WIDTH);
+            }
         }
         handleInput(m_NoteInput, m_Pos.x + NOTE_X, m_Pos.y + OPTIONS_Y, NOTE_WIDTH);
 
-        // Buy-now rows: remove boxes and the add button.
-        if (!auction)
+        // Price rows: remove boxes and the add button, in both modes.
         {
             if (m_RowCount < MaxRows && m_BtnAdd.UpdateMouseEvent())
             {
@@ -662,7 +689,7 @@ bool CNewUIAuctionSellPanel::UpdateMouseEvent()
             {
                 for (int row = 0; row < m_RowCount; ++row)
                 {
-                    if (SEASON3B::CheckMouseIn(m_Pos.x + BUYNOW_REMOVE_X, m_Pos.y + ROWS_Y + row * ROW_PITCH,
+                    if (SEASON3B::CheckMouseIn(m_Pos.x + (auction ? AUCTION_REMOVE_X : BUYNOW_REMOVE_X), m_Pos.y + ROWS_Y + row * ROW_PITCH,
                             BUYNOW_REMOVE_SIZE, BUYNOW_REMOVE_SIZE))
                     {
                         RemoveRow(row);
@@ -739,7 +766,10 @@ std::wstring CNewUIAuctionSellPanel::StatusText(AuctionHouse::SellDraftIssue iss
     case AuctionHouse::SellDraftIssue::ZeroQuantity: return L"Every currency needs an amount above zero.";
     case AuctionHouse::SellDraftIssue::TooManyComponents: return L"A price can mix at most five currencies.";
     case AuctionHouse::SellDraftIssue::DuplicateKind: return L"Each currency can appear only once.";
-    case AuctionHouse::SellDraftIssue::BuyoutBelowStart: return L"The buyout cannot be below the starting price.";
+    case AuctionHouse::SellDraftIssue::BuyoutBelowStart: return L"A buyout cannot be below its starting amount.";
+    case AuctionHouse::SellDraftIssue::BuyoutIncomplete: return L"Set a buyout for every currency, or leave them all empty.";
+    case AuctionHouse::SellDraftIssue::MixedUnavailable:
+    case AuctionHouse::SellDraftIssue::BuyNowUnavailable: return L"Mixed prices are not available on this server.";
     default: return std::wstring();
     }
 }
@@ -831,7 +861,7 @@ void CNewUIAuctionSellPanel::RenderPricePanel()
         static_cast<float>(m_Pos.y + PRICE_PANEL_Y), static_cast<float>(FORM_WIDTH),
         static_cast<float>(PRICE_PANEL_HEIGHT), CARD_TINT);
 
-    // Buy Now says so up front when the server cannot take it yet, instead of letting the player fill it in first.
+    // Mixed prices say so up front when the server cannot take them yet, instead of letting the player fill them in first.
     if (!auction && !m_bBuyNowSupported)
     {
         RenderLabel(L"Buy Now listings are not available on this server yet.", m_Pos.x + PRICE_LABEL_X,
@@ -839,35 +869,34 @@ void CNewUIAuctionSellPanel::RenderPricePanel()
     }
     else
     {
-        RenderLabel(auction ? L"Bidders compete in one currency. A buyout is optional."
+        RenderLabel(auction ? L"Bids keep every currency and raise at least one. A buyout is optional."
                             : L"A fixed price in up to five currencies, bought at once. No bidding.",
             m_Pos.x + PRICE_LABEL_X, m_Pos.y + PRICE_DESCRIPTION_Y, FORM_WIDTH - 16, MUTED_COLOUR, false);
     }
 
+    const int kindX = auction ? AUCTION_KIND_X : BUYNOW_KIND_X;
+    const int quantityX = auction ? AUCTION_QUANTITY_X : BUYNOW_QUANTITY_X;
+    RenderLabel(L"Currency", m_Pos.x + kindX, m_Pos.y + ROW_HEADER_Y, 100, MUTED_COLOUR, true);
+    RenderLabel(auction ? L"Starting amount" : L"Amount", m_Pos.x + quantityX, m_Pos.y + ROW_HEADER_Y, 110, MUTED_COLOUR, true);
     if (auction)
     {
-        const int rowY = m_Pos.y + ROWS_Y;
-        RenderLabel(L"Starting price", m_Pos.x + PRICE_LABEL_X, rowY + TEXT_Y_OFFSET, 100, LABEL_COLOUR, true);
-        RenderField(m_Pos.x + AUCTION_QUANTITY_X, rowY, AUCTION_QUANTITY_WIDTH, m_QuantityInputs[0].HaveFocus());
-        RenderLabel(L"Buyout (optional)", m_Pos.x + PRICE_LABEL_X, rowY + ROW_PITCH + TEXT_Y_OFFSET, 100, LABEL_COLOUR, true);
-        // The buyout is in the starting price's currency, so it shows that currency instead of offering a choice.
-        RenderField(m_Pos.x + AUCTION_KIND_X, rowY + ROW_PITCH, AUCTION_KIND_WIDTH, false);
-        RenderLabel(m_KindLabels[m_KindCombos[0].GetSelectedIndex()], m_Pos.x + AUCTION_KIND_X + INPUT_INSET,
-            rowY + ROW_PITCH + TEXT_Y_OFFSET, AUCTION_KIND_WIDTH - 2 * INPUT_INSET, MUTED_COLOUR, false);
-        RenderField(m_Pos.x + AUCTION_QUANTITY_X, rowY + ROW_PITCH, AUCTION_QUANTITY_WIDTH, m_BuyoutInput.HaveFocus());
-        m_QuantityInputs[0].Render();
-        m_BuyoutInput.Render();
-        return;
+        RenderLabel(L"Buyout (optional)", m_Pos.x + AUCTION_BUYOUT_X, m_Pos.y + ROW_HEADER_Y, 118, MUTED_COLOUR, true);
     }
 
     for (int row = 0; row < m_RowCount; ++row)
     {
         const int rowY = m_Pos.y + ROWS_Y + row * ROW_PITCH;
-        RenderField(m_Pos.x + BUYNOW_QUANTITY_X, rowY, BUYNOW_QUANTITY_WIDTH, m_QuantityInputs[row].HaveFocus());
+        RenderField(m_Pos.x + quantityX, rowY, auction ? AUCTION_QUANTITY_WIDTH : BUYNOW_QUANTITY_WIDTH,
+            m_QuantityInputs[row].HaveFocus());
         m_QuantityInputs[row].Render();
+        if (auction)
+        {
+            RenderField(m_Pos.x + AUCTION_BUYOUT_X, rowY, AUCTION_BUYOUT_WIDTH, m_BuyoutInputs[row].HaveFocus());
+            m_BuyoutInputs[row].Render();
+        }
         if (m_RowCount > 1)
         {
-            const int x = m_Pos.x + BUYNOW_REMOVE_X;
+            const int x = m_Pos.x + (auction ? AUCTION_REMOVE_X : BUYNOW_REMOVE_X);
             const bool hovered = SEASON3B::CheckMouseIn(x, rowY, BUYNOW_REMOVE_SIZE, BUYNOW_REMOVE_SIZE);
             UI::NineSlice::Render(AuctionButtonSkin().texture, static_cast<float>(x), static_cast<float>(rowY),
                 static_cast<float>(BUYNOW_REMOVE_SIZE), static_cast<float>(BUYNOW_REMOVE_SIZE),
@@ -913,9 +942,18 @@ void CNewUIAuctionSellPanel::RenderFees(const AuctionHouse::SellDraft& draft)
 
     const int textX = m_Pos.x + RAIL_X + RAIL_TEXT_PAD;
     const int textWidth = RAIL_WIDTH - 2 * RAIL_TEXT_PAD;
-    RenderLabel(L"Fees", textX, m_Pos.y + FEE_TITLE_Y, textWidth, LABEL_COLOUR, true);
+    RenderLabel(L"Listing tax", textX, m_Pos.y + FEE_TITLE_Y, textWidth, LABEL_COLOUR, true);
 
-    // What the server charges today: a listing fee taken now and a success fee taken from the proceeds.
+    // The only tax: a flat amount held when the listing is created, returned if the item does not sell.
+    if (m_SaleFee > 0)
+    {
+        RenderLabel((GroupedNumber(m_SaleFee) + L" Zen").c_str(), textX, m_Pos.y + FEE_LISTING_LABEL_Y, textWidth, FEE_COLOUR, true);
+        RenderWrapped(L"Held now. Returned to your Mailbox if it does not sell; kept when it sells. No other fees.", textX,
+            m_Pos.y + FEE_LISTING_LABEL_Y + TEXT_LINE_HEIGHT + 3, textWidth, MUTED_COLOUR, false, false, 6, TEXT_LINE_HEIGHT);
+        return;
+    }
+
+    // Older servers: a listing fee taken now and a success fee taken from the proceeds.
     RenderLabel(L"Listing fee (now)", textX, m_Pos.y + FEE_LISTING_LABEL_Y, textWidth, MUTED_COLOUR, false);
     const auto fields = AuctionHouse::ToCreateFields(draft);
     std::wstring listing = L"-";
@@ -968,7 +1006,7 @@ void CNewUIAuctionSellPanel::Render(const ITEM* item)
 
     // Dropdowns last, lower rows first, so an open list sits over everything beneath it.
     m_DurationCombo.Render();
-    const int liveRows = m_Mode == AuctionHouse::SellMode::Auction ? 1 : m_RowCount;
+    const int liveRows = m_RowCount;
     for (int row = liveRows - 1; row >= 0; --row)
     {
         m_KindCombos[row].Render();

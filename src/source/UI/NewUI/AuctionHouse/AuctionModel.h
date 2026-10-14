@@ -83,11 +83,26 @@ namespace AuctionHouse
         };
     }
 
-    // A listing/bid/buyout amount: a single scalar unit count for Zen or a jewel currency, or a fruit basket for the Fruits
-    // currency. Prices never compare across currencies, so an amount is always read together with its listing's currency.
+    // The number of things a price can be paid in: Zen, the seven jewels and the five stat fruits.
+    inline constexpr size_t PriceKindCount = 13;
+
+    // A quantity of each price kind, in PriceKind order: the shape of a mixed-currency price. Zero means the kind is absent.
+    using BasketQuantities = std::array<int64_t, PriceKindCount>;
+
+    // A listing/bid/buyout amount: a single scalar unit count for Zen or a jewel currency, a fruit basket for the Fruits
+    // currency, or a basket of any of the thirteen price kinds for a Mixed listing. Prices never compare across
+    // currencies, so an amount is always read together with its listing's currency.
     class AuctionAmount
     {
     public:
+        [[nodiscard]] static AuctionAmount FromBasket(const BasketQuantities& quantities) noexcept
+        {
+            AuctionAmount amount;
+            amount._isBasket = true;
+            amount._basket = quantities;
+            return amount;
+        }
+
         [[nodiscard]] static AuctionAmount FromScalar(int64_t units) noexcept
         {
             AuctionAmount amount;
@@ -106,19 +121,37 @@ namespace AuctionHouse
 
         [[nodiscard]] bool IsFruitBasket() const noexcept { return this->_isFruitBasket; }
 
+        [[nodiscard]] bool IsBasket() const noexcept { return this->_isBasket; }
+
+        [[nodiscard]] const BasketQuantities& Basket() const noexcept { return this->_basket; }
+
         [[nodiscard]] int64_t Scalar() const noexcept { return this->_scalar; }
 
         [[nodiscard]] const FruitBasket& Fruits() const noexcept { return this->_fruits; }
 
         [[nodiscard]] bool IsZero() const noexcept
         {
+            if (this->_isBasket)
+            {
+                for (const int64_t quantity : this->_basket)
+                {
+                    if (quantity != 0)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             return this->_isFruitBasket ? this->_fruits.IsZero() : this->_scalar == 0;
         }
 
     private:
         bool _isFruitBasket = false;
+        bool _isBasket = false;
         int64_t _scalar = 0;
         FruitBasket _fruits{};
+        BasketQuantities _basket{};
     };
 
     // Client-side guidance for partial Mailbox claims. Jewel quantities must be within the remaining scalar;
@@ -231,15 +264,16 @@ namespace AuctionHouse
     {
         PriceKind kind = PriceKind::Zen;
         int64_t quantity = 0;
+        // Auction only: the buyout in this row's currency; zero means no buyout for the row.
+        int64_t buyoutQuantity = 0;
     };
 
     struct SellDraft
     {
         SellMode mode = SellMode::Auction;
-        // Auction: the one starting-price row. Buy now: every component of the fixed price.
+        // Auction: every component of the starting price, each with its optional buyout. Buy now: every component of the
+        // fixed price.
         std::vector<SellPriceRow> rows;
-        // Auction only: a buyout in the starting price's kind; zero means no buyout.
-        int64_t auctionBuyoutQuantity = 0;
         uint8_t durationHours = 24;
     };
 
@@ -252,27 +286,47 @@ namespace AuctionHouse
         DuplicateKind,
         BuyoutBelowStart,
         BuyNowUnavailable,
+        // An auction mixes currencies, which the server cannot take.
+        MixedUnavailable,
+        // Some currencies of an auction have a buyout and some do not.
+        BuyoutIncomplete,
     };
 
     inline constexpr int MaximumSellComponents = 5;
 
     // Advisory client-side check of a draft, so the Create button can say why it is disabled. The server remains
-    // the authority on ranges, eligibility and fees. buyNowSupported is false while the server's protocol only has
-    // single-currency listings.
+    // the authority on ranges, eligibility and fees. buyNowSupported is false while the server does not take mixed
+    // prices: no Buy Now listing then, and no auction in more than one currency. An auction names a buyout either in
+    // every currency of its starting price (each at least as high) or in none.
     [[nodiscard]] SellDraftIssue ValidateSellDraft(
         const SellDraft& draft, bool buyNowSupported, int maximumComponents = MaximumSellComponents);
 
-    // The fields of the current create request, which has one currency mode with a scalar or fruit-basket price.
+    // The fields of the create request: a single-currency price (one currency mode with a scalar or fruit-basket price),
+    // or, for the Mixed mode, a basket per price.
     struct CreateFields
     {
         AuctionCurrencyMode currencyMode = AuctionCurrencyMode::Zen;
         AuctionAmount starting = AuctionAmount::FromScalar(0);
         AuctionAmount buyout = AuctionAmount::FromScalar(0);
+        // Mixed mode only. A buy-now listing has an all-zero starting basket.
+        BasketQuantities startingBasket{};
+        BasketQuantities buyoutBasket{};
     };
 
-    // Maps an auction draft onto the create request: Zen and jewels as scalars, a stat fruit as a fruit basket holding
-    // that one fruit. A buy-now draft has no representation yet and yields nothing.
+    // Maps a draft onto the create request. An auction in one currency keeps the single-currency form (Zen and jewels as
+    // scalars, a stat fruit as a fruit basket holding that one fruit); a buy-now draft and an auction in several
+    // currencies become Mixed baskets. An empty draft yields nothing.
     [[nodiscard]] std::optional<CreateFields> ToCreateFields(const SellDraft& draft);
+
+    // The first bid on a mixed listing must reach the starting price in every currency of that price; a later bid must
+    // keep every currency of the current bid at the same amount or higher and raise at least one. A bid names at most
+    // MaximumSellComponents currencies. Advisory: the server re-checks under the listing lock.
+    [[nodiscard]] bool IsMixedBidAllowed(const BasketQuantities& starting, const BasketQuantities& current, bool hasBid,
+        const BasketQuantities& bid) noexcept;
+
+    // The smallest bid the rule allows to start from: the starting price before any bid, afterwards the current bid with
+    // one more of its first currency.
+    [[nodiscard]] BasketQuantities SuggestedMixedBid(const BasketQuantities& floor, bool hasBid) noexcept;
 
     // The message shown to the seller for the outcome of a create-listing request.
     [[nodiscard]] const wchar_t* DescribeCreateResult(AuctionResult result) noexcept;

@@ -64,15 +64,16 @@ namespace AuctionHouse
         [[nodiscard]] static std::optional<AuctionNotification> Parse(std::span<const uint8_t> packet);
     };
 
-    // One browse/my-listings row, mirroring the server's AuctionListingSummary. Always exactly 95 bytes; a
+    // One browse/my-listings row, mirroring the server's AuctionListingSummary. Always exactly 199 bytes; a
     // browse or my-listings response is a sequence of these starting right after its own fixed header.
     // Byte layout: ListingId(u64)@0, Version(u32)@8, Status(u8)@12, CurrencyMode(u8)@13, Category(u8)@14,
     //   CurrentPrice{Scalar,Str,Agi,Vit,Ene,Cmd}(u32x6)@15 (the effective price: current bid if any, else
     //   starting price), BuyoutPrice{...same 6}(u32x6)@39 (all-zero means no buyout), BidCount(u16)@63,
-    //   EndsAt(u32)@65, SellerName(10 raw bytes)@69, ItemDataLength(u8)@79, ItemData(15 raw bytes)@80.
+    //   EndsAt(u32)@65, SellerName(10 raw bytes)@69, ItemDataLength(u8)@79, ItemData(15 raw bytes)@80,
+    //   CurrentBasket(13 x u32)@95 and BuyoutBasket(13 x u32)@147, which a Mixed listing uses instead of the six-field prices.
     struct AuctionListingSummary
     {
-        static constexpr size_t WireLength = 95;
+        static constexpr size_t WireLength = 199;
 
         uint64_t ListingId = 0;
         uint32_t Version = 0;
@@ -124,10 +125,10 @@ namespace AuctionHouse
     // CurrencyMode(u8)@27, Category(u8)@28, CurrentPrice{6}(u32x6)@29, BuyoutPrice{6}(u32x6)@53,
     // BidCount(u16)@77, OriginalEndsAt(u32)@79, EndsAt(u32)@83, SellerName(10 bytes)@87,
     // CurrentBidderName(10 bytes)@97, NoteLength(u8)@107, Note(80 bytes)@108, ItemDataLength(u8)@188,
-    // ItemData(15 bytes)@189.
+    // ItemData(15 bytes)@189, StartingBasket(13 x u32)@204, CurrentBasket@256, BuyoutBasket@308 (Mixed listings).
     struct AuctionDetailResponse
     {
-        static constexpr size_t FullWireLength = 204;
+        static constexpr size_t FullWireLength = 360;
 
         uint32_t RequestId = 0;
         AuctionResult Result = AuctionResult::Success;
@@ -137,6 +138,8 @@ namespace AuctionHouse
         AuctionListingStatus Status = AuctionListingStatus::Active;
         AuctionCurrencyMode CurrencyMode = AuctionCurrencyMode::Zen;
         AuctionCategory Category = AuctionCategory::Miscellaneous;
+        // Mixed listings only; equal to CurrentPrice otherwise. Empty for a buy-now listing, which takes no bids.
+        AuctionAmount StartingPrice = AuctionAmount::FromScalar(0);
         AuctionAmount CurrentPrice = AuctionAmount::FromScalar(0);
         AuctionAmount BuyoutPrice = AuctionAmount::FromScalar(0);
         uint16_t BidCount = 0;
@@ -156,14 +159,15 @@ namespace AuctionHouse
         [[nodiscard]] static std::optional<AuctionDetailResponse> Parse(std::span<const uint8_t> packet);
     };
 
-    // One pending Mailbox row, mirroring the server's AuctionMailboxEntryRef. Always exactly 88 bytes.
+    // One pending Mailbox row, mirroring the server's AuctionMailboxEntryRef. Always exactly 192 bytes. A Mixed entry's
+    // OriginalBasket(13 x u32)@88 and RemainingBasket@140 replace the six-field amounts.
     // Byte layout: CollectionId(u64)@0, CollectionKind(u8)@8, CollectionStatus(u8)@9, CurrencyMode(u8)@10,
     // Original{Scalar,Str,Agi,Vit,Ene,Cmd}(u32x6)@11 (the full amount this collection was created with),
     // Remaining{...same 6}(u32x6)@35 (what is left to claim; equal to Original until partially claimed),
     // SourceListingId(u64)@59, HasItem(bool)@67, ItemDataLength(u8)@68, ItemData(15 bytes)@69, Version(u32)@84.
     struct AuctionMailboxEntry
     {
-        static constexpr size_t WireLength = 88;
+        static constexpr size_t WireLength = 192;
 
         uint64_t CollectionId = 0;
         AuctionCollectionKind CollectionKind = AuctionCollectionKind::PurchasedItem;
@@ -240,11 +244,15 @@ namespace AuctionHouse
     struct AuctionOpenResponse
     {
         static constexpr size_t FixedWireLength = 28;
+        // Version 5 adds SaleFee(u32)@28 and MixedPricesEnabled(u8)@32 before the descriptors.
+        static constexpr size_t FixedWireLengthV5 = 33;
 
         uint32_t RequestId = 0;
         AuctionResult Result = AuctionResult::Success;
         uint32_t ServerTime = 0;
         uint32_t ConfigurationVersion = 0;
+        uint32_t SaleFee = 0;
+        bool MixedPricesEnabled = false;
         uint16_t ListingFeeBasisPoints = 0;
         uint16_t SuccessFeeBasisPoints = 0;
         uint8_t DurationMask = 0;
