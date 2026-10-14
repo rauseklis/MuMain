@@ -260,17 +260,16 @@ namespace
     constexpr int PAGE_BTN_MARGIN_X = 20;
     constexpr int PAGE_BTN_Y_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT
         + (BOTTOM_BAND_HEIGHT - PAGE_BTN_HEIGHT) / 2;
-    // Previous/Next are a compact pair left-aligned to the table's own left edge (not spread to the window's
-    // own edges, which is where Bid/Buyout/Cancel/Collect still anchor - a different, detail-panel context),
-    // leaving the rest of the bottom bar as a reserved blank panel, matching the reference layout exactly.
+    // Previous/Next are a compact pair centred in the window's bottom bar on every tab (not spread to the window's
+    // own edges, which is where Bid/Buyout/Cancel/Collect still anchor - a different, detail-panel context).
     constexpr int PAGE_CLUSTER_GAP = 40;
     constexpr int PAGE_CLUSTER_WIDTH = PAGE_BTN_WIDTH * 2 + PAGE_CLUSTER_GAP;
     // Page label top inside the 23-pixel button row; matches the buttons' own centred labels.
     constexpr int PAGE_LABEL_Y_OFFSET = 7;
-    // The pager lines up with the left edge of whichever table is showing.
-    int PageClusterX(int tab)
+    // The pager sits in the middle of the window, the same on every tab.
+    int PageClusterX(int /*tab*/)
     {
-        return tab == SEASON3B::CNewUIAuctionWindow::TAB_BROWSE ? BROWSE_TABLE_X : BROWSE_BODY_X;
+        return (SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - PAGE_CLUSTER_WIDTH) / 2;
     }
     int PageNextButtonX(int tab)
     {
@@ -3723,11 +3722,12 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
     }
 
     const WalletLayout layout = ComputeWalletLayout(view);
+    // The wallet cards use the category rows' skin and idle tint, so the whole left rail reads as one family.
     const auto renderPanel = [this](int y, int height)
     {
-        UI::NineSlice::Render(AuctionPanelSkin().texture, static_cast<float>(m_Pos.x + WALLET_X),
+        UI::NineSlice::Render(AuctionButtonSkin().texture, static_cast<float>(m_Pos.x + WALLET_X),
             static_cast<float>(m_Pos.y + y), static_cast<float>(WALLET_WIDTH), static_cast<float>(height),
-            AuctionPanelSkin().tints.normal);
+            CATEGORY_TINT_IDLE);
     };
     if (!view.jewels.empty())
     {
@@ -3751,9 +3751,11 @@ void SEASON3B::CNewUIAuctionWindow::RenderCurrencyBalances()
 
     if (view.hasZen)
     {
+        g_pRenderText->SetTextColor(205, 205, 205, 255);
         g_pRenderText->RenderText(static_cast<float>(m_Pos.x + WALLET_X),
             static_cast<float>(m_Pos.y + layout.zenY + WALLET_ZEN_TITLE_Y_OFFSET), L"ZEN",
             static_cast<float>(WALLET_WIDTH), 0, RT3_SORT_CENTER);
+        g_pRenderText->SetTextColor(235, 210, 120, 255);
         const std::wstring amount = FormatWalletAmount(view.zen);
         g_pRenderText->RenderText(static_cast<float>(m_Pos.x + WALLET_X + 4),
             static_cast<float>(m_Pos.y + layout.zenY + WALLET_ZEN_VALUE_Y_OFFSET), amount.c_str(),
