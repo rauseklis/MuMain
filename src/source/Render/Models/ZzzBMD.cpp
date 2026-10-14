@@ -3145,6 +3145,7 @@ private:
 
 bool BMD::Open2(const wchar_t* DirName, const wchar_t* ModelFileName, bool bReAlloc)
 {
+    CUIMng::Instance().PumpTitleSceneUI();
     if (m_bCompletedAlloc)
     {
         if (!bReAlloc)

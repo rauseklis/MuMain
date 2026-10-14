@@ -47,6 +47,7 @@ public:
 protected:
     CSprite* m_asprTitle;
     CGaugeBar* m_pgbLoding;
+    void DrawTitleFrame(float fProgress);
     CPList m_WinList;
     bool m_bCursorOnUI;
     bool m_bBlockCharMove;
@@ -62,6 +63,7 @@ public:
     void CreateTitleSceneUI();
     void ReleaseTitleSceneUI();
     void RenderTitleSceneUI(HDC hDC, DWORD dwNow, DWORD dwTotal);
+    void PumpTitleSceneUI();
     void Create();
     void Release();
     void CreateLoginScene();

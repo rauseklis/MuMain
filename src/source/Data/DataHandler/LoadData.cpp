@@ -9,6 +9,7 @@
 #include "Render/Models/ZzzBMD.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "Core/Text/Utf8.h"
+#include "UI/Legacy/UIMng.h"
 #include "Data/GameData/ItemData/ItemTextureFiles.h"
 
 #include <string>
@@ -45,6 +46,7 @@ std::wstring GetModelFileName(const wchar_t* FileName, int i)
 
 bool CLoadData::AccessModel(int Type, const wchar_t* Dir, const wchar_t* FileName, int i)
 {
+    CUIMng::Instance().PumpTitleSceneUI();
     const std::wstring Name = GetModelFileName(FileName, i);
 
     bool Success = false;

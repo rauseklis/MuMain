@@ -4372,6 +4372,7 @@ void OpenBasicData(HDC hDC)
     wchar_t Text[100];
 
     g_ServerListManager->LoadServerListScript();
+    rUIMng.PumpTitleSceneUI();
 
     // NPC dialog text used to live in Data\Local\<lang>\Dialog_<lang>.bmd
     // and was loaded into g_DialogScript here. The text and answer labels
@@ -4381,40 +4382,56 @@ void OpenBasicData(HDC hDC)
     // runtime any more.
 
     OpenItemDataAndShowModelProblems();
+    rUIMng.PumpTitleSceneUI();
 
     mu_swprintf(Text, L"Data\\Local\\%ls\\movereq_%ls.bmd", g_strSelectedML.c_str(), g_strSelectedML.c_str());
     SEASON3B::CMoveCommandData::OpenMoveReqScript(Text);
+    rUIMng.PumpTitleSceneUI();
 
     mu_swprintf(Text, L"Data\\Local\\%ls\\NpcName_%ls.txt", g_strSelectedML.c_str(), g_strSelectedML.c_str());
     OpenMonsterScript(Text);
+    rUIMng.PumpTitleSceneUI();
 
     mu_swprintf(Text, L"Data\\Local\\%ls\\Quest_%ls.bmd", g_strSelectedML.c_str(), g_strSelectedML.c_str());
     g_csQuest.OpenQuestScript(Text);
+    rUIMng.PumpTitleSceneUI();
 
     mu_swprintf(Text, L"Data\\Local\\%ls\\Skill_%ls.bmd", g_strSelectedML.c_str(), g_strSelectedML.c_str());
     g_SkillDataHandler.Load(Text);
+    rUIMng.PumpTitleSceneUI();
 
     mu_swprintf(Text, L"Data\\Local\\%ls\\SocketItem_%ls.bmd", g_strSelectedML.c_str(), g_strSelectedML.c_str());
     g_SocketItemMgr.OpenSocketItemScript(Text);
+    rUIMng.PumpTitleSceneUI();
 
     OpenMacro(L"Data\\Macro.txt");
+    rUIMng.PumpTitleSceneUI();
 
     g_csItemOption.OpenItemSetScript();
+    rUIMng.PumpTitleSceneUI();
 
     g_QuestMng.LoadQuestScript();
+    rUIMng.PumpTitleSceneUI();
 
     OpenGateScript(L"Data\\Gate.bmd");
+    rUIMng.PumpTitleSceneUI();
 
     g_MixRecipeMgr.LoadData();
+    rUIMng.PumpTitleSceneUI();
 
     OpenFilterFile(L"Data\\Local\\Filter.bmd");
+    rUIMng.PumpTitleSceneUI();
 
     OpenNameFilterFile(L"Data\\Local\\FilterName.bmd");
+    rUIMng.PumpTitleSceneUI();
 
     OpenMonsterSkillScript(L"Data\\Local\\MonsterSkill.bmd");
+    rUIMng.PumpTitleSceneUI();
 
     g_pMasterLevelInterface->OpenMasterSkillTreeData(L"Data\\Local\\MasterSkillTreeData.bmd");
+    rUIMng.PumpTitleSceneUI();
     g_pMasterLevelInterface->OpenMasterSkillTooltip(L"Data\\Local\\Eng\\MasterSkillTooltip_eng.bmd");
+    rUIMng.PumpTitleSceneUI();
 
     rUIMng.RenderTitleSceneUI(hDC, 9, 11);
 

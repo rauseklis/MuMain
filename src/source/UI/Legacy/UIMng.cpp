@@ -4,6 +4,9 @@
 
 #include "stdafx.h"
 #include "UIMng.h"
+#include <algorithm>
+#include <chrono>
+#include <cmath>
 #include "Core/Input/Input.h"
 #include "Audio/DSPlaySound.h"
 #include "Render/Sprites/Sprite.h"
@@ -82,6 +85,29 @@ CUIMng::CUIMng()
     m_pLoadingScene = NULL;
 }
 
+namespace
+{
+using TitleClock = std::chrono::steady_clock;
+
+constexpr unsigned kTitleGaugeSteps = 10000;
+constexpr float kTitleMinFrameMs = 6.0f;
+constexpr float kTitleGlideMsPerUnit = 1600.0f;
+constexpr float kTitleCreepTimeMs = 700.0f;
+constexpr float kTitleCreepSpan = 0.9f;
+
+float s_titleShown = 0.0f;
+float s_titleBase = 0.0f;
+float s_titleSpan = 0.0f;
+float s_titleCreep = 0.0f;
+bool s_titleDrawing = false;
+TitleClock::time_point s_titleLastFrame;
+
+float TitleMsSince(TitleClock::time_point t)
+{
+    return std::chrono::duration<float, std::milli>(TitleClock::now() - t).count();
+}
+} // namespace
+
 CUIMng::~CUIMng() {}
 
 CUIMng& CUIMng::Instance()
@@ -158,6 +184,9 @@ void CUIMng::CreateTitleSceneUI()
         m_asprTitle[i].Show();
     }
     m_pgbLoding->Show();
+    s_titleShown = s_titleBase = s_titleCreep = 0.0f;
+    s_titleSpan = 0.0f;
+    s_titleLastFrame = TitleClock::now();
     m_asprTitle[UIM_TS_121518].Show(false);
     m_nScene = UIM_SCENE_TITLE;
 }
@@ -170,8 +199,52 @@ void CUIMng::ReleaseTitleSceneUI()
     m_nScene = UIM_SCENE_NONE;
 }
 
+void CUIMng::PumpTitleSceneUI()
+{
+    if (m_asprTitle == nullptr || m_pgbLoding == nullptr || s_titleDrawing)
+        return;
+    if (TitleMsSince(s_titleLastFrame) < kTitleMinFrameMs)
+        return;
+
+    s_titleCreep += (1.0f - s_titleCreep) * (1.0f - std::exp(-TitleMsSince(s_titleLastFrame) / kTitleCreepTimeMs));
+    const float progress = std::max(s_titleShown, s_titleBase + s_titleSpan * kTitleCreepSpan * s_titleCreep);
+    DrawTitleFrame(progress);
+}
+
 void CUIMng::RenderTitleSceneUI(HDC hDC, DWORD dwNow, DWORD dwTotal)
 {
+    const float total = static_cast<float>(std::max<DWORD>(dwTotal, 1));
+    const float target = std::min(static_cast<float>(dwNow) / total, 1.0f);
+    const float start = s_titleShown;
+
+    s_titleBase = target;
+    s_titleSpan = 1.0f / total;
+    s_titleCreep = 0.0f;
+
+    const float glideMs = (target - start) * kTitleGlideMsPerUnit;
+    if (glideMs > 1.0f)
+    {
+        const auto t0 = TitleClock::now();
+        float t = 0.0f;
+        while (t < 1.0f)
+        {
+            t = std::min(TitleMsSince(t0) / glideMs, 1.0f);
+            const float eased = t * t * (3.0f - 2.0f * t);
+            DrawTitleFrame(start + (target - start) * eased);
+        }
+    }
+    else
+    {
+        DrawTitleFrame(std::max(start, target));
+    }
+}
+
+void CUIMng::DrawTitleFrame(float fProgress)
+{
+    s_titleDrawing = true;
+    s_titleShown = fProgress;
+    s_titleLastFrame = TitleClock::now();
+
     // Each loading update gets its own frame so the progress bar is visible.
     // When called inside the game loop, temporarily close the caller frame,
     // present this loading update, then reopen the caller frame.
@@ -194,7 +267,7 @@ void CUIMng::RenderTitleSceneUI(HDC hDC, DWORD dwNow, DWORD dwTotal)
         m_asprTitle[i].Render();
     }
 
-    m_pgbLoding->SetValue(dwNow, dwTotal);
+    m_pgbLoding->SetValue(static_cast<std::uint32_t>(fProgress * kTitleGaugeSteps), kTitleGaugeSteps);
     m_pgbLoding->Render();
 
     ::EndBitmap();
@@ -210,6 +283,7 @@ void CUIMng::RenderTitleSceneUI(HDC hDC, DWORD dwNow, DWORD dwTotal)
     {
         mu::GetRenderer().BeginFrame();
     }
+    s_titleDrawing = false;
 }
 
 void CUIMng::Create()

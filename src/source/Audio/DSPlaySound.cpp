@@ -15,9 +15,11 @@
 
 #include "DSPlaySound.h"
 #include "Core/Platform/IPlatformAudio.h"
+#include "UI/Legacy/UIMng.h"
 
 void LoadWaveFile(ESound bufferId, const wchar_t* filename, int maxChannel, bool enable3D)
 {
+    CUIMng::Instance().PumpTitleSceneUI();
     if (g_platformAudio != nullptr)
     {
         g_platformAudio->LoadSound(bufferId, filename, maxChannel, enable3D);

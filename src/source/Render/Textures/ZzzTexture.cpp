@@ -15,6 +15,7 @@
 
 #include "Network/Server/WSclient.h"
 #include "turbojpeg.h"
+#include "UI/Legacy/UIMng.h"
 
 CGlobalBitmap Bitmaps;
 
@@ -248,6 +249,7 @@ bool LoadBitmap(const wchar_t* szFileName, GLuint uiTextureIndex, GLuint uiFilte
 bool LoadBitmap(const wchar_t* szFileName, GLuint uiTextureIndex, GLuint uiFilter, GLuint uiWrapMode, bool bCheck)
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
 {
+    CUIMng::Instance().PumpTitleSceneUI();
     wchar_t szFullPath[256] = {
         0,
     };
