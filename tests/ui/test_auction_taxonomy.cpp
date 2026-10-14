@@ -64,16 +64,6 @@ TEST_CASE("leaf ids follow the server table [ui][auction_taxonomy]")
     CHECK(FindSubCategory(armor, WireAll) == nullptr);
 }
 
-TEST_CASE("every rail icon is a distinct item [ui][auction_taxonomy]")
-{
-    std::set<int> icons;
-    for (const CategoryInfo& category : RailCategories())
-    {
-        icons.insert(category.icon.group * 512 + category.icon.number);
-    }
-    CHECK(icons.size() == RailCategories().size());
-}
-
 TEST_CASE("the rail row shows the picked leaf of its own category only [ui][auction_taxonomy]")
 {
     const CategoryInfo& armor = *CategoryForRailIndex(2);

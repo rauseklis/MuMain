@@ -16,7 +16,6 @@
 #include "UI/NewUI/Widgets/NineSlice.h"
 #include "UI/NewUI/AuctionHouse/AuctionChrome.h"
 #include "UI/Scaling/UITransform.h"
-#include "Data/GameData/ItemData/ItemType.h"
 
 #include <algorithm>
 #include <cmath>
@@ -165,7 +164,11 @@ namespace
     constexpr int CATEGORY_RAIL_ROW_INSET = 1;
     constexpr int CATEGORY_RAIL_ICON_X = 4;
     constexpr int CATEGORY_RAIL_ICON_SIZE = 12;
-    constexpr float CATEGORY_RAIL_ICON_FILL = 0.92f;
+    // The atlas holds one 32x32 cell per rail category, in rail order; it is drawn tinted like the row it sits on.
+    constexpr float CATEGORY_RAIL_ICON_CELL = 32.f;
+    const DWORD CATEGORY_ICON_TINT_SELECTED = RGBA(255, 214, 118, 255);
+    const DWORD CATEGORY_ICON_TINT_HOVER = RGBA(230, 234, 244, 255);
+    const DWORD CATEGORY_ICON_TINT_IDLE = RGBA(176, 182, 196, 255);
     constexpr int CATEGORY_RAIL_TEXT_X = 22;
     constexpr int CATEGORY_RAIL_TEXT_PAD = 6;
     // The flyout meets the rail (a few units into the table) and is as tall as its rows need, kept inside the table area.
@@ -3121,26 +3124,6 @@ void SEASON3B::CNewUIAuctionWindow::Render3D()
         return;
     }
 
-    if (m_iCurrentTab == TAB_BROWSE)
-    {
-        for (int railIndex = 1; railIndex <= CATEGORY_RAIL_ROW_COUNT - 1; ++railIndex)
-        {
-            const AuctionHouse::CategoryInfo* category = AuctionHouse::CategoryForRailIndex(railIndex);
-            const int itemType = Data::Items::MakeItemType(category->icon.group, category->icon.number);
-            if (!Data::Items::IsValidItemType(itemType))
-            {
-                continue;
-            }
-
-            const int iconX = m_Pos.x + CATEGORY_RAIL_X + CATEGORY_RAIL_ICON_X;
-            const int iconY = m_Pos.y + CATEGORY_RAIL_Y + railIndex * CATEGORY_RAIL_ROW_HEIGHT
-                + (CATEGORY_RAIL_ROW_HEIGHT - CATEGORY_RAIL_ICON_SIZE) / 2;
-            RenderItem3DFittedToSlot(static_cast<float>(iconX), static_cast<float>(iconY),
-                static_cast<float>(CATEGORY_RAIL_ICON_SIZE), static_cast<float>(CATEGORY_RAIL_ICON_SIZE), itemType, 0, 0, 0,
-                CATEGORY_RAIL_ICON_FILL, false);
-        }
-    }
-
     const bool hasResponse = m_iCurrentTab == TAB_MAILBOX ? m_bHasMailboxResponse : m_bHasListingResponse;
     if (!hasResponse)
     {
@@ -3528,7 +3511,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderCategoryFlyout()
 void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
 {
     // A persistent category rail makes filtering a single, visible action instead of hiding the server's real auction
-    // categories inside a dropdown. Each row has a small item icon (drawn in the 3D pass) and shows the picked
+    // categories inside a dropdown. Each row has a small icon from the category atlas and shows the picked
     // sub-category's name instead of the category's when one is picked.
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
@@ -3548,6 +3531,16 @@ void SEASON3B::CNewUIAuctionWindow::RenderCategoryRail()
             static_cast<float>(y + CATEGORY_RAIL_ROW_INSET), static_cast<float>(CATEGORY_RAIL_WIDTH),
             static_cast<float>(RowHeight),
             selected ? CATEGORY_TINT_SELECTED : (hovered ? CATEGORY_TINT_HOVER : CATEGORY_TINT_IDLE));
+
+        if (category > 0)
+        {
+            EnableAlphaTest();
+            SEASON3B::RenderImageStretch(IMAGE_AUCTION_CATEGORY_ICONS, static_cast<float>(m_Pos.x + CATEGORY_RAIL_X + CATEGORY_RAIL_ICON_X),
+                static_cast<float>(y + (CATEGORY_RAIL_ROW_HEIGHT - CATEGORY_RAIL_ICON_SIZE) / 2),
+                static_cast<float>(CATEGORY_RAIL_ICON_SIZE), static_cast<float>(CATEGORY_RAIL_ICON_SIZE),
+                static_cast<float>(category - 1) * CATEGORY_RAIL_ICON_CELL, 0.f, CATEGORY_RAIL_ICON_CELL, CATEGORY_RAIL_ICON_CELL,
+                selected ? CATEGORY_ICON_TINT_SELECTED : (hovered ? CATEGORY_ICON_TINT_HOVER : CATEGORY_ICON_TINT_IDLE));
+        }
 
         const int textX = category == 0 ? 8 : CATEGORY_RAIL_TEXT_X;
         const int textWidth = CATEGORY_RAIL_WIDTH - textX - CATEGORY_RAIL_TEXT_PAD;
@@ -3752,6 +3745,7 @@ void SEASON3B::CNewUIAuctionWindow::LoadImages()
     LoadBitmap(L"Interface\\newui_auction_button.tga", IMAGE_AUCTION_BUTTON, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_auction_field.tga", IMAGE_AUCTION_FIELD, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_auction_row.tga", IMAGE_AUCTION_ROW, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_categories.tga", IMAGE_AUCTION_CATEGORY_ICONS, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIAuctionWindow::UnloadImages()
@@ -3768,6 +3762,7 @@ void SEASON3B::CNewUIAuctionWindow::UnloadImages()
     DeleteBitmap(IMAGE_AUCTION_BUTTON);
     DeleteBitmap(IMAGE_AUCTION_FIELD);
     DeleteBitmap(IMAGE_AUCTION_ROW);
+    DeleteBitmap(IMAGE_AUCTION_CATEGORY_ICONS);
 }
 
 void SEASON3B::CNewUIAuctionWindow::RenderFrame()

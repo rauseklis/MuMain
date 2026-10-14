@@ -27,18 +27,17 @@ namespace
     };
     constexpr SubCategoryInfo ScrollSubs[] = { { 0, L"Orbs & Crystals" }, { 1, L"Scrolls & Parchments" } };
 
-    // Rail order: Miscellaneous (wire 6) sits last, after Scrolls & Orbs (wire 7). Icons are items present in item.bmd:
-    // Sword of Destruction, Brass Armor, Wings of Dragon, Dark Horse, Jewel of Bless, Large Healing Potion, Scroll of
-    // Fire Ball and Box of Luck.
+    // Rail order: Miscellaneous (wire 6) sits last, after Scrolls & Orbs (wire 7). The icon atlas
+    // (tools/auction_icons) has its cells in this order: sword, helm, wing, paw, gem, flask, scroll, chest.
     const AuctionHouse::CategoryInfo Categories[] = {
-        { 0, { 0, 16 }, WeaponSubs },
-        { 1, { 8, 8 }, ArmorSubs },
-        { 2, { 12, 5 }, WingSubs },
-        { 3, { 13, 4 }, PetSubs },
-        { 4, { 14, 13 }, JewelSubs },
-        { 5, { 14, 3 }, ConsumableSubs },
-        { 7, { 15, 3 }, ScrollSubs },
-        { 6, { 14, 11 }, {} },
+        { 0, WeaponSubs },
+        { 1, ArmorSubs },
+        { 2, WingSubs },
+        { 3, PetSubs },
+        { 4, JewelSubs },
+        { 5, ConsumableSubs },
+        { 7, ScrollSubs },
+        { 6, {} },
     };
 }
 

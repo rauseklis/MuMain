@@ -20,18 +20,11 @@ namespace AuctionHouse
         const wchar_t* label;
     };
 
-    // The item drawn as a category's icon, by (group, number) as on the server.
-    struct IconItem
-    {
-        int group;
-        int number;
-    };
-
-    // A browse category in rail order. The ids mirror the server's AuctionTaxonomy; the client never classifies.
+    // A browse category in rail order. The ids mirror the server's AuctionTaxonomy; the client never classifies. A
+    // category's icon is the atlas cell with its rail position (rail index - 1).
     struct CategoryInfo
     {
         uint8_t wire;
-        IconItem icon;
         std::span<const SubCategoryInfo> subs;
     };
 

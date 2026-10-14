@@ -50,6 +50,7 @@ namespace SEASON3B
             IMAGE_AUCTION_BUTTON = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 3,    // newui_auction_button.tga (nine-slice)
             IMAGE_AUCTION_FIELD = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 4,     // newui_auction_field.tga (nine-slice)
             IMAGE_AUCTION_ROW = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 5,       // newui_auction_row.tga (nine-slice)
+            IMAGE_AUCTION_CATEGORY_ICONS = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 6, // newui_auction_categories.tga (256x32 atlas, one 32x32 cell per rail category)
         };
 
         // The original 400-pixel design could not fit the owner-approved search/filter bar and six-column
