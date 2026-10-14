@@ -199,7 +199,19 @@ dotnet pack  src/Network/Packets/MUnique.OpenMU.Network.Packets.csproj -c Releas
 ```
 
 3. **Verify the packed DLL.** In Python, open `<feed>\MUnique.OpenMU.Network.Packets.0.9.13.nupkg` with `zipfile`, read `lib/net10.0/MUnique.OpenMU.Network.Packets.dll`, and confirm each of these byte strings occurs in it: `StartingBasket`, `BuyoutBasket`, `BidBasket`, `CurrentBasket`, `OriginalBasket`, `RemainingBasket`, `MixedPricesEnabled`, `SaleFee`, `FeeRefund`, `SubCategory`. If any is missing the package is stale: repeat the rebuild-then-pack step for that project.
-4. In the **client** repository, the file `nuget.config` has a source `local-auction-house` whose path is on the other developer's machine (`C:\Users\rause\.local-nuget\auction-house`). Change that path to your `<feed>` folder, then run `git update-index --assume-unchanged nuget.config` so the edit never shows up in a commit.
+4. **Create** the file `nuget.config` in the root of the **client** repository. It is NOT in git (it is a local file on the owner's machine, excluded through `.git/info/exclude`), so on this laptop it will not exist: create it with exactly this content, using your `<feed>` folder in the second source:
+
+```
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+    <add key="local-auction-house" value="<feed>" />
+  </packageSources>
+</configuration>
+```
+
+   Keep it out of git: append the line `nuget.config` to the file `<client repo>/.git/info/exclude` (for a worktree, the exclude file of the main repository's `.git` folder; `git status` must not list `nuget.config`). If a `nuget.config` already exists (a clone that has one), only make sure the `local-auction-house` source points at your `<feed>`.
 5. Make the client restore into its own cache: set `NUGET_PACKAGES=<client repo>\.nuget` (in cmd: `set "NUGET_PACKAGES=C:\path\to\client\.nuget"`). If the folder `<client repo>\.nuget\munique.openmu.network.packets\0.9.13` already exists, delete it so the restore extracts the fresh package. Then:
    `dotnet restore ClientLibrary/MUnique.Client.Library.csproj --force`
    The client project `ClientLibrary/MUnique.Client.Library.csproj` already references 0.9.13 (`<OpenMuPacketsVersion>`).
@@ -220,7 +232,7 @@ cd /d C:\path\to\client
 - The `PATH` line matters: the NativeAOT link step of the client library needs `vswhere.exe`, which lives in that `Installer` folder. If the link of `MUnique.Client.Library.dll` fails with "exited with code 123" and a line about `vswhere.exe`, this line was skipped.
 - Use the Professional or Enterprise folder instead of `Community` if that is what is installed.
 - Configure once, if `out\build\windows-x86` does not exist: `cmake --preset windows-x86`. (Ninja Multi-Config; Debug and Release share the folder.)
-- Build the optimized client: `cmake --build out/build/windows-x86 --config Release --target Main`. The first build takes a long time (vcpkg packages, NativeAOT). The build also regenerates the C++ packet bindings in `src/source/Dotnet/PacketFunctions_*` from the 0.9.13 package. They are already committed, so afterwards `git status` should show nothing changed except the assume-unchanged `nuget.config`. **If the bindings show up as modified after the build, tell me which files**: it means the package you packed differs from the one the developer used.
+- Build the optimized client: `cmake --build out/build/windows-x86 --config Release --target Main`. The first build takes a long time (vcpkg packages, NativeAOT). The build also regenerates the C++ packet bindings in `src/source/Dotnet/PacketFunctions_*` from the 0.9.13 package. They are already committed, so afterwards `git status` should show nothing changed (`nuget.config` is excluded and does not appear). **If the bindings show up as modified after the build, tell me which files**: it means the package you packed differs from the one the developer used.
 - The program is `out\build\windows-x86\src\Release\Main.exe`. Start it with its own folder as the working directory. It reads `config.ini` there. By default it connects to localhost port 44406; to be explicit: `Main.exe connect /u127.0.0.1 /p44406`. Keep the connection settings this laptop already uses for its own server.
 - The client writes `MuError.log` in its working folder; read it for errors if the window misbehaves.
 
