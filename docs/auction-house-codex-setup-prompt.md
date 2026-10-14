@@ -29,7 +29,7 @@ Everything is on the branch `codex/auction-house` of both repositories. The hist
 2. **Polish and categories (12 to 13 October)**: modern window chrome, wallet cards, item previews, sub-categories (migration `AddAuctionSubCategory`), the category rail with icons and flyout, a Release client without the debug panel. Packet package 0.9.12.
 3. **This build (14 October)**: mixed currencies, Buy Now, the new bidding rule, and one flat listing tax. Migrations `AddAuctionSaleFee` and `AddAuctionMixedPrices`. Packet package **0.9.13**. This is what you are installing.
 
-Expected tips of the branch when this prompt was written: server `29e189c72`, client `3a8b52b4` (or later commits on top). The same commits are also on the default branches (`master` of the server repository, `main` of the client repository).
+Expected tips of the branch when this prompt was written: server `29e189c72`, client `02275d07` (or later commits on top). The same commits are also on the default branches (`master` of the server repository, `main` of the client repository).
 
 Repositories:
 
@@ -335,7 +335,7 @@ Known limit of this client build, so do not report it as a bug: the bid card onl
 Write one report, in plain text, with these parts:
 
 1. **Starting state**: for each repository the path, plain clone or worktree, the commit and branch it started on, whether the tree was clean, any local commits or stashes you made or found, which of the three versions in section 2 it was.
-2. **Updated state**: the short commit hash of each repository after the update (expected `29e189c72` server and `3a8b52b4` client, or later), and whether `--ff-only` worked.
+2. **Updated state**: the short commit hash of each repository after the update (expected `29e189c72` server and `02275d07` client, or later), and whether `--ff-only` worked.
 3. **Environment**: .NET SDK versions, Visual Studio edition, how `VCPKG_ROOT` was resolved, the PostgreSQL version, the name of the test database (not the password), where the backup dump is.
 4. **Build results**: server build, package verification (which strings were found), client build; any warnings that look new.
 5. **Test results**: totals for the three test commands (passed / failed / skipped).
