@@ -22,8 +22,7 @@ Database: `openmu_auction_test` only (never `openmu`).
 - **Sell tab** (`NewUIAuctionSellPanel`) is the same 600 x 429 as Browse and laid out like it: a rail on the left (item card, fees) and the form to its right. It docks to the left of the inventory (`DockRight` layout, `DockSellWindow`), and the inventory is selection-only while Sell is open (`CNewUIMyInventory::SetSelectionOnly`): items are clicked, never picked up. Form contents: item card, Auction / Buy Now modes, price rows (auction: one starting price and
   optional buyout; buy now: up to five distinct currencies with add/remove), duration, note, the fee the server charges
   today, Create/Clear. An auction is sent with today's create packet (Zen/jewel scalar, or a stat fruit as a one-fruit
-  basket). **Buy Now is built but Create is disabled** (`BUY_NOW_SUPPORTED = false` in `NewUIAuctionWindow.cpp`) until
-  the server protocol carries mixed prices.
+  basket). **Buy Now and multi-currency auctions are enabled once the Open response says the server takes mixed prices** (see the 2026-10-14 section below).
 - **Detail views** (listing, Mailbox collection) are stacks of cards; bid/buyout/cancel failures show specific messages
   (`DescribeOperationResult`).
 - Pure, unit-tested logic is in `AuctionModel` (`tests/ui`): compact counts, wallet grid, price components, chip packing,
@@ -52,6 +51,15 @@ Spec `docs/superpowers/specs/2026-10-13-auction-categories-design.md`, plan `doc
 - Client: `AuctionTaxonomy.{h,cpp}` (ids, labels, icons, flyout layout, label fitting; tested). Nine-row rail (17-pixel pitch) with item icons and no arrow; a click-open flyout lists "All <category>" and the leaves; a picked leaf replaces the category's name on its row; Reset clears it; Escape or an outside click closes the flyout; table icons are skipped under it.
 - Build note: the NativeAOT link of the client library needs `vswhere.exe` on PATH (`C:/Program Files (x86)/Microsoft Visual Studio/Installer`).
 - The PostgreSQL tests (filter, unknown sub-category, re-classification) stayed skipped: they need a disposable database and `AUCTION_TEST_CONNECTION_STRING`.
+
+### Mixed prices, flat tax, packets 0.9.13 (2026-10-14)
+
+Owner decisions: a price is a basket of up to 5 of 13 kinds (Zen, 7 jewels, 5 fruits); a bid keeps every currency of the current bid at the same amount or higher and raises at least one (first bid: starting price in every currency of it; bidders may add currencies); one flat tax of 100,000 Zen per listing, held at listing, refunded through the Mailbox if unsold, consumed on a sale, no other fee; Auction and Buy Now both stay. Plan and rulings: `docs/superpowers/plans/2026-10-14-auction-mixed-prices.md`.
+
+- **Server** (branch `codex/auction-house`): `PriceBasket`/`PriceRules` (pure rules), `AuctionHouseRepository.Mixed.cs` (bid, buyout, claim, basket tender and materialization), mixed branches in finalize / admin-remove / browse / detail / reconcile, `AuctionHouseService` branches, `MixedPricesEnabled` (ini, default true) gating only new listings, `SaleFeeAmount` (default 100000). Migrations `AddAuctionSaleFee`, `AddAuctionMixedPrices`. Currency mode `Mixed = 9`; collection kind `FeeRefund = 6`. Every buy-now listing is Mixed; an auction in one currency keeps the legacy form. Mixed claims are all-or-nothing. 1,598 server tests pass (PostgreSQL ones need `AUCTION_TEST_CONNECTION_STRING`), 656 packet tests.
+- **Wire** (packets 0.9.13, packed into the local feed like 0.9.12): a basket is 13 little-endian u32 (52 bytes). Appended: `StartingBasket`/`BuyoutBasket` on create (256 bytes), `BidBasket` on bid (108), `CurrentBasket`/`BuyoutBasket` on listing rows (199 per row), three baskets on detail (360), `OriginalBasket`/`RemainingBasket` on Mailbox rows (192). The open response (configuration version 5) carries `SaleFee` (@28) and `MixedPricesEnabled` (@32) before the currencies (@33).
+- **Client**: `AuctionAmount::FromBasket` carries baskets through the existing chip layout; `SellDraft` rows have a per-row buyout; `ToCreateFields` returns Mixed baskets for Buy Now and multi-currency auctions; the Sell panel has add/remove rows in both modes and the "Listing tax" card; the detail view has a "Your bid" card (one field per currency, prefilled with the smallest valid raise, reusing the five Mailbox claim fields); Mixed Mailbox entries are claimed whole. `BUY_NOW_SUPPORTED` now only seeds the panel before the Open response says otherwise.
+- Known: any successful mutation still disconnects the player once (no live inventory sync). New strings are English literals, not in the resx files yet. None of the mixed screens has been looked at in-game yet; expect spacing fixes.
 
 ## Decisions recorded (owner, 2026-10-12)
 
