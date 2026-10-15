@@ -101,30 +101,39 @@ OUTER_STROKE_COLOUR = (150, 152, 160)
 OUTER_CORNERS = {
     "newui_menu01.OZJ": ("tl",),
     "partCharge1/newui_menu03.OZJ": ("tr",),
+    "newui_item_back03.OZT": ("bl", "br"),
 }
 
 
 def round_outer_corners(master, corners):
-    """Cuts the listed top corners of a bar piece to a quarter circle (transparent outside) and strokes the curve."""
+    """Cuts the listed corners ("tl", "tr", "bl", "br") to a quarter circle (transparent outside) and strokes the curve."""
+    out = master.copy()
+    for corner in corners:
+        flipped = corner[0] == "b"
+        work = out[::-1].copy() if flipped else out
+        work = round_top_corner(work, "tl" if corner[1] == "l" else "tr")
+        out = work[::-1].copy() if flipped else work
+    return out
+
+
+def round_top_corner(master, corner):
     out = master.copy()
     height, width = out.shape[:2]
     radius = int(round(OUTER_CORNER_RADIUS * SCALE))
-    inset = OUTER_STROKE * SCALE
-    for corner in corners:
-        x0 = 0 if corner == "tl" else width - radius
-        block = out[0:radius, x0:x0 + radius].copy()
-        full = (radius * 2, radius * 2)
-        outer = rounded_mask_r(full, 0.0, OUTER_CORNER_RADIUS * 1.0)
-        inner = rounded_mask_r(full, OUTER_STROKE, OUTER_CORNER_RADIUS * 1.0)
-        outer = outer[:radius, :radius] if corner == "tl" else outer[:radius, radius:]
-        inner = inner[:radius, :radius] if corner == "tl" else inner[:radius, radius:]
-        keep = outer / 255.0
-        stroke = np.clip(outer - inner, 0, 255) / 255.0
-        colour = np.array(OUTER_STROKE_COLOUR, np.float32)
-        rgb = block[..., :3].astype(np.float32) * (1 - stroke[..., None]) + colour * stroke[..., None]
-        block[..., :3] = np.clip(np.rint(rgb * keep[..., None]), 0, 255).astype(np.uint8)
-        block[..., 3] = np.clip(np.rint(keep * 255.0), 0, 255).astype(np.uint8)
-        out[0:radius, x0:x0 + radius] = block
+    x0 = 0 if corner == "tl" else width - radius
+    block = out[0:radius, x0:x0 + radius].copy()
+    full = (radius * 2, radius * 2)
+    outer = rounded_mask_r(full, 0.0, OUTER_CORNER_RADIUS * 1.0)
+    inner = rounded_mask_r(full, OUTER_STROKE, OUTER_CORNER_RADIUS * 1.0)
+    outer = outer[:radius, :radius] if corner == "tl" else outer[:radius, radius:]
+    inner = inner[:radius, :radius] if corner == "tl" else inner[:radius, radius:]
+    keep = outer / 255.0
+    stroke = np.clip(outer - inner, 0, 255) / 255.0
+    colour = np.array(OUTER_STROKE_COLOUR, np.float32)
+    rgb = block[..., :3].astype(np.float32) * (1 - stroke[..., None]) + colour * stroke[..., None]
+    block[..., :3] = np.clip(np.rint(rgb * keep[..., None]), 0, 255).astype(np.uint8)
+    block[..., 3] = np.clip(np.rint(block[..., 3].astype(np.float32) * keep), 0, 255).astype(np.uint8)
+    out[0:radius, x0:x0 + radius] = block
     return out
 
 

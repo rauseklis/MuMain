@@ -44,6 +44,8 @@ public:
 #pragma pack(pop)
     SDL_GPUTexture* sdlTexture = nullptr;
     SDL_GPUSampler* sdlSampler = nullptr;
+    // The stone window backdrop (newui_msgbox_back): drawn with round corners by SEASON3B::RenderImage.
+    bool IsWindowBackdrop = false;
 };
 
 class CBitmapCache

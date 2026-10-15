@@ -108,6 +108,9 @@ problems (pixel-font captions, notched corners, noisy shading):
 
 The skill boxes and menu buttons have transparent corners, so the game turns alpha blending on before drawing them.
 
+The stone window backdrop (`newui_msgbox_back`) is drawn with round corners by every window that draws it through
+`SEASON3B::RenderImage`; the bottom corners of `newui_item_back03` are rounded in the art to match.
+
 ## Bottom HUD layout
 
 The hotkey slots, the orb bar and the menu buttons are one centred group (the original 640-wide layout) at any

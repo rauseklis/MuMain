@@ -869,6 +869,7 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
     wcsncpy(pNewBitmap->FileName, filename.c_str(), MAX_BITMAP_FILE_NAME - 1);
     pNewBitmap->FileName[MAX_BITMAP_FILE_NAME - 1] = L'\0';
 
+    pNewBitmap->IsWindowBackdrop = Render::UiTextureQuality::IsWindowBackdropPath(filename);
     pNewBitmap->Width = static_cast<float>(textureWidth);
     pNewBitmap->Height = static_cast<float>(textureHeight);
     pNewBitmap->Components = 3;
@@ -1035,6 +1036,7 @@ bool CGlobalBitmap::AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filena
     pNewBitmap->Components = kRgbaComponents;
     pNewBitmap->Ref = 1;
     pNewBitmap->TextureNumber = uiBitmapIndex;
+    pNewBitmap->IsWindowBackdrop = Render::UiTextureQuality::IsWindowBackdropPath(filename);
     pNewBitmap->BufferStorage = std::move(hdImage.rgba);
     pNewBitmap->Buffer = pNewBitmap->BufferStorage.data();
     m_dwUsedTextureMemory += static_cast<std::uint32_t>(pNewBitmap->BufferStorage.size());

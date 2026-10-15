@@ -39,3 +39,14 @@ TEST_CASE("transparent UI bleed rejects malformed dimensions [render][ui_texture
     Render::UiTextureQuality::BleedTransparentRgb(pixel, 2, 1);
     CHECK(pixel == std::array<std::uint8_t, 4>{1, 2, 3, 0});
 }
+
+TEST_CASE("the stone window backdrop is recognised by name [render][ui_texture_quality]")
+{
+    using Render::UiTextureQuality::IsWindowBackdropPath;
+
+    CHECK(IsWindowBackdropPath(L"Data\Interface\newui_msgbox_back.jpg"));
+    CHECK(IsWindowBackdropPath(L"data/interface/NEWUI_MSGBOX_BACK.OZJ"));
+
+    CHECK_FALSE(IsWindowBackdropPath(L"Data\Interface\newui_item_back01.tga"));
+    CHECK_FALSE(IsWindowBackdropPath(L"Data\Effect\newui_msgbox_back.jpg"));
+}
