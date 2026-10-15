@@ -81,6 +81,31 @@ drifts too far falls back to a plain Lanczos enlargement; if that drifts too, it
 (under 16 pixels on a side) and the stone window background use the plain enlargement (sharpened Lanczos, seeded
 fine grain for the stone), because the network does not help there.
 
+## Redrawn textures
+
+A few textures are not enlargements but are redrawn by `generate.py` at 4x, because enlarging them keeps their
+problems (pixel-font captions, notched corners, noisy shading):
+
+| Texture | What is redrawn | Module |
+|---|---|---|
+| Create, Connect, Delete, Menu, Credit buttons (login and character select) | round-cornered button with a caption set in DejaVu Sans Bold | `retext.py` |
+| Hotkey slots (Q W E R, 2 to 5), potion slot, the five bottom-right menu buttons, skill boxes | round frame; the original face and icon are kept | `reframe.py` |
+| Outer top corners of the bottom bar | rounded, steel edge line instead of gold | `reframe.py` |
+| AG and SD tubes | smooth cylinder shading | `gauges.py` |
+
+The skill boxes and menu buttons have transparent corners, so the game turns alpha blending on before drawing them.
+
+## Bottom HUD layout
+
+The hotkey slots, the orb bar and the menu buttons are one centred group (the original 640-wide layout) at any
+window size; only the experience bar spans the whole window. Earlier builds spread the three parts to the window edges.
+
+## Choosing the model
+
+`generate.py` uses `realesrgan-x4plus` through `--model`, or the `UI_HD_MODEL` environment variable. A texture that
+drifts too far from its original falls back to `realesr-animevideov3`, then to plain enlargement, then to no HD art.
+`generate.py --missing` only builds textures that have no HD file yet.
+
 ## How it works (usage-level)
 
 The game keeps treating each interface bitmap as its original size. The HD texture only changes how many texels back
