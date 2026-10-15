@@ -19,25 +19,29 @@ from mu_image import read_texture
 from upscale import downscale_rgba, upscale_rgba
 
 SCALES = (4, 2)
+BULK_SCALES = (2,)
 MASTER_SCALE = 4
-# folder -> file name patterns (without extension)
+# folder -> file name patterns: textures that get 4x and 2x (the mounts that are looked at closely)
 MODEL_TEXTURES = {
     "Skill": ["dk*", "fenril*"],
     "Item": ["fenril*"],
 }
+# folder -> every other texture of the folder, 2x only (wings, weapons, armour, other mounts and effects)
+BULK_FOLDERS = ("Item", "Skill")
 TEXTURE_EXTENSIONS = (".ozj", ".ozt")
 
 
-def source_files(folder):
+def source_files(folder, patterns=None):
     """One source file per texture name. Names that exist as both .ozj and .ozt are skipped (see below)."""
     chosen = {}
     twins = {}
-    for pattern in MODEL_TEXTURES[folder]:
+    patterns = patterns or MODEL_TEXTURES[folder]
+    for pattern in patterns:
         for path in glob.glob(os.path.join(DATA_DIR, folder, pattern)):
             stem, extension = os.path.splitext(os.path.basename(path).lower())
             if extension in TEXTURE_EXTENSIONS:
                 twins[stem] = twins.get(stem, 0) + 1
-    for pattern in MODEL_TEXTURES[folder]:
+    for pattern in patterns:
         for path in sorted(glob.glob(os.path.join(DATA_DIR, folder, pattern))):
             stem, extension = os.path.splitext(os.path.basename(path))
             if extension.lower() not in TEXTURE_EXTENSIONS:
@@ -67,15 +71,32 @@ def enlarge(textures):
     return masters
 
 
+BATCH_SIZE = 40
+
+
+def write_outputs(folder, textures, masters, scales):
+    for (path, _, _), master in zip(textures, masters):
+        for scale in scales:
+            reduced = master if scale == MASTER_SCALE else downscale_rgba(master, MASTER_SCALE // scale)
+            save_png(output_path(folder, scale, path), reduced)
+        print("ok", folder, os.path.basename(path))
+
+
+def build(folder, paths, scales):
+    for start in range(0, len(paths), BATCH_SIZE):
+        textures = [(path,) + read_texture(path) for path in paths[start:start + BATCH_SIZE]]
+        write_outputs(folder, textures, enlarge(textures), scales)
+
+
 def main():
-    for folder in MODEL_TEXTURES:
-        paths = source_files(folder)
-        textures = [(path,) + read_texture(path) for path in paths]
-        for (path, _, _), master in zip(textures, enlarge(textures)):
-            for scale in SCALES:
-                reduced = master if scale == MASTER_SCALE else downscale_rgba(master, MASTER_SCALE // scale)
-                save_png(output_path(folder, scale, path), reduced)
-            print("ok", folder, os.path.basename(path))
+    bulk = "--bulk" in sys.argv
+    for folder in (BULK_FOLDERS if bulk else MODEL_TEXTURES):
+        if bulk:
+            done = {os.path.splitext(os.path.basename(p))[0].lower() for p in glob.glob(os.path.join(DATA_DIR, f"{folder}@2x", "*.png"))}
+            paths = [p for p in source_files(folder, ["*"]) if os.path.splitext(os.path.basename(p))[0].lower() not in done]
+            build(folder, paths, BULK_SCALES)
+        else:
+            build(folder, source_files(folder), SCALES)
     return 0
 
 

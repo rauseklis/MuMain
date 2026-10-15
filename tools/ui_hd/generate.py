@@ -19,6 +19,7 @@ from PIL import Image
 from core_set import CORE_SET
 import gauges
 import gm_icon
+import statrow
 import reframe
 import retext
 from mu_image import read_texture
@@ -139,7 +140,7 @@ def build_batch(names, tiers, method):
             remove_tiers(name)
             print("skipped", name, "(drifts too far from the original)")
             continue
-        master = gm_icon.apply(name, gauges.apply(name, reframe.apply(name, retext.apply(name, master)), rgba))
+        master = statrow.apply(name, gm_icon.apply(name, gauges.apply(name, reframe.apply(name, retext.apply(name, master)), rgba)))
         write_tiers(name, master, tiers)
         print("ok", name, f"({label})")
 
