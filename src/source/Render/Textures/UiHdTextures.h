@@ -35,6 +35,9 @@ inline constexpr EligibleRoot kEligibleRoots[] = {
     {L"interface", L"Interface"},
     {L"skill", L"Skill"},
     {L"item", L"Item"},
+    {L"player", L"Player"},
+    {L"monster", L"Monster"},
+    {L"npc", L"NPC"},
 };
 
 enum class Setting

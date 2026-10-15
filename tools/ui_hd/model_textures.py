@@ -27,7 +27,9 @@ MODEL_TEXTURES = {
     "Item": ["fenril*"],
 }
 # folder -> every other texture of the folder, 2x only (wings, weapons, armour, other mounts and effects)
-BULK_FOLDERS = ("Item", "Skill")
+BULK_FOLDERS = ("Item", "Skill", "Player", "Monster", "NPC")
+# Textures above this size are already high resolution (some Monster maps are 1500 px) and are left alone.
+MAX_BULK_SIDE = 512
 # Tiny textures (potions, jewels, fruits, small effects) only get blurred by an enlargement and are drawn at icon size, so the
 # bulk run leaves them alone.
 MIN_BULK_SIDE = 33
@@ -97,7 +99,7 @@ def main():
         if bulk:
             done = {os.path.splitext(os.path.basename(p))[0].lower() for p in glob.glob(os.path.join(DATA_DIR, f"{folder}@2x", "*.png"))}
             paths = [p for p in source_files(folder, ["*"])
-                     if os.path.splitext(os.path.basename(p))[0].lower() not in done and max(image_size(p)) >= MIN_BULK_SIDE]
+                     if os.path.splitext(os.path.basename(p))[0].lower() not in done and MIN_BULK_SIDE <= max(image_size(p)) <= MAX_BULK_SIDE]
             build(folder, paths, BULK_SCALES)
         else:
             build(folder, source_files(folder), SCALES)

@@ -58,8 +58,11 @@ TEST_CASE("HD path also works for the Skill and Item folders [render][ui_hd]")
     CHECK(HdPath(L"Data\\Skill\\dkhead2.jpg", 4) == L"Data\\Skill@4x\\dkhead2.png");
     CHECK(HdPath(L"Data/Item/fenril01.tga", 2) == L"Data/Item@2x/fenril01.png");
     CHECK(IsHdEligiblePath(L"Data\\Item\\fenril02.tga"));
-    CHECK_FALSE(IsHdEligiblePath(L"Data\\Monster\\wolf.jpg"));
-    CHECK_FALSE(IsHdEligiblePath(L"Data\\Player\\skin.jpg"));
+    CHECK(IsHdEligiblePath(L"Data\\Monster\\wolf.jpg"));
+    CHECK(IsHdEligiblePath(L"Data\\Player\\skin.jpg"));
+    CHECK(HdPath(L"Data\\NPC\\guard.tga", 2) == L"Data\\NPC@2x\\guard.png");
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\Effect\\spark.jpg"));
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\World1\\tile.jpg"));
 }
 
 TEST_CASE("HD path is empty for textures outside the interface folder [render][ui_hd]")
