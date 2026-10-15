@@ -58,7 +58,10 @@ def all_textures():
     counts = {}
     for relative in rows:
         counts[stem_key(relative)] = counts.get(stem_key(relative), 0) + 1
-    return [relative for relative in rows if counts[stem_key(relative)] == 1]
+    # Two files with the same stem share one HD path. The game loads the .tga (OZT) one for the shared names, so it keeps
+    # the HD art; the unused .jpg (OZJ) twin gets none.
+    return [relative for relative in rows
+            if counts[stem_key(relative)] == 1 or relative.lower().endswith(".ozt")]
 
 
 def drift(original, master):

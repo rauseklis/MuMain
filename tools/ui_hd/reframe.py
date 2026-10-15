@@ -43,6 +43,10 @@ SPECS = {
     "newui_chainfo_btn_quest.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (4, 4, 32, 25), "transparent_corners": True},
     "newui_chainfo_btn_pet.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (4, 4, 32, 25), "transparent_corners": True},
     "newui_chainfo_btn_master.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (4, 4, 32, 25), "transparent_corners": True},
+    "newui_btn_empty.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 108, 29), "crop": (4, 4, 104, 25), "transparent_corners": True},
+    "newui_btn_empty_big.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 180, 29), "crop": (4, 4, 176, 25), "transparent_corners": True},
+    "newui_btn_empty_small.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 64, 29), "crop": (4, 4, 60, 25), "transparent_corners": True},
+    "newui_btn_empty_very_small.OZT": {"cells": 3, "cell_height": 23, "rect": (0, 0, 54, 23), "crop": (4, 4, 50, 19), "transparent_corners": True},
     "newui_skillbox.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
     "newui_skillbox2.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
 }
