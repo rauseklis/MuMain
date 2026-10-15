@@ -16,7 +16,7 @@ import gm_icon
 import reframe
 import retext
 from compare import premultiplied, ssim
-from generate import DATA_DIR, tier_path
+from generate import DATA_DIR, all_textures, tier_path
 from mu_image import read_texture
 from survey import survey
 from upscale import downscale_rgba
@@ -52,8 +52,9 @@ def main():
     parser.add_argument("--alpha", type=float, default=DEFAULT_MAX_ALPHA_ERROR)
     args = parser.parse_args()
     failures, checked = [], 0
+    checked_names = set(all_textures())
     for relative, *_ in survey():
-        if relative.lower() in REDRAWN:
+        if relative not in checked_names or relative.lower() in REDRAWN:
             continue
         for scale in TIERS:
             result = check(relative, scale)
