@@ -34,13 +34,23 @@ def tube_box(rgb):
     return columns.min(), columns.max(), rows.min(), rows.max()
 
 
+SMOOTHING_KERNEL = np.array([0.06, 0.12, 0.2, 0.24, 0.2, 0.12, 0.06], np.float32)
+
+
+def smooth_columns(columns):
+    """Blends the hard vertical bands of the original shading into one smooth cylinder gradient."""
+    pad = len(SMOOTHING_KERNEL) // 2
+    padded = np.pad(columns, ((pad, pad), (0, 0)), mode="edge")
+    return np.stack([np.convolve(padded[:, c], SMOOTHING_KERNEL, mode="valid") for c in range(columns.shape[1])], axis=1)
+
+
 def draw_tube(original):
     """original: uint8 RGBA (h, w, 4). Returns the 4x tube: black outside the tube, smooth shading inside."""
     rgb = original[..., :3].astype(np.float32)
     height, width = rgb.shape[:2]
     c0, c1, r0, r1 = tube_box(rgb)
     inner = rgb[r0:r1 + 1, c0:c1 + 1]
-    columns = inner.mean(axis=0)
+    columns = smooth_columns(inner.mean(axis=0))
     column_profile = np.clip(interpolate_profile(columns, inner.shape[1] * SCALE), 0, 255)
 
     rows = inner.mean(axis=(1, 2))
