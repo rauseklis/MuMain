@@ -81,6 +81,11 @@ def remove_tiers(relative):
             os.remove(path)
 
 
+def is_redrawn(name):
+    key = name.lower()
+    return key in {n.lower() for n in retext.SPECS} or key in {n.lower() for n in reframe.SPECS} or         key in {n.lower() for n in reframe.SLOT_STRIPS} or key in gauges.SPECS or key in gauges.GEM_SPECS
+
+
 def uses_network(relative, rgba, method):
     if method != "esrgan" or relative in LANCZOS_ONLY:
         return False
@@ -126,7 +131,7 @@ def build_batch(names, tiers, method):
         master, label = masters.get(name, (None, "lanczos"))
         if master is None:
             master = enlarge_lanczos(name, rgba, kind)
-        if not within_tolerance(rgba, master):
+        if not is_redrawn(name) and not within_tolerance(rgba, master):
             remove_tiers(name)
             print("skipped", name, "(drifts too far from the original)")
             continue

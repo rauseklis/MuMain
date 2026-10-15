@@ -8,6 +8,9 @@ import numpy as np
 
 SCALE = 4
 SPECS = {"newui_menu_ag.ozj", "newui_menu_sd.ozj"}
+GEM_SPECS = {"newui_menu_red.ozj", "newui_menu_green.ozj", "newui_menu_blue.ozj"}
+GEM_ALPHA_LOW = 10.0
+GEM_ALPHA_HIGH = 44.0
 ROW_VARIATION = 0.6
 
 
@@ -66,7 +69,18 @@ def draw_tube(original):
     return out
 
 
+def gem_with_transparent_corners(master):
+    """The gem sprites sit on a black square; the darkest pixels become transparent so the bar's frame shows through."""
+    out = master.copy()
+    brightness = out[..., :3].max(axis=2).astype(np.float32)
+    coverage = np.clip((brightness - GEM_ALPHA_LOW) / (GEM_ALPHA_HIGH - GEM_ALPHA_LOW), 0.0, 1.0)
+    out[..., 3] = np.rint(coverage * 255.0).astype(np.uint8)
+    return out
+
+
 def apply(name, master, original):
+    if name.lower() in GEM_SPECS:
+        return gem_with_transparent_corners(master)
     if name.lower() not in SPECS:
         return master
     return draw_tube(original)

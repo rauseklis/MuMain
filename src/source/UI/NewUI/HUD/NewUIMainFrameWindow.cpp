@@ -351,6 +351,9 @@ void SEASON3B::CNewUIMainFrameWindow::RenderLifeMana()
     float x, y;
     float fY, fH, fV;
 
+    // The gem sprites have transparent corners; the skill icons drawn just before leave blending off.
+    EnableAlphaTest();
+
     // life
     width = 45.f;
     x = 158;

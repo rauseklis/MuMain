@@ -44,9 +44,9 @@ TEST_CASE("the stone window backdrop is recognised by name [render][ui_texture_q
 {
     using Render::UiTextureQuality::IsWindowBackdropPath;
 
-    CHECK(IsWindowBackdropPath(L"Data\Interface\newui_msgbox_back.jpg"));
+    CHECK(IsWindowBackdropPath(L"Data\\Interface\\newui_msgbox_back.jpg"));
     CHECK(IsWindowBackdropPath(L"data/interface/NEWUI_MSGBOX_BACK.OZJ"));
 
-    CHECK_FALSE(IsWindowBackdropPath(L"Data\Interface\newui_item_back01.tga"));
-    CHECK_FALSE(IsWindowBackdropPath(L"Data\Effect\newui_msgbox_back.jpg"));
+    CHECK_FALSE(IsWindowBackdropPath(L"Data\\Interface\\newui_item_back01.tga"));
+    CHECK_FALSE(IsWindowBackdropPath(L"Data\\Effect\\newui_msgbox_back.jpg"));
 }

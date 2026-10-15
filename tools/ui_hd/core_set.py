@@ -96,12 +96,20 @@ LOGIN_SCENE = [
     "server_ex01.OZT",
 ]
 
+CHAT_AND_GEMS = [
+    "newui_Bt_Chat_guild.OZJ", "newui_Bt_Chat_normal.OZJ", "newui_Bt_Chat_party.OZJ", "newui_Bt_Chat_system.OZJ",
+    "newui_chat_btn_alpha.OZJ", "newui_chat_btn_size.OZJ", "newui_chat_chat_on.OZJ", "newui_chat_frame_on.OZJ",
+    "newui_chat_gens_on.OZJ", "newui_chat_guild_on.OZJ", "newui_chat_normal_on.OZJ", "newui_chat_party_on.OZJ",
+    "newui_chat_system_on.OZJ", "newui_chat_whisper_on.OZJ", "newui_bt_Off_chat.OZJ",
+]
+
 GROUPS = {
     "frame_kit": FRAME_KIT,
     "bottom_bar": BOTTOM_BAR,
     "character_info": CHARACTER_INFO,
     "inventory": INVENTORY,
     "login_scene": LOGIN_SCENE,
+    "chat": CHAT_AND_GEMS,
 }
 
 CORE_SET = [path for group in GROUPS.values() for path in group]

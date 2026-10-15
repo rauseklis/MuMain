@@ -26,7 +26,7 @@ DEFAULT_MIN_SSIM = 0.90
 DEFAULT_MAX_ALPHA_ERROR = 10.0
 
 
-REDRAWN = {name.lower() for name in set(retext.SPECS) | set(reframe.SPECS) | set(reframe.SLOT_STRIPS) | set(reframe.OUTER_CORNERS) | gauges.SPECS}
+REDRAWN = {name.lower() for name in set(retext.SPECS) | set(reframe.SPECS) | set(reframe.SLOT_STRIPS) | set(reframe.OUTER_CORNERS) | gauges.SPECS | gauges.GEM_SPECS}
 
 
 def check(relative, scale):
