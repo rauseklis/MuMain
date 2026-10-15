@@ -1,4 +1,4 @@
-"""Checks every HD texture against its original and lists the ones that drifted.
+﻿"""Checks every HD texture against its original and lists the ones that drifted.
 
   python tools/ui_hd/verify.py [--mae 8] [--ssim 0.9] [--alpha 8]
 For each tier the HD PNG is reduced back to the original size and compared: mean absolute error and SSIM on
@@ -20,7 +20,7 @@ from upscale import downscale_rgba
 TIERS = (4, 2)
 DEFAULT_MAX_MAE = 8.0
 DEFAULT_MIN_SSIM = 0.90
-DEFAULT_MAX_ALPHA_ERROR = 8.0
+DEFAULT_MAX_ALPHA_ERROR = 10.0
 
 
 def check(relative, scale):

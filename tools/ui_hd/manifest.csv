@@ -36,7 +36,7 @@ newui_item_back02-L.OZT,frame_kit,ozt,21,320,32,512,done,real-esrgan (merged wit
 newui_item_back02-R.OZT,frame_kit,ozt,21,320,32,512,done,real-esrgan (merged with enlargement)
 newui_item_back03.OZT,frame_kit,ozt,190,45,256,64,done,real-esrgan (merged with enlargement)
 newui_item_back04.OZT,frame_kit,ozt,190,64,256,64,done,real-esrgan (merged with enlargement)
-newui_item_table01(L).OZT,frame_kit,ozt,14,14,16,16,pending,
+newui_item_table01(L).OZT,frame_kit,ozt,14,14,16,16,done,real-esrgan (merged with enlargement)
 newui_item_table01(R).OZT,frame_kit,ozt,14,14,16,16,done,real-esrgan (merged with enlargement)
 newui_item_table02(L).OZT,frame_kit,ozt,14,14,16,16,done,real-esrgan (merged with enlargement)
 newui_item_table02(R).OZT,frame_kit,ozt,14,14,16,16,done,real-esrgan (merged with enlargement)
@@ -165,17 +165,17 @@ Grail_illusion.OZT,other,ozt,40,36,64,64,done,real-esrgan (merged with enlargeme
 Grail_mu.OZT,other,ozt,40,36,64,64,done,real-esrgan (merged with enlargement)
 guild.OZT,other,ozt,8,8,8,8,pending,
 Hero.OZT,other,ozt,11,11,16,16,done,real-esrgan (merged with enlargement)
-hit.OZT,other,ozt,27,15,32,16,pending,
+hit.OZT,other,ozt,27,15,32,16,done,real-esrgan (merged with enlargement)
 hourglass.OZT,other,ozt,154,23,256,32,done,real-esrgan (merged with enlargement)
 i_attack.OZT,other,ozt,13,13,16,16,pending,
 i_defense.OZT,other,ozt,18,15,32,16,pending,
-i_wait.OZT,other,ozt,11,12,16,16,pending,
+i_wait.OZT,other,ozt,11,12,16,16,done,real-esrgan (merged with enlargement)
 Icarus.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 icon_failure.OZT,other,ozt,329,94,512,128,done,real-esrgan (merged with enlargement)
 icon_Rank_0.OZT,other,ozt,15,19,16,32,done,real-esrgan (merged with enlargement)
 icon_Rank_1.OZT,other,ozt,15,19,16,32,done,real-esrgan (merged with enlargement)
 icon_Rank_2.OZT,other,ozt,15,19,16,32,done,real-esrgan (merged with enlargement)
-icon_Rank_3.OZT,other,ozt,15,19,16,32,pending,
+icon_Rank_3.OZT,other,ozt,15,19,16,32,done,real-esrgan (merged with enlargement)
 icon_Rank_4.OZT,other,ozt,15,19,16,32,done,real-esrgan (merged with enlargement)
 icon_Rank_5.OZT,other,ozt,15,19,16,32,done,real-esrgan (merged with enlargement)
 icon_Rank_6.OZT,other,ozt,15,19,16,32,done,real-esrgan (merged with enlargement)
@@ -323,7 +323,7 @@ MacroUI/MacroUI_Gauge_Bar_(R).OZJ,other,ozj,152,4,256,4,done,real-esrgan (merged
 MacroUI/MacroUI_Gauge_Bar_(Y).OZJ,other,ozj,152,4,256,4,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_Gauge_Frame.OZT,other,ozt,156,8,256,8,pending,
 MacroUI/MacroUI_InputNumber.OZT,other,ozt,28,15,32,16,pending,
-MacroUI/MacroUI_InputString.OZT,other,ozt,93,15,128,16,pending,
+MacroUI/MacroUI_InputString.OZT,other,ozt,93,15,128,16,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_OptionButton.OZT,other,ozt,15,30,16,32,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_RangeMinus.OZT,other,ozt,16,30,16,32,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_Setup.OZT,other,ozt,18,40,32,64,done,real-esrgan (merged with enlargement)
@@ -464,10 +464,10 @@ newui_ctminmap_Hero.OZT,other,ozt,11,11,16,16,done,real-esrgan (merged with enla
 newui_ctminmap_Relic.OZT,other,ozt,14,14,16,16,done,real-esrgan (merged with enlargement)
 newui_ctminmap_TeamA_box.OZT,other,ozt,9,8,16,8,pending,
 newui_ctminmap_TeamA_member.OZT,other,ozt,7,7,8,8,pending,
-newui_ctminmap_TeamA_npc.OZT,other,ozt,9,9,16,16,pending,
+newui_ctminmap_TeamA_npc.OZT,other,ozt,9,9,16,16,done,real-esrgan (merged with enlargement)
 newui_ctminmap_TeamB_box.OZT,other,ozt,9,8,16,8,pending,
 newui_ctminmap_TeamB_member.OZT,other,ozt,7,7,8,8,pending,
-newui_ctminmap_TeamB_npc.OZT,other,ozt,9,9,16,16,pending,
+newui_ctminmap_TeamB_npc.OZT,other,ozt,9,9,16,16,done,real-esrgan (merged with enlargement)
 newui_ctminmapframe.OZT,other,ozt,128,165,128,256,done,real-esrgan (merged with enlargement)
 newui_ctscorealliedgaail.OZT,other,ozt,40,36,64,64,done,real-esrgan (merged with enlargement)
 newui_ctscorealliednum0.OZT,other,ozt,56,66,64,128,done,real-esrgan (merged with enlargement)
@@ -553,7 +553,7 @@ newui_msgbox_middle.OZT,other,ozt,230,15,256,16,done,real-esrgan (merged with en
 newui_msgbox_top.OZT,other,ozt,230,67,256,128,done,real-esrgan (merged with enlargement)
 newui_myquest_Line.OZT,other,ozt,188,21,256,32,done,real-esrgan (merged with enlargement)
 newui_npcshop_btn_repair.OZT,other,ozt,36,58,64,64,done,real-esrgan (merged with enlargement)
-newui_number1.OZT,other,ozt,120,14,128,16,pending,
+newui_number1.OZT,other,ozt,120,14,128,16,done,real-esrgan (merged with enlargement)
 newui_number2.OZT,other,ozt,140,14,256,16,done,real-esrgan (merged with enlargement)
 newui_option_back06(L).OZT,other,ozt,21,10,32,16,done,real-esrgan (merged with enlargement)
 newui_option_back06(R).OZT,other,ozt,21,10,32,16,done,real-esrgan (merged with enlargement)
@@ -725,10 +725,10 @@ t_main.OZT,other,ozt,155,36,256,64,done,real-esrgan (merged with enlargement)
 tarcan.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 TeamA_box.OZT,other,ozt,9,8,16,8,pending,
 TeamA_member.OZT,other,ozt,7,7,8,8,pending,
-TeamA_npc.OZT,other,ozt,9,9,16,16,pending,
+TeamA_npc.OZT,other,ozt,9,9,16,16,done,real-esrgan (merged with enlargement)
 TeamB_box.OZT,other,ozt,9,8,16,8,pending,
 TeamB_member.OZT,other,ozt,7,7,8,8,pending,
-TeamB_npc.OZT,other,ozt,9,9,16,16,pending,
+TeamB_npc.OZT,other,ozt,9,9,16,16,done,real-esrgan (merged with enlargement)
 Trading_line.OZJ,other,ozj,190,10,256,16,pending,
 vs1.OZT,other,ozt,49,27,64,32,done,real-esrgan (merged with enlargement)
 vs2.OZT,other,ozt,20,45,32,64,done,real-esrgan (merged with enlargement)

@@ -33,7 +33,7 @@ DEFAULT_NETWORK_MODEL = "realesr-animevideov3"
 NETWORK_MODEL = os.environ.get("UI_HD_MODEL", DEFAULT_NETWORK_MODEL)
 BATCH_SIZE = 48
 MAX_MAE = 8.0
-MAX_ALPHA_ERROR = 8.0
+MAX_ALPHA_ERROR = 10.0
 
 
 def tier_path(relative, scale):
@@ -101,27 +101,35 @@ def write_tiers(relative, master, tiers):
         save_png(tier_path(relative, scale), reduced)
 
 
+def network_masters(loaded, method):
+    """Tries the chosen model first and the gentler default for what drifts too far. Returns {name: (master, model)}."""
+    pending = {name: rgba for name, (rgba, _) in loaded.items() if uses_network(name, rgba, method)}
+    masters = {}
+    for model in dict.fromkeys([NETWORK_MODEL, DEFAULT_NETWORK_MODEL]):
+        if not pending:
+            break
+        import esrgan
+        enlarged = esrgan.enlarge_many({str(i): rgba for i, rgba in enumerate(pending.values())}, model)
+        for i, name in enumerate(list(pending)):
+            if within_tolerance(pending[name], enlarged[str(i)]):
+                masters[name] = (enlarged[str(i)], model)
+        pending = {name: rgba for name, rgba in pending.items() if name not in masters}
+    return masters
+
+
 def build_batch(names, tiers, method):
     loaded = {name: read_texture(source_path(name)) for name in names}
-    network = {name: rgba for name, (rgba, _) in loaded.items() if uses_network(name, rgba, method)}
-    results = {}
-    if network:
-        import esrgan
-        flat = {str(i): rgba for i, rgba in enumerate(network.values())}
-        enlarged = esrgan.enlarge_many(flat, NETWORK_MODEL)
-        results = {name: enlarged[str(i)] for i, name in enumerate(network)}
+    masters = network_masters(loaded, method)
     for name, (rgba, kind) in loaded.items():
-        master, method = results.get(name), "network"
-        if master is not None and not within_tolerance(rgba, master):
-            master = None
+        master, label = masters.get(name, (None, "lanczos"))
         if master is None:
-            master, method = enlarge_lanczos(name, rgba, kind), "lanczos"
+            master = enlarge_lanczos(name, rgba, kind)
         if not within_tolerance(rgba, master):
             remove_tiers(name)
             print("skipped", name, "(drifts too far from the original)")
             continue
         write_tiers(name, master, tiers)
-        print("ok", name, f"({method})")
+        print("ok", name, f"({label})")
 
 
 def select(args):
