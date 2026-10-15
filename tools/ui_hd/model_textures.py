@@ -15,7 +15,7 @@ from PIL import Image
 
 import esrgan
 from generate import DATA_DIR, MAX_ALPHA_ERROR, MAX_MAE, NETWORK_MODEL, drift, save_png
-from mu_image import read_texture
+from mu_image import image_size, read_texture
 from upscale import downscale_rgba, upscale_rgba
 
 SCALES = (4, 2)
@@ -28,6 +28,9 @@ MODEL_TEXTURES = {
 }
 # folder -> every other texture of the folder, 2x only (wings, weapons, armour, other mounts and effects)
 BULK_FOLDERS = ("Item", "Skill")
+# Tiny textures (potions, jewels, fruits, small effects) only get blurred by an enlargement and are drawn at icon size, so the
+# bulk run leaves them alone.
+MIN_BULK_SIDE = 33
 TEXTURE_EXTENSIONS = (".ozj", ".ozt")
 
 
@@ -93,7 +96,8 @@ def main():
     for folder in (BULK_FOLDERS if bulk else MODEL_TEXTURES):
         if bulk:
             done = {os.path.splitext(os.path.basename(p))[0].lower() for p in glob.glob(os.path.join(DATA_DIR, f"{folder}@2x", "*.png"))}
-            paths = [p for p in source_files(folder, ["*"]) if os.path.splitext(os.path.basename(p))[0].lower() not in done]
+            paths = [p for p in source_files(folder, ["*"])
+                     if os.path.splitext(os.path.basename(p))[0].lower() not in done and max(image_size(p)) >= MIN_BULK_SIDE]
             build(folder, paths, BULK_SCALES)
         else:
             build(folder, source_files(folder), SCALES)
