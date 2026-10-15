@@ -93,7 +93,22 @@ def build(folder, paths, scales):
         write_outputs(folder, textures, enlarge(textures), scales)
 
 
+FOUR_X_SCALES = (4, 2)
+
+
+def four_x_set(folder, count):
+    """The `count` largest textures of a folder (the ones close to the camera are the big ones), skipping twin names."""
+    paths = [p for p in source_files(folder, ["*"]) if MIN_BULK_SIDE <= max(image_size(p)) <= MAX_BULK_SIDE]
+    paths.sort(key=lambda p: (-max(image_size(p)), p))
+    return paths[:count]
+
+
 def main():
+    if "--four" in sys.argv:
+        for argument in sys.argv[sys.argv.index("--four") + 1:]:
+            folder, _, count = argument.partition(":")
+            build(folder, four_x_set(folder, int(count or 40)), FOUR_X_SCALES)
+        return 0
     bulk = "--bulk" in sys.argv
     for folder in (BULK_FOLDERS if bulk else MODEL_TEXTURES):
         if bulk:
