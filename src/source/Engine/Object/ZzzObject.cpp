@@ -4958,6 +4958,19 @@ void DeleteObjectTile(int x, int y)
     }
 }
 
+namespace
+{
+void CreateLoadedMapObject(int type, vec3_t position, vec3_t angle, float scale)
+{
+    if (type < 0 || type >= MAX_MODELS)
+    {
+        g_ErrorReport.Write(L"Skipped map object with an invalid model index.\r\n");
+        return;
+    }
+    CreateObject(type, position, angle, scale);
+}
+}
+
 int OpenObjects(wchar_t* FileName)
 {
     FILE* fp = _wfopen(FileName, L"rb");
@@ -5002,7 +5015,7 @@ int OpenObjects(wchar_t* FileName)
         float Scale = 0.f;
         memcpy(&Scale, Data + DataPtr, sizeof(Scale));
         DataPtr += sizeof(Scale);
-        CreateObject(Type, Position, Angle, Scale);
+        CreateLoadedMapObject(Type, Position, Angle, Scale);
     }
     delete[] Data;
 
@@ -5054,7 +5067,7 @@ int OpenObjectsEnc(wchar_t* FileName)
         float Scale = 0.f;
         memcpy(&Scale, Data + DataPtr, sizeof(Scale));
         DataPtr += sizeof(Scale);
-        CreateObject(Type, Position, Angle, Scale);
+        CreateLoadedMapObject(Type, Position, Angle, Scale);
     }
     delete[] Data;
 
