@@ -106,6 +106,12 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME test_potion_stacking
+    SOURCES test_potion_stacking.cpp
+    LINK_LIBS MuClient
+)
+
+mu_add_test(
     NAME test_map_object_loading
     SOURCES
         test_map_object_loading.cpp

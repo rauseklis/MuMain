@@ -381,6 +381,15 @@ The game runs from the build folder, which has a copy of `src/bin/Data`.
 To keep your changes, copy the changed files from
 `<build folder>/Data/Items` to `src/bin/Data/Items` and commit them.
 
+### Recovery potion stacks
+
+The local test profile allows stacks of 50 for apples, healing potions,
+mana potions and antidotes. SD and complex HP+SD potions stay at 3.
+Drag matching items of the same level together to merge stacks; a full source
+stack can partially fill a smaller target. Existing quantities are not refilled.
+The server must use matching stack capacities (the root repository's
+`config/local-test/consumables.sql`); other consumables keep their existing rules.
+
 ### Import from bmd / Export as bmd
 
 The repository does not ship `Item_<lang>.bmd` files; the JSON files are the
