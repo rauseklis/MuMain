@@ -84,7 +84,7 @@ std::optional<HdImage> LoadForTexture(const std::wstring& originalPath, int cont
                                       int paddedWidth, int paddedHeight, bool opaquePadding,
                                       std::string (*resolvePath)(const std::wstring&))
 {
-    if (!UiTextureQuality::IsInterfaceTexturePath(originalPath))
+    if (!IsHdEligiblePath(originalPath))
         return std::nullopt;
 
     for (const int scale : CandidateScales(GetActiveSetting()))

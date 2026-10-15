@@ -322,11 +322,12 @@ EDGE_BLACKOUT = {
     "partCharge1/newui_menu03.OZJ": (0, 1),
 }
 CONTENT_ROWS = 41
+EDGE_BLACKOUT_FIRST_ROW = 4  # keep the steel top line unbroken across the seams
 
 
 def black_out_edge(master, columns):
     out = master.copy()
-    out[:CONTENT_ROWS * SCALE, columns[0] * SCALE:columns[1] * SCALE, :3] = 0
+    out[EDGE_BLACKOUT_FIRST_ROW * SCALE:CONTENT_ROWS * SCALE, columns[0] * SCALE:columns[1] * SCALE, :3] = 0
     return out
 
 

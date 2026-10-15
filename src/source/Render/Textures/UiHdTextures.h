@@ -23,8 +23,19 @@ inline constexpr int kMinScale = 2;
 inline constexpr int kMaxScale = 4;
 inline constexpr int kBytesPerPixel = 4;
 inline constexpr int kMaxHdTextureSize = 8192;
-inline constexpr std::wstring_view kInterfaceRoot = L"interface";
 inline constexpr std::wstring_view kDataFolder = L"data/";
+
+// Texture folders that may have HD replacements: lower-case name -> folder name on disk.
+struct EligibleRoot
+{
+    std::wstring_view lowerName;
+    std::wstring_view folderName;
+};
+inline constexpr EligibleRoot kEligibleRoots[] = {
+    {L"interface", L"Interface"},
+    {L"skill", L"Skill"},
+    {L"item", L"Item"},
+};
 
 enum class Setting
 {
@@ -89,21 +100,54 @@ struct HdImage
     return scaleX;
 }
 
-// Data\Interface\a\b.tga -> Data\Interface@4x\a\b.png (same separators and case). Empty for non-interface paths.
-[[nodiscard]] inline std::wstring HdPath(std::wstring_view originalPath, int scale)
+struct RootMatch
 {
-    if (!UiTextureQuality::IsInterfaceTexturePath(originalPath))
-        return {};
+    std::size_t start = 0;
+    std::size_t length = 0;
+    std::wstring_view folderName;
+};
 
-    std::wstring lower(originalPath);
+// The first folder below "data/" when it is one of the folders that may have HD replacements.
+[[nodiscard]] inline std::optional<RootMatch> FindEligibleRoot(std::wstring_view path)
+{
+    std::wstring lower(path);
     std::transform(lower.begin(), lower.end(), lower.begin(), [](wchar_t character)
     {
         return character == L'\\' ? L'/' : static_cast<wchar_t>(std::towlower(character));
     });
-    const std::size_t rootStart = lower.find(kDataFolder) + kDataFolder.size();
+    const std::size_t dataPosition = lower.find(kDataFolder);
+    if (dataPosition == std::wstring::npos)
+        return std::nullopt;
+
+    const std::size_t start = dataPosition + kDataFolder.size();
+    const std::size_t end = lower.find(L'/', start);
+    if (end == std::wstring::npos)
+        return std::nullopt;
+
+    const std::wstring_view name(lower.data() + start, end - start);
+    for (const EligibleRoot& root : kEligibleRoots)
+    {
+        if (root.lowerName == name)
+            return RootMatch{start, name.size(), root.folderName};
+    }
+    return std::nullopt;
+}
+
+[[nodiscard]] inline bool IsHdEligiblePath(std::wstring_view path)
+{
+    return FindEligibleRoot(path).has_value();
+}
+
+// Data\Interface\a\b.tga -> Data\Interface@4x\a\b.png (same separators); Skill and Item work the same way.
+// Empty for textures outside the eligible folders.
+[[nodiscard]] inline std::wstring HdPath(std::wstring_view originalPath, int scale)
+{
+    const std::optional<RootMatch> root = FindEligibleRoot(originalPath);
+    if (!root)
+        return {};
 
     std::wstring result(originalPath);
-    result.replace(rootStart, kInterfaceRoot.size(), L"Interface@" + std::to_wstring(scale) + L"x");
+    result.replace(root->start, root->length, std::wstring(root->folderName) + L"@" + std::to_wstring(scale) + L"x");
 
     const std::size_t lastSeparator = result.find_last_of(L"\\/");
     const std::size_t dot = result.find_last_of(L'.');

@@ -53,6 +53,15 @@ TEST_CASE("HD path mirrors the original under the tier folder [render][ui_hd]")
     CHECK(HdPath(L"Data\\Interface\\noextension", 2) == L"Data\\Interface@2x\\noextension.png");
 }
 
+TEST_CASE("HD path also works for the Skill and Item folders [render][ui_hd]")
+{
+    CHECK(HdPath(L"Data\\Skill\\dkhead2.jpg", 4) == L"Data\\Skill@4x\\dkhead2.png");
+    CHECK(HdPath(L"Data/Item/fenril01.tga", 2) == L"Data/Item@2x/fenril01.png");
+    CHECK(IsHdEligiblePath(L"Data\\Item\\fenril02.tga"));
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\Monster\\wolf.jpg"));
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\Player\\skin.jpg"));
+}
+
 TEST_CASE("HD path is empty for textures outside the interface folder [render][ui_hd]")
 {
     CHECK(HdPath(L"Data\\Effect\\Damage1.jpg", 2).empty());
