@@ -16,11 +16,11 @@ GROOVE_BLEND = 0.9
 
 # rect: the button inside one cell; crop: the part of the original face reused inside the new frame (cell pixels).
 SPECS = {
-    "partCharge1/newui_menu_Bt01.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
-    "partCharge1/newui_menu_Bt02.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
-    "partCharge1/newui_menu_Bt03.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
-    "partCharge1/newui_menu_Bt04.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
-    "partCharge1/newui_menu_Bt05.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt01.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt02.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt03.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt04.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt05.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
     "newui_Bt_Chat_guild.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
     "newui_Bt_Chat_normal.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
     "newui_Bt_Chat_party.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
@@ -57,7 +57,7 @@ SPECS = {
 SLOT_Y0, SLOT_Y1 = 3, 40
 SLOT_STRIPS = {
     "newui_menu01.OZJ": [((0, SLOT_Y0, 38, SLOT_Y1), "Q"), ((38, SLOT_Y0, 76, SLOT_Y1), "W"),
-                         ((76, SLOT_Y0, 114, SLOT_Y1), "E"), ((114, SLOT_Y0, 152, SLOT_Y1), "R"),
+                         ((76, SLOT_Y0, 114, SLOT_Y1), "E"), ((114, SLOT_Y0, 151, SLOT_Y1), "R"),
                          ((222, SLOT_Y0, 253, SLOT_Y1), None)],
     "newui_menu02.OZJ": [((0, SLOT_Y0, 31, SLOT_Y1), None), ((31, SLOT_Y0, 63, SLOT_Y1), None),
                          ((63, SLOT_Y0, 95, SLOT_Y1), None), ((95, SLOT_Y0, 127, SLOT_Y1), None)],
@@ -315,7 +315,20 @@ def apply_highlights(name, master):
     return out
 
 
+# Columns of the original strip edge that show as a thin light line between the slots and the next piece: texture -> (x0, x1)
+EDGE_BLACKOUT = {"newui_menu02.OZJ": (126, 128)}
+CONTENT_ROWS = 41
+
+
+def black_out_edge(master, columns):
+    out = master.copy()
+    out[:CONTENT_ROWS * SCALE, columns[0] * SCALE:columns[1] * SCALE, :3] = 0
+    return out
+
+
 def apply_inner(name, master):
+    if name in EDGE_BLACKOUT:
+        master = black_out_edge(master, EDGE_BLACKOUT[name])
     if name in HIGHLIGHT_STRIPS:
         master = apply_highlights(name, master)
     if name in SLOT_STRIPS:
