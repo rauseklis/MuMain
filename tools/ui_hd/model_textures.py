@@ -22,22 +22,29 @@ SCALES = (4, 2)
 MASTER_SCALE = 4
 # folder -> file name patterns (without extension)
 MODEL_TEXTURES = {
-    "Skill": ["dk*"],
+    "Skill": ["dk*", "fenril*"],
     "Item": ["fenril*"],
 }
 TEXTURE_EXTENSIONS = (".ozj", ".ozt")
 
 
 def source_files(folder):
-    """One source file per texture name; when a .ozj and a .ozt share a name the .ozt wins (their pictures are the same)."""
+    """One source file per texture name. Names that exist as both .ozj and .ozt are skipped (see below)."""
     chosen = {}
+    twins = {}
+    for pattern in MODEL_TEXTURES[folder]:
+        for path in glob.glob(os.path.join(DATA_DIR, folder, pattern)):
+            stem, extension = os.path.splitext(os.path.basename(path).lower())
+            if extension in TEXTURE_EXTENSIONS:
+                twins[stem] = twins.get(stem, 0) + 1
     for pattern in MODEL_TEXTURES[folder]:
         for path in sorted(glob.glob(os.path.join(DATA_DIR, folder, pattern))):
             stem, extension = os.path.splitext(os.path.basename(path))
             if extension.lower() not in TEXTURE_EXTENSIONS:
                 continue
-            if stem.lower() not in chosen or extension.lower() == ".ozt":
-                chosen[stem.lower()] = path
+            if twins[stem.lower()] > 1:
+                continue  # a .ozj and a .ozt with the same name share one HD path, and the game may load either: skip both
+            chosen[stem.lower()] = path
     return list(chosen.values())
 
 
@@ -52,9 +59,10 @@ def enlarge(textures):
     for i, (path, rgba, kind) in enumerate(textures):
         master = results[str(i)]
         mae, alpha = drift(rgba, master)
-        if mae > MAX_MAE or alpha > MAX_ALPHA_ERROR:
+        has_cutout = kind == "ozt" and bool((rgba[..., 3] < 255).any())
+        if has_cutout or mae > MAX_MAE or alpha > MAX_ALPHA_ERROR:
             master = upscale_rgba(rgba, MASTER_SCALE, jpeg_source=(kind == "ozj"))
-            print("  fell back to plain enlargement:", os.path.basename(path))
+            print("  plain enlargement (cut-out or drift):", os.path.basename(path))
         masters.append(master)
     return masters
 
