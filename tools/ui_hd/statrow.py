@@ -18,8 +18,6 @@ SPECS = {TEXTBOX, PLUS_BUTTON}
 
 BOX_CORNER = 3.0
 FRAME_WIDTH = 0.9
-DIVIDER_X = 73.0
-VALUE_INSET = 1.4
 FRAME_LIGHT = (196, 198, 204)
 FRAME_DARK = (84, 86, 92)
 PLATE_TOP = (88, 88, 90)
@@ -53,6 +51,16 @@ def vertical_fill(size, top, bottom):
     return np.broadcast_to(colours, (size[1], size[0], 3))
 
 
+# Geometry of the original box inside its 170 x 21 texture (measured): the frame spans x 0..167 and y 0.3..18.3 and the
+# value box lies at x 74..166, y 2..17, exactly under the 16 x 15 "+" button the game draws at x + 149, y + 2.
+FRAME_RECT = (0.4, 0.3, 167.6, 18.3)
+VALUE_RECT = (74.0, 2.0, 166.0, 17.0)
+
+
+def scaled_rect(rect):
+    return [to_big(v) for v in rect]
+
+
 def draw_textbox():
     width, height = 170, 21
     big = (to_big(width), to_big(height))
@@ -66,21 +74,20 @@ def draw_textbox():
     plate += grain[..., None]
     plate_img = Image.fromarray(np.clip(plate, 0, 255).astype(np.uint8), "RGB").convert("RGBA")
 
+    frame_box = scaled_rect(FRAME_RECT)
     outer = Image.new("L", big, 0)
-    ImageDraw.Draw(outer).rounded_rectangle([0, 0, big[0] - 1, big[1] - 1], radius=to_big(BOX_CORNER), fill=255)
+    ImageDraw.Draw(outer).rounded_rectangle(frame_box, radius=to_big(BOX_CORNER), fill=255)
     out.paste(plate_img, (0, 0), outer)
 
     frame = to_big(FRAME_WIDTH)
     for index, colour in enumerate((FRAME_LIGHT, FRAME_DARK)):
         inset = frame * index
-        draw.rounded_rectangle([inset, inset, big[0] - 1 - inset, big[1] - 1 - inset],
-                               radius=max(to_big(BOX_CORNER) - inset, 2), outline=colour + (255,), width=frame)
+        box = [frame_box[0] + inset, frame_box[1] + inset, frame_box[2] - inset, frame_box[3] - inset]
+        draw.rounded_rectangle(box, radius=max(to_big(BOX_CORNER) - inset, 2), outline=colour + (255,), width=frame)
 
-    value_left = to_big(DIVIDER_X)
-    pad = to_big(VALUE_INSET) + frame * 2
-    box = [value_left, pad, big[0] - 1 - pad, big[1] - 1 - pad]
-    draw.rounded_rectangle(box, radius=to_big(2.0), fill=VALUE_FILL + (255,))
-    draw.rounded_rectangle(box, radius=to_big(2.0), outline=(150, 152, 158, 255), width=max(frame // 2, 1))
+    value = scaled_rect(VALUE_RECT)
+    draw.rounded_rectangle(value, radius=to_big(1.6), fill=VALUE_FILL + (255,))
+    draw.rounded_rectangle(value, radius=to_big(1.6), outline=(150, 152, 158, 255), width=max(frame // 2, 1))
     return np.asarray(shrink(out, (width * SCALE, height * SCALE)))
 
 
