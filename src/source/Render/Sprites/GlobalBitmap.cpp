@@ -845,7 +845,7 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
                                                             NextPowerOfTwo(jpegWidth, MAX_WIDTH),
                                                             NextPowerOfTwo(jpegHeight, MAX_HEIGHT), true, NarrowPath))
     {
-        return AddHdBitmap(uiBitmapIndex, filename, uiWrapMode, NextPowerOfTwo(jpegWidth, MAX_WIDTH),
+        return AddHdBitmap(uiBitmapIndex, filename, uiFilter, uiWrapMode, NextPowerOfTwo(jpegWidth, MAX_WIDTH),
                            NextPowerOfTwo(jpegHeight, MAX_HEIGHT), std::move(*hdImage));
     }
 
@@ -965,7 +965,7 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
     const int Height = NextPowerOfTwo(ny, MAX_HEIGHT);
 
     if (auto hdImage = Render::UiHdTextures::LoadForTexture(filename, nx, ny, Width, Height, false, NarrowPath))
-        return AddHdBitmap(uiBitmapIndex, filename, uiWrapMode, Width, Height, std::move(*hdImage));
+        return AddHdBitmap(uiBitmapIndex, filename, uiFilter, uiWrapMode, Width, Height, std::move(*hdImage));
 
     auto pNewBitmap = std::make_unique<BITMAP_t>();
 
@@ -1023,7 +1023,7 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
     return true;
 }
 
-bool CGlobalBitmap::AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiWrapMode, int paddedWidth,
+bool CGlobalBitmap::AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiFilter, GLuint uiWrapMode, int paddedWidth,
                                 int paddedHeight, Render::UiHdTextures::HdImage&& hdImage)
 {
     constexpr char kRgbaComponents = 4;
@@ -1041,10 +1041,15 @@ bool CGlobalBitmap::AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filena
     pNewBitmap->Buffer = pNewBitmap->BufferStorage.data();
     m_dwUsedTextureMemory += static_cast<std::uint32_t>(pNewBitmap->BufferStorage.size());
 
-    Render::UiTextureQuality::BleedTransparentRgb(pNewBitmap->BufferStorage, hdImage.width, hdImage.height);
-    constexpr bool kMipmapped = true;
-    if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, hdImage.width, hdImage.height, SDL_GPU_FILTER_LINEAR,
-                             MapGLWrapToSDL(uiWrapMode), false, kMipmapped))
+    // Interface art is smoothed and mipmapped. Model textures (items, skills) keep the sampling their original used,
+    // so an HD texture changes only how many texels there are, never how the model is filtered.
+    const bool interfaceTexture = Render::UiTextureQuality::IsInterfaceTexturePath(filename);
+    if (interfaceTexture)
+        Render::UiTextureQuality::BleedTransparentRgb(pNewBitmap->BufferStorage, hdImage.width, hdImage.height);
+    const SDL_GPUFilter filter = interfaceTexture ? SDL_GPU_FILTER_LINEAR : MapGLFilterToSDL(uiFilter);
+    const bool enhancedTexture = Render::GraphicsQuality::IsEnhancedTexturePath(filename);
+    if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, hdImage.width, hdImage.height, filter,
+                             MapGLWrapToSDL(uiWrapMode), enhancedTexture, interfaceTexture))
     {
         m_dwUsedTextureMemory -= static_cast<std::uint32_t>(pNewBitmap->BufferStorage.size());
         g_ErrorReport.Write(L"SDL HD texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
