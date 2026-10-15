@@ -45,6 +45,7 @@ namespace
     constexpr float kTourMaxRotateSpeed = 1.0f;
     constexpr float kMinTourAccel = 0.1f;
     constexpr float kMaxTourAccel = 100.0f;
+    constexpr float kTourSpeedScale = 0.5f;
     constexpr float kFullCircleDegrees = 360.0f;
     constexpr float kWaypointRenderOffset = 50.0f;
     constexpr float kWaypointRenderHalfSize = 10.0f;
@@ -751,8 +752,9 @@ void CCameraMove::UpdateTourWayPoint()
             return;
         }
 
-        float targetCameraAcc = Clamp(targetWaypoint->fCameraMoveAccel * static_cast<float>(FPS_ANIMATION_FACTOR), kMinTourAccel, kMaxTourAccel);
-        float originCameraAcc = Clamp(originWaypoint->fCameraMoveAccel * static_cast<float>(FPS_ANIMATION_FACTOR), kMinTourAccel, kMaxTourAccel);
+        const float fpsFactor = static_cast<float>(FPS_ANIMATION_FACTOR);
+        float targetCameraAcc = Clamp(targetWaypoint->fCameraMoveAccel, kMinTourAccel, kMaxTourAccel) * kTourSpeedScale * fpsFactor;
+        float originCameraAcc = Clamp(originWaypoint->fCameraMoveAccel, kMinTourAccel, kMaxTourAccel) * kTourSpeedScale * fpsFactor;
 
         if (m_iDelayCount >= targetWaypoint->iDelay)
         {
@@ -797,7 +799,7 @@ void CCameraMove::UpdateTourWayPoint()
                 }
             }
 
-            float speedFactor = static_cast<float>(FPS_ANIMATION_FACTOR);
+            float speedFactor = 1.0f;
             if (m_fForceSpeed > 0.0f)
             {
                 speedFactor *= m_fForceSpeed;
@@ -827,8 +829,8 @@ void CCameraMove::UpdateTourWayPoint()
             }
 
             const float angleDelta = SignedAngleDelta(m_fTourCameraAngle, m_fTargetTourCameraAngle);
-            float rotationStep = std::abs(angleDelta) / 30.0f;
-            rotationStep = Clamp(rotationStep, 0.0f, kTourMaxRotateSpeed);
+            float rotationStep = std::abs(angleDelta) * (1.0f - std::pow(1.0f - 1.0f / 30.0f, fpsFactor * kTourSpeedScale));
+            rotationStep = Clamp(rotationStep, 0.0f, kTourMaxRotateSpeed * fpsFactor * kTourSpeedScale);
             if (std::abs(angleDelta) <= rotationStep)
             {
                 m_fTourCameraAngle = NormalizeAngleDegrees(m_fTargetTourCameraAngle);
