@@ -35,6 +35,18 @@ SPECS = {
     "newui_chat_system_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
     "newui_chat_whisper_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
     "newui_bt_Off_chat.OZJ": {"cells": 1, "cell_height": 23, "rect": (0, 0, 22, 23), "crop": (4, 4, 18, 19), "transparent_corners": True},
+    "newui_exit_00.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_repair_00.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_expansion_btn.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_Bt_openshop.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_Bt_closeshop.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_quest.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_pet.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_master.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_btn_empty.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 108, 29), "crop": (3, 3, 105, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_btn_empty_big.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 180, 29), "crop": (3, 3, 177, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_btn_empty_small.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 64, 29), "crop": (3, 3, 61, 26), "transparent_corners": True, "profile": "thin"},
+    "newui_btn_empty_very_small.OZT": {"cells": 3, "cell_height": 23, "rect": (0, 0, 54, 23), "crop": (3, 3, 51, 20), "transparent_corners": True, "profile": "thin"},
     "newui_skillbox.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
     "newui_skillbox2.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
 }
@@ -60,12 +72,26 @@ def scaled(values):
     return [int(round(v * SCALE)) for v in values]
 
 
-def frame_layers(size, face):
+# Frame profiles: (ring inset, ring width, groove width) in logical pixels. "thin" keeps the round corners with a light frame.
+PROFILES = {
+    "normal": (RING_INSET, RING_WIDTH, retext.GROOVE_WIDTH),
+    "thin": (0.6, 0.8, 0.4),
+}
+
+
+def face_inset(profile):
+    inset, ring, groove = PROFILES[profile]
+    return inset + ring + groove
+
+
+def frame_layers(size, face, profile="normal"):
     """Black outline, bevel ring, groove, then `face` (RGBA of `size`) inside the rounded face area."""
+    ring_inset, ring_width, groove_width = PROFILES[profile]
+    FACE_INSET = face_inset(profile)
     radius = CORNER_RADIUS
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     composite(image, gradient_image(size, (6, 6, 6), (6, 6, 6), rounded_mask_r(size, 0.0, radius)))
-    outer, inner = rounded_mask_r(size, RING_INSET, radius), rounded_mask_r(size, RING_INSET + RING_WIDTH, radius)
+    outer, inner = rounded_mask_r(size, ring_inset, radius), rounded_mask_r(size, ring_inset + ring_width, radius)
     composite(image, gradient_image(size, retext.RING_LIGHT, retext.RING_DARK, np.clip(outer - inner, 0, 255)))
     groove = inner - rounded_mask_r(size, FACE_INSET - 0.2, radius)
     composite(image, gradient_image(size, GROOVE, GROOVE, np.clip(groove, 0, 255)))
@@ -89,15 +115,16 @@ def reframe_cell(cell, spec):
     x0, y0, x1, y1 = scaled(spec["rect"])
     cx0, cy0, cx1, cy1 = scaled(spec["crop"])
     size = (x1 - x0, y1 - y0)
-    face_area = (round(FACE_INSET * SCALE), round(FACE_INSET * SCALE),
-                 size[0] - round(FACE_INSET * SCALE), size[1] - round(FACE_INSET * SCALE))
+    inset = face_inset(spec.get("profile", "normal"))
+    face_area = (round(inset * SCALE), round(inset * SCALE),
+                 size[0] - round(inset * SCALE), size[1] - round(inset * SCALE))
     source = Image.fromarray(cell[cy0:cy1, cx0:cx1]).resize(
         (face_area[2] - face_area[0], face_area[3] - face_area[1]), Image.LANCZOS)
     face = Image.new("RGBA", size, (0, 0, 0, 255))
     face.paste(source, face_area[:2])
     out = cell.copy()
     out[y0:y1, x0:x1] = (0, 0, 0, 255)
-    framed = frame_layers(size, face)
+    framed = frame_layers(size, face, spec.get("profile", "normal"))
     base = Image.fromarray(out[y0:y1, x0:x1], "RGBA")
     base.alpha_composite(framed)
     out[y0:y1, x0:x1] = np.asarray(base)
