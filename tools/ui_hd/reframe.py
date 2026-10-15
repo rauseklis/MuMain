@@ -15,11 +15,11 @@ GROOVE_BLEND = 0.9
 
 # rect: the button inside one cell; crop: the part of the original face reused inside the new frame (cell pixels).
 SPECS = {
-    "partCharge1/newui_menu_Bt01.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36)},
-    "partCharge1/newui_menu_Bt02.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36)},
-    "partCharge1/newui_menu_Bt03.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36)},
-    "partCharge1/newui_menu_Bt04.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36)},
-    "partCharge1/newui_menu_Bt05.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36)},
+    "partCharge1/newui_menu_Bt01.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt02.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt03.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt04.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt05.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
     "newui_skillbox.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
     "newui_skillbox2.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
 }
@@ -89,14 +89,15 @@ def reframe_cell(cell, spec):
     out[..., 3] = 255
     if spec.get("transparent_corners"):
         coverage = rounded_mask_r(size, 0.0, CORNER_RADIUS) / 255.0
+        out[..., 3] = 0
         out[y0:y1, x0:x1, 3] = np.clip(np.rint(coverage * 255.0), 0, 255).astype(np.uint8)
     return out
 
 
 # Outer corners of the whole bottom bar: texture -> corners to round ("tl", "tr").
-OUTER_CORNER_RADIUS = 7.0
-OUTER_STROKE = 0.8
-OUTER_STROKE_COLOUR = (206, 176, 124)
+OUTER_CORNER_RADIUS = 9.0
+OUTER_STROKE = 1.0
+OUTER_STROKE_COLOUR = (150, 152, 160)
 OUTER_CORNERS = {
     "newui_menu01.OZJ": ("tl",),
     "partCharge1/newui_menu03.OZJ": ("tr",),
@@ -124,6 +125,24 @@ def round_outer_corners(master, corners):
         block[..., :3] = np.clip(np.rint(rgb * keep[..., None]), 0, 255).astype(np.uint8)
         block[..., 3] = np.clip(np.rint(keep * 255.0), 0, 255).astype(np.uint8)
         out[0:radius, x0:x0 + radius] = block
+    return out
+
+
+# The thin gold stripe along the top of the bar pieces is recoloured to steel, like the slot rings.
+TOP_LINE_TEXTURES = {"newui_menu01.OZJ", "newui_menu02.OZJ", "partCharge1/newui_menu03.OZJ", "newui_menu02-03.OZJ"}
+TOP_LINE_ROWS = 4
+TOP_LINE_MIN_WARMTH = 25
+STEEL_TINT = (0.92, 0.94, 1.0)
+
+
+def recolour_top_line(master):
+    out = master.copy()
+    band = out[:TOP_LINE_ROWS * SCALE, :, :3].astype(np.float32)
+    warm = (band[..., 0] - band[..., 2] > TOP_LINE_MIN_WARMTH) & (band[..., 0] >= band[..., 1])
+    luma = band[..., 0] * 0.3 + band[..., 1] * 0.59 + band[..., 2] * 0.11
+    steel = np.stack([luma * STEEL_TINT[0], luma * STEEL_TINT[1], luma * STEEL_TINT[2]], axis=2)
+    band[warm] = steel[warm]
+    out[:TOP_LINE_ROWS * SCALE, :, :3] = np.clip(np.rint(band), 0, 255).astype(np.uint8)
     return out
 
 
@@ -180,6 +199,8 @@ def draw_slot_caption(out, rect, caption):
 
 
 def apply(name, master):
+    if name in TOP_LINE_TEXTURES:
+        master = recolour_top_line(master)
     if name in OUTER_CORNERS:
         return round_outer_corners(apply_inner(name, master), OUTER_CORNERS[name])
     return apply_inner(name, master)
