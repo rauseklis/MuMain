@@ -54,6 +54,7 @@ public:
     void InitializeSkillAttributeRequirementsCache();
 
 private:
+    DemendConditionInfo BuildSkillAttributeRequirements(ActionSkillType skillType);
     void RebuildSkillAttributeRequirementsCache();
 
     bool m_bSkillAttributeRequirementsCacheDirty;

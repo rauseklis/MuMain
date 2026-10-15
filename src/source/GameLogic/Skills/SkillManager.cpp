@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "SkillManager.h"
+#include "GameLogic/Skills/SkillLevelRequirements.h"
 #include "Character/CharacterManager.h"
 #include "World/MapInfra/MapManager.h"
 #include "Engine/Object/ZzzCharacter.h"
@@ -256,6 +257,19 @@ void CSkillManager::InitializeSkillAttributeRequirementsCache()
     RebuildSkillAttributeRequirementsCache();
 }
 
+DemendConditionInfo CSkillManager::BuildSkillAttributeRequirements(ActionSkillType skillType)
+{
+    DemendConditionInfo requirements;
+    requirements.SkillLevel = static_cast<WORD>(GameLogic::Skills::RequiredSkillLevel(skillType));
+    requirements.SkillStrength = SkillAttribute[skillType].Strength;
+    requirements.SkillDexterity = SkillAttribute[skillType].Dexterity;
+    int requiredEnergy = 0;
+    GetSkillInformation_Energy(skillType, &requiredEnergy);
+    requirements.SkillEnergy = static_cast<WORD>(requiredEnergy);
+    requirements.SkillCharisma = SkillAttribute[skillType].Charisma;
+    return requirements;
+}
+
 void CSkillManager::RebuildSkillAttributeRequirementsCache()
 {
     if (!m_bSkillAttributeRequirementsCacheDirty)
@@ -282,16 +296,7 @@ void CSkillManager::RebuildSkillAttributeRequirementsCache()
             continue;
         }
 
-        DemendConditionInfo skillRequirements;
-        skillRequirements.SkillLevel = SkillAttribute[baseSkill].Level;
-        skillRequirements.SkillStrength = SkillAttribute[baseSkill].Strength;
-        skillRequirements.SkillDexterity = SkillAttribute[baseSkill].Dexterity;
-        skillRequirements.SkillVitality = 0;
-        int reqEnergy = 0;
-        GetSkillInformation_Energy(baseSkill, &reqEnergy);
-        skillRequirements.SkillEnergy = static_cast<WORD>(reqEnergy);
-        skillRequirements.SkillCharisma = SkillAttribute[baseSkill].Charisma;
-
+        const auto skillRequirements = BuildSkillAttributeRequirements(baseSkill);
         m_aSkillAttributeRequirementsMet[skillType] = (skillRequirements <= heroCharacterInfo);
     }
 

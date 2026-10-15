@@ -100,6 +100,11 @@ mu_add_test(
         test_automation_ranges.cpp
 )
 
+mu_add_test(
+    NAME test_skill_level_requirements
+    SOURCES test_skill_level_requirements.cpp
+)
+
 # The injected input paths in Winmain exist only in builds with the control
 # socket, like the transport above.
 if(ENABLE_CONTROL_SOCKET)

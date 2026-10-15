@@ -8,6 +8,7 @@
 #include "Engine/Object/ZzzInfomation.h"
 #include "Engine/Object/ZzzInventory.h"   // PartyNumber, STRP_*
 #include "GameLogic/Skills/SkillManager.h"
+#include "GameLogic/Skills/SkillLevelRequirements.h"
 #include "UI/Legacy/UIJewelHarmony.h"     // StrengthenCapability
 #include "UI/Legacy/UIManager.h"          // g_pUIJewelHarmonyinfo
 
@@ -479,7 +480,10 @@ void EmitRequirements(Model& m, const BuildOptions& options, int skillType)
         curCha = CharacterAttribute->Charisma + CharacterAttribute->AddCharisma;
     }
 
-    AddRequirementLine(m, SkillAttribute[skillType].Level, curLevel, GLOBAL_TEXT_REQUIRED_LEVEL);
+    const int requiredLevel = options.includeCharacterSpecific
+                                  ? GameLogic::Skills::RequiredSkillLevel(skillType)
+                                  : SkillAttribute[skillType].Level;
+    AddRequirementLine(m, requiredLevel, curLevel, GLOBAL_TEXT_REQUIRED_LEVEL);
     AddRequirementLine(m, SkillAttribute[skillType].Strength, curStr, GLOBAL_TEXT_REQUIRED_STRENGTH);
     AddRequirementLine(m, SkillAttribute[skillType].Dexterity, curDex, GLOBAL_TEXT_REQUIRED_DEXTERITY);
     AddRequirementLine(m, reqEnergy, curEnergy, GLOBAL_TEXT_REQUIRED_ENERGY);
