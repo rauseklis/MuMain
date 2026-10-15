@@ -65,17 +65,29 @@ newui_item_weapon(L).OZT,inventory,ozt,46,66,64,128,done,real-esrgan (merged wit
 newui_item_weapon(R).OZT,inventory,ozt,46,66,64,128,done,real-esrgan (merged with enlargement)
 newui_item_wing.OZT,inventory,ozt,61,46,64,64,done,real-esrgan (merged with enlargement)
 newui_repair_00.OZT,inventory,ozt,36,58,64,64,done,real-esrgan (merged with enlargement)
+b_connect.OZT,login_scene,ozt,54,120,64,128,done,real-esrgan (merged with enlargement)
+b_create.OZT,login_scene,ozt,54,120,64,128,done,real-esrgan (merged with enlargement)
+b_delete.OZT,login_scene,ozt,54,120,64,128,done,real-esrgan (merged with enlargement)
+cha_bt.OZT,login_scene,ozt,108,104,128,128,done,real-esrgan (merged with enlargement)
+cha_id.OZT,login_scene,ozt,346,38,512,64,done,real-esrgan (merged with enlargement)
+character_ex.OZT,login_scene,ozt,118,54,128,64,done,real-esrgan (merged with enlargement)
+cr_mu_lo.OZT,login_scene,ozt,290,41,512,64,done,real-esrgan (merged with enlargement)
+deco.OZT,login_scene,ozt,189,103,256,128,done,real-esrgan (merged with enlargement)
+login_back.OZT,login_scene,ozt,329,245,512,256,done,real-esrgan (merged with enlargement)
+login_me.OZT,login_scene,ozt,156,23,256,32,done,real-esrgan (merged with enlargement)
+server_b2_all.OZT,login_scene,ozt,193,78,256,128,done,real-esrgan (merged with enlargement)
+server_credit_b_all.OZT,login_scene,ozt,54,90,64,128,done,real-esrgan (merged with enlargement)
+server_deco_all.OZT,login_scene,ozt,159,95,256,128,done,real-esrgan (merged with enlargement)
+server_ex01.OZT,login_scene,ozt,512,12,512,16,done,real-esrgan (merged with enlargement)
+server_menu_b_all.OZT,login_scene,ozt,54,90,64,128,done,real-esrgan (merged with enlargement)
 accept_box01.OZJ,other,ozj,24,24,32,32,done,real-esrgan (merged with enlargement)
 accept_box02.OZJ,other,ozj,24,24,32,32,done,real-esrgan (merged with enlargement)
 aida.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 atlans.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 b_command01.OZJ,other,ozj,30,18,32,32,done,real-esrgan (merged with enlargement)
 b_command02.OZJ,other,ozj,30,18,32,32,done,real-esrgan (merged with enlargement)
-b_connect.OZT,other,ozt,54,120,64,128,done,real-esrgan (merged with enlargement)
-b_create.OZT,other,ozt,54,120,64,128,done,real-esrgan (merged with enlargement)
-b_delete.OZT,other,ozt,54,120,64,128,done,real-esrgan (merged with enlargement)
 b_group02.OZJ,other,ozj,19,18,32,32,done,real-esrgan (merged with enlargement)
-b_zoomout01.OZJ,other,ozj,24,22,32,32,pending,
+b_zoomout01.OZJ,other,ozj,24,22,32,32,done,real-esrgan (merged with enlargement)
 back1.OZJ,other,ozj,32,32,32,32,done,real-esrgan (merged with enlargement)
 back2.OZJ,other,ozj,32,32,32,32,done,real-esrgan (merged with enlargement)
 back3.OZJ,other,ozj,32,32,32,32,done,real-esrgan (merged with enlargement)
@@ -100,15 +112,11 @@ BattleSkill.OZT,other,ozt,128,32,128,32,done,real-esrgan (merged with enlargemen
 bloodcastle.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 cancel.OZJ,other,ozj,70,21,128,32,done,real-esrgan (merged with enlargement)
 cancel2.OZJ,other,ozj,70,21,128,32,done,real-esrgan (merged with enlargement)
-cha_bt.OZT,other,ozt,108,104,128,128,done,real-esrgan (merged with enlargement)
-cha_id.OZT,other,ozt,346,38,512,64,done,real-esrgan (merged with enlargement)
 chaoscastle.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
-character_ex.OZT,other,ozt,118,54,128,64,done,real-esrgan (merged with enlargement)
 cmdType.OZJ,other,ozj,256,256,256,256,done,real-esrgan (merged with enlargement)
 command.ozj,other,ozj,256,256,256,256,done,real-esrgan (merged with enlargement)
 cr_gr.OZT,other,ozt,130,126,256,128,done,real-esrgan (merged with enlargement)
 cr_gr2.OZT,other,ozt,130,126,256,128,done,real-esrgan (merged with enlargement)
-cr_mu_lo.OZT,other,ozt,290,41,512,64,done,real-esrgan (merged with enlargement)
 crywolffortress.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 Cursor.ozt,other,ozt,32,32,32,32,done,real-esrgan (merged with enlargement)
 CursorAddIn.OZT,other,ozt,32,32,32,32,done,real-esrgan (merged with enlargement)
@@ -123,7 +131,6 @@ CursorPush.ozt,other,ozt,32,32,32,32,done,real-esrgan (merged with enlargement)
 CursorRepair.OZT,other,ozt,32,32,32,32,done,real-esrgan (merged with enlargement)
 CursorSitDown.ozt,other,ozt,32,32,32,32,done,real-esrgan (merged with enlargement)
 CursorTalk.ozt,other,ozt,64,64,64,64,done,real-esrgan (merged with enlargement)
-deco.OZT,other,ozt,189,103,256,128,done,real-esrgan (merged with enlargement)
 delete_secret_number.OZT,other,ozt,171,23,256,32,done,real-esrgan (merged with enlargement)
 devias.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 devilsquare.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
@@ -168,7 +175,7 @@ Hero.OZT,other,ozt,11,11,16,16,done,real-esrgan (merged with enlargement)
 hit.OZT,other,ozt,27,15,32,16,done,real-esrgan (merged with enlargement)
 hourglass.OZT,other,ozt,154,23,256,32,done,real-esrgan (merged with enlargement)
 i_attack.OZT,other,ozt,13,13,16,16,pending,
-i_defense.OZT,other,ozt,18,15,32,16,pending,
+i_defense.OZT,other,ozt,18,15,32,16,done,real-esrgan (merged with enlargement)
 i_wait.OZT,other,ozt,11,12,16,16,done,real-esrgan (merged with enlargement)
 Icarus.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 icon_failure.OZT,other,ozt,329,94,512,128,done,real-esrgan (merged with enlargement)
@@ -293,8 +300,6 @@ lock_02.OZJ,other,ozj,24,24,32,32,done,real-esrgan (merged with enlargement)
 lock_03.OZJ,other,ozj,24,24,32,32,done,real-esrgan (merged with enlargement)
 lock_04.OZJ,other,ozj,24,24,32,32,done,real-esrgan (merged with enlargement)
 loding_cancel_b_all.OZT,other,ozt,54,90,64,128,done,real-esrgan (merged with enlargement)
-login_back.OZT,other,ozt,329,245,512,256,done,real-esrgan (merged with enlargement)
-login_me.OZT,other,ozt,156,23,256,32,done,real-esrgan (merged with enlargement)
 loren.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 lorencia.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 lostkalima.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
@@ -321,8 +326,8 @@ MacroUI/MacroUI_Gauge_Bar_(G).OZJ,other,ozj,152,4,256,4,done,real-esrgan (merged
 MacroUI/MacroUI_Gauge_Bar_(O).OZJ,other,ozj,152,4,256,4,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_Gauge_Bar_(R).OZJ,other,ozj,152,4,256,4,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_Gauge_Bar_(Y).OZJ,other,ozj,152,4,256,4,done,real-esrgan (merged with enlargement)
-MacroUI/MacroUI_Gauge_Frame.OZT,other,ozt,156,8,256,8,pending,
-MacroUI/MacroUI_InputNumber.OZT,other,ozt,28,15,32,16,pending,
+MacroUI/MacroUI_Gauge_Frame.OZT,other,ozt,156,8,256,8,done,real-esrgan (merged with enlargement)
+MacroUI/MacroUI_InputNumber.OZT,other,ozt,28,15,32,16,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_InputString.OZT,other,ozt,93,15,128,16,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_OptionButton.OZT,other,ozt,15,30,16,32,done,real-esrgan (merged with enlargement)
 MacroUI/MacroUI_RangeMinus.OZT,other,ozt,16,30,16,32,done,real-esrgan (merged with enlargement)
@@ -357,7 +362,7 @@ message_ok_b_all.OZT,other,ozt,54,90,64,128,done,real-esrgan (merged with enlarg
 mini_map_ui_cancel.OZT,other,ozt,36,58,64,64,done,real-esrgan (merged with enlargement)
 mini_map_ui_cha.OZT,other,ozt,18,18,32,32,done,real-esrgan (merged with enlargement)
 mini_map_ui_corner.OZT,other,ozt,42,42,64,64,done,real-esrgan (merged with enlargement)
-mini_map_ui_line.OZJ,other,ozj,42,8,64,8,pending,
+mini_map_ui_line.OZJ,other,ozj,42,8,64,8,done,real-esrgan (merged with enlargement)
 mini_map_ui_npc.OZT,other,ozt,18,18,32,32,done,real-esrgan (merged with enlargement)
 mini_map_ui_party.OZT,other,ozt,18,18,32,32,done,real-esrgan (merged with enlargement)
 mini_map_ui_portal.OZT,other,ozt,18,18,32,32,done,real-esrgan (merged with enlargement)
@@ -378,10 +383,10 @@ New_lo_back_01.OZJ,other,ozj,400,69,512,128,done,real-esrgan (merged with enlarg
 New_lo_back_02.OZJ,other,ozj,400,69,512,128,done,real-esrgan (merged with enlargement)
 New_lo_mu_logo.OZT,other,ozt,106,49,128,64,done,real-esrgan (merged with enlargement)
 New_lo_webzen_logo.OZT,other,ozt,53,46,64,64,done,real-esrgan (merged with enlargement)
-new_Master_arrow01.OZT,other,ozt,28,7,32,8,pending,
-new_Master_arrow02.OZT,other,ozt,28,7,32,8,pending,
-new_Master_arrow03.OZT,other,ozt,7,12,8,16,pending,
-new_Master_arrow04.OZT,other,ozt,7,52,8,64,pending,
+new_Master_arrow01.OZT,other,ozt,28,7,32,8,done,real-esrgan (merged with enlargement)
+new_Master_arrow02.OZT,other,ozt,28,7,32,8,done,real-esrgan (merged with enlargement)
+new_Master_arrow03.OZT,other,ozt,7,12,8,16,done,real-esrgan (merged with enlargement)
+new_Master_arrow04.OZT,other,ozt,7,52,8,64,done,real-esrgan (merged with enlargement)
 new_Master_arrow05.OZT,other,ozt,42,31,64,32,done,real-esrgan (merged with enlargement)
 new_Master_arrow06.OZT,other,ozt,42,31,64,32,done,real-esrgan (merged with enlargement)
 new_Master_arrow07.OZT,other,ozt,40,28,64,32,done,real-esrgan (merged with enlargement)
@@ -393,8 +398,8 @@ new_Master_exit.OZJ,other,ozj,13,28,16,32,done,real-esrgan (merged with enlargem
 new_Master_Icon.OZJ,other,ozj,512,512,512,512,done,real-esrgan (merged with enlargement)
 new_Master_non_Icon.OZJ,other,ozj,512,512,512,512,done,real-esrgan (merged with enlargement)
 newui_Account_title.OZT,other,ozt,170,28,256,32,done,real-esrgan (merged with enlargement)
-newui_arrow(L).OZT,other,ozt,6,9,8,16,pending,
-newui_arrow(R).OZT,other,ozt,6,9,8,16,pending,
+newui_arrow(L).OZT,other,ozt,6,9,8,16,done,real-esrgan (merged with enlargement)
+newui_arrow(R).OZT,other,ozt,6,9,8,16,done,real-esrgan (merged with enlargement)
 newui_auction_button.OZT,other,ozt,80,48,128,64,done,real-esrgan (merged with enlargement)
 newui_auction_categories.OZT,other,ozt,256,32,256,32,done,real-esrgan (merged with enlargement)
 newui_auction_field.OZT,other,ozt,96,48,128,64,done,real-esrgan (merged with enlargement)
@@ -425,10 +430,10 @@ newui_bt_Off_party.OZJ,other,ozj,27,23,32,32,done,real-esrgan (merged with enlar
 newui_bt_Off_size.OZJ,other,ozj,22,23,32,32,done,real-esrgan (merged with enlargement)
 newui_bt_Off_system.OZJ,other,ozj,27,23,32,32,done,real-esrgan (merged with enlargement)
 newui_bt_Off_whisper.OZJ,other,ozj,22,23,32,32,done,real-esrgan (merged with enlargement)
-newui_Bt_scroll_dn.OZJ,other,ozj,15,39,16,64,pending,
-newui_Bt_scroll_up.OZJ,other,ozj,15,39,16,64,pending,
-newui_Bt_skill_scroll_dn.OZJ,other,ozj,15,39,16,64,pending,
-newui_Bt_skill_scroll_up.OZJ,other,ozj,15,39,16,64,pending,
+newui_Bt_scroll_dn.OZJ,other,ozj,15,39,16,64,done,real-esrgan (merged with enlargement)
+newui_Bt_scroll_up.OZJ,other,ozj,15,39,16,64,done,real-esrgan (merged with enlargement)
+newui_Bt_skill_scroll_dn.OZJ,other,ozj,15,39,16,64,done,real-esrgan (merged with enlargement)
+newui_Bt_skill_scroll_up.OZJ,other,ozj,15,39,16,64,done,real-esrgan (merged with enlargement)
 newui_btn_empty.OZJ,other,ozj,108,90,128,128,pending,
 newui_btn_empty.OZT,other,ozt,108,87,128,128,pending,
 newui_btn_empty_big.OZJ,other,ozj,108,90,128,128,pending,
@@ -443,21 +448,21 @@ newui_button_ok.OZT,other,ozt,54,90,64,128,done,real-esrgan (merged with enlarge
 newui_chat_back.OZJ,other,ozj,281,47,512,64,done,real-esrgan (merged with enlargement)
 newui_chat_btn_alpha.OZJ,other,ozj,27,52,32,64,done,real-esrgan (merged with enlargement)
 newui_chat_btn_size.OZJ,other,ozj,27,52,32,64,done,real-esrgan (merged with enlargement)
-newui_chat_chat_on.OZJ,other,ozj,27,26,32,32,pending,
+newui_chat_chat_on.OZJ,other,ozj,27,26,32,32,done,real-esrgan (merged with enlargement)
 newui_chat_frame_on.OZJ,other,ozj,27,26,32,32,pending,
-newui_chat_gens_on.OZJ,other,ozj,27,26,32,32,pending,
+newui_chat_gens_on.OZJ,other,ozj,27,26,32,32,done,real-esrgan (merged with enlargement)
 newui_chat_guild_on.OZJ,other,ozj,27,26,32,32,pending,
 newui_chat_main(s).OZJ,other,ozj,166,21,256,32,done,real-esrgan (merged with enlargement)
 newui_chat_normal_on.OZJ,other,ozj,27,26,32,32,done,real-esrgan (merged with enlargement)
 newui_chat_party_on.OZJ,other,ozj,27,26,32,32,done,real-esrgan (merged with enlargement)
 newui_chat_system_on.OZJ,other,ozj,27,26,32,32,done,real-esrgan (merged with enlargement)
 newui_chat_whisper.OZJ,other,ozj,71,20,128,32,done,real-esrgan (merged with enlargement)
-newui_chat_whisper_on.OZJ,other,ozj,27,26,32,32,pending,
+newui_chat_whisper_on.OZJ,other,ozj,27,26,32,32,done,real-esrgan (merged with enlargement)
 newui_commamd01.OZT,other,ozt,112,45,128,64,done,real-esrgan (merged with enlargement)
 newui_commamd02.OZT,other,ozt,112,15,128,16,done,real-esrgan (merged with enlargement)
 newui_commamd03.OZT,other,ozt,112,45,128,64,done,real-esrgan (merged with enlargement)
 newui_commamd04.OZT,other,ozt,112,45,128,64,done,real-esrgan (merged with enlargement)
-newui_commamd_Line.OZJ,other,ozj,82,2,128,2,pending,
+newui_commamd_Line.OZJ,other,ozj,82,2,128,2,done,real-esrgan (merged with enlargement)
 newui_ctgametimeframe.OZT,other,ozt,134,37,256,64,done,real-esrgan (merged with enlargement)
 newui_ctminmap.OZJ,other,ozj,128,128,128,128,done,real-esrgan (merged with enlargement)
 newui_ctminmap_Hero.OZT,other,ozt,11,11,16,16,done,real-esrgan (merged with enlargement)
@@ -495,9 +500,9 @@ newui_ctscoreleft.OZT,other,ozt,67,125,128,128,done,real-esrgan (merged with enl
 newui_ctscoreright.OZT,other,ozt,67,125,128,128,done,real-esrgan (merged with enlargement)
 newui_ctscorevs0.OZT,other,ozt,49,27,64,32,done,real-esrgan (merged with enlargement)
 newui_ctscorevs1.OZT,other,ozt,20,45,32,64,done,real-esrgan (merged with enlargement)
-newui_ctskilldown.OZJ,other,ozj,15,39,16,64,pending,
+newui_ctskilldown.OZJ,other,ozj,15,39,16,64,done,real-esrgan (merged with enlargement)
 newui_ctskillframe.OZT,other,ozt,128,53,128,64,done,real-esrgan (merged with enlargement)
-newui_ctskillup.OZJ,other,ozj,15,39,16,64,pending,
+newui_ctskillup.OZJ,other,ozj,15,39,16,64,done,real-esrgan (merged with enlargement)
 newui_Cursorid_wnd.OZJ,other,ozj,128,32,128,32,done,real-esrgan (merged with enlargement)
 newui_DuelWindow.OZT,other,ozt,148,138,256,256,done,real-esrgan (merged with enlargement)
 newui_durable_boots.OZT,other,ozt,23,23,32,32,done,real-esrgan (merged with enlargement)
@@ -560,7 +565,7 @@ newui_option_back06(R).OZT,other,ozt,21,10,32,16,done,real-esrgan (merged with e
 newui_option_check.OZT,other,ozt,15,30,16,32,done,real-esrgan (merged with enlargement)
 newui_option_effect03.OZT,other,ozt,141,29,256,32,done,real-esrgan (merged with enlargement)
 newui_option_effect04.OZT,other,ozt,141,29,256,32,done,real-esrgan (merged with enlargement)
-newui_option_line.OZJ,other,ozj,154,2,256,2,pending,
+newui_option_line.OZJ,other,ozj,154,2,256,2,done,real-esrgan (merged with enlargement)
 newui_option_point.OZT,other,ozt,10,10,16,16,done,real-esrgan (merged with enlargement)
 newui_option_top.OZT,other,ozt,190,64,256,64,done,real-esrgan (merged with enlargement)
 newui_option_volume01.OZT,other,ozt,124,16,128,16,done,real-esrgan (merged with enlargement)
@@ -568,7 +573,7 @@ newui_option_volume02.OZT,other,ozt,124,16,128,16,done,real-esrgan (merged with 
 newui_Party_Back.OZT,other,ozt,77,23,128,32,done,real-esrgan (merged with enlargement)
 newui_Party_flag.OZT,other,ozt,9,10,16,16,pending,
 newui_Party_HpBar.OZJ,other,ozj,69,3,128,4,done,real-esrgan (merged with enlargement)
-newui_Party_Lifebar01.OZJ,other,ozj,151,8,256,8,pending,
+newui_Party_Lifebar01.OZJ,other,ozj,151,8,256,8,done,real-esrgan (merged with enlargement)
 newui_Party_Lifebar02.OZJ,other,ozj,147,4,256,4,done,real-esrgan (merged with enlargement)
 newui_Party_X.OZT,other,ozt,11,22,16,32,done,real-esrgan (merged with enlargement)
 newui_pcroom.ozt,other,ozt,57,23,64,32,done,real-esrgan (merged with enlargement)
@@ -580,10 +585,10 @@ newui_position02.OZT,other,ozt,70,25,128,32,done,real-esrgan (merged with enlarg
 newui_scroll_off.OZT,other,ozt,15,30,16,32,done,real-esrgan (merged with enlargement)
 newui_scroll_on.OZT,other,ozt,15,30,16,32,done,real-esrgan (merged with enlargement)
 newui_scrollbar_down.OZT,other,ozt,7,3,8,4,done,real-esrgan (merged with enlargement)
-newui_scrollbar_m.OZT,other,ozt,7,15,8,16,pending,
+newui_scrollbar_m.OZT,other,ozt,7,15,8,16,done,real-esrgan (merged with enlargement)
 newui_Scrollbar_stretch.OZJ,other,ozj,281,10,512,16,done,real-esrgan (merged with enlargement)
 newui_scrollbar_up.OZT,other,ozt,7,3,8,4,done,real-esrgan (merged with enlargement)
-newui_separate_Line.OZJ,other,ozj,205,2,256,2,pending,
+newui_separate_Line.OZJ,other,ozj,205,2,256,2,done,real-esrgan (merged with enlargement)
 newui_statusicon.OZJ,other,ozj,200,224,256,256,done,real-esrgan (merged with enlargement)
 newui_statusicon2.OZJ,other,ozj,200,224,256,256,done,real-esrgan (merged with enlargement)
 newui_statusicon3.OZJ,other,ozj,200,224,256,256,done,real-esrgan (merged with enlargement)
@@ -594,11 +599,11 @@ newui_SW_Minimap_Bt_group.OZT,other,ozt,26,66,32,128,done,real-esrgan (merged wi
 newui_SW_Minimap_Frame.OZT,other,ozt,154,162,256,256,done,real-esrgan (merged with enlargement)
 newui_SW_Time_Frame.OZT,other,ozt,134,37,256,64,done,real-esrgan (merged with enlargement)
 nis_back.OZJ,other,ozj,13,1,16,1,done,real-esrgan (merged with enlargement)
-nis_btnend.OZJ,other,ozj,10,10,16,16,pending,
-nis_btnmax.OZJ,other,ozj,10,10,16,16,pending,
-nis_btnmin.OZJ,other,ozj,10,10,16,16,pending,
+nis_btnend.OZJ,other,ozj,10,10,16,16,done,real-esrgan (merged with enlargement)
+nis_btnmax.OZJ,other,ozj,10,10,16,16,done,real-esrgan (merged with enlargement)
+nis_btnmin.OZJ,other,ozj,10,10,16,16,done,real-esrgan (merged with enlargement)
 nis_hframe.OZJ,other,ozj,256,5,256,8,pending,
-nis_rsframe.OZJ,other,ozj,32,16,32,16,pending,
+nis_rsframe.OZJ,other,ozj,32,16,32,16,done,real-esrgan (merged with enlargement)
 No_i0.OZT,other,ozt,56,66,64,128,done,real-esrgan (merged with enlargement)
 No_i1.OZT,other,ozt,56,66,64,128,done,real-esrgan (merged with enlargement)
 No_i2.OZT,other,ozt,56,66,64,128,done,real-esrgan (merged with enlargement)
@@ -631,7 +636,7 @@ op1_back4.OZJ,other,ozj,5,8,8,8,pending,
 op1_stone.OZJ,other,ozj,128,128,128,128,done,real-esrgan (merged with enlargement)
 op2_back1.OZT,other,ozt,213,65,256,128,done,real-esrgan (merged with enlargement)
 op2_ch.OZT,other,ozt,16,32,16,32,done,real-esrgan (merged with enlargement)
-op2_volume1.OZT,other,ozt,98,13,128,16,pending,
+op2_volume1.OZT,other,ozt,98,13,128,16,done,real-esrgan (merged with enlargement)
 op2_volume2.OZJ,other,ozj,4,7,4,8,done,real-esrgan (merged with enlargement)
 op2_volume3.OZT,other,ozt,13,13,16,16,done,real-esrgan (merged with enlargement)
 ordeal.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
@@ -705,14 +710,9 @@ Quest_tab03.OZT,other,ozt,72,22,128,32,done,real-esrgan (merged with enlargement
 Relic.OZT,other,ozt,14,14,16,16,done,real-esrgan (merged with enlargement)
 santatown.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
 senatusmap.OZJ,other,ozj,158,163,256,256,done,real-esrgan (merged with enlargement)
-server_b2_all.OZT,other,ozt,193,78,256,128,done,real-esrgan (merged with enlargement)
-server_b2_loding.OZJ,other,ozj,160,4,256,4,pending,
-server_credit_b_all.OZT,other,ozt,54,90,64,128,done,real-esrgan (merged with enlargement)
-server_deco_all.OZT,other,ozt,159,95,256,128,done,real-esrgan (merged with enlargement)
-server_ex01.OZT,other,ozt,512,12,512,16,done,real-esrgan (merged with enlargement)
-server_ex02.OZJ,other,ozj,6,4,8,4,pending,
+server_b2_loding.OZJ,other,ozj,160,4,256,4,done,real-esrgan (merged with enlargement)
+server_ex02.OZJ,other,ozj,6,4,8,4,done,real-esrgan (merged with enlargement)
 server_ex03.OZT,other,ozt,4,4,4,4,done,real-esrgan (merged with enlargement)
-server_menu_b_all.OZT,other,ozt,54,90,64,128,done,real-esrgan (merged with enlargement)
 Skill.OZJ,other,ozj,256,256,256,256,done,real-esrgan (merged with enlargement)
 skill2.OZJ,other,ozj,256,256,256,256,done,real-esrgan (merged with enlargement)
 stadium.OZT,other,ozt,166,90,256,128,done,real-esrgan (merged with enlargement)
@@ -742,7 +742,7 @@ win_mark.OZT,other,ozt,4,6,4,8,pending,
 win_push.OZJ,other,ozj,52,18,64,32,done,real-esrgan (merged with enlargement)
 win_question.OZT,other,ozt,16,16,16,16,done,real-esrgan (merged with enlargement)
 win_resize.OZT,other,ozt,9,9,16,16,done,real-esrgan (merged with enlargement)
-win_scrollbar.OZJ,other,ozj,13,29,16,32,pending,
+win_scrollbar.OZJ,other,ozj,13,29,16,32,done,real-esrgan (merged with enlargement)
 win_size.OZJ,other,ozj,18,18,32,32,pending,
 win_titlebar.OZJ,other,ozj,4,15,4,16,done,real-esrgan (merged with enlargement)
 wing_left.OZT,other,ozt,67,125,128,128,done,real-esrgan (merged with enlargement)

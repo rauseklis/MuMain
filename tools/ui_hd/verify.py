@@ -11,6 +11,9 @@ import sys
 import numpy as np
 from PIL import Image
 
+import gauges
+import reframe
+import retext
 from compare import premultiplied, ssim
 from generate import DATA_DIR, tier_path
 from mu_image import read_texture
@@ -21,6 +24,9 @@ TIERS = (4, 2)
 DEFAULT_MAX_MAE = 8.0
 DEFAULT_MIN_SSIM = 0.90
 DEFAULT_MAX_ALPHA_ERROR = 10.0
+
+
+REDRAWN = {name.lower() for name in set(retext.SPECS) | set(reframe.SPECS) | set(reframe.SLOT_STRIPS) | gauges.SPECS}
 
 
 def check(relative, scale):
@@ -46,6 +52,8 @@ def main():
     args = parser.parse_args()
     failures, checked = [], 0
     for relative, *_ in survey():
+        if relative.lower() in REDRAWN:
+            continue
         for scale in TIERS:
             result = check(relative, scale)
             if result is None:

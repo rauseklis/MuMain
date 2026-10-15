@@ -78,11 +78,30 @@ INVENTORY = [
     "newui_inven_usebox_03.OZT",
 ]
 
+LOGIN_SCENE = [
+    "b_create.OZT",
+    "b_connect.OZT",
+    "b_delete.OZT",
+    "server_menu_b_all.OZT",
+    "server_credit_b_all.OZT",
+    "cha_bt.OZT",
+    "cha_id.OZT",
+    "character_ex.OZT",
+    "deco.OZT",
+    "server_b2_all.OZT",
+    "server_deco_all.OZT",
+    "login_back.OZT",
+    "login_me.OZT",
+    "cr_mu_lo.OZT",
+    "server_ex01.OZT",
+]
+
 GROUPS = {
     "frame_kit": FRAME_KIT,
     "bottom_bar": BOTTOM_BAR,
     "character_info": CHARACTER_INFO,
     "inventory": INVENTORY,
+    "login_scene": LOGIN_SCENE,
 }
 
 CORE_SET = [path for group in GROUPS.values() for path in group]

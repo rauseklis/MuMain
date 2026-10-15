@@ -600,25 +600,25 @@ TEST_CASE("bottom HUD regions reconstruct at 640x480 and 1024x768 [ui][scaling]"
     CHECK(UI::Scaling::PositionX(right, 488.0f) == doctest::Approx(780.8f));
 }
 
-TEST_CASE("bottom HUD uses symmetric wide gaps and caps at 2x [ui][scaling]")
+TEST_CASE("bottom HUD stays one centred contiguous group and caps at 2x [ui][scaling]")
 {
     const auto hdLeft = UI::Scaling::BottomHudLeftTransform(1280, 720);
     const auto hdCenter = UI::Scaling::BottomHudCenterTransform(1280, 720);
     const auto hdRight = UI::Scaling::BottomHudRightTransform(1280, 720);
     CHECK(hdCenter.scaleX == doctest::Approx(1.5f));
-    CHECK(UI::Scaling::PositionX(hdLeft, 152.0f) == doctest::Approx(228.0f));
+    CHECK(UI::Scaling::PositionX(hdLeft, 152.0f) == doctest::Approx(388.0f));
     CHECK(UI::Scaling::PositionX(hdCenter, 152.0f) == doctest::Approx(388.0f));
     CHECK(UI::Scaling::PositionX(hdCenter, 320.0f) == doctest::Approx(640.0f));
     CHECK(UI::Scaling::PositionX(hdCenter, 488.0f) == doctest::Approx(892.0f));
-    CHECK(UI::Scaling::PositionX(hdRight, 488.0f) == doctest::Approx(1052.0f));
+    CHECK(UI::Scaling::PositionX(hdRight, 488.0f) == doctest::Approx(892.0f));
 
     const auto wideLeft = UI::Scaling::BottomHudLeftTransform(1920, 1200);
     const auto wideCenter = UI::Scaling::BottomHudCenterTransform(1920, 1200);
     const auto wideRight = UI::Scaling::BottomHudRightTransform(1920, 1200);
     CHECK(wideCenter.scaleX == doctest::Approx(2.0f));
-    CHECK(UI::Scaling::PositionX(wideLeft, 0.0f) == doctest::Approx(0.0f));
+    CHECK(UI::Scaling::PositionX(wideLeft, 0.0f) == doctest::Approx(320.0f));
     CHECK(UI::Scaling::PositionX(wideCenter, 320.0f) == doctest::Approx(960.0f));
-    CHECK(UI::Scaling::PositionX(wideRight, 640.0f) == doctest::Approx(1920.0f));
+    CHECK(UI::Scaling::PositionX(wideRight, 640.0f) == doctest::Approx(1600.0f));
     CHECK(UI::Scaling::PositionY(wideCenter, 429.0f) == doctest::Approx(1098.0f));
 }
 
@@ -686,21 +686,21 @@ TEST_CASE("world viewport clamps zero and tiny dimensions before deriving aspect
     CHECK(UI::Scaling::WorldViewportAspect(640, 1, true) == doctest::Approx(640.0f));
 }
 
-TEST_CASE("bottom HUD hit-region edges block controls and preserve wide gaps [ui][scaling]")
+TEST_CASE("bottom HUD hit-region edges block controls and leave the margins free [ui][scaling]")
 {
     CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 100.0f, 643.49f));
     CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 100.0f, 643.5f));
 
-    CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 227.99f, 660.0f));
-    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 228.0f, 660.0f));
-    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 300.0f, 660.0f));
-    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 387.99f, 660.0f));
+    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 100.0f, 660.0f));
+    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 159.99f, 660.0f));
+    CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 160.0f, 660.0f));
+    CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 387.99f, 660.0f));
     CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 388.0f, 660.0f));
     CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 891.99f, 660.0f));
-    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 892.0f, 660.0f));
-    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 980.0f, 660.0f));
-    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 1051.99f, 660.0f));
-    CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 1052.0f, 660.0f));
+    CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 892.0f, 660.0f));
+    CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 1119.99f, 660.0f));
+    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 1120.0f, 660.0f));
+    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 1200.0f, 660.0f));
 
     CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 0.0f, 705.0f));
     CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 300.0f, 710.0f));

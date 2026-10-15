@@ -17,6 +17,9 @@ import numpy as np
 from PIL import Image
 
 from core_set import CORE_SET
+import gauges
+import reframe
+import retext
 from mu_image import read_texture
 from survey import survey
 from upscale import add_grain, downscale_rgba, upscale_rgba
@@ -28,7 +31,6 @@ CORE_TIERS = (4, 2)
 REST_TIERS = (2,)
 GRAIN_TEXTURES = {"newui_msgbox_back.OZJ"}
 LANCZOS_ONLY = GRAIN_TEXTURES
-MIN_NETWORK_SIDE = 16
 DEFAULT_NETWORK_MODEL = "realesr-animevideov3"
 NETWORK_MODEL = os.environ.get("UI_HD_MODEL", DEFAULT_NETWORK_MODEL)
 BATCH_SIZE = 48
@@ -82,7 +84,7 @@ def remove_tiers(relative):
 def uses_network(relative, rgba, method):
     if method != "esrgan" or relative in LANCZOS_ONLY:
         return False
-    return min(rgba.shape[:2]) >= MIN_NETWORK_SIDE
+    return True
 
 
 def enlarge_lanczos(relative, rgba, kind):
@@ -128,6 +130,7 @@ def build_batch(names, tiers, method):
             remove_tiers(name)
             print("skipped", name, "(drifts too far from the original)")
             continue
+        master = gauges.apply(name, reframe.apply(name, retext.apply(name, master)), rgba)
         write_tiers(name, master, tiers)
         print("ok", name, f"({label})")
 
@@ -150,9 +153,12 @@ def main():
     parser.add_argument("--set", choices=("core", "rest"), default="core")
     parser.add_argument("--method", choices=("esrgan", "lanczos"), default="esrgan")
     parser.add_argument("--model", default=NETWORK_MODEL)
+    parser.add_argument("--missing", action="store_true", help="only textures that have no HD file yet")
     args = parser.parse_args()
     NETWORK_MODEL = args.model
     names, tiers = select(args)
+    if args.missing:
+        names = [name for name in names if not os.path.exists(tier_path(name, min(tiers)))]
     for start in range(0, len(names), BATCH_SIZE):
         build_batch(names[start:start + BATCH_SIZE], tiers, args.method)
 

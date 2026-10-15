@@ -22,6 +22,7 @@ TONE_SIGMA_PER_SCALE = 1.0
 ALPHA_TONE_SIGMA_PER_SCALE = 0.75
 FILL_SIGMAS = (1.0, 2.0, 4.0, 8.0, 16.0, 32.0)
 FILL_EPSILON = 1e-3
+MIN_NETWORK_SIDE = 32
 DEFAULT_MODEL = "realesrgan-x4plus"
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCAL_TOOL = os.path.join(HERE, ".esrgan", "realesrgan-ncnn-vulkan.exe")
@@ -110,12 +111,28 @@ def combine(rgba, colour_result, alpha_result):
     return np.clip(np.rint(np.concatenate([colour, alpha], axis=2)), 0, 255).astype(np.uint8)
 
 
+def pad_amounts(size):
+    """Edge padding that lifts a side to at least MIN_NETWORK_SIDE (the network needs some context to work with)."""
+    missing = max(MIN_NETWORK_SIDE - size, 0)
+    return missing // 2, missing - missing // 2
+
+
 def enlarge_many(textures, model=DEFAULT_MODEL):
-    """textures: {name: uint8 RGBA array}. Returns {name: uint8 RGBA array at 4x}."""
-    prepared = {name: prepare(rgba) for name, rgba in textures.items()}
+    """textures: {name: uint8 RGBA array}. Returns {name: uint8 RGBA array at 4x} (the original area only)."""
+    padded, crops = {}, {}
+    for name, rgba in textures.items():
+        top, bottom = pad_amounts(rgba.shape[0])
+        left, right = pad_amounts(rgba.shape[1])
+        padded[name] = np.pad(rgba, ((top, bottom), (left, right), (0, 0)), mode="edge")
+        crops[name] = (top * SCALE, (top + rgba.shape[0]) * SCALE, left * SCALE, (left + rgba.shape[1]) * SCALE)
+    prepared = {name: prepare(rgba) for name, rgba in padded.items()}
     colour_inputs = {name + "_c": colour for name, (colour, _) in prepared.items()}
     alpha_inputs = {name + "_a": alpha for name, (_, alpha) in prepared.items() if alpha is not None}
     colour_results = run_network(colour_inputs, model)
     alpha_results = run_network(alpha_inputs, model) if alpha_inputs else {}
-    return {name: combine(rgba, colour_results[name + "_c"], alpha_results.get(name + "_a"))
-            for name, rgba in textures.items()}
+    results = {}
+    for name, rgba in padded.items():
+        full = combine(rgba, colour_results[name + "_c"], alpha_results.get(name + "_a"))
+        y0, y1, x0, x1 = crops[name]
+        results[name] = full[y0:y1, x0:x1]
+    return results

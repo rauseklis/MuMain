@@ -9,7 +9,7 @@ import sys
 import numpy as np
 from PIL import Image
 
-from generate import DATA_DIR, MASTER_SCALE, TIERS, save_png
+from generate import DATA_DIR, MASTER_SCALE, REST_TIERS as TIERS, save_png
 from upscale import downscale_rgba
 
 MASTER_DIR = os.path.join(DATA_DIR, f"Interface@{MASTER_SCALE}x")
