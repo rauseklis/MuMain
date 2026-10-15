@@ -316,7 +316,11 @@ def apply_highlights(name, master):
 
 
 # Columns of the original strip edge that show as a thin light line between the slots and the next piece: texture -> (x0, x1)
-EDGE_BLACKOUT = {"newui_menu02.OZJ": (126, 128)}
+EDGE_BLACKOUT = {
+    "newui_menu01.OZJ": (254, 256),
+    "newui_menu02.OZJ": (126, 128),
+    "partCharge1/newui_menu03.OZJ": (0, 1),
+}
 CONTENT_ROWS = 41
 
 
