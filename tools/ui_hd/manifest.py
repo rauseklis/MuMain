@@ -1,7 +1,7 @@
 """Writes tools/ui_hd/manifest.csv: every interface texture, its HD status and the window set it belongs to.
 
   python tools/ui_hd/manifest.py
-Status is 'done' when a 4x master exists, 'pending' otherwise. Re-run after generating more textures.
+Status is 'done' when a 4x or 2x PNG exists, 'pending' otherwise. Re-run after generating more textures.
 """
 import csv
 import os
@@ -12,21 +12,21 @@ from generate import DATA_DIR
 from survey import survey
 
 MANIFEST_PATH = os.path.join(os.path.dirname(__file__), "manifest.csv")
-HD_METHOD = "enlarge+sharpen"
+HD_METHOD = "real-esrgan (merged with enlargement)"
 UNASSIGNED_GROUP = "other"
 OWNER_BY_PATH = {path.lower(): group for group, paths in GROUPS.items() for path in paths}
 
 
-def has_master(relative):
+def has_hd(relative):
     stem = os.path.splitext(relative)[0]
-    return os.path.exists(os.path.join(DATA_DIR, "Interface@4x", stem + ".png"))
+    return any(os.path.exists(os.path.join(DATA_DIR, f"Interface@{scale}x", stem + ".png")) for scale in (4, 2))
 
 
 def build_rows():
     rows = []
     for relative, kind, width, height, padded_w, padded_h in survey():
         group = OWNER_BY_PATH.get(relative.lower(), UNASSIGNED_GROUP)
-        done = has_master(relative)
+        done = has_hd(relative)
         rows.append([relative, group, kind, width, height, padded_w, padded_h,
                      "done" if done else "pending", HD_METHOD if done else ""])
     return rows

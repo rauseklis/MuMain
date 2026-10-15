@@ -44,30 +44,42 @@ Textures that came from a JPEG (`.OZJ`) stay fully opaque, like the original.
 
 ## Making or changing HD art
 
-Needs Python 3 with Pillow and numpy.
+Needs Python 3 with Pillow and numpy, plus the Real-ESRGAN ncnn build (a small standalone Vulkan program, not part of
+the repository). Download `realesrgan-ncnn-vulkan-20220424-windows.zip` from the Real-ESRGAN releases page on GitHub,
+and copy `realesrgan-ncnn-vulkan.exe`, `vcomp140.dll` and its `models` folder into `tools/ui_hd/.esrgan/` (that folder
+is git-ignored), or set the `UI_HD_ESRGAN` environment variable to the exe. Without it use `--method lanczos`.
 
 ```
 python tools/ui_hd/survey.py                 sizes and memory estimate for every interface texture
-python tools/ui_hd/generate.py               enlarge every core texture (4x master, then 2x)
+python tools/ui_hd/generate.py               core windows: 4x masters and the 2x tier
+python tools/ui_hd/generate.py --set rest    every other texture: 2x tier only
 python tools/ui_hd/generate.py --only newui_item_back01.OZT
-python tools/ui_hd/compare.py <original> <hd.png> --sheet out.png    fidelity check (MAE, SSIM, side by side)
+python tools/ui_hd/verify.py                 reduce every HD texture back and compare it with its original
+python tools/ui_hd/compare.py <original> <hd.png> --sheet out.png    one texture, with a side-by-side picture
 python tools/ui_hd/manifest.py               rewrite tools/ui_hd/manifest.csv
 ```
 
-To add a texture, add its path (relative to `Data/Interface`) to the matching group in `tools/ui_hd/core_set.py` and run
-`generate.py`. To hand-paint or redraw a texture, replace its `Interface@4x` PNG with your own (exactly 4x the original
-size, content at the same position), then regenerate the 2x tier with `python tools/ui_hd/tiers.py` (reduces every
-master in `Interface@4x`; do not run `generate.py` afterwards, it would overwrite your master).
+To add a texture to the core set, add its path (relative to `Data/Interface`) to a group in
+`tools/ui_hd/core_set.py` and run `generate.py`. To hand-paint or redraw a texture, replace its `Interface@4x` PNG with
+your own (exactly 4x the original size, content at the same position), then regenerate the 2x tier with
+`python tools/ui_hd/tiers.py` (do not run `generate.py` afterwards, it would overwrite your master).
 
-`tools/ui_hd/manifest.csv` lists all interface textures and whether they have HD art (`done`) or are still `pending`.
+`tools/ui_hd/manifest.csv` lists all interface textures and whether they have HD art.
+
+Two textures that differ only by extension (for example `newui_btn_empty.OZJ` and `newui_btn_empty.OZT`) would share one
+HD path, so neither gets HD art.
 
 ## How the art is made
 
-No AI model is used. The enlargement is a premultiplied-alpha Lanczos upscale, sharpened with an unsharp mask that is
-clamped to the neighbourhood of a smooth upscale (so it cannot add halos), with crisper alpha edges. JPEG-sourced
-originals are lightly denoised first. The stone window background gets seeded fine grain. This is faithful and
-sharper than stretching the original, but it cannot invent detail that the original never had; a hand-redrawn master
-will always look better and can be dropped in as described above.
+The enlargement uses Real-ESRGAN (model `realesr-animevideov3`, 4x) on the colour and on the transparency separately.
+The network invents crisp edges and fine detail but shifts contrast and colour, so each result is merged with the plain
+enlargement: detail from the network, low-frequency tones from the original. Reduced back to the original size, the
+result matches the original (average error about 3 of 255 on the core set).
+
+Every result is checked against its original (`generate.py` does it, `verify.py` repeats it). A texture whose result
+drifts too far falls back to a plain Lanczos enlargement; if that drifts too, it gets no HD art. Very small textures
+(under 16 pixels on a side) and the stone window background use the plain enlargement (sharpened Lanczos, seeded
+fine grain for the stone), because the network does not help there.
 
 ## How it works (usage-level)
 
