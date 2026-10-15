@@ -85,7 +85,7 @@ def face_inset(profile):
     return inset + ring + groove
 
 
-def frame_layers(size, face, profile="normal"):
+def frame_layers(size, face, profile="normal", ring=None):
     """Black outline, bevel ring, groove, then `face` (RGBA of `size`) inside the rounded face area."""
     ring_inset, ring_width, groove_width = PROFILES[profile]
     FACE_INSET = face_inset(profile)
@@ -93,7 +93,8 @@ def frame_layers(size, face, profile="normal"):
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     composite(image, gradient_image(size, (6, 6, 6), (6, 6, 6), rounded_mask_r(size, 0.0, radius)))
     outer, inner = rounded_mask_r(size, ring_inset, radius), rounded_mask_r(size, ring_inset + ring_width, radius)
-    composite(image, gradient_image(size, retext.RING_LIGHT, retext.RING_DARK, np.clip(outer - inner, 0, 255)))
+    ring_light, ring_dark = ring or (retext.RING_LIGHT, retext.RING_DARK)
+    composite(image, gradient_image(size, ring_light, ring_dark, np.clip(outer - inner, 0, 255)))
     groove = inner - rounded_mask_r(size, FACE_INSET - 0.2, radius)
     composite(image, gradient_image(size, GROOVE, GROOVE, np.clip(groove, 0, 255)))
     face_mask = rounded_mask_r(size, FACE_INSET, radius) / 255.0
@@ -131,6 +132,28 @@ def cell_boxes(cell, spec):
     return (x0, y0, x1, y1), (x0 + margin, y0 + margin, x1 - margin, y1 - margin)
 
 
+NOTCH_PATCH = 7.0  # logical pixels: the little diagonal tick of the old frame sits in two opposite corners of the face
+NOTCH_BLUR = 5.0
+
+
+def heal_notch_corners(source):
+    """Replaces the top-right and bottom-left corners of a face crop with a smooth blur, removing the old corner ticks."""
+    from upscale import gaussian_blur
+    array = np.asarray(source, np.float32)
+    height, width = array.shape[:2]
+    size = min(int(NOTCH_PATCH * SCALE), height // 2, width // 2)
+    blurred = np.stack([gaussian_blur(array[..., c], NOTCH_BLUR * SCALE) for c in range(3)], axis=2)
+    out = array.copy()
+    ramp = np.linspace(0.0, 1.0, size, dtype=np.float32)
+    for y0, x0, flip_x, flip_y in ((0, width - size, False, False), (height - size, 0, True, True)):
+        wx = ramp if not flip_x else ramp[::-1]          # strongest towards the corner
+        wy = ramp[::-1] if not flip_y else ramp
+        weight = np.clip(np.minimum(wx[None, :], wy[:, None]) * 2.0, 0.0, 1.0)[..., None]
+        patch = out[y0:y0 + size, x0:x0 + size, :3]
+        out[y0:y0 + size, x0:x0 + size, :3] = patch * (1 - weight) + blurred[y0:y0 + size, x0:x0 + size] * weight
+    return Image.fromarray(np.clip(np.rint(out), 0, 255).astype(np.uint8), "RGBA")
+
+
 def reframe_cell(cell, spec):
     (x0, y0, x1, y1), (cx0, cy0, cx1, cy1) = cell_boxes(cell, spec)
     size = (x1 - x0, y1 - y0)
@@ -139,11 +162,12 @@ def reframe_cell(cell, spec):
                  size[0] - round(inset * SCALE), size[1] - round(inset * SCALE))
     source = Image.fromarray(cell[cy0:cy1, cx0:cx1]).resize(
         (face_area[2] - face_area[0], face_area[3] - face_area[1]), Image.LANCZOS)
+    source = heal_notch_corners(source)
     face = Image.new("RGBA", size, (0, 0, 0, 255))
     face.paste(source, face_area[:2])
     out = cell.copy()
     out[y0:y1, x0:x1] = (0, 0, 0, 255)
-    framed = frame_layers(size, face, spec.get("profile", "normal"))
+    framed = frame_layers(size, face, spec.get("profile", "normal"), spec.get("ring"))
     base = Image.fromarray(out[y0:y1, x0:x1], "RGBA")
     base.alpha_composite(framed)
     out[y0:y1, x0:x1] = np.asarray(base)
@@ -276,7 +300,24 @@ def apply(name, master):
     return apply_inner(name, master)
 
 
+# Selected-skill highlight frame in the bar: texture -> [(rect, ring colours)]
+HIGHLIGHT_STRIPS = {
+    "partCharge1/newui_menu03.OZJ": [((2, 3, 34, 40), ((196, 232, 70), (112, 140, 24)))],
+}
+
+
+def apply_highlights(name, master):
+    out = master
+    for rect, ring in HIGHLIGHT_STRIPS[name]:
+        x0, y0, x1, y1 = rect
+        inset = SLOT_CROP_INSET
+        out = reframe_cell(out, {"rect": rect, "crop": (x0 + inset, y0 + inset, x1 - inset, y1 - inset), "ring": ring})
+    return out
+
+
 def apply_inner(name, master):
+    if name in HIGHLIGHT_STRIPS:
+        master = apply_highlights(name, master)
     if name in SLOT_STRIPS:
         return apply_slots(name, master)
     spec = SPECS.get(name)
