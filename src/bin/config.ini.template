@@ -16,6 +16,7 @@ ServerPort=44405
 [UI]
 Locale=en
 Font=
+HdTextures=auto
 [Render]
 VSync=1
 MaxFPS=240

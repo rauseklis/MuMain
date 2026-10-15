@@ -37,6 +37,7 @@ namespace CfgKeys
     // UI
     inline constexpr wchar_t CfgKeyUILocale[] = L"Locale";
     inline constexpr wchar_t CfgKeyFont[]     = L"Font";
+    inline constexpr wchar_t CfgKeyHdTextures[] = L"HdTextures";
 
     // Camera
     inline constexpr wchar_t CfgKeyZoom[] = L"Zoom";
@@ -79,6 +80,9 @@ namespace CfgDefaults
     // Windows, fontconfig "sans-serif" on Linux), so the look is unchanged until
     // the user picks a font. Any value is passed through as the GDI face name.
     inline constexpr wchar_t CfgDefaultFont[] = L"";
+
+    // High-resolution interface textures: auto | off | 2 | 4. Applies on the next start.
+    inline constexpr wchar_t CfgDefaultHdTextures[] = L"auto";
 
     // Legacy config compatibility only. SDL GPU ignores this key and default.
     inline constexpr bool CfgDefaultCoreProfile = true;

@@ -14,6 +14,7 @@
 #include <setjmp.h>
 #include <cstdint>
 #include "Core/Time/Timer.h"
+#include "Render/Textures/UiHdTextures.h"
 
 struct SDL_GPUTexture;
 struct SDL_GPUSampler;
@@ -158,6 +159,10 @@ protected:
 
     bool OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiFilter = GL_NEAREST, GLuint uiWrapMode = GL_CLAMP_TO_EDGE);
     bool OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiFilter = GL_NEAREST, GLuint uiWrapMode = GL_CLAMP_TO_EDGE);
+    // Registers an interface texture whose GPU image is an HD replacement. The bitmap keeps reporting the original
+    // padded size (paddedWidth x paddedHeight) so every caller's UV arithmetic stays valid.
+    bool AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiWrapMode, int paddedWidth,
+                     int paddedHeight, Render::UiHdTextures::HdImage&& hdImage);
     void SplitFileName(IN const std::wstring& filepath, OUT std::wstring& filename, bool bIncludeExt);
     void SplitExt(IN const std::wstring& filepath, OUT std::wstring& ext, bool bIncludeDot);
     void ExchangeExt(IN const std::wstring& in_filepath, IN const std::wstring& ext, OUT std::wstring& out_filepath);
