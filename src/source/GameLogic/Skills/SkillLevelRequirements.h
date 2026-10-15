@@ -8,6 +8,4 @@ constexpr int ResolveSkillLevelRequirement(int configuredLevel, bool isSummonerS
 }
 
 int RequiredSkillLevel(int skillType);
-int RequiredSkillScrollLevel(int itemType, int configuredLevel);
-bool CanLearnSkillScroll(int itemType, int requiredStrength, int requiredEnergy);
 }

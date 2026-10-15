@@ -24,7 +24,6 @@
 #include "I18N/All.h"
 #include "GameLogic/Items/ShopRestrictions.h"
 #include "GameLogic/Items/TradeRestrictions.h"
-#include "GameLogic/Skills/SkillLevelRequirements.h"
 
 namespace SEASON3B
 {
@@ -842,7 +841,11 @@ bool CNewUIInventoryActionController::TryConsumeItem(CNewUIInventoryCtrl* target
 
         if (bReadBookGem)
         {
-            if (GameLogic::Skills::CanLearnSkillScroll(pItem->Type, pItem->RequireStrength, pItem->RequireEnergy))
+            const WORD wStrength = CharacterAttribute->Strength + CharacterAttribute->AddStrength;
+            const WORD wEnergy = CharacterAttribute->Energy + CharacterAttribute->AddEnergy;
+
+            if (CharacterAttribute->Level >= ItemAttribute[pItem->Type].RequireLevel &&
+                wEnergy >= pItem->RequireEnergy && wStrength >= pItem->RequireStrength)
             {
                 SendRequestUse(iIndex, 0);
             }

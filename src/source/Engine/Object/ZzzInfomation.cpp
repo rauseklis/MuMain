@@ -27,36 +27,6 @@
 #include "UI/NewUI/NewUISystem.h"
 #include "Character/CharacterManager.h"
 #include "GameLogic/Skills/SkillManager.h"
-#include "GameLogic/Skills/SkillLevelRequirements.h"
-
-namespace
-{
-int CalculateRequiredItemLevel(const ITEM& item, const ITEM_ATTRIBUTE& attribute)
-{
-    constexpr int kDefaultLevelIncrement = 4;
-    constexpr int kSecondWingLevelIncrement = 5;
-    const int increment = GameLogic::Items::IsSecondTierWingExceptCape(&item)
-                              ? kSecondWingLevelIncrement : kDefaultLevelIncrement;
-    int requiredLevel = 0;
-    if (attribute.RequireLevel
-        && ((item.Type >= ITEM_SWORD && item.Type < ITEM_WING)
-            || item.Type == ITEM_HORN_OF_FENRIR
-            || (item.Type >= ITEM_ORB_OF_TWISTING_SLASH && item.Type <= ITEM_CAPE_OF_EMPEROR)
-            || (item.Type >= ITEM_WING_OF_DIMENSION && item.Type < ITEM_CAPE_OF_EMPEROR)
-                   && item.Type != ITEM_CAPE_OF_FIGHTER))
-    {
-        requiredLevel = attribute.RequireLevel;
-    }
-    else if (attribute.RequireLevel
-             && ((item.Type >= ITEM_WING && item.Type <= ITEM_ORB_OF_TWISTING_SLASH)
-                 || (item.Type >= ITEM_WING_OF_CURSE && item.Type <= ITEM_WINGS_OF_DESPAIR)
-                 || item.Type == ITEM_CAPE_OF_FIGHTER || item.Type >= ITEM_HELPER))
-    {
-        requiredLevel = attribute.RequireLevel + item.Level * increment;
-    }
-    return GameLogic::Skills::RequiredSkillScrollLevel(item.Type, requiredLevel);
-}
-}
 
 CLASS_ATTRIBUTE     ClassAttribute[MAX_CLASS];
 MONSTER_SCRIPT      MonsterScript[MAX_MONSTER];
@@ -759,7 +729,31 @@ void CalcRequirements(ITEM* ip, ITEM_ATTRIBUTE* p)
         ItemLevel = p->Level + 30;
     }
 
-    ip->RequireLevel = CalculateRequiredItemLevel(*ip, *p);
+    int addValue = 4;
+
+    if (GameLogic::Items::IsSecondTierWingExceptCape(ip))
+    {
+        addValue = 5;
+    }
+
+    if (p->RequireLevel
+        && ((ip->Type >= ITEM_SWORD && ip->Type < ITEM_WING)
+        || (ip->Type == ITEM_HORN_OF_FENRIR)
+        || (ip->Type >= ITEM_ORB_OF_TWISTING_SLASH && ip->Type <= ITEM_CAPE_OF_EMPEROR)
+        || (ip->Type >= ITEM_WING_OF_DIMENSION && ip->Type < ITEM_CAPE_OF_EMPEROR)
+        && (ip->Type != ITEM_CAPE_OF_FIGHTER)))
+    {
+        ip->RequireLevel = p->RequireLevel;
+    }
+    else if (p->RequireLevel && ((ip->Type >= ITEM_WING && ip->Type <= ITEM_ORB_OF_TWISTING_SLASH)
+        || (ip->Type >= ITEM_WING_OF_CURSE && ip->Type <= ITEM_WINGS_OF_DESPAIR)
+        || (ip->Type == ITEM_CAPE_OF_FIGHTER)
+        || ip->Type >= ITEM_HELPER))
+    {
+        ip->RequireLevel = p->RequireLevel + ip->Level * addValue;
+    }
+    else
+        ip->RequireLevel = 0;
 
     if (p->RequireStrength)
         ip->RequireStrength = 20 + (p->RequireStrength) * (ItemLevel + ip->Level * 3) * 3 / 100;
