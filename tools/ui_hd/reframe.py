@@ -11,6 +11,7 @@ import retext
 from retext import SCALE, FACE_INSET, GROOVE, RING_INSET, RING_WIDTH, composite, gradient_image, rounded_mask
 
 CORNER_RADIUS = 5.0
+AUTO_RECT = "auto"  # rect taken from the visible part of each cell
 GROOVE_BLEND = 0.9
 
 # rect: the button inside one cell; crop: the part of the original face reused inside the new frame (cell pixels).
@@ -35,18 +36,18 @@ SPECS = {
     "newui_chat_system_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
     "newui_chat_whisper_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
     "newui_bt_Off_chat.OZJ": {"cells": 1, "cell_height": 23, "rect": (0, 0, 22, 23), "crop": (4, 4, 18, 19), "transparent_corners": True},
-    "newui_exit_00.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_repair_00.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_expansion_btn.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_Bt_openshop.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_Bt_closeshop.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_chainfo_btn_quest.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_chainfo_btn_pet.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_chainfo_btn_master.OZT": {"cells": 2, "cell_height": 29, "rect": (0, 0, 36, 29), "crop": (3, 3, 33, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_btn_empty.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 108, 29), "crop": (3, 3, 105, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_btn_empty_big.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 180, 29), "crop": (3, 3, 177, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_btn_empty_small.OZT": {"cells": 3, "cell_height": 29, "rect": (0, 0, 64, 29), "crop": (3, 3, 61, 26), "transparent_corners": True, "profile": "thin"},
-    "newui_btn_empty_very_small.OZT": {"cells": 3, "cell_height": 23, "rect": (0, 0, 54, 23), "crop": (3, 3, 51, 20), "transparent_corners": True, "profile": "thin"},
+    "newui_exit_00.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_repair_00.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_expansion_btn.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_Bt_openshop.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_Bt_closeshop.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_quest.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_pet.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_master.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_btn_empty.OZT": {"cells": 3, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin", "shrink": 1.5},
+    "newui_btn_empty_big.OZT": {"cells": 3, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin", "shrink": 1.5},
+    "newui_btn_empty_small.OZT": {"cells": 3, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin", "shrink": 1.5},
+    "newui_btn_empty_very_small.OZT": {"cells": 3, "cell_height": 23, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin", "shrink": 1.5},
     "newui_skillbox.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
     "newui_skillbox2.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
 }
@@ -111,9 +112,27 @@ def rounded_mask_r(size, inset, radius):
         retext.CORNER_RADIUS = saved
 
 
+AUTO_CROP_MARGIN = 3
+
+
+def opaque_box(cell):
+    """Bounding box (x0, y0, x1, y1) in texels of the visible part of a cell; the original art keeps a transparent margin."""
+    ys, xs = np.nonzero(cell[..., 3] > 128)
+    return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
+
+
+def cell_boxes(cell, spec):
+    if spec["rect"] != AUTO_RECT:
+        return scaled(spec["rect"]), scaled(spec["crop"])
+    x0, y0, x1, y1 = opaque_box(cell)
+    shrink = int(round(spec.get("shrink", 0.0) * SCALE))
+    x0, y0, x1, y1 = x0 + shrink, y0 + shrink, x1 - shrink, y1 - shrink
+    margin = AUTO_CROP_MARGIN * SCALE
+    return (x0, y0, x1, y1), (x0 + margin, y0 + margin, x1 - margin, y1 - margin)
+
+
 def reframe_cell(cell, spec):
-    x0, y0, x1, y1 = scaled(spec["rect"])
-    cx0, cy0, cx1, cy1 = scaled(spec["crop"])
+    (x0, y0, x1, y1), (cx0, cy0, cx1, cy1) = cell_boxes(cell, spec)
     size = (x1 - x0, y1 - y0)
     inset = face_inset(spec.get("profile", "normal"))
     face_area = (round(inset * SCALE), round(inset * SCALE),

@@ -101,6 +101,7 @@ CHAT_AND_GEMS = [
     "newui_chat_btn_alpha.OZJ", "newui_chat_btn_size.OZJ", "newui_chat_chat_on.OZJ", "newui_chat_frame_on.OZJ",
     "newui_chat_gens_on.OZJ", "newui_chat_guild_on.OZJ", "newui_chat_normal_on.OZJ", "newui_chat_party_on.OZJ",
     "newui_chat_system_on.OZJ", "newui_chat_whisper_on.OZJ", "newui_bt_Off_chat.OZJ",
+    "newui_statusicon.OZJ",
 ]
 
 GROUPS = {
