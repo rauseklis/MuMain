@@ -2024,6 +2024,7 @@ void SEASON3B::CNewUISkillList::RenderCurrentSkillAndHotSkillList()
 
             if (Hero->CurrentSkill == m_iHotKeySkillType[iIndex])
             {
+                EnableAlphaTest();
                 SEASON3B::RenderImage(IMAGE_SKILLBOX_USE, x, y, width, height);
             }
             RenderSkillIcon(m_iHotKeySkillType[iIndex], x + 6, y + 6, 20, 28);
@@ -2093,6 +2094,9 @@ bool SEASON3B::CNewUISkillList::Render()
 
                     iSkillCount++;
 
+                    // RenderSkillIcon leaves the blend mode of the last icon behind; the box art has round, transparent
+                    // corners, so it needs alpha blending every time or the corners draw as black squares.
+                    EnableAlphaTest();
                     if (i == Hero->CurrentSkill)
                     {
                         SEASON3B::RenderImage(IMAGE_SKILLBOX_USE, x, y, width, height);
@@ -2159,6 +2163,7 @@ void SEASON3B::CNewUISkillList::RenderPetSkill()
     x = 353.f; y = 352; width = 32; height = 38;
     for (int i = AT_PET_COMMAND_DEFAULT; i < AT_PET_COMMAND_END; ++i)
     {
+        EnableAlphaTest();
         if (i == Hero->CurrentSkill)
         {
             SEASON3B::RenderImage(IMAGE_SKILLBOX_USE, x, y, width, height);

@@ -688,8 +688,8 @@ TEST_CASE("world viewport clamps zero and tiny dimensions before deriving aspect
 
 TEST_CASE("bottom HUD hit-region edges block controls and leave the margins free [ui][scaling]")
 {
-    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 100.0f, 643.49f));
-    CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 100.0f, 643.5f));
+    CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 300.0f, 643.49f));
+    CHECK(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 300.0f, 643.5f));
 
     CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 100.0f, 660.0f));
     CHECK_FALSE(UI::Scaling::BottomHudContainsWindowPoint(1280, 720, 159.99f, 660.0f));
