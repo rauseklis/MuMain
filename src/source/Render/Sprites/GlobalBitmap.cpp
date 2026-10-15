@@ -11,6 +11,7 @@
 #include <SDL3/SDL_gpu.h>
 #include "Render/Renderer/GraphicsQuality.h"
 #include "Render/Renderer/MuRenderer.h"
+#include "Render/Textures/UiHdTextureLoader.h"
 #include "Render/Textures/UiTextureQuality.h"
 
 #include <algorithm>
@@ -129,7 +130,7 @@ std::vector<std::uint8_t> PadRGBToRGBA(const BYTE* rgbData, int width, int heigh
 }
 
 bool UploadTextureSDLGpu(BITMAP_t* bitmap, const std::uint8_t* pixelData, int width, int height, SDL_GPUFilter filter,
-                         SDL_GPUSamplerAddressMode wrapMode, bool enhancedTexture)
+                         SDL_GPUSamplerAddressMode wrapMode, bool enhancedTexture, bool mipmapped = false)
 {
     auto& renderer = mu::GetRenderer();
     SDL_GPUDevice* device = static_cast<SDL_GPUDevice*>(renderer.GetDevice());
@@ -144,7 +145,7 @@ bool UploadTextureSDLGpu(BITMAP_t* bitmap, const std::uint8_t* pixelData, int wi
     texInfo.width = static_cast<Uint32>(width);
     texInfo.height = static_cast<Uint32>(height);
     texInfo.layer_count_or_depth = 1;
-    const bool generateMipmaps = enhancedTexture && renderer.GetTextureMipmapsEnabled();
+    const bool generateMipmaps = (enhancedTexture || mipmapped) && renderer.GetTextureMipmapsEnabled();
     const Uint32 mipLevels = generateMipmaps
                                  ? Render::GraphicsQuality::CalculateMipLevelCount(static_cast<Uint32>(width),
                                                                                   static_cast<Uint32>(height))
@@ -840,6 +841,14 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
         return false;
     }
 
+    if (auto hdImage = Render::UiHdTextures::LoadForTexture(filename, jpegWidth, jpegHeight,
+                                                            NextPowerOfTwo(jpegWidth, MAX_WIDTH),
+                                                            NextPowerOfTwo(jpegHeight, MAX_HEIGHT), true, NarrowPath))
+    {
+        return AddHdBitmap(uiBitmapIndex, filename, uiWrapMode, NextPowerOfTwo(jpegWidth, MAX_WIDTH),
+                           NextPowerOfTwo(jpegHeight, MAX_HEIGHT), std::move(*hdImage));
+    }
+
     std::vector<unsigned char> decompressedBuffer(static_cast<std::size_t>(jpegWidth) *
                                                   static_cast<std::size_t>(jpegHeight) * 3u);
     auto decompressResult = tjDecompress2(tjHandle.get(), jpegData, jpegSize, decompressedBuffer.data(), jpegWidth, 0,
@@ -954,6 +963,9 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
     const int Width = NextPowerOfTwo(nx, MAX_WIDTH);
     const int Height = NextPowerOfTwo(ny, MAX_HEIGHT);
 
+    if (auto hdImage = Render::UiHdTextures::LoadForTexture(filename, nx, ny, Width, Height, false, NarrowPath))
+        return AddHdBitmap(uiBitmapIndex, filename, uiWrapMode, Width, Height, std::move(*hdImage));
+
     auto pNewBitmap = std::make_unique<BITMAP_t>();
 
     pNewBitmap->BitmapIndex = uiBitmapIndex;
@@ -1007,6 +1019,41 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
     mu::RegisterTexture(uiBitmapIndex, rawTexture);
     mu::RegisterSampler(uiBitmapIndex, rawSampler);
 
+    return true;
+}
+
+bool CGlobalBitmap::AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiWrapMode, int paddedWidth,
+                                int paddedHeight, Render::UiHdTextures::HdImage&& hdImage)
+{
+    constexpr char kRgbaComponents = 4;
+    auto pNewBitmap = std::make_unique<BITMAP_t>();
+    pNewBitmap->BitmapIndex = uiBitmapIndex;
+    wcsncpy(pNewBitmap->FileName, filename.c_str(), MAX_BITMAP_FILE_NAME - 1);
+    pNewBitmap->FileName[MAX_BITMAP_FILE_NAME - 1] = L'\0';
+    pNewBitmap->Width = static_cast<float>(paddedWidth);
+    pNewBitmap->Height = static_cast<float>(paddedHeight);
+    pNewBitmap->Components = kRgbaComponents;
+    pNewBitmap->Ref = 1;
+    pNewBitmap->TextureNumber = uiBitmapIndex;
+    pNewBitmap->BufferStorage = std::move(hdImage.rgba);
+    pNewBitmap->Buffer = pNewBitmap->BufferStorage.data();
+    m_dwUsedTextureMemory += static_cast<std::uint32_t>(pNewBitmap->BufferStorage.size());
+
+    Render::UiTextureQuality::BleedTransparentRgb(pNewBitmap->BufferStorage, hdImage.width, hdImage.height);
+    constexpr bool kMipmapped = true;
+    if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, hdImage.width, hdImage.height, SDL_GPU_FILTER_LINEAR,
+                             MapGLWrapToSDL(uiWrapMode), false, kMipmapped))
+    {
+        m_dwUsedTextureMemory -= static_cast<std::uint32_t>(pNewBitmap->BufferStorage.size());
+        g_ErrorReport.Write(L"SDL HD texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
+        return false;
+    }
+
+    SDL_GPUTexture* rawTexture = pNewBitmap->sdlTexture;
+    SDL_GPUSampler* rawSampler = pNewBitmap->sdlSampler;
+    m_mapBitmap.insert(type_bitmap_map::value_type(uiBitmapIndex, std::move(pNewBitmap)));
+    mu::RegisterTexture(uiBitmapIndex, rawTexture);
+    mu::RegisterSampler(uiBitmapIndex, rawSampler);
     return true;
 }
 

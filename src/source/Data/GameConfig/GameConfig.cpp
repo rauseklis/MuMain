@@ -11,6 +11,7 @@
 #include "Core/Platform/WinIni.h"  // private-profile (.ini) API
 #include "Core/Platform/Dpapi.h"   // Legacy credential format migration
 #include "Core/Platform/PlatformCrypto.h"
+#include "Render/Textures/UiHdTextureLoader.h"
 
 #include <algorithm>
 
@@ -81,6 +82,8 @@ void GameConfig::Load()
 
     m_uiLocale = ReadString(CfgSectionUI, CfgKeyUILocale, CfgDefaultUILocale);
     m_fontSelection = ReadString(CfgSectionUI, CfgKeyFont, CfgDefaultFont);
+    m_hdTextures = ReadString(CfgSectionUI, CfgKeyHdTextures, CfgDefaultHdTextures);
+    Render::UiHdTextures::SetActiveSetting(Render::UiHdTextures::ParseSetting(m_hdTextures));
 
     m_zoom = ReadInt(CfgSectionCamera, CfgKeyZoom, CfgDefaultZoom);
     m_sortParticleDraws = ReadBool(CfgSectionRender, CfgKeySortParticleDraws, CfgDefaultSortParticleDraws);
@@ -131,6 +134,7 @@ void GameConfig::Save()
 
     WriteString(CfgSectionUI, CfgKeyUILocale, m_uiLocale);
     WriteString(CfgSectionUI, CfgKeyFont, m_fontSelection);
+    WriteString(CfgSectionUI, CfgKeyHdTextures, m_hdTextures);
 
     WriteInt(CfgSectionCamera, CfgKeyZoom, m_zoom);
     WriteBool(CfgSectionRender, CfgKeyVSync, m_vsyncEnabled);

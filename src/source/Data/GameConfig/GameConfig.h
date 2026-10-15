@@ -66,6 +66,7 @@ public:
 
     // UI font family name (GDI face name). Empty = platform default.
     std::wstring GetFontSelection() const { return m_fontSelection; }
+    std::wstring GetHdTextures() const { return m_hdTextures; }
     void SetFontSelection(const std::wstring& font);
 
     // Chat commands - the favourites and the named templates of the command
@@ -137,6 +138,7 @@ private:
 
     std::wstring m_uiLocale;
     std::wstring m_fontSelection;
+    std::wstring m_hdTextures;
 
     int m_zoom;
     bool m_sortParticleDraws;
