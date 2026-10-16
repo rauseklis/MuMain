@@ -163,7 +163,7 @@ protected:
     bool OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiFilter = GL_NEAREST, GLuint uiWrapMode = GL_CLAMP_TO_EDGE);
     // Registers an interface texture whose GPU image is an HD replacement. The bitmap keeps reporting the original
     // padded size (paddedWidth x paddedHeight) so every caller's UV arithmetic stays valid.
-    bool AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiFilter, GLuint uiWrapMode, int paddedWidth,
+    bool AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filename, char components, GLuint uiFilter, GLuint uiWrapMode, int paddedWidth,
                      int paddedHeight, Render::UiHdTextures::HdImage&& hdImage);
     void SplitFileName(IN const std::wstring& filepath, OUT std::wstring& filename, bool bIncludeExt);
     void SplitExt(IN const std::wstring& filepath, OUT std::wstring& ext, bool bIncludeDot);
