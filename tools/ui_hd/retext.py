@@ -14,19 +14,21 @@ SCALE = 4
 SUPERSAMPLE = 2
 CELL_WIDTH = 54
 CELL_HEIGHT = 30
-CORNER_RADIUS = 6.0
+BUTTON_WIDTH = 44
+BUTTON_HEIGHT = 24
+CORNER_RADIUS = 5.0
 FONT_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "src", "bin", "fonts", "DejaVuSans-Bold.ttf")
 
 OUTLINE_INSET = 0.5
 RING_INSET = 1.0
-RING_WIDTH = 1.7
-GROOVE_WIDTH = 0.9
+RING_WIDTH = 0.8
+GROOVE_WIDTH = 0.5
 FACE_INSET = RING_INSET + RING_WIDTH + GROOVE_WIDTH
-INNER_FRAME_INSET = 5.0
+INNER_FRAME_INSET = 4.0
 INNER_FRAME_WIDTH = 0.9
 CAPTION_OUTLINE = 1.15
-CAPTION_WIDTH = 40.0
-CAPTION_HEIGHT = 12.0
+CAPTION_WIDTH = 32.0
+CAPTION_HEIGHT = 10.0
 
 BLACK = (8, 8, 8)
 GROOVE = (20, 16, 12)
@@ -85,7 +87,7 @@ def ring_layer(size, pressed):
 
 
 def button_state(kind, state, face, pressed):
-    size = (CELL_WIDTH * SCALE, CELL_HEIGHT * SCALE)
+    size = (BUTTON_WIDTH * SCALE, BUTTON_HEIGHT * SCALE)
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     composite(image, gradient_image(size, BLACK, BLACK, rounded_mask(size, OUTLINE_INSET, CORNER_RADIUS)))
     composite(image, ring_layer(size, pressed))
@@ -150,7 +152,9 @@ def draw_button(kind, label):
     for state, face in enumerate(faces):
         cell = button_state(kind, state, face, state in PRESSED_STATES[kind])
         draw_caption(cell, label, factors[state])
-        cells.append(np.asarray(cell))
+        full = Image.new("RGBA", (CELL_WIDTH * SCALE, CELL_HEIGHT * SCALE), (0, 0, 0, 0))
+        full.alpha_composite(cell, ((CELL_WIDTH - BUTTON_WIDTH) * SCALE // 2, (CELL_HEIGHT - BUTTON_HEIGHT) * SCALE // 2))
+        cells.append(np.asarray(full))
     return np.concatenate(cells, axis=0)
 
 
