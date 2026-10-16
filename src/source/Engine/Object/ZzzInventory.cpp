@@ -879,6 +879,13 @@ void ComputeItemInfo(int iHelpItem)
             };
         }
 
+        if (GameLogic::Items::IsKingMace(ItemHelp, MAX_ITEM_INDEX))
+        {
+            const int bonus = GameLogic::Items::KingMaceUpgradeDamage(Level);
+            DamageMin = p->DamageMin + bonus;
+            DamageMax = p->DamageMax + bonus;
+        }
+
         if (Magic > 0)
         {
             Magic += (std::min<int>(9, Level) * 3);	// ~ +9

@@ -268,6 +268,30 @@
         "color": "white",
         "meshes": [0]
       }
+    },
+    {
+      "number": 22,
+      "file": "Data/Item/KingMaces/macedemonc.bmd",
+      "textureFolders": ["Item/KingMaces/Normal"],
+      "inventory": {
+        "anchor": [0.8, 0.7],
+        "rotation": [180, 270, 15]
+      },
+      "ground": {
+        "rotation": [0, 270, -45]
+      }
+    },
+    {
+      "number": 23,
+      "file": "Data/Item/KingMaces/celesmace.bmd",
+      "textureFolders": ["Item/KingMaces/Royal"],
+      "inventory": {
+        "anchor": [0.8, 0.7],
+        "rotation": [180, 270, 15]
+      },
+      "ground": {
+        "rotation": [0, 270, -45]
+      }
     }
   ]
 }

@@ -526,6 +526,54 @@
       "classRequirements": {
         "darkLord": 1
       }
+    },
+    {
+      "number": 22,
+      "name": {
+        "en": "Mace of King"
+      },
+      "width": 1,
+      "height": 3,
+      "slot": "mainHand",
+      "level": 82,
+      "durability": 84,
+      "damageMin": 110,
+      "damageMax": 125,
+      "attackSpeed": 30,
+      "attackType": 1,
+      "requirements": {
+        "strength": 160,
+        "dexterity": 60
+      },
+      "classRequirements": {
+        "darkKnight": 1,
+        "magicGladiator": 1,
+        "darkLord": 1
+      }
+    },
+    {
+      "number": 23,
+      "name": {
+        "en": "Royal Mace of King"
+      },
+      "width": 1,
+      "height": 3,
+      "slot": "mainHand",
+      "level": 82,
+      "durability": 84,
+      "damageMin": 150,
+      "damageMax": 170,
+      "attackSpeed": 40,
+      "attackType": 1,
+      "requirements": {
+        "strength": 160,
+        "dexterity": 60
+      },
+      "classRequirements": {
+        "darkKnight": 1,
+        "magicGladiator": 1,
+        "darkLord": 1
+      }
     }
   ]
 }
