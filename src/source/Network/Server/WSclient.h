@@ -1179,13 +1179,15 @@ typedef struct {
 } PMSG_UNION_VIEWPORT_NOTIFY, * LPPMSG_UNION_VIEWPORT_NOTIFY;
 
 //receive gold
+#pragma pack(push, 1)
 typedef struct
 {
     PBMSG_HEADER Header;
     BYTE         Result;
-    DWORD        StorageGold;
+    unsigned __int64 StorageGold;
     DWORD        Gold;
 } PRECEIVE_STORAGE_GOLD, * LPPRECEIVE_STORAGE_GOLD;
+#pragma pack(pop)
 
 //receive soccer time
 typedef struct {
