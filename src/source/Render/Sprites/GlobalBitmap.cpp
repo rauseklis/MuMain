@@ -1174,9 +1174,9 @@ bool CGlobalBitmap::AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filena
     const SDL_GPUFilter filter = interfaceTexture ? SDL_GPU_FILTER_LINEAR : MapGLFilterToSDL(uiFilter);
     const bool enhancedTexture = Render::GraphicsQuality::IsEnhancedTexturePath(filename);
     // Large model and world textures are block-compressed: a quarter of the video memory for almost the same picture.
-    // Interface art stays uncompressed (thin lines and flat colours show the artefacts), as does anything the GPU cannot take.
+    // Interface art, terrain and scenery stay uncompressed (see IsCompressiblePath), as does anything the GPU cannot take.
     bool uploaded = false;
-    if (!interfaceTexture && Render::UiHdTextures::GetCompressionEnabled())
+    if (Render::UiHdTextures::IsCompressiblePath(filename) && Render::UiHdTextures::GetCompressionEnabled())
     {
         const auto format = components == kJpegComponents ? Render::BlockCompression::Format::Bc1
                                                           : Render::BlockCompression::Format::Bc3;

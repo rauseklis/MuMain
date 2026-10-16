@@ -78,6 +78,19 @@ TEST_CASE("HD path also works for the Skill and Item folders [render][ui_hd]")
     CHECK_FALSE(IsHdEligiblePath(L"Data\\World\\tile.jpg"));
 }
 
+TEST_CASE("only model textures are block-compressed [render][ui_hd]")
+{
+    CHECK(IsCompressiblePath(L"Data\\Monster\\wolf.jpg"));
+    CHECK(IsCompressiblePath(L"Data\\Player\\skin.jpg"));
+    CHECK(IsCompressiblePath(L"Data\\NPC\\guard.tga"));
+    CHECK(IsCompressiblePath(L"Data\\Item\\fenril01.tga"));
+    CHECK(IsCompressiblePath(L"Data\\Skill\\dkhead2.jpg"));
+    CHECK_FALSE(IsCompressiblePath(L"Data\\Interface\\newui_item_back01.tga"));
+    CHECK_FALSE(IsCompressiblePath(L"Data\\World1\\TileGrass01.tga"));
+    CHECK_FALSE(IsCompressiblePath(L"Data\\Object12\\grass_01.tga"));
+    CHECK_FALSE(IsCompressiblePath(L"Data\\Effect\\spark.jpg"));
+}
+
 TEST_CASE("HD path keeps the extension for textures that share a name [render][ui_hd]")
 {
     CHECK(HdPathWithExtension(L"Data\\World1\\TileGrass01.jpg", 2) == L"Data\\World1@2x\\TileGrass01.jpg.png");

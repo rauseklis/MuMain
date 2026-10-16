@@ -176,6 +176,20 @@ struct RootMatch
     return FindEligibleRoot(path).has_value();
 }
 
+// Whether an HD texture may be block-compressed: the character, monster, NPC, item and skill textures. Interface art
+// (thin lines, flat colours) and the terrain and scenery tiles (grass billboards, cut-outs that must keep their exact
+// alpha) stay uncompressed.
+[[nodiscard]] inline bool IsCompressiblePath(std::wstring_view path)
+{
+    const std::optional<RootMatch> root = FindEligibleRoot(path);
+    if (!root)
+        return false;
+    std::wstring lower(root->folderName);
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                   [](wchar_t character) { return static_cast<wchar_t>(std::towlower(character)); });
+    return lower != L"interface" && !IsNumberedFolder(lower);
+}
+
 // Data\Interface\a\b.tga -> Data\Interface@4x\a\b.png (same separators); Skill and Item work the same way.
 // Empty for textures outside the eligible folders.
 [[nodiscard]] inline std::wstring HdPath(std::wstring_view originalPath, int scale)
