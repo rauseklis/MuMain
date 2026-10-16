@@ -173,14 +173,15 @@ its file once, when it is loaded.
 
 ## Texture compression
 
-The large HD textures of models and maps (everything except the interface) are block-compressed when they are sent to
+The large HD textures of characters, monsters, NPCs, items and skills are block-compressed when they are sent to
 the graphics card: BC1 (half a byte per pixel) for opaque art, BC3 (one byte per pixel, with alpha) for art with
 transparency. Compared with uncompressed RGBA (four bytes per pixel) that is a quarter to an eighth of the video memory.
 The mip levels are built on the CPU, because compressed textures cannot be mipmapped on the graphics card, and the CPU
 copy of the picture is freed afterwards. On the login screen this took the video memory from 1.8 GB to 1.1 GB and the
 RAM from 1.2 GB to 0.6 GB.
 
-The interface art stays uncompressed (thin lines and flat colours show the artefacts). A graphics card that cannot
+The interface art stays uncompressed (thin lines and flat colours show the artefacts), and so do the terrain and
+scenery tiles: compressing them made the tall grass in the Lorencia flower beds disappear. A graphics card that cannot
 sample the format simply gets the uncompressed texture. To switch compression off:
 
 ```ini
