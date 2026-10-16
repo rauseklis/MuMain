@@ -325,6 +325,8 @@ void CPhysicsCloth::Clear(void)
     m_byWindMin = 1;
     m_fSimulationAccumulator = 0.0f;
     m_bSimulationStarted = false;
+    m_vPreviousPositions.clear();
+    m_bHasPreviousPositions = false;
 }
 
 BOOL CPhysicsCloth::Create(OBJECT* o, int iBone, float fxPos, float fyPos, float fzPos, int iNumHor, int iNumVer, float fWidth, float fHeight, int iTexFront, int iTexBack, DWORD dwType)
@@ -572,6 +574,35 @@ void CPhysicsCloth::SetLink(int iLink, int iVertex1, int iVertex2, float fDistan
     link.m_byStyle = byStyle;
 }
 
+void CPhysicsCloth::RememberPreviousPositions()
+{
+    m_vPreviousPositions.resize(static_cast<std::size_t>(m_iNumVertices));
+    for (int iVertex = 0; iVertex < m_iNumVertices; ++iVertex)
+    {
+        vec3_t position;
+        m_pVertices[iVertex].GetPosition(&position);
+        m_vPreviousPositions[static_cast<std::size_t>(iVertex)] = {position[0], position[1], position[2]};
+    }
+    m_bHasPreviousPositions = true;
+}
+
+void CPhysicsCloth::GetRenderPosition(int iVertex, vec3_t* pPos)
+{
+    m_pVertices[iVertex].GetPosition(pPos);
+    if (!m_bHasPreviousPositions || m_pVertices[iVertex].IsFixed() ||
+        m_vPreviousPositions.size() != static_cast<std::size_t>(m_iNumVertices))
+    {
+        return;
+    }
+
+    const float alpha = Physics::ClothSimulationTiming::InterpolationAlpha(m_fSimulationAccumulator);
+    const auto& previous = m_vPreviousPositions[static_cast<std::size_t>(iVertex)];
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        (*pPos)[axis] = Physics::ClothSimulationTiming::Lerp(previous[axis], (*pPos)[axis], alpha);
+    }
+}
+
 BOOL CPhysicsCloth::Move2(float fTime, int iCount)
 {
     if (m_oOwner == NULL)
@@ -592,6 +623,7 @@ BOOL CPhysicsCloth::Move2(float fTime, int iCount)
 
     for (int iFrame = 0; iFrame < frameCount; ++iFrame)
     {
+        RememberPreviousPositions();
         for (int iStep = 0; iStep < iCount; ++iStep)
         {
             if (!Move(fTime))
@@ -643,7 +675,7 @@ BOOL CPhysicsCloth::Move(float fTime)
 
 void CPhysicsCloth::GetPosition(int index, vec3_t* pPos)
 {
-    m_pVertices[index].GetPosition(pPos);
+    GetRenderPosition(index, pPos); // the shadow follows the same smoothed positions as the cloth itself
 }
 
 void CPhysicsCloth::InitForces(void)
@@ -785,7 +817,7 @@ void CPhysicsCloth::Render(vec3_t* pvColor, int iLevel)
         {
             int iVertex = m_iNumHor * j + i;
             vec3_t* pvPos = &pvRenderPos[iVertex];
-            m_pVertices[iVertex].GetPosition(pvPos);
+            GetRenderPosition(iVertex, pvPos);
         }
     }
 

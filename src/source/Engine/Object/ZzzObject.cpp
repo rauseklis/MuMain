@@ -930,8 +930,8 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
                     Vector(1.0f, 1.0f, 0.2f, vLight);
                     iSubType = 3;
                 }
-                CreateEffect(MODEL_FENRIR_THUNDER, o->Position, o->Angle, vLight, 0, o);
-                CreateEffect(MODEL_FENRIR_THUNDER, o->Position, o->Angle, vLight, 0, o);
+                CreateEffectFpsChecked(MODEL_FENRIR_THUNDER, o->Position, o->Angle, vLight, 0, o);
+                CreateEffectFpsChecked(MODEL_FENRIR_THUNDER, o->Position, o->Angle, vLight, 0, o);
 
                 Vector(1.0f, 1.0f, 1.0f, vLight);
                 if (o->CurrentAction == FENRIR_WALK)

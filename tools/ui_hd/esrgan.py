@@ -117,13 +117,18 @@ def pad_amounts(size):
     return missing // 2, missing - missing // 2
 
 
-def enlarge_many(textures, model=DEFAULT_MODEL):
+TILE_MARGIN = 8  # texels of the opposite edge shown to the network so a repeating texture stays seamless
+
+
+def enlarge_many(textures, model=DEFAULT_MODEL, tiling=False):
     """textures: {name: uint8 RGBA array}. Returns {name: uint8 RGBA array at 4x} (the original area only)."""
     padded, crops = {}, {}
     for name, rgba in textures.items():
         top, bottom = pad_amounts(rgba.shape[0])
         left, right = pad_amounts(rgba.shape[1])
-        padded[name] = np.pad(rgba, ((top, bottom), (left, right), (0, 0)), mode="edge")
+        if tiling:
+            top, bottom, left, right = [max(v, TILE_MARGIN) for v in (top, bottom, left, right)]
+        padded[name] = np.pad(rgba, ((top, bottom), (left, right), (0, 0)), mode="wrap" if tiling else "edge")
         crops[name] = (top * SCALE, (top + rgba.shape[0]) * SCALE, left * SCALE, (left + rgba.shape[1]) * SCALE)
     prepared = {name: prepare(rgba) for name, rgba in padded.items()}
     colour_inputs = {name + "_c": colour for name, (colour, _) in prepared.items()}

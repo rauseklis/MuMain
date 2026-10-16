@@ -8,6 +8,7 @@
 
 #include "UI/NewUI/NewUICommon.h"
 #include "UI/NewUI/Widgets/NewUIRenderNumber.h"
+#include "UI/NewUI/Widgets/RoundedBackdrop.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "Render/Textures/ZzzTexture.h"
@@ -58,6 +59,12 @@ bool SEASON3B::CheckMouseIn(int x, int y, int width, int height)
 void SEASON3B::RenderImage(GLuint uiImageType, float x, float y, float width, float height)
 {
     BITMAP_t* pImage = &Bitmaps[uiImageType];
+
+    if (pImage->IsWindowBackdrop)
+    {
+        UI::Frame::RoundedBackdrop::Render(uiImageType, x, y, width, height);
+        return;
+    }
 
     float u, v, uw, vh;
 

@@ -2700,6 +2700,8 @@ void BMD::AddClothesShadowTriangles(void* pClothes, const int clothesCount, cons
     for (int i = 0; i < clothesCount; i++)
     {
         auto* const pCloth = &static_cast<CPhysicsCloth*>(pClothes)[i];
+        if (pCloth->IsHidden())
+            continue;
         auto const columns = pCloth->GetVerticalCount();
         auto const rows = pCloth->GetHorizontalCount();
         

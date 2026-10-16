@@ -39,3 +39,19 @@ TEST_CASE("cloth simulation caps recovery after a long frame")
     CHECK(Physics::ClothSimulationTiming::ConsumeLegacyFrames(12.5f, accumulator, started) == 4);
     CHECK(accumulator == doctest::Approx(0.5f));
 }
+
+TEST_CASE("cloth interpolation alpha is the fraction of the next step that has elapsed")
+{
+    CHECK(Physics::ClothSimulationTiming::InterpolationAlpha(0.0f) == doctest::Approx(0.0f));
+    CHECK(Physics::ClothSimulationTiming::InterpolationAlpha(0.25f) == doctest::Approx(0.25f));
+    CHECK(Physics::ClothSimulationTiming::InterpolationAlpha(1.5f) == doctest::Approx(1.0f));
+    CHECK(Physics::ClothSimulationTiming::InterpolationAlpha(-0.5f) == doctest::Approx(0.0f));
+}
+
+TEST_CASE("cloth interpolation blends between the previous and the current position")
+{
+    CHECK(Physics::ClothSimulationTiming::Lerp(10.0f, 20.0f, 0.0f) == doctest::Approx(10.0f));
+    CHECK(Physics::ClothSimulationTiming::Lerp(10.0f, 20.0f, 0.5f) == doctest::Approx(15.0f));
+    CHECK(Physics::ClothSimulationTiming::Lerp(10.0f, 20.0f, 1.0f) == doctest::Approx(20.0f));
+    CHECK(Physics::ClothSimulationTiming::Lerp(-4.0f, 4.0f, 0.25f) == doctest::Approx(-2.0f));
+}

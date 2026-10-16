@@ -44,10 +44,23 @@ Textures that came from a JPEG (`.OZJ`) stay fully opaque, like the original.
 
 ## Making or changing HD art
 
-Needs Python 3 with Pillow and numpy, plus the Real-ESRGAN ncnn build (a small standalone Vulkan program, not part of
-the repository). Download `realesrgan-ncnn-vulkan-20220424-windows.zip` from the Real-ESRGAN releases page on GitHub,
-and copy `realesrgan-ncnn-vulkan.exe`, `vcomp140.dll` and its `models` folder into `tools/ui_hd/.esrgan/` (that folder
-is git-ignored), or set the `UI_HD_ESRGAN` environment variable to the exe. Without it use `--method lanczos`.
+Needs Python 3 with Pillow and numpy, and the Real-ESRGAN program (a small standalone program that enlarges images; it
+is not part of the game or of the repository, and it is only needed to regenerate art, never to play).
+
+One-time setup (Windows, needs a Vulkan-capable GPU):
+
+```
+pip install pillow numpy
+python tools/ui_hd/setup_esrgan.py
+```
+
+`setup_esrgan.py` downloads the official release
+`realesrgan-ncnn-vulkan-20220424-windows.zip` (about 45 MB) from
+`https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.2.5.0`, checks its SHA-256
+(`abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d`) and unpacks `realesrgan-ncnn-vulkan.exe`,
+`vcomp140.dll` and the `models` folder into `tools/ui_hd/.esrgan/` (git-ignored). To use another copy, set the
+`UI_HD_ESRGAN` environment variable to the path of `realesrgan-ncnn-vulkan.exe` (its `models` folder must be next to it).
+Without the program, `generate.py --method lanczos` still works but looks softer.
 
 ```
 python tools/ui_hd/survey.py                 sizes and memory estimate for every interface texture
@@ -94,6 +107,9 @@ problems (pixel-font captions, notched corners, noisy shading):
 | AG and SD tubes | smooth cylinder shading | `gauges.py` |
 
 The skill boxes and menu buttons have transparent corners, so the game turns alpha blending on before drawing them.
+
+The stone window backdrop (`newui_msgbox_back`) is drawn with round corners by every window that draws it through
+`SEASON3B::RenderImage`; the bottom corners of `newui_item_back03` are rounded in the art to match.
 
 ## Bottom HUD layout
 

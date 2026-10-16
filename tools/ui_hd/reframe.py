@@ -11,15 +11,43 @@ import retext
 from retext import SCALE, FACE_INSET, GROOVE, RING_INSET, RING_WIDTH, composite, gradient_image, rounded_mask
 
 CORNER_RADIUS = 5.0
+AUTO_RECT = "auto"  # rect taken from the visible part of each cell
 GROOVE_BLEND = 0.9
 
 # rect: the button inside one cell; crop: the part of the original face reused inside the new frame (cell pixels).
 SPECS = {
-    "partCharge1/newui_menu_Bt01.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
-    "partCharge1/newui_menu_Bt02.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
-    "partCharge1/newui_menu_Bt03.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
-    "partCharge1/newui_menu_Bt04.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
-    "partCharge1/newui_menu_Bt05.OZJ": {"cells": 4, "cell_height": 41, "rect": (0, 3, 30, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt01.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt02.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt03.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt04.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "partCharge1/newui_menu_Bt05.OZJ": {"cells": 4, "cell_height": 41, "rect": (1, 3, 29, 41), "crop": (5, 7, 25, 36), "transparent_corners": True},
+    "newui_Bt_Chat_guild.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_Bt_Chat_normal.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_Bt_Chat_party.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_Bt_Chat_system.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_btn_alpha.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_btn_size.OZJ": {"cells": 2, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_chat_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_frame_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_gens_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_guild_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_normal_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_party_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_system_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_chat_whisper_on.OZJ": {"cells": 1, "cell_height": 26, "rect": (0, 0, 27, 26), "crop": (4, 4, 23, 22), "transparent_corners": True},
+    "newui_bt_Off_chat.OZJ": {"cells": 1, "cell_height": 23, "rect": (0, 0, 22, 23), "crop": (4, 4, 18, 19), "transparent_corners": True},
+    "newui_exit_00.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_repair_00.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_expansion_btn.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_Bt_openshop.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_Bt_closeshop.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_quest.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_pet.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_chainfo_btn_master.OZT": {"cells": 2, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin"},
+    "newui_btn_empty.OZT": {"cells": 3, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin", "shrink": 1.5},
+    "newui_btn_empty_big.OZT": {"cells": 3, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin", "shrink": 1.5},
+    "newui_btn_empty_small.OZT": {"cells": 3, "cell_height": 29, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin", "shrink": 1.5},
+    "newui_btn_empty_very_small.OZT": {"cells": 3, "cell_height": 23, "rect": AUTO_RECT, "crop": None, "transparent_corners": True, "profile": "thin", "shrink": 1.5},
     "newui_skillbox.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
     "newui_skillbox2.OZJ": {"cells": 1, "cell_height": 38, "rect": (0, 0, 32, 38), "crop": (4, 4, 28, 34), "transparent_corners": True},
 }
@@ -29,7 +57,7 @@ SPECS = {
 SLOT_Y0, SLOT_Y1 = 3, 40
 SLOT_STRIPS = {
     "newui_menu01.OZJ": [((0, SLOT_Y0, 38, SLOT_Y1), "Q"), ((38, SLOT_Y0, 76, SLOT_Y1), "W"),
-                         ((76, SLOT_Y0, 114, SLOT_Y1), "E"), ((114, SLOT_Y0, 152, SLOT_Y1), "R"),
+                         ((76, SLOT_Y0, 114, SLOT_Y1), "E"), ((114, SLOT_Y0, 151, SLOT_Y1), "R"),
                          ((222, SLOT_Y0, 253, SLOT_Y1), None)],
     "newui_menu02.OZJ": [((0, SLOT_Y0, 31, SLOT_Y1), None), ((31, SLOT_Y0, 63, SLOT_Y1), None),
                          ((63, SLOT_Y0, 95, SLOT_Y1), None), ((95, SLOT_Y0, 127, SLOT_Y1), None)],
@@ -45,13 +73,28 @@ def scaled(values):
     return [int(round(v * SCALE)) for v in values]
 
 
-def frame_layers(size, face):
+# Frame profiles: (ring inset, ring width, groove width) in logical pixels. "thin" keeps the round corners with a light frame.
+PROFILES = {
+    "normal": (RING_INSET, RING_WIDTH, retext.GROOVE_WIDTH),
+    "thin": (0.6, 0.8, 0.4),
+}
+
+
+def face_inset(profile):
+    inset, ring, groove = PROFILES[profile]
+    return inset + ring + groove
+
+
+def frame_layers(size, face, profile="normal", ring=None):
     """Black outline, bevel ring, groove, then `face` (RGBA of `size`) inside the rounded face area."""
+    ring_inset, ring_width, groove_width = PROFILES[profile]
+    FACE_INSET = face_inset(profile)
     radius = CORNER_RADIUS
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     composite(image, gradient_image(size, (6, 6, 6), (6, 6, 6), rounded_mask_r(size, 0.0, radius)))
-    outer, inner = rounded_mask_r(size, RING_INSET, radius), rounded_mask_r(size, RING_INSET + RING_WIDTH, radius)
-    composite(image, gradient_image(size, retext.RING_LIGHT, retext.RING_DARK, np.clip(outer - inner, 0, 255)))
+    outer, inner = rounded_mask_r(size, ring_inset, radius), rounded_mask_r(size, ring_inset + ring_width, radius)
+    ring_light, ring_dark = ring or (retext.RING_LIGHT, retext.RING_DARK)
+    composite(image, gradient_image(size, ring_light, ring_dark, np.clip(outer - inner, 0, 255)))
     groove = inner - rounded_mask_r(size, FACE_INSET - 0.2, radius)
     composite(image, gradient_image(size, GROOVE, GROOVE, np.clip(groove, 0, 255)))
     face_mask = rounded_mask_r(size, FACE_INSET, radius) / 255.0
@@ -70,19 +113,61 @@ def rounded_mask_r(size, inset, radius):
         retext.CORNER_RADIUS = saved
 
 
+AUTO_CROP_MARGIN = 3
+
+
+def opaque_box(cell):
+    """Bounding box (x0, y0, x1, y1) in texels of the visible part of a cell; the original art keeps a transparent margin."""
+    ys, xs = np.nonzero(cell[..., 3] > 128)
+    return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
+
+
+def cell_boxes(cell, spec):
+    if spec["rect"] != AUTO_RECT:
+        return scaled(spec["rect"]), scaled(spec["crop"])
+    x0, y0, x1, y1 = opaque_box(cell)
+    shrink = int(round(spec.get("shrink", 0.0) * SCALE))
+    x0, y0, x1, y1 = x0 + shrink, y0 + shrink, x1 - shrink, y1 - shrink
+    margin = AUTO_CROP_MARGIN * SCALE
+    return (x0, y0, x1, y1), (x0 + margin, y0 + margin, x1 - margin, y1 - margin)
+
+
+NOTCH_PATCH = 7.0  # logical pixels: the little diagonal tick of the old frame sits in two opposite corners of the face
+NOTCH_BLUR = 5.0
+
+
+def heal_notch_corners(source):
+    """Replaces the top-right and bottom-left corners of a face crop with a smooth blur, removing the old corner ticks."""
+    from upscale import gaussian_blur
+    array = np.asarray(source, np.float32)
+    height, width = array.shape[:2]
+    size = min(int(NOTCH_PATCH * SCALE), height // 2, width // 2)
+    blurred = np.stack([gaussian_blur(array[..., c], NOTCH_BLUR * SCALE) for c in range(3)], axis=2)
+    out = array.copy()
+    ramp = np.linspace(0.0, 1.0, size, dtype=np.float32)
+    for y0, x0, flip_x, flip_y in ((0, width - size, False, False), (height - size, 0, True, True)):
+        wx = ramp if not flip_x else ramp[::-1]          # strongest towards the corner
+        wy = ramp[::-1] if not flip_y else ramp
+        weight = np.clip(np.minimum(wx[None, :], wy[:, None]) * 2.0, 0.0, 1.0)[..., None]
+        patch = out[y0:y0 + size, x0:x0 + size, :3]
+        out[y0:y0 + size, x0:x0 + size, :3] = patch * (1 - weight) + blurred[y0:y0 + size, x0:x0 + size] * weight
+    return Image.fromarray(np.clip(np.rint(out), 0, 255).astype(np.uint8), "RGBA")
+
+
 def reframe_cell(cell, spec):
-    x0, y0, x1, y1 = scaled(spec["rect"])
-    cx0, cy0, cx1, cy1 = scaled(spec["crop"])
+    (x0, y0, x1, y1), (cx0, cy0, cx1, cy1) = cell_boxes(cell, spec)
     size = (x1 - x0, y1 - y0)
-    face_area = (round(FACE_INSET * SCALE), round(FACE_INSET * SCALE),
-                 size[0] - round(FACE_INSET * SCALE), size[1] - round(FACE_INSET * SCALE))
+    inset = face_inset(spec.get("profile", "normal"))
+    face_area = (round(inset * SCALE), round(inset * SCALE),
+                 size[0] - round(inset * SCALE), size[1] - round(inset * SCALE))
     source = Image.fromarray(cell[cy0:cy1, cx0:cx1]).resize(
         (face_area[2] - face_area[0], face_area[3] - face_area[1]), Image.LANCZOS)
+    source = heal_notch_corners(source)
     face = Image.new("RGBA", size, (0, 0, 0, 255))
     face.paste(source, face_area[:2])
     out = cell.copy()
     out[y0:y1, x0:x1] = (0, 0, 0, 255)
-    framed = frame_layers(size, face)
+    framed = frame_layers(size, face, spec.get("profile", "normal"), spec.get("ring"))
     base = Image.fromarray(out[y0:y1, x0:x1], "RGBA")
     base.alpha_composite(framed)
     out[y0:y1, x0:x1] = np.asarray(base)
@@ -101,30 +186,39 @@ OUTER_STROKE_COLOUR = (150, 152, 160)
 OUTER_CORNERS = {
     "newui_menu01.OZJ": ("tl",),
     "partCharge1/newui_menu03.OZJ": ("tr",),
+    "newui_item_back03.OZT": ("bl", "br"),
 }
 
 
 def round_outer_corners(master, corners):
-    """Cuts the listed top corners of a bar piece to a quarter circle (transparent outside) and strokes the curve."""
+    """Cuts the listed corners ("tl", "tr", "bl", "br") to a quarter circle (transparent outside) and strokes the curve."""
+    out = master.copy()
+    for corner in corners:
+        flipped = corner[0] == "b"
+        work = out[::-1].copy() if flipped else out
+        work = round_top_corner(work, "tl" if corner[1] == "l" else "tr")
+        out = work[::-1].copy() if flipped else work
+    return out
+
+
+def round_top_corner(master, corner):
     out = master.copy()
     height, width = out.shape[:2]
     radius = int(round(OUTER_CORNER_RADIUS * SCALE))
-    inset = OUTER_STROKE * SCALE
-    for corner in corners:
-        x0 = 0 if corner == "tl" else width - radius
-        block = out[0:radius, x0:x0 + radius].copy()
-        full = (radius * 2, radius * 2)
-        outer = rounded_mask_r(full, 0.0, OUTER_CORNER_RADIUS * 1.0)
-        inner = rounded_mask_r(full, OUTER_STROKE, OUTER_CORNER_RADIUS * 1.0)
-        outer = outer[:radius, :radius] if corner == "tl" else outer[:radius, radius:]
-        inner = inner[:radius, :radius] if corner == "tl" else inner[:radius, radius:]
-        keep = outer / 255.0
-        stroke = np.clip(outer - inner, 0, 255) / 255.0
-        colour = np.array(OUTER_STROKE_COLOUR, np.float32)
-        rgb = block[..., :3].astype(np.float32) * (1 - stroke[..., None]) + colour * stroke[..., None]
-        block[..., :3] = np.clip(np.rint(rgb * keep[..., None]), 0, 255).astype(np.uint8)
-        block[..., 3] = np.clip(np.rint(keep * 255.0), 0, 255).astype(np.uint8)
-        out[0:radius, x0:x0 + radius] = block
+    x0 = 0 if corner == "tl" else width - radius
+    block = out[0:radius, x0:x0 + radius].copy()
+    full = (radius * 2, radius * 2)
+    outer = rounded_mask_r(full, 0.0, OUTER_CORNER_RADIUS * 1.0)
+    inner = rounded_mask_r(full, OUTER_STROKE, OUTER_CORNER_RADIUS * 1.0)
+    outer = outer[:radius, :radius] if corner == "tl" else outer[:radius, radius:]
+    inner = inner[:radius, :radius] if corner == "tl" else inner[:radius, radius:]
+    keep = outer / 255.0
+    stroke = np.clip(outer - inner, 0, 255) / 255.0
+    colour = np.array(OUTER_STROKE_COLOUR, np.float32)
+    rgb = block[..., :3].astype(np.float32) * (1 - stroke[..., None]) + colour * stroke[..., None]
+    block[..., :3] = np.clip(np.rint(rgb * keep[..., None]), 0, 255).astype(np.uint8)
+    block[..., 3] = np.clip(np.rint(block[..., 3].astype(np.float32) * keep), 0, 255).astype(np.uint8)
+    out[0:radius, x0:x0 + radius] = block
     return out
 
 
@@ -206,7 +300,42 @@ def apply(name, master):
     return apply_inner(name, master)
 
 
+# Selected-skill highlight frame in the bar: texture -> [(rect, ring colours)]
+HIGHLIGHT_STRIPS = {
+    "partCharge1/newui_menu03.OZJ": [((2, 3, 34, 40), ((196, 232, 70), (112, 140, 24)))],
+}
+
+
+def apply_highlights(name, master):
+    out = master
+    for rect, ring in HIGHLIGHT_STRIPS[name]:
+        x0, y0, x1, y1 = rect
+        inset = SLOT_CROP_INSET
+        out = reframe_cell(out, {"rect": rect, "crop": (x0 + inset, y0 + inset, x1 - inset, y1 - inset), "ring": ring})
+    return out
+
+
+# Columns of the original strip edge that show as a thin light line between the slots and the next piece: texture -> (x0, x1)
+EDGE_BLACKOUT = {
+    "newui_menu01.OZJ": (254, 256),
+    "newui_menu02.OZJ": (126, 128),
+    "partCharge1/newui_menu03.OZJ": (0, 1),
+}
+CONTENT_ROWS = 41
+EDGE_BLACKOUT_FIRST_ROW = 4  # keep the steel top line unbroken across the seams
+
+
+def black_out_edge(master, columns):
+    out = master.copy()
+    out[EDGE_BLACKOUT_FIRST_ROW * SCALE:CONTENT_ROWS * SCALE, columns[0] * SCALE:columns[1] * SCALE, :3] = 0
+    return out
+
+
 def apply_inner(name, master):
+    if name in EDGE_BLACKOUT:
+        master = black_out_edge(master, EDGE_BLACKOUT[name])
+    if name in HIGHLIGHT_STRIPS:
+        master = apply_highlights(name, master)
     if name in SLOT_STRIPS:
         return apply_slots(name, master)
     spec = SPECS.get(name)
