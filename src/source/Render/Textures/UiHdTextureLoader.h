@@ -10,6 +10,10 @@ namespace Render::UiHdTextures
 void SetActiveSetting(Setting setting);
 [[nodiscard]] Setting GetActiveSetting();
 
+// Whether large model and world textures may be block-compressed on upload (config.ini [UI] HdCompression).
+void SetCompressionEnabled(bool enabled);
+[[nodiscard]] bool GetCompressionEnabled();
+
 // Finds the best available HD replacement for an interface texture whose original shows contentWidth x contentHeight
 // texels inside a paddedWidth x paddedHeight GPU texture. `resolvePath` maps a wide path to the file system path.
 // Returns nothing when the setting is off, no file exists or the file is not an exact multiple of the original.

@@ -84,6 +84,8 @@ void GameConfig::Load()
     m_fontSelection = ReadString(CfgSectionUI, CfgKeyFont, CfgDefaultFont);
     m_hdTextures = ReadString(CfgSectionUI, CfgKeyHdTextures, CfgDefaultHdTextures);
     Render::UiHdTextures::SetActiveSetting(Render::UiHdTextures::ParseSetting(m_hdTextures));
+    m_hdCompression = ReadBool(CfgSectionUI, CfgKeyHdCompression, CfgDefaultHdCompression);
+    Render::UiHdTextures::SetCompressionEnabled(m_hdCompression);
 
     m_zoom = ReadInt(CfgSectionCamera, CfgKeyZoom, CfgDefaultZoom);
     m_sortParticleDraws = ReadBool(CfgSectionRender, CfgKeySortParticleDraws, CfgDefaultSortParticleDraws);
@@ -135,6 +137,7 @@ void GameConfig::Save()
     WriteString(CfgSectionUI, CfgKeyUILocale, m_uiLocale);
     WriteString(CfgSectionUI, CfgKeyFont, m_fontSelection);
     WriteString(CfgSectionUI, CfgKeyHdTextures, m_hdTextures);
+    WriteBool(CfgSectionUI, CfgKeyHdCompression, m_hdCompression);
 
     WriteInt(CfgSectionCamera, CfgKeyZoom, m_zoom);
     WriteBool(CfgSectionRender, CfgKeyVSync, m_vsyncEnabled);

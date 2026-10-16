@@ -11,6 +11,7 @@
 #include <SDL3/SDL_gpu.h>
 #include "Render/Renderer/GraphicsQuality.h"
 #include "Render/Renderer/MuRenderer.h"
+#include "Render/Textures/BlockCompression.h"
 #include "Render/Textures/UiHdTextureLoader.h"
 #include "Render/Textures/UiTextureQuality.h"
 
@@ -236,6 +237,126 @@ bool UploadTextureSDLGpu(BITMAP_t* bitmap, const std::uint8_t* pixelData, int wi
     samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     samplerInfo.min_lod = 0.0f;
     samplerInfo.max_lod = static_cast<float>(mipLevels - 1u);
+    samplerInfo.enable_anisotropy = enhancedTexture && renderer.GetAnisotropy() > 1;
+    samplerInfo.max_anisotropy = static_cast<float>(renderer.GetAnisotropy());
+
+    SDL_GPUSampler* sampler = SDL_CreateGPUSampler(device, &samplerInfo);
+    if (!sampler)
+    {
+        SDL_ReleaseGPUTexture(device, gpuTexture);
+        return false;
+    }
+
+    bitmap->sdlTexture = gpuTexture;
+    bitmap->sdlSampler = sampler;
+    return true;
+}
+// Uploads an RGBA8 image as a block-compressed texture (BC1 for opaque art, BC3 with alpha) with a CPU-built mip chain.
+// Returns false, creating nothing, when the GPU cannot sample the format or the size is not whole blocks.
+bool UploadCompressedTextureSDLGpu(BITMAP_t* bitmap, const std::vector<std::uint8_t>& rgba, int width, int height,
+                                   Render::BlockCompression::Format format, SDL_GPUFilter filter,
+                                   SDL_GPUSamplerAddressMode wrapMode, bool enhancedTexture, bool mipmapped)
+{
+    auto& renderer = mu::GetRenderer();
+    SDL_GPUDevice* device = static_cast<SDL_GPUDevice*>(renderer.GetDevice());
+    if (!device || !bitmap || width < 8 || height < 8 || width % 4 != 0 || height % 4 != 0)
+    {
+        return false;
+    }
+
+    const SDL_GPUTextureFormat gpuFormat = format == Render::BlockCompression::Format::Bc1
+                                               ? SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM
+                                               : SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM;
+    if (!SDL_GPUTextureSupportsFormat(device, gpuFormat, SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREUSAGE_SAMPLER))
+    {
+        return false;
+    }
+
+    const bool withMips = (enhancedTexture || mipmapped) && renderer.GetTextureMipmapsEnabled();
+    const std::vector<Render::BlockCompression::Level> levels =
+        Render::BlockCompression::CompressChain(format, rgba, width, height, withMips);
+
+    std::size_t totalSize = 0;
+    for (const auto& level : levels)
+        totalSize += level.data.size();
+
+    SDL_GPUTextureCreateInfo texInfo{};
+    texInfo.type = SDL_GPU_TEXTURETYPE_2D;
+    texInfo.format = gpuFormat;
+    texInfo.width = static_cast<Uint32>(width);
+    texInfo.height = static_cast<Uint32>(height);
+    texInfo.layer_count_or_depth = 1;
+    texInfo.num_levels = static_cast<Uint32>(levels.size());
+    texInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+    SDL_GPUTexture* gpuTexture = SDL_CreateGPUTexture(device, &texInfo);
+    if (!gpuTexture)
+    {
+        return false;
+    }
+
+    SDL_GPUTransferBufferCreateInfo transferInfo{};
+    transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    transferInfo.size = static_cast<Uint32>(totalSize);
+    SDL_GPUTransferBuffer* transfer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
+    void* mapped = transfer ? SDL_MapGPUTransferBuffer(device, transfer, false) : nullptr;
+    if (!mapped)
+    {
+        if (transfer)
+            SDL_ReleaseGPUTransferBuffer(device, transfer);
+        SDL_ReleaseGPUTexture(device, gpuTexture);
+        return false;
+    }
+
+    std::size_t offset = 0;
+    for (const auto& level : levels)
+    {
+        std::memcpy(static_cast<std::uint8_t*>(mapped) + offset, level.data.data(), level.data.size());
+        offset += level.data.size();
+    }
+    SDL_UnmapGPUTransferBuffer(device, transfer);
+
+    SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(device);
+    SDL_GPUCopyPass* copyPass = commandBuffer ? SDL_BeginGPUCopyPass(commandBuffer) : nullptr;
+    if (!copyPass)
+    {
+        if (commandBuffer)
+            SDL_SubmitGPUCommandBuffer(commandBuffer);
+        SDL_ReleaseGPUTransferBuffer(device, transfer);
+        SDL_ReleaseGPUTexture(device, gpuTexture);
+        return false;
+    }
+
+    offset = 0;
+    for (std::size_t index = 0; index < levels.size(); ++index)
+    {
+        SDL_GPUTextureTransferInfo src{};
+        src.transfer_buffer = transfer;
+        src.offset = static_cast<Uint32>(offset);
+        src.pixels_per_row = static_cast<Uint32>(levels[index].width);
+        src.rows_per_layer = static_cast<Uint32>(levels[index].height);
+
+        SDL_GPUTextureRegion dst{};
+        dst.texture = gpuTexture;
+        dst.mip_level = static_cast<Uint32>(index);
+        dst.w = static_cast<Uint32>(levels[index].width);
+        dst.h = static_cast<Uint32>(levels[index].height);
+        dst.d = 1;
+        SDL_UploadToGPUTexture(copyPass, &src, &dst, false);
+        offset += levels[index].data.size();
+    }
+    SDL_EndGPUCopyPass(copyPass);
+    SDL_SubmitGPUCommandBuffer(commandBuffer);
+    SDL_ReleaseGPUTransferBuffer(device, transfer);
+
+    SDL_GPUSamplerCreateInfo samplerInfo{};
+    samplerInfo.min_filter = enhancedTexture ? SDL_GPU_FILTER_LINEAR : filter;
+    samplerInfo.mag_filter = enhancedTexture ? SDL_GPU_FILTER_LINEAR : filter;
+    samplerInfo.mipmap_mode = levels.size() > 1 ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+    samplerInfo.address_mode_u = wrapMode;
+    samplerInfo.address_mode_v = wrapMode;
+    samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+    samplerInfo.min_lod = 0.0f;
+    samplerInfo.max_lod = static_cast<float>(levels.size() - 1u);
     samplerInfo.enable_anisotropy = enhancedTexture && renderer.GetAnisotropy() > 1;
     samplerInfo.max_anisotropy = static_cast<float>(renderer.GetAnisotropy());
 
@@ -1052,8 +1173,28 @@ bool CGlobalBitmap::AddHdBitmap(GLuint uiBitmapIndex, const std::wstring& filena
         Render::UiTextureQuality::BleedTransparentRgb(pNewBitmap->BufferStorage, hdImage.width, hdImage.height);
     const SDL_GPUFilter filter = interfaceTexture ? SDL_GPU_FILTER_LINEAR : MapGLFilterToSDL(uiFilter);
     const bool enhancedTexture = Render::GraphicsQuality::IsEnhancedTexturePath(filename);
-    if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, hdImage.width, hdImage.height, filter,
-                             MapGLWrapToSDL(uiWrapMode), enhancedTexture, interfaceTexture))
+    // Large model and world textures are block-compressed: a quarter of the video memory for almost the same picture.
+    // Interface art stays uncompressed (thin lines and flat colours show the artefacts), as does anything the GPU cannot take.
+    bool uploaded = false;
+    if (!interfaceTexture && Render::UiHdTextures::GetCompressionEnabled())
+    {
+        const auto format = components == kJpegComponents ? Render::BlockCompression::Format::Bc1
+                                                          : Render::BlockCompression::Format::Bc3;
+        uploaded = UploadCompressedTextureSDLGpu(pNewBitmap.get(), pNewBitmap->BufferStorage, hdImage.width,
+                                                 hdImage.height, format, filter, MapGLWrapToSDL(uiWrapMode),
+                                                 enhancedTexture, false);
+        if (uploaded)
+        {
+            // Nothing reads the CPU copy of a compressed model texture again; do not keep hundreds of megabytes of it.
+            m_dwUsedTextureMemory -= static_cast<std::uint32_t>(pNewBitmap->BufferStorage.size());
+            std::vector<std::uint8_t>().swap(pNewBitmap->BufferStorage);
+            pNewBitmap->Buffer = nullptr;
+        }
+    }
+    if (!uploaded)
+        uploaded = UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, hdImage.width, hdImage.height, filter,
+                                       MapGLWrapToSDL(uiWrapMode), enhancedTexture, interfaceTexture);
+    if (!uploaded)
     {
         m_dwUsedTextureMemory -= static_cast<std::uint32_t>(pNewBitmap->BufferStorage.size());
         g_ErrorReport.Write(L"SDL HD texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);

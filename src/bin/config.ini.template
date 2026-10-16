@@ -17,6 +17,7 @@ ServerPort=44405
 Locale=en
 Font=
 HdTextures=auto
+HdCompression=1
 [Render]
 VSync=1
 MaxFPS=240

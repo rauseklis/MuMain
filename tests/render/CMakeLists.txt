@@ -44,6 +44,12 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME block_compression_tests
+    SOURCES
+        test_block_compression.cpp
+)
+
+mu_add_test(
     NAME ui_hd_textures_tests
     SOURCES
         test_ui_hd_textures.cpp

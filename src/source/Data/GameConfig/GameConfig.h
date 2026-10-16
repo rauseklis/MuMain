@@ -140,6 +140,7 @@ private:
     std::wstring m_uiLocale;
     std::wstring m_fontSelection;
     std::wstring m_hdTextures;
+    bool m_hdCompression = true;
 
     int m_zoom;
     bool m_sortParticleDraws;
