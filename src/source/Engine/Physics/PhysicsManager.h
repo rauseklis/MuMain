@@ -194,6 +194,20 @@ public:
         return (m_oOwner);
     }
 
+    // A piece that is not drawn this frame (a cape that is not worn, for example) must not cast a shadow either: it is
+    // not simulated, so it would stay where it was created and its shadow would hang in the world as a black shape.
+    void SetHidden(bool hidden)
+    {
+        m_bHidden = hidden;
+    }
+    bool IsHidden() const
+    {
+        return m_bHidden;
+    }
+
+private:
+    bool m_bHidden = false;
+
 protected:
     float m_fUnitWidth, m_fUnitHeight;
 
