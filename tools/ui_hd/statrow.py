@@ -17,7 +17,7 @@ PLUS_BUTTON = "newui_chainfo_btn_level.ozt"
 SPECS = {TEXTBOX, PLUS_BUTTON}
 
 BOX_CORNER = 3.0
-FRAME_WIDTH = 0.9
+FRAME_WIDTH = 0.5
 FRAME_LIGHT = (196, 198, 204)
 FRAME_DARK = (84, 86, 92)
 PLATE_TOP = (88, 88, 90)
@@ -87,7 +87,7 @@ def draw_textbox():
 
     value = scaled_rect(VALUE_RECT)
     draw.rounded_rectangle(value, radius=to_big(1.6), fill=VALUE_FILL + (255,))
-    draw.rounded_rectangle(value, radius=to_big(1.6), outline=(150, 152, 158, 255), width=max(frame // 2, 1))
+    draw.rounded_rectangle(value, radius=to_big(1.6), outline=(150, 152, 158, 255), width=max(frame // 3, 1))
     return np.asarray(shrink(out, (width * SCALE, height * SCALE)))
 
 
