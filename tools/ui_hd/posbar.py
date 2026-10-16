@@ -35,9 +35,37 @@ def remove_edge_specks(master):
     return out
 
 
+CELL_HEIGHT = 13           # logical pixels: the three states are stacked, 13 rows each
+CORNER_ROWS = (1, 12)      # logical rows of the frame inside a state, counted from the top of the state
+CORNER_COLUMNS = (1, 16)   # logical columns of the frame
+CORNER_BRIGHT = 45         # a corner brighter than this (mean of RGB) is a bevel dot and is made dark
+CORNER_DARK = 6
+
+
+def darken_corners(master):
+    """Every button frame has a one pixel bright dot in each corner (the bevel's ends). On a bar of dark frames they read
+    as white dots between the buttons, so the dots, and the soft halo the enlargement leaves around them, are made dark
+    like the frame around them."""
+    out = master.copy()
+    height, width = master.shape[:2]
+    for state in range(3):
+        for row in CORNER_ROWS:
+            for column in CORNER_COLUMNS:
+                y0 = max((state * CELL_HEIGHT + row - 1) * SCALE, 0)
+                y1 = min((state * CELL_HEIGHT + row + 2) * SCALE, height)
+                x0 = max((column - 1) * SCALE, 0)
+                x1 = min((column + 2) * SCALE, width)
+                block = out[y0:y1, x0:x1]
+                bright = (block[..., :3].astype(int).mean(axis=2) > CORNER_BRIGHT) & (block[..., 3] > 0)
+                # only grey dots: coloured pixels (the orange face) are part of the button
+                grey = (block[..., :3].astype(int).max(axis=2) - block[..., :3].astype(int).min(axis=2)) < 40
+                block[bright & grey, :3] = CORNER_DARK
+    return out
+
+
 def apply(name, master):
     if name in BUTTONS:
-        return remove_edge_specks(master)
+        return darken_corners(remove_edge_specks(master))
     if name != SPEC:
         return master
     out = master.copy()
