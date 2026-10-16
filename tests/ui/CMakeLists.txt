@@ -1,4 +1,9 @@
 mu_add_test(
+    NAME king_mace_name_style_tests
+    SOURCES test_king_mace_name_style.cpp
+)
+
+mu_add_test(
     NAME input_box_config_tests
     SOURCES test_input_box_config.cpp
     LINK_LIBS MuClient
