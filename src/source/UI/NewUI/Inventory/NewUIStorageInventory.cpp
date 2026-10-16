@@ -216,9 +216,9 @@ void CNewUIStorageInventory::RenderText()
     g_pRenderText->RenderText(
         m_Pos.x, m_Pos.y + 11, szTemp, STORAGE_WIDTH, 0, RT3_SORT_CENTER);
 
-    nTempZen = CharacterMachine->StorageGold;
-    ConvertGold(nTempZen, szTemp);
-    g_pRenderText->SetTextColor(getGoldColor(nTempZen));
+    const __int64 storageZen = CharacterMachine->StorageGold;
+    ConvertGold64(storageZen, szTemp);
+    g_pRenderText->SetTextColor(getGoldColor((DWORD)std::min<__int64>(storageZen, 0xFFFFFFFF)));
     g_pRenderText->RenderText(
         m_Pos.x + 168, m_Pos.y + 342 + 8, szTemp, 0, 0, RT3_WRITE_RIGHT_TO_LEFT);
 

@@ -7386,11 +7386,11 @@ void ReceiveStorageGold(const BYTE* ReceiveBuffer)
     auto Data = (LPPRECEIVE_STORAGE_GOLD)ReceiveBuffer;
     if (Data->Result)
     {
-        CharacterMachine->StorageGold = Data->StorageGold;
+        CharacterMachine->StorageGold = (__int64)Data->StorageGold;
         CharacterMachine->Gold = Data->Gold;
     }
 
-    g_ConsoleDebug->Write(MCD_RECEIVE, L"0x81 [ReceiveStorageGold(%d %d %d)]", Data->Result, Data->StorageGold,
+    g_ConsoleDebug->Write(MCD_RECEIVE, L"0x81 [ReceiveStorageGold(%d %lld %d)]", Data->Result, (__int64)Data->StorageGold,
                           Data->Gold);
 }
 
