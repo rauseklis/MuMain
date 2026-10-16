@@ -71,6 +71,23 @@ struct HdImage
     return Setting::Auto;
 }
 
+// The value stored in config.ini for a setting (the inverse of ParseSetting).
+[[nodiscard]] inline std::wstring SettingConfigValue(Setting setting)
+{
+    switch (setting)
+    {
+    case Setting::Off:
+        return L"off";
+    case Setting::Scale2:
+        return L"2";
+    case Setting::Scale4:
+        return L"4";
+    case Setting::Auto:
+        break;
+    }
+    return L"auto";
+}
+
 // Scales to try, best first. A missing file at one scale falls back to the next lower one.
 [[nodiscard]] inline std::vector<int> CandidateScales(Setting setting)
 {

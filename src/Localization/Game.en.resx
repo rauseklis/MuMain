@@ -1448,6 +1448,9 @@
   <data name="Anisotropy (restart)" xml:space="preserve">
     <value>Anisotropy (restart)</value>
   </data>
+  <data name="Texture quality (restart)" xml:space="preserve">
+    <value>Texture quality (restart)</value>
+  </data>
   <data name="Close388" xml:space="preserve">
     <value>Close</value>
     <comment>legacy_id=388,1002</comment>

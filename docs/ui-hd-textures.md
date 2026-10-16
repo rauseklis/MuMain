@@ -20,7 +20,8 @@ HdTextures=auto
 | `2` | Use only the 2x art. Lighter on memory. |
 | `off` | Always use the original textures (the classic look). |
 
-The setting is read at start-up. Restart the game after changing it. A missing HD file is never an error: that one
+The setting is read at start-up. You can also change it in game: Options, Graphics page, "Texture quality (restart)"
+(Auto, Ultra, High, Standard). Restart the game after changing it. A missing HD file is never an error: that one
 texture simply keeps its original look.
 
 HD art uses about four to sixteen times the texture memory of the original, so weaker machines can use `2` or `off`.

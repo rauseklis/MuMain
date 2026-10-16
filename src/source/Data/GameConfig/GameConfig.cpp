@@ -224,6 +224,11 @@ void GameConfig::SetTextureMipmapsEnabled(bool enabled)
     m_textureMipmaps = enabled;
 }
 
+void GameConfig::SetHdTextures(const std::wstring& setting)
+{
+    m_hdTextures = setting;
+}
+
 void GameConfig::SetAnisotropy(int level)
 {
     m_anisotropy = level;
