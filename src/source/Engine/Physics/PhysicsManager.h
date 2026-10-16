@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include <array>
+#include <vector>
+
 #include "Render/Models/ZzzBMD.h"
 #include "Engine/Object/ZzzInfomation.h"
 #include "Engine/Object/ZzzObject.h"
@@ -39,6 +42,10 @@ public:
 
 public:
     void GetPosition(vec3_t* pPos);
+    bool IsFixed() const
+    {
+        return (m_byState & PVS_FIXEDPOS) != 0;
+    }
     float GetDistance(CPhysicsVertex* pVertex2, vec3_t* pDistance);
 
 protected:
@@ -207,6 +214,14 @@ public:
 
 private:
     bool m_bHidden = false;
+
+    // The simulation runs at the original game's 25 steps a second, far below the render rate. To keep the motion smooth,
+    // the positions before the last step are kept and the cloth is drawn between them and the current ones.
+    std::vector<std::array<float, 3>> m_vPreviousPositions;
+    bool m_bHasPreviousPositions = false;
+
+    void RememberPreviousPositions();
+    void GetRenderPosition(int iVertex, vec3_t* pPos);
 
 protected:
     float m_fUnitWidth, m_fUnitHeight;
