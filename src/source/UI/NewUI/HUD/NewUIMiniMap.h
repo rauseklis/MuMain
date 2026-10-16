@@ -66,6 +66,9 @@ namespace SEASON3B
         bool UpdateKeyEvent();
         bool Update();
         bool Render();
+        bool IsAvailable() const;
+        bool IsVisible() const override;
+        bool IsEnabled() const override;
 
         float GetLayerDepth();	//. 8.1f
 
@@ -77,6 +80,7 @@ namespace SEASON3B
         void UnloadImages();
 
     private:
+        bool IsAllowedInCurrentMap() const;
         void Render_Text();
         void Render_Icon();
         void Render_Scroll();
