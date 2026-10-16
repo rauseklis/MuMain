@@ -16,7 +16,7 @@ from PIL import Image
 import esrgan
 from generate import DATA_DIR, MAX_ALPHA_ERROR, MAX_MAE, NETWORK_MODEL, drift, save_png
 from mu_image import image_size, read_texture
-from upscale import downscale_rgba, upscale_rgba
+from upscale import downscale_rgba, upscale_rgba, upscale_rgba_straight
 
 SCALES = (4, 2)
 BULK_SCALES = (2,)
@@ -77,7 +77,9 @@ def enlarge(textures, tiling=False):
         master = results[str(i)]
         mae, alpha = drift(rgba, master)
         has_cutout = kind == "ozt" and bool((rgba[..., 3] < 255).any())
-        if has_cutout or mae > MAX_MAE or alpha > MAX_ALPHA_ERROR:
+        if has_cutout:
+            master = upscale_rgba_straight(rgba, MASTER_SCALE)
+        elif mae > MAX_MAE or alpha > MAX_ALPHA_ERROR:
             master = upscale_rgba(rgba, MASTER_SCALE, jpeg_source=(kind == "ozj"))
             print("  plain enlargement (cut-out or drift):", os.path.basename(path))
         masters.append(master)

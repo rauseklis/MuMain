@@ -129,3 +129,13 @@ def downscale_rgba(rgba, scale):
     a = blocks[..., 3:4] / 255.0
     color = np.where(a > 1e-4, blocks[..., :3] / np.maximum(a, 1e-4), 0.0)
     return np.clip(np.rint(np.concatenate([color, blocks[..., 3:4]], axis=2)), 0, 255).astype(np.uint8)
+
+
+def upscale_rgba_straight(rgba, scale):
+    """Enlarges colour and alpha separately, without premultiplying.
+
+    Some model textures (the Dark Lord cape) keep real colour under fully transparent pixels and the game draws them
+    without testing alpha, so that colour must survive. Premultiplied enlargement would turn it black."""
+    data = rgba.astype(np.float32)
+    channels = [np.clip(_lanczos(data[..., i], scale), 0, 255) for i in range(4)]
+    return np.clip(np.rint(np.stack(channels, axis=2)), 0, 255).astype(np.uint8)
