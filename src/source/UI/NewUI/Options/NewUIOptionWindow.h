@@ -134,6 +134,7 @@ namespace SEASON3B
         int m_iAntiAliasingIndex;
         bool m_bTextureMipmaps;
         int m_iAnisotropyIndex;
+        int m_iTextureQualityIndex;
 
         std::vector<UI::Options::DisplayResolution> m_resolutions;
         std::vector<std::wstring> m_resolutionLabels;
@@ -149,6 +150,7 @@ namespace SEASON3B
         CNewUIComboBox m_MaxFpsCombo;
         CNewUIComboBox m_AntiAliasingCombo;
         CNewUIComboBox m_AnisotropyCombo;
+        CNewUIComboBox m_TextureQualityCombo;
 
         void ApplyResolution();
         int FindCurrentResolutionIndex();
@@ -175,6 +177,10 @@ namespace SEASON3B
         void ApplyAnisotropy();
         int FindCurrentAnisotropyIndex();
         void InitAnisotropyCombo();
+
+        void ApplyTextureQuality();
+        int FindCurrentTextureQualityIndex();
+        void InitTextureQualityCombo();
 
         void ApplyVSync();
     };

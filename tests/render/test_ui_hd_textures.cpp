@@ -37,6 +37,14 @@ TEST_CASE("HD setting parses off, auto and explicit scales [render][ui_hd]")
     CHECK(ParseSetting(L"banana") == Setting::Auto);
 }
 
+TEST_CASE("HD setting is written back to the value that parses to it [render][ui_hd]")
+{
+    for (const Setting setting : {Setting::Off, Setting::Auto, Setting::Scale2, Setting::Scale4})
+        CHECK(ParseSetting(SettingConfigValue(setting)) == setting);
+    CHECK(SettingConfigValue(Setting::Off) == L"off");
+    CHECK(SettingConfigValue(Setting::Auto) == L"auto");
+}
+
 TEST_CASE("HD setting selects the scales to try, best first [render][ui_hd]")
 {
     CHECK(CandidateScales(Setting::Off).empty());

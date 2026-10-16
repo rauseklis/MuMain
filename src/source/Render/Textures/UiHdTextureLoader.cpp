@@ -14,6 +14,7 @@ namespace Render::UiHdTextures
 namespace
 {
 std::atomic<Setting> g_activeSetting{Setting::Auto};
+std::atomic<bool> g_compressionEnabled{true};
 
 struct SurfaceDeleter
 {
@@ -83,6 +84,16 @@ void SetActiveSetting(Setting setting)
 Setting GetActiveSetting()
 {
     return g_activeSetting.load();
+}
+
+void SetCompressionEnabled(bool enabled)
+{
+    g_compressionEnabled.store(enabled);
+}
+
+bool GetCompressionEnabled()
+{
+    return g_compressionEnabled.load();
 }
 
 std::optional<HdImage> LoadForTexture(const std::wstring& originalPath, int contentWidth, int contentHeight,

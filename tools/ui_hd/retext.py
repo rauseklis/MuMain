@@ -41,9 +41,10 @@ CAPTION_OUTLINE_COLOUR = (12, 8, 4)
 # Face gradients (top, bottom), one per state. Brightness 1.0 = normal.
 ORANGE_FACES = [((236, 156, 44), (160, 80, 16)), ((255, 182, 70), (196, 110, 28)), ((176, 100, 26), (112, 56, 10)),
                 ((92, 92, 96), (46, 46, 50))]
+DARK_FACES = [((52, 46, 40), (16, 14, 12)), ((78, 68, 54), (28, 24, 18)), ((30, 26, 22), (8, 7, 6))]
 GRAY_FACES = [((84, 84, 88), (36, 36, 40)), ((118, 118, 124), (58, 58, 64)), ((50, 50, 54), (22, 22, 26))]
-CAPTION_FACTORS = {"orange": (1.0, 1.0, 0.72, 0.38), "gray": (1.0, 1.0, 0.72)}
-PRESSED_STATES = {"orange": (2,), "gray": (2,)}
+CAPTION_FACTORS = {"orange": (1.0, 1.0, 0.72, 0.38), "dark3": (1.0, 1.15, 0.7), "gray": (1.0, 1.0, 0.72)}
+PRESSED_STATES = {"orange": (2,), "dark3": (2,), "gray": (2,)}
 
 SPECS = {
     "b_create.OZT": {"label": "Create", "kind": "orange"},
@@ -51,6 +52,8 @@ SPECS = {
     "b_delete.OZT": {"label": "Delete", "kind": "orange"},
     "server_menu_b_all.OZT": {"label": "Menu", "kind": "gray"},
     "server_credit_b_all.OZT": {"label": "Credit", "kind": "gray"},
+    # Three states, and drawn by the game at full cell size (options and message boxes), so no margin.
+    "newui_button_close.OZT": {"label": "Close", "kind": "dark3", "full": True},
 }
 
 
@@ -86,8 +89,8 @@ def ring_layer(size, pressed):
     return gradient_image(size, top, bottom, ring)
 
 
-def button_state(kind, state, face, pressed):
-    size = (BUTTON_WIDTH * SCALE, BUTTON_HEIGHT * SCALE)
+def button_state(kind, state, face, pressed, button_size=(BUTTON_WIDTH, BUTTON_HEIGHT)):
+    size = (button_size[0] * SCALE, button_size[1] * SCALE)
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     composite(image, gradient_image(size, BLACK, BLACK, rounded_mask(size, OUTLINE_INSET, CORNER_RADIUS)))
     composite(image, ring_layer(size, pressed))
@@ -105,12 +108,12 @@ def button_state(kind, state, face, pressed):
     return image
 
 
-def fit_font(label):
-    size = int(CAPTION_HEIGHT * SCALE * 1.4)
+def fit_font(label, caption_width=CAPTION_WIDTH, caption_height=CAPTION_HEIGHT):
+    size = int(caption_height * SCALE * 1.4)
     while size > 8:
         font = ImageFont.truetype(FONT_PATH, size)
         left, top, right, bottom = font.getbbox(label)
-        if right - left <= CAPTION_WIDTH * SCALE and (bottom - top) <= CAPTION_HEIGHT * SCALE:
+        if right - left <= caption_width * SCALE and (bottom - top) <= caption_height * SCALE:
             return font
         size -= 1
     return ImageFont.truetype(FONT_PATH, 8)
@@ -128,8 +131,8 @@ def fit_font_to(label, width, height):
     return ImageFont.truetype(FONT_PATH, 8)
 
 
-def draw_caption(image, label, factor):
-    font = fit_font(label)
+def draw_caption(image, label, factor, caption_width=CAPTION_WIDTH, caption_height=CAPTION_HEIGHT):
+    font = fit_font(label, caption_width, caption_height)
     size = image.size
     left, top, right, bottom = font.getbbox(label)
     origin = ((size[0] - (right - left)) // 2 - left, (size[1] - (bottom - top)) // 2 - top - SCALE // 2)
@@ -145,15 +148,17 @@ def draw_caption(image, label, factor):
     composite(image, gradient_image(size, top_c, bottom_c, np.asarray(fill, np.float32)))
 
 
-def draw_button(kind, label):
-    faces = ORANGE_FACES if kind == "orange" else GRAY_FACES
+def draw_button(kind, label, full_size=False):
+    faces = {"gray": GRAY_FACES, "dark3": DARK_FACES}.get(kind, ORANGE_FACES)
     factors = CAPTION_FACTORS[kind]
+    button = (CELL_WIDTH, CELL_HEIGHT) if full_size else (BUTTON_WIDTH, BUTTON_HEIGHT)
+    caption = (CAPTION_WIDTH * 1.25, CAPTION_HEIGHT * 1.2) if full_size else (CAPTION_WIDTH, CAPTION_HEIGHT)
     cells = []
     for state, face in enumerate(faces):
-        cell = button_state(kind, state, face, state in PRESSED_STATES[kind])
-        draw_caption(cell, label, factors[state])
+        cell = button_state(kind, state, face, state in PRESSED_STATES[kind], button)
+        draw_caption(cell, label, factors[state], *caption)
         full = Image.new("RGBA", (CELL_WIDTH * SCALE, CELL_HEIGHT * SCALE), (0, 0, 0, 0))
-        full.alpha_composite(cell, ((CELL_WIDTH - BUTTON_WIDTH) * SCALE // 2, (CELL_HEIGHT - BUTTON_HEIGHT) * SCALE // 2))
+        full.alpha_composite(cell, ((CELL_WIDTH - button[0]) * SCALE // 2, (CELL_HEIGHT - button[1]) * SCALE // 2))
         cells.append(np.asarray(full))
     return np.concatenate(cells, axis=0)
 
@@ -163,4 +168,4 @@ def apply(name, master):
     spec = SPECS.get(name)
     if spec is None:
         return master
-    return draw_button(spec["kind"], spec["label"])
+    return draw_button(spec["kind"], spec["label"], spec.get("full", False))

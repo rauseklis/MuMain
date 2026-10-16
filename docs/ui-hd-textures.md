@@ -20,7 +20,8 @@ HdTextures=auto
 | `2` | Use only the 2x art. Lighter on memory. |
 | `off` | Always use the original textures (the classic look). |
 
-The setting is read at start-up. Restart the game after changing it. A missing HD file is never an error: that one
+The setting is read at start-up. You can also change it in game: Options, Graphics page, "Texture quality (restart)"
+(Auto, Ultra, High, Standard). Restart the game after changing it. A missing HD file is never an error: that one
 texture simply keeps its original look.
 
 HD art uses about four to sixteen times the texture memory of the original, so weaker machines can use `2` or `off`.
@@ -127,3 +128,65 @@ drifts too far from its original falls back to `realesr-animevideov3`, then to p
 The game keeps treating each interface bitmap as its original size. The HD texture only changes how many texels back
 that rectangle, so every draw call and every UV calculation stays valid. If an HD file is present it replaces the
 original; otherwise the original is loaded exactly as before.
+
+## Models, terrain and scenery
+
+The same mechanism covers more than the interface. HD art is looked up for the folders `Interface`, `Skill`, `Item`,
+`Player`, `Monster`, `NPC` and the numbered map folders `World1`, `World2`, ... and `Object1`, `Object2`, ... (the terrain
+tiles and the scenery of each map). Everything else (effects, sprites) keeps its original art.
+
+| Folder | Tiers present |
+|---|---|
+| `Player`, `Monster`, `NPC` | 2x for every texture; 4x for the largest ones (all of `Player`, 260 `Monster`, 120 `NPC`) |
+| `Item`, `Skill` | 2x for every texture (wings, weapons, armour, mounts) |
+| `WorldN`, `ObjectN` | 2x for every map; terrain and scenery tiles are enlarged with wrap padding so they stay seamless |
+
+Details that matter when regenerating or adding model art:
+
+- **Same name, different picture.** An original can exist twice with different pictures (`Foo.OZJ` and `Foo.OZT`). Such
+  textures keep the extension in the HD name (`Foo.jpg.png`, `Foo.tga.png`); the game tries that name first and falls back to
+  `Foo.png`. Do not rename them.
+- **JPEG versus TGA.** A texture that came from a JPEG must stay opaque and be reported as 3 components, a TGA as 4;
+  the renderer chooses additive or alpha blending from that. HD textures report the component count of the original.
+- **Cut-outs.** Some cut-out textures (the Dark Lord cape cloth, for example) are drawn without an alpha test, so the colour
+  under fully transparent pixels is visible. Those are enlarged without premultiplying (`fix_cutouts.py` regenerates all of
+  them), which keeps that colour instead of turning it black.
+- **Small textures.** Textures of 32 pixels or less (potions, jewels, fruit) are left at their original look.
+- **Unreadable originals.** A few 24-bit `.OZT` files cannot be read by the game either; they are skipped.
+
+Tools: `model_textures.py` (mounts and selected models), `fix_cutouts.py` (cut-out textures), `generate.py` and
+`verify.py` as above. Run them in small batches (`UI_HD_BATCH`), the enlargement needs a lot of memory.
+
+## Texture quality in game
+
+Options, Graphics page, **Texture quality (restart)** chooses what to load:
+
+| Choice | `HdTextures` | Meaning |
+|---|---|---|
+| Auto | `auto` | the best art that exists (the 4x art, else 2x, else the original) |
+| Ultra | `4` | same as Auto |
+| High | `2` | only the 2x art, lighter on memory |
+| Standard | `off` | the original textures |
+
+The choice is written to `config.ini` at once and read at start-up, so it takes effect after a restart. A texture picks
+its file once, when it is loaded.
+
+## Texture compression
+
+The large HD textures of models and maps (everything except the interface) are block-compressed when they are sent to
+the graphics card: BC1 (half a byte per pixel) for opaque art, BC3 (one byte per pixel, with alpha) for art with
+transparency. Compared with uncompressed RGBA (four bytes per pixel) that is a quarter to an eighth of the video memory.
+The mip levels are built on the CPU, because compressed textures cannot be mipmapped on the graphics card, and the CPU
+copy of the picture is freed afterwards. On the login screen this took the video memory from 1.8 GB to 1.1 GB and the
+RAM from 1.2 GB to 0.6 GB.
+
+The interface art stays uncompressed (thin lines and flat colours show the artefacts). A graphics card that cannot
+sample the format simply gets the uncompressed texture. To switch compression off:
+
+```ini
+[UI]
+HdCompression=0
+```
+
+The encoder is `src/source/Render/Textures/BlockCompression.h` (a small endpoint-fitting encoder, tested by
+`tests/render/test_block_compression.cpp`).
