@@ -47,6 +47,9 @@ src/bin/Data/Items/**/*.tmp
 # Effect data (JSON), e.g. the glow colors of the items.
 !src/bin/Data/Effects/
 !src/bin/Data/Effects/**
+!src/bin/Data/Interface/
+!src/bin/Data/Interface/BuffDetails/
+!src/bin/Data/Interface/BuffDetails/**
 **/obj/
 *.user
 *.suo

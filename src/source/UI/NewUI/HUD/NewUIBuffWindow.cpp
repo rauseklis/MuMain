@@ -11,6 +11,12 @@
 #include "Engine/Object/ZzzInventory.h"
 #include "UI/Legacy/UIControls.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
+#include "GameLogic/Items/TwoHandedWeaponBonus.h"
+#include "GameLogic/Buffs/BuffDetails.h"
+#include "Network/Server/BuffDetailsProtocol.h"
+#include "UI/NewUI/HUD/BuffTooltip.h"
+#include "UI/NewUI/HUD/BuffDuration.h"
+#include "Core/Text/Utf8.h"
 
 using namespace SEASON3B;
 
@@ -20,6 +26,12 @@ namespace
     const float BUFF_IMG_HEIGHT = 28.0f;
     const int BUFF_MAX_LINE_COUNT = 8;
     const int BUFF_IMG_SPACE = 5;
+    constexpr wchar_t TwoHandedBonusTitle[] = L"Two-handed weapon bonus";
+    constexpr wchar_t PhysicalBonusText[] = L"Physical damage +15%";
+    constexpr wchar_t WizardryBonusText[] = L"Wizardry damage +15%";
+    constexpr wchar_t TwoHandedBonusCondition[] = L"Active while a two-handed weapon is equipped";
+    constexpr wchar_t TwoHandedBonusLabel[] = L"2H";
+    constexpr int TwoHandedTooltipLines = 4;
 };
 
 SEASON3B::CNewUIBuffWindow::CNewUIBuffWindow()
@@ -111,6 +123,13 @@ static eBuffState NormalizeBuffState(eBuffState raw)
         return EFFECT_IRON_DEFENSE;
     case EFFECT_BLOOD_HOWLING_IMPROVED:
         return EFFECT_BLOOD_HOWLING;
+    case EFFECT_GREATER_DEFENSE_SUCCESS_RATE_IMPROVED:
+    case EFFECT_GREATER_DEFENSE_SUCCESS_RATE_ENHANCED:
+        return eBuff_Def_up_Ourforces;
+    case EFFECT_FITNESS_IMPROVED:
+        return eBuff_Hp_up_Ourforces;
+    case EFFECT_MANA_SHIELD_MASTERED:
+        return eBuff_WizDefense;
     default:
         return raw;
     }
@@ -129,10 +148,14 @@ static int BuffTier(eBuffState buf)
     case EFFECT_BLESS_IMPROVED:
     case EFFECT_IRON_DEFENSE_IMPROVED:
     case EFFECT_BLOOD_HOWLING_IMPROVED:
+    case EFFECT_GREATER_DEFENSE_SUCCESS_RATE_IMPROVED:
+    case EFFECT_FITNESS_IMPROVED:
+    case EFFECT_MANA_SHIELD_MASTERED:
         return 1;
     case EFFECT_GREATER_LIFE_MASTERED:
     case EFFECT_MAGIC_CIRCLE_ENHANCED:
     case EFFECT_GREATER_CRITICAL_DAMAGE_MASTERED:
+    case EFFECT_GREATER_DEFENSE_SUCCESS_RATE_ENHANCED:
         return 2;
     default:
         return 0;
@@ -149,7 +172,8 @@ void SEASON3B::CNewUIBuffWindow::BuffSort(std::list<eBuffState>& buffstate)
     for (int i = 0; i < iBuffSize; ++i)
     {
         eBuffState buf = g_CharacterBuff(pHeroObject, i);
-        if (buf == eBuffNone)
+        if (buf == eBuffNone || buf >= eBuff_Count ||
+            GameLogic::Buffs::ActiveBuffDetails().IsExpired(buf, GameLogic::Buffs::BuffDetailsClock()))
         {
             continue;
         }
@@ -168,7 +192,8 @@ void SEASON3B::CNewUIBuffWindow::BuffSort(std::list<eBuffState>& buffstate)
     for (int i = 0; i < iBuffSize; ++i)
     {
         eBuffState buf = g_CharacterBuff(pHeroObject, i);
-        if (buf == eBuffNone)
+        if (buf == eBuffNone || buf >= eBuff_Count ||
+            GameLogic::Buffs::ActiveBuffDetails().IsExpired(buf, GameLogic::Buffs::BuffDetailsClock()))
         {
             continue;
         }
@@ -232,11 +257,13 @@ bool SEASON3B::CNewUIBuffWindow::UpdateMouseEvent()
         ++iter;
         eBuffState buff = (*tempiter);
 
-        x = m_Pos.x + (buffwidthcount * (BUFF_IMG_WIDTH + BUFF_IMG_SPACE));
-        y = m_Pos.y + (buffheightcount * (BUFF_IMG_HEIGHT + BUFF_IMG_SPACE));
+        const POINT position = GetBuffPosition(buffheightcount * BUFF_MAX_LINE_COUNT + buffwidthcount);
+        x = position.x;
+        y = position.y;
 
         if (SEASON3B::CheckMouseIn(x, y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT))
         {
+            Network::Buffs::RequestDetails();
             if (buff == eBuff_InfinityArrow)
             {
                 if (SEASON3B::IsRelease(VK_RBUTTON))
@@ -260,6 +287,14 @@ bool SEASON3B::CNewUIBuffWindow::UpdateMouseEvent()
             ++buffheightcount;
         }
     }
+    if (HasTwoHandedBonus())
+    {
+        const POINT position = GetBuffPosition(static_cast<int>(buffstate.size()));
+        if (SEASON3B::CheckMouseIn(position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT))
+        {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -270,6 +305,16 @@ bool SEASON3B::CNewUIBuffWindow::UpdateKeyEvent()
 
 bool SEASON3B::CNewUIBuffWindow::Update()
 {
+    const auto now = GameLogic::Buffs::BuffDetailsClock();
+    OBJECT* heroObject = &Hero->Object;
+    for (int index = 0; index < g_CharacterBuffSize(heroObject); ++index)
+    {
+        if (GameLogic::Buffs::ActiveBuffDetails().IsExpired(g_CharacterBuff(heroObject, index), now))
+        {
+            Network::Buffs::RequestDetails();
+            break;
+        }
+    }
     return true;
 }
 
@@ -303,8 +348,9 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffStatus(BUFF_RENDER renderstate)
         ++iter;
         eBuffState buff = (*tempiter);
 
-        x = m_Pos.x + (buffwidthcount * (BUFF_IMG_WIDTH + BUFF_IMG_SPACE));
-        y = m_Pos.y + (buffheightcount * (BUFF_IMG_HEIGHT + BUFF_IMG_SPACE));
+        const POINT position = GetBuffPosition(buffheightcount * BUFF_MAX_LINE_COUNT + buffwidthcount);
+        x = position.x;
+        y = position.y;
 
         if (renderstate == BUFF_RENDER_ICON)
         {
@@ -330,6 +376,75 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffStatus(BUFF_RENDER renderstate)
             ++buffheightcount;
         }
     }
+    RenderTwoHandedBonus(renderstate, static_cast<int>(buffstate.size()));
+}
+
+bool SEASON3B::CNewUIBuffWindow::HasTwoHandedBonus() const
+{
+    if (!CharacterMachine)
+    {
+        return false;
+    }
+
+    const ITEM& rightWeapon = CharacterMachine->Equipment[EQUIPMENT_WEAPON_RIGHT];
+    const ITEM& leftWeapon = CharacterMachine->Equipment[EQUIPMENT_WEAPON_LEFT];
+    if (rightWeapon.Type < ITEM_SWORD || rightWeapon.Type >= ITEM_SHIELD)
+    {
+        return false;
+    }
+
+    return GameLogic::Items::HasTwoHandedWeaponBonus(
+        rightWeapon.Type, ItemAttribute[rightWeapon.Type].TwoHand, leftWeapon.Type);
+}
+
+POINT SEASON3B::CNewUIBuffWindow::GetBuffPosition(int index) const
+{
+    return {
+        m_Pos.x + (index % BUFF_MAX_LINE_COUNT) * static_cast<int>(BUFF_IMG_WIDTH + BUFF_IMG_SPACE),
+        m_Pos.y + (index / BUFF_MAX_LINE_COUNT) * static_cast<int>(BUFF_IMG_HEIGHT + BUFF_IMG_SPACE)
+    };
+}
+
+void SEASON3B::CNewUIBuffWindow::RenderTwoHandedBonus(BUFF_RENDER renderstate, int index)
+{
+    if (!HasTwoHandedBonus())
+    {
+        return;
+    }
+
+    const POINT position = GetBuffPosition(index);
+    if (renderstate == BUFF_RENDER_ICON)
+    {
+        eBuffState artwork = eBuff_Scroll_Strengthen;
+        RenderBuffIcon(artwork, position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT);
+        const DWORD textColor = g_pRenderText->GetTextColor();
+        const DWORD backgroundColor = g_pRenderText->GetBgColor();
+        g_pRenderText->SetFont(g_hFontBold);
+        g_pRenderText->SetTextColor(255, 255, 255, 255);
+        g_pRenderText->SetBgColor(0, 0, 0, 180);
+        g_pRenderText->RenderText(position.x, position.y + BUFF_IMG_HEIGHT / 2,
+            TwoHandedBonusLabel, BUFF_IMG_WIDTH, 0, RT3_SORT_CENTER);
+        g_pRenderText->SetTextColor(textColor);
+        g_pRenderText->SetBgColor(backgroundColor);
+        g_pRenderText->SetFont(g_hFont);
+        return;
+    }
+
+    if (!SEASON3B::CheckMouseIn(position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT))
+    {
+        return;
+    }
+
+    const wchar_t* lines[TwoHandedTooltipLines] = {
+        TwoHandedBonusTitle, PhysicalBonusText, WizardryBonusText, TwoHandedBonusCondition
+    };
+    int count = 0;
+    for (int line = 0; line < TwoHandedTooltipLines; ++line)
+    {
+        UI::Buffs::Tooltip::Append(lines[line], line == 0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE, line == 0, count);
+    }
+    UI::Buffs::Tooltip::Render(position.x + BUFF_IMG_WIDTH / 2,
+        position.y + BUFF_IMG_HEIGHT + BUFF_IMG_SPACE, count, IMAGE_BUFF_TOOLTIP_FRAME);
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, float y, float width, float height)
@@ -347,7 +462,7 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, 
 
         RenderBitmap(IMAGE_BUFF_STATUS, x, y, width, height, u, v, width / 256.f, height / 256.f);
     }
-    else
+    else if (eBuffType < 161)
     {
         // eBuff_Santa
         iWidthIndex = (eBuffType - 81) % 10; // eBuff_Berserker
@@ -358,50 +473,53 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, 
 
         RenderBitmap(IMAGE_BUFF_STATUS2, x, y, width, height, u, v, width / 256.f, height / 256.f);
     }
+    else
+    {
+        const int index = eBuffType - 161;
+        u = (index % 10) * width / 256.f;
+        v = (index / 10) * height / 256.f;
+        RenderBitmap(IMAGE_BUFF_STATUS3, x, y, width, height, u, v, width / 256.f, height / 256.f);
+    }
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderBuffTooltip(eBuffClass& eBuffClassType, eBuffState& eBuffType, float x, float y)
 {
-    int TextNum = 0;
-    ::memset(TextList[0], 0, sizeof(char) * 30 * 100);
-    ::memset(TextListColor, 0, sizeof(int) * 30);
-    ::memset(TextBold, 0, sizeof(int) * 30);
-
-    std::list<std::wstring> tooltipinfo;
-    g_BuffToolTipString(tooltipinfo, eBuffType);
-
-    for (std::list<std::wstring>::iterator iter = tooltipinfo.begin(); iter != tooltipinfo.end(); ++iter)
+    int count = 0;
+    auto info = g_BuffInfo(eBuffType);
+    if (info.s_BuffName[0] == L'\0')
     {
-        std::wstring& temp = *iter;
-
-        mu_swprintf(TextList[TextNum], temp.c_str());
-
-        if (TextNum == 0)
-        {
-            TextListColor[TextNum] = TEXT_COLOR_BLUE;
-            TextBold[TextNum] = true;
-        }
-        else
-        {
-            TextListColor[TextNum] = TEXT_COLOR_WHITE;
-            TextBold[TextNum] = false;
-        }
-
-        TextNum += 1;
+        info = g_BuffInfo(NormalizeBuffState(eBuffType));
     }
-
-    std::wstring bufftime;
-    g_BuffStringTime(eBuffType, bufftime);
-
-    if (bufftime.size() != 0)
+    UI::Buffs::Tooltip::Append(info.s_BuffName, TEXT_COLOR_BLUE, true, count);
+    const auto* details = GameLogic::Buffs::ActiveBuffDetails().Find(eBuffType);
+    if (details)
     {
-        mu_swprintf(TextList[TextNum], I18N::Game::DurationPeriodS, bufftime.c_str());
-        TextListColor[TextNum] = TEXT_COLOR_PURPLE;
-        TextBold[TextNum] = false;
-        TextNum += 1;
+        for (const auto& line : details->lines)
+        {
+            UI::Buffs::Tooltip::Append(Core::Text::FromUtf8(line.text),
+                line.penalty ? TEXT_COLOR_RED : TEXT_COLOR_WHITE, false, count);
+        }
+        if (details->lines.empty())
+        {
+            for (const auto& line : info.s_BuffDescriptlist)
+            {
+                UI::Buffs::Tooltip::Append(line, TEXT_COLOR_WHITE, false, count);
+            }
+        }
+        UI::Buffs::Tooltip::Append(UI::Buffs::FormatDuration(details->expiresAt, GameLogic::Buffs::BuffDetailsClock()),
+            TEXT_COLOR_PURPLE, false, count);
     }
-
-    RenderTipTextList(x, y, TextNum, 0);
+    else
+    {
+        for (const auto& line : info.s_BuffDescriptlist)
+        {
+            UI::Buffs::Tooltip::Append(line, TEXT_COLOR_WHITE, false, count);
+        }
+        std::wstring bufftime;
+        g_BuffStringTime(eBuffType, bufftime);
+        UI::Buffs::Tooltip::Append(bufftime, TEXT_COLOR_PURPLE, false, count);
+    }
+    UI::Buffs::Tooltip::Render(x, y, count, IMAGE_BUFF_TOOLTIP_FRAME);
 }
 
 float SEASON3B::CNewUIBuffWindow::GetLayerDepth()	//. 5.3f
@@ -419,12 +537,16 @@ void SEASON3B::CNewUIBuffWindow::ClosingProcess()
 
 void SEASON3B::CNewUIBuffWindow::LoadImages()
 {
-    LoadBitmap(L"Interface\\newui_statusicon.jpg", IMAGE_BUFF_STATUS, GL_LINEAR);
-    LoadBitmap(L"Interface\\newui_statusicon2.jpg", IMAGE_BUFF_STATUS2, GL_LINEAR);
+    LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon.jpg", IMAGE_BUFF_STATUS, GL_LINEAR);
+    LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon2.jpg", IMAGE_BUFF_STATUS2, GL_LINEAR);
+    LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon3.jpg", IMAGE_BUFF_STATUS3, GL_LINEAR);
+    LoadBitmap(L"Interface\\BuffDetails\\message_back.tga", IMAGE_BUFF_TOOLTIP_FRAME, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIBuffWindow::UnloadImages()
 {
+    DeleteBitmap(IMAGE_BUFF_TOOLTIP_FRAME);
+    DeleteBitmap(IMAGE_BUFF_STATUS3);
     DeleteBitmap(IMAGE_BUFF_STATUS2);
     DeleteBitmap(IMAGE_BUFF_STATUS);
 }

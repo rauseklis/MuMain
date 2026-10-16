@@ -112,6 +112,19 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME test_two_handed_weapon_bonus
+    SOURCES test_two_handed_weapon_bonus.cpp
+    LINK_LIBS MuClient
+)
+
+mu_add_test(
+    NAME test_buff_details
+    SOURCES test_buff_details.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/GameLogic/Buffs/BuffDetails.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/HUD/BuffDuration.cpp
+)
+
+mu_add_test(
     NAME test_map_object_loading
     SOURCES
         test_map_object_loading.cpp

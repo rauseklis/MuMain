@@ -244,6 +244,32 @@ namespace GameLogic::Items
         return HasTag(pItem, ItemTag::BuffScroll);
     }
 
+    bool IsPremiumSealType(int itemType)
+    {
+        switch (itemType)
+        {
+        case ITEM_SEAL_OF_ASCENSION:
+        case ITEM_SEAL_OF_WEALTH:
+        case ITEM_SEAL_OF_SUSTENANCE:
+        case ITEM_SEAL_OF_MOBILITY:
+        case ITEM_SEAL_OF_HEALING:
+        case ITEM_SEAL_OF_DIVINITY:
+        case ITEM_MASTER_SEAL_OF_ASCENSION:
+        case ITEM_MASTER_SEAL_OF_WEALTH:
+        case ITEM_SEAL_OF_STRENGTH:
+        case ITEM_SEAL_OF_WEALTH_ITEM_DROP:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool IsPotionType(int itemType)
+    {
+        return (itemType >= ITEM_APPLE && itemType <= ITEM_ALE) ||
+               (itemType >= ITEM_SMALL_SHIELD_POTION && itemType <= ITEM_LARGE_COMPLEX_POTION);
+    }
+
     bool IsBuffScrollType(int itemType)
     {
         return HasTag(itemType, ItemTag::BuffScroll);

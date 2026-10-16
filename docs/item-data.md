@@ -431,3 +431,43 @@ Names that are not valid UTF-8 are read as Windows-1252, the encoding of
 the Portuguese and Spanish files; the original client showed their
 accented letters as `�`. The byte pair `A1 AF` (a right quote on Korean
 systems) becomes an apostrophe (*Gaion's Order*).
+
+## Two-handed bonus indicator
+
+An eligible two-handed melee weapon or staff with an empty other hand displays
+a `2H` icon beside the active buffs. Hovering shows +15% physical damage and
++15% wizardry damage. It uses existing MU buff artwork and updates when equipment
+changes. Dual one-handed swords, bows and crossbows do not activate it.
+
+## Active buff details
+
+Hover an active buff at the top of the screen to see the applied bonuses,
+penalties and remaining time. Percentages and flat amounts are shown separately;
+penalties are red. Values come from the server's applied effect, including the
+caster's master skills and effects cast by another player. While hovered, the
+details refresh at most once per second. Recasting refreshes the countdown;
+expired effects and values from a previous character are discarded.
+
+Class coverage includes Soul Barrier and Expansion of Wizardry; Swell Life;
+Elf attack, defense and Infinity Arrow; Dark Lord critical damage; Summoner
+Berserker and reflection; and Rage Fighter ignore-defense, vitality and defense
+success-rate buffs, including their master upgrades. Magic Gladiator uses the
+same reporting for its shared skills. Active skill debuffs also report their
+applied values. This display does not change skill balance or grant new skills.
+
+Icons and the tooltip frame are the verified assets from `C:\Games\MU` in
+`Data/Interface/BuffDetails`. The three atlases cover effect numbers 1–240.
+The existing localized buff names/descriptions are retained; the English class
+buff entries were verified against the reference installation. Tooltip text wraps and
+the framed box stays inside the reference screen bounds at each resolution.
+
+The server and client must both include the buff-details update for numeric
+values and countdowns. An older server still shows the original descriptions.
+
+The same display covers the 26 reference premium seals, scrolls, elixirs and
+talismans. Right-click inventory seals and Scroll of Healing to activate their
+server effects; existing scroll, elixir and talisman use remains supported.
+Countdowns longer than a day include days. Paid duration continues offline and
+returns on login when supported by the updated server. The effect update does
+not implement X-shop checkout or currency handling. Values and stacking rules
+are documented in the parent repository's `docs/active-buff-tooltips.md`.

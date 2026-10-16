@@ -24,6 +24,8 @@
 #include "Scenes/SceneCore.h"
 #include "Network/Reconnect/ReconnectManager.h"
 #include "Network/IncomingPacketQueue.h"
+#include "Network/Server/BuffDetailsProtocol.h"
+#include "GameLogic/Buffs/BuffDetails.h"
 #include "I18N/All.h"
 
 #include "Audio/DSPlaySound.h"
@@ -958,6 +960,7 @@ void InitGame()
 
 BOOL ReceiveLogOut(const BYTE* ReceiveBuffer, BOOL bEncrypted)
 {
+    Network::Buffs::ResetDetails();
     LogOut = false;
     g_pNewUISystem->ResetExpHunt();
     auto Data = (LPPHEADER_DEFAULT_SUBCODE)ReceiveBuffer;
@@ -1091,6 +1094,7 @@ void LogSafeCastSizeMismatch(const char* packet_type, std::size_t received, std:
 
 BOOL ReceiveJoinMapServer(std::span<const BYTE> ReceiveBuffer)
 {
+    Network::Buffs::ResetDetails();
     MouseLButton = false;
     HeroIndex = rand() % MAX_CHARACTERS_CLIENT;
     CHARACTER* c = &CharactersClient[HeroIndex];
@@ -15053,6 +15057,9 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
     break;
 
 #endif // KJH_PBG_ADD_INGAMESHOP_SYSTEM
+    case GameLogic::Buffs::BuffDetails::PacketCode:
+        GameLogic::Buffs::ActiveBuffDetails().Apply(received_span, GameLogic::Buffs::BuffDetailsClock());
+        break;
     case 0xD5:
     {
         // Auction House (0xD5): a C1-with-subcode packet puts the sub-code right after the code byte at
