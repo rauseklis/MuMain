@@ -23,6 +23,7 @@ using namespace SEASON3B;
 SEASON3B::CNewUIMiniMap::CNewUIMiniMap()
 {
     m_pNewUIMng = NULL;
+    m_bSuccess = false;
 }
 
 SEASON3B::CNewUIMiniMap::~CNewUIMiniMap()
@@ -80,6 +81,28 @@ float SEASON3B::CNewUIMiniMap::GetLayerDepth()
 
 void SEASON3B::CNewUIMiniMap::OpenningProcess()
 {
+    if (!IsAvailable())
+        Show(false);
+}
+
+bool SEASON3B::CNewUIMiniMap::IsAvailable() const
+{
+    return IsAllowedInCurrentMap() && m_bSuccess;
+}
+
+bool SEASON3B::CNewUIMiniMap::IsAllowedInCurrentMap() const
+{
+    return gMapManager.WorldActive != WD_6STADIUM;
+}
+
+bool SEASON3B::CNewUIMiniMap::IsVisible() const
+{
+    return IsAvailable() && CNewUIObj::IsVisible();
+}
+
+bool SEASON3B::CNewUIMiniMap::IsEnabled() const
+{
+    return IsAvailable() && CNewUIObj::IsEnabled();
 }
 
 void SEASON3B::CNewUIMiniMap::Release()
@@ -129,8 +152,8 @@ bool SEASON3B::CNewUIMiniMap::Render()
 {
     float Rot = 45.f;
 
-    if (m_bSuccess == false)
-        return m_bSuccess;
+    if (!IsAvailable())
+        return false;
 
     EnableAlphaTest();
     RenderColor(0, 0, REFERENCE_WIDTH, 430, 0.85f, 1);
@@ -207,6 +230,12 @@ bool SEASON3B::CNewUIMiniMap::Update()
 
 void SEASON3B::CNewUIMiniMap::LoadImages(const wchar_t* Filename)
 {
+    if (!IsAllowedInCurrentMap())
+    {
+        m_bSuccess = false;
+        Show(false);
+        return;
+    }
     wchar_t Fname[300];
     int i = 0;
     mu_swprintf(Fname, L"Data\\%ls\\mini_map.ozt", Filename);

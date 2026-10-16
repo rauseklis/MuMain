@@ -626,15 +626,15 @@ bool CNewUIInventoryActionController::TryConsumeItem(CNewUIInventoryCtrl* target
         return false;
     }
 
-    if (pItem->Type == ITEM_TOWN_PORTAL_SCROLL)
+    if (pItem->Type == ITEM_TOWN_PORTAL_SCROLL ||
+        GameLogic::Items::IsPremiumSealType(pItem->Type) || pItem->Type == ITEM_SCROLL_OF_HEALING)
     {
         SendRequestUse(iIndex, 0);
         return true;
     }
 
     const auto isApple = pItem->Type == ITEM_APPLE;
-    const auto isPotion = (pItem->Type >= ITEM_APPLE && pItem->Type <= ITEM_ALE) ||
-                          (pItem->Type >= ITEM_SMALL_SHIELD_POTION && pItem->Type <= ITEM_LARGE_COMPLEX_POTION);
+    const auto isPotion = GameLogic::Items::IsPotionType(pItem->Type);
 
     if (isApple || isPotion || (pItem->Type == ITEM_REMEDY_OF_LOVE && pItem->Level == 0) ||
         (pItem->Type >= ITEM_JACK_OLANTERN_BLESSINGS && pItem->Type <= ITEM_JACK_OLANTERN_DRINK) ||

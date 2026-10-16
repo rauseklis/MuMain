@@ -43,6 +43,7 @@ namespace GameLogic::Items
 
     // Consumables
     bool IsHealingPotion(const ITEM* pItem);
+    bool IsPotionType(int itemType);
     bool IsHealingPotionType(int itemType);
     bool IsManaPotionType(int itemType);
     bool IsComplexPotion(const ITEM* pItem);
@@ -54,6 +55,7 @@ namespace GameLogic::Items
     bool IsElixirType(int itemType);
     bool IsElixirModel(int modelType);
     bool IsBuffScroll(const ITEM* pItem);
+    bool IsPremiumSealType(int itemType);
     bool IsBuffScrollType(int itemType);
     bool IsBuffScrollModel(int modelType);
     bool IsBattleOrStrengthScroll(const ITEM* pItem);

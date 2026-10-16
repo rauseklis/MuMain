@@ -389,6 +389,22 @@ add_custom_command(
 add_custom_target(CopyAssets DEPENDS "${ASSETS_STAMP}")
 add_dependencies(Main CopyAssets)
 
+# Arena is a complete replacement. Repair it after base asset staging even if
+# an older local override or preserved file timestamps left stale runtime files.
+if(MU_COPY_RUNTIME_ASSETS)
+  add_custom_target(StageArenaAssets
+    COMMAND "${CMAKE_COMMAND}"
+      "-DMU_ARENA_SOURCE=${ASSETS_DIR}/Data"
+      "-DMU_ARENA_OUTPUT=$<TARGET_FILE_DIR:Main>/Data"
+      "-DMU_ARENA_MANIFEST=${ASSETS_DIR}/Data/World7/ArenaAssets.json"
+      -P "${REPO_ROOT}/cmake/StageArenaAssets.cmake"
+    COMMENT "Verifying full Arena runtime assets"
+    VERBATIM
+  )
+  add_dependencies(StageArenaAssets CopyAssets)
+  add_dependencies(Main StageArenaAssets)
+endif()
+
 # Seed config.ini from the template only when it doesn't already exist
 # next to the executable. The bulk asset copy ships config.ini.template
 # into the build dir on every build; this step turns it into config.ini

@@ -105,6 +105,33 @@ mu_add_test(
     SOURCES test_skill_level_requirements.cpp
 )
 
+mu_add_test(
+    NAME test_potion_stacking
+    SOURCES test_potion_stacking.cpp
+    LINK_LIBS MuClient
+)
+
+mu_add_test(
+    NAME test_two_handed_weapon_bonus
+    SOURCES test_two_handed_weapon_bonus.cpp
+    LINK_LIBS MuClient
+)
+
+mu_add_test(
+    NAME test_buff_details
+    SOURCES test_buff_details.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/GameLogic/Buffs/BuffDetails.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/HUD/BuffDuration.cpp
+)
+
+mu_add_test(
+    NAME test_map_object_loading
+    SOURCES
+        test_map_object_loading.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/App/Platform/Windows/Winmain.cpp
+    LINK_LIBS MuClient
+)
+
 # The injected input paths in Winmain exist only in builds with the control
 # socket, like the transport above.
 if(ENABLE_CONTROL_SOCKET)

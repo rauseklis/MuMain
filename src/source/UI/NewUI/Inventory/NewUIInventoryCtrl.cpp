@@ -15,6 +15,7 @@
 #include "World/MapInfra/MapManager.h"
 #include "GameLogic/Items/MixMgr.h"
 #include "GameLogic/Items/ItemCategories.h"
+#include "GameLogic/Items/PotionStacking.h"
 using namespace SEASON3B;
 
 namespace
@@ -1745,18 +1746,9 @@ bool SEASON3B::CNewUIInventoryCtrl::AreItemsStackable(ITEM* pSourceItem, ITEM* p
         return true;
     }
 
-    if ((iSrcType >= ITEM_POTION && iSrcType <= ITEM_ANTIDOTE && iSrcType != ITEM_SIEGE_POTION) &&
-        (iTarType >= ITEM_POTION && iTarType <= ITEM_ANTIDOTE && iTarType != ITEM_SIEGE_POTION) &&
-        (iSrcDurability < 3 && iTarDurability < 3))
+    if (GameLogic::Items::RecoveryPotionStackLimit(iSrcType) > 0)
     {
-        return true;
-    }
-
-    if (GameLogic::Items::IsComplexPotionType(iSrcType) &&
-        GameLogic::Items::IsComplexPotionType(iTarType) &&
-        (iSrcDurability < 3 && iTarDurability < 3))
-    {
-        return true;
+        return GameLogic::Items::CanStackRecoveryPotions(*pSourceItem, *pTargetItem);
     }
 
     if ((iSrcType == ITEM_BOLT && iTarType == ITEM_BOLT) && (iSrcLevel == iTarLevel))

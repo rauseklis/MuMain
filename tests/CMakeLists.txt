@@ -4,6 +4,9 @@
 
 include(third_party/doctest/doctest.cmake)
 
+add_test(NAME stage_arena_assets
+    COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/test_stage_arena_assets.cmake")
+
 # When cross-compiling Windows binaries on a non-Windows host (CI's Linux
 # runner, WSL/MinGW), wine has to launch the .exe. Setting this once makes
 # both add_test and doctest_discover_tests pick it up via the
