@@ -62,7 +62,20 @@ TEST_CASE("HD path also works for the Skill and Item folders [render][ui_hd]")
     CHECK(IsHdEligiblePath(L"Data\\Player\\skin.jpg"));
     CHECK(HdPath(L"Data\\NPC\\guard.tga", 2) == L"Data\\NPC@2x\\guard.png");
     CHECK_FALSE(IsHdEligiblePath(L"Data\\Effect\\spark.jpg"));
-    CHECK_FALSE(IsHdEligiblePath(L"Data\\World1\\tile.jpg"));
+    CHECK(IsHdEligiblePath(L"Data\\World1\\tile.jpg"));
+    CHECK(HdPath(L"Data\\World12\\TileGrass01.jpg", 2) == L"Data\\World12@2x\\TileGrass01.png");
+    CHECK(HdPath(L"Data\\Object57\\wall.tga", 4) == L"Data\\Object57@4x\\wall.png");
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\Worldmap\\tile.jpg"));
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\Objects\\tile.jpg"));
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\World\\tile.jpg"));
+}
+
+TEST_CASE("HD path keeps the extension for textures that share a name [render][ui_hd]")
+{
+    CHECK(HdPathWithExtension(L"Data\\World1\\TileGrass01.jpg", 2) == L"Data\\World1@2x\\TileGrass01.jpg.png");
+    CHECK(HdPathWithExtension(L"Data\\World1\\TileGrass01.TGA", 4) == L"Data\\World1@4x\\TileGrass01.tga.png");
+    CHECK(HdPathWithExtension(L"Data\\Effect\\spark.jpg", 2).empty());
+    CHECK(HdPathWithExtension(L"Data\\World1\\noextension", 2).empty());
 }
 
 TEST_CASE("HD path is empty for textures outside the interface folder [render][ui_hd]")

@@ -46,8 +46,13 @@ std::optional<HdImage> LoadAtScale(const std::wstring& originalPath, int scale, 
                                    int paddedWidth, int paddedHeight, bool opaquePadding,
                                    std::string (*resolvePath)(const std::wstring&))
 {
-    const std::wstring hdPath = HdPath(originalPath, scale);
-    SurfacePtr surface = DecodePng(resolvePath(hdPath));
+    std::wstring hdPath = HdPathWithExtension(originalPath, scale);
+    SurfacePtr surface = hdPath.empty() ? nullptr : DecodePng(resolvePath(hdPath));
+    if (!surface)
+    {
+        hdPath = HdPath(originalPath, scale);
+        surface = DecodePng(resolvePath(hdPath));
+    }
     if (!surface)
         return std::nullopt;
 

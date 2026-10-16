@@ -103,11 +103,27 @@ struct HdImage
     return scaleX;
 }
 
+// World1, World2 ... and Object1, Object2 ...: a family prefix followed by digits only.
+inline constexpr std::wstring_view kNumberedFamilies[] = {L"world", L"object"};
+
+[[nodiscard]] inline bool IsNumberedFolder(std::wstring_view lowerName)
+{
+    for (const std::wstring_view family : kNumberedFamilies)
+    {
+        if (lowerName.size() <= family.size() || lowerName.substr(0, family.size()) != family)
+            continue;
+        const std::wstring_view digits = lowerName.substr(family.size());
+        if (std::all_of(digits.begin(), digits.end(), [](wchar_t character) { return character >= L'0' && character <= L'9'; }))
+            return true;
+    }
+    return false;
+}
+
 struct RootMatch
 {
     std::size_t start = 0;
     std::size_t length = 0;
-    std::wstring_view folderName;
+    std::wstring folderName;
 };
 
 // The first folder below "data/" when it is one of the folders that may have HD replacements.
@@ -131,8 +147,10 @@ struct RootMatch
     for (const EligibleRoot& root : kEligibleRoots)
     {
         if (root.lowerName == name)
-            return RootMatch{start, name.size(), root.folderName};
+            return RootMatch{start, name.size(), std::wstring(root.folderName)};
     }
+    if (IsNumberedFolder(name))
+        return RootMatch{start, name.size(), std::wstring(path.substr(start, name.size()))};
     return std::nullopt;
 }
 
@@ -158,6 +176,26 @@ struct RootMatch
         return result + L".png";
     result.replace(dot, std::wstring::npos, L".png");
     return result;
+}
+
+// For two textures that share a name and differ only by extension (TileGrass01.jpg and TileGrass01.tga are different pictures),
+// the HD file keeps the extension in its name: Data\World1\TileGrass01.jpg -> Data\World1@2x\TileGrass01.jpg.png.
+[[nodiscard]] inline std::wstring HdPathWithExtension(std::wstring_view originalPath, int scale)
+{
+    const std::optional<RootMatch> root = FindEligibleRoot(originalPath);
+    if (!root)
+        return {};
+
+    std::wstring result(originalPath);
+    result.replace(root->start, root->length, std::wstring(root->folderName) + L"@" + std::to_wstring(scale) + L"x");
+
+    const std::size_t lastSeparator = result.find_last_of(L"\/");
+    const std::size_t dot = result.find_last_of(L'.');
+    if (dot == std::wstring::npos || (lastSeparator != std::wstring::npos && dot < lastSeparator))
+        return {};
+    std::transform(result.begin() + static_cast<std::ptrdiff_t>(dot), result.end(), result.begin() + static_cast<std::ptrdiff_t>(dot),
+                   [](wchar_t character) { return static_cast<wchar_t>(std::towlower(character)); });
+    return result + L".png";
 }
 
 // Places a content-sized HD image at the top-left of a padded buffer. Padding is transparent black, or opaque black
