@@ -4270,7 +4270,7 @@ bool SEASON3B::CZenPaymentMsgBoxLayout::SetLayout()
     if (0 == pMsgBox)
         return false;
 
-    if (false == pMsgBox->Create(MSGBOX_COMMON_TYPE_OKCANCEL, INPUTBOX_TYPE_NUMBER, INPUTBOX_WIDTH, INPUTBOX_HEIGHT, INPUTBOX_TEXTLIMIT))
+    if (false == pMsgBox->Create(MSGBOX_COMMON_TYPE_OKCANCEL, INPUTBOX_TYPE_NUMBER, ZEN_WITHDRAW_INPUTBOX_WIDTH, INPUTBOX_HEIGHT, ZEN_WITHDRAW_TEXTLIMIT))
         return false;
 
     pMsgBox->SetInputBoxOption(UIOPTION_NUMBERONLY | UIOPTION_PAINTBACK);
@@ -4308,6 +4308,8 @@ CALLBACK_RESULT SEASON3B::CZenPaymentMsgBoxLayout::ProcessOk(class CNewUIMessage
     {
         return CALLBACK_CONTINUE;
     }
+
+    iInputZen = std::min(iInputZen, ZEN_WITHDRAW_MAX);
 
     if (iInputZen <= CharacterMachine->StorageGold && CharacterMachine->Gold + iInputZen <= 2000000000
         )
