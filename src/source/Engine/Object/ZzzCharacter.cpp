@@ -6,6 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Render/Items/RoyalMaceFlames.h"
 #include "Core/Time/FrameTiming.h"
 #include <execution>
 #include <algorithm>
@@ -6996,6 +6997,9 @@ void RenderLinkObject(float x, float y, float z, CHARACTER* c, PART_t* f, int Ty
     }
     else
         b->Transform(BoneTransform, Temp, Temp, &OBB, Translate);
+
+    Render::Items::RoyalFlames::Emit(b, o, Type, Level, o->Alpha, 0, RenderType,
+                                   Translate, BoneTransform);
 
     if (Type != MODEL_CAPE_OF_LORD // Cape of Lord
         && Type != MODEL_CAPE_OF_FIGHTER // Cape of Fighter

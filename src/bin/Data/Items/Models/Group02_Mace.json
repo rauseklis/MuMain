@@ -271,8 +271,8 @@
     },
     {
       "number": 22,
-      "file": "Data/Item/KingMaces/macedemonc.bmd",
-      "textureFolders": ["Item/KingMaces/Normal"],
+      "file": "Data/Item/MaceOfKing/Mace.bmd",
+      "textureFolders": ["Item/MaceOfKing"],
       "inventory": {
         "anchor": [0.8, 0.7],
         "rotation": [180, 270, 15]
@@ -283,8 +283,8 @@
     },
     {
       "number": 23,
-      "file": "Data/Item/KingMaces/celesmace.bmd",
-      "textureFolders": ["Item/KingMaces/Royal"],
+      "file": "Data/Item/RoyalMaceOfKing/RoyalMace.bmd",
+      "textureFolders": ["Item/RoyalMaceOfKing"],
       "inventory": {
         "anchor": [0.8, 0.7],
         "rotation": [180, 270, 15]

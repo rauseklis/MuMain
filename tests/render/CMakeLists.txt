@@ -196,3 +196,13 @@ if(MU_ENABLE_SHADER_COMPILATION
             -P "${CMAKE_SOURCE_DIR}/cmake/ValidateDxilReflection.cmake"
     )
 endif()
+
+mu_add_test(
+    NAME test_royal_mace_flames
+    SOURCES test_royal_mace_flames.cpp
+)
+
+add_test(
+    NAME royal_flame_render_path
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_royal_flame_render_path.py" "${CMAKE_SOURCE_DIR}"
+)

@@ -542,8 +542,8 @@
       "attackSpeed": 30,
       "attackType": 1,
       "requirements": {
-        "strength": 160,
-        "dexterity": 60
+        "strength": 480,
+        "dexterity": 334
       },
       "classRequirements": {
         "darkKnight": 1,
@@ -566,8 +566,8 @@
       "attackSpeed": 40,
       "attackType": 1,
       "requirements": {
-        "strength": 160,
-        "dexterity": 60
+        "strength": 968,
+        "dexterity": 675
       },
       "classRequirements": {
         "darkKnight": 1,
