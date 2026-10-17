@@ -23,8 +23,22 @@ inline constexpr int kMinScale = 2;
 inline constexpr int kMaxScale = 4;
 inline constexpr int kBytesPerPixel = 4;
 inline constexpr int kMaxHdTextureSize = 8192;
-inline constexpr std::wstring_view kInterfaceRoot = L"interface";
 inline constexpr std::wstring_view kDataFolder = L"data/";
+
+// Texture folders that may have HD replacements: lower-case name -> folder name on disk.
+struct EligibleRoot
+{
+    std::wstring_view lowerName;
+    std::wstring_view folderName;
+};
+inline constexpr EligibleRoot kEligibleRoots[] = {
+    {L"interface", L"Interface"},
+    {L"skill", L"Skill"},
+    {L"item", L"Item"},
+    {L"player", L"Player"},
+    {L"monster", L"Monster"},
+    {L"npc", L"NPC"},
+};
 
 enum class Setting
 {
@@ -55,6 +69,23 @@ struct HdImage
     if (lower == L"4" || lower == L"4x")
         return Setting::Scale4;
     return Setting::Auto;
+}
+
+// The value stored in config.ini for a setting (the inverse of ParseSetting).
+[[nodiscard]] inline std::wstring SettingConfigValue(Setting setting)
+{
+    switch (setting)
+    {
+    case Setting::Off:
+        return L"off";
+    case Setting::Scale2:
+        return L"2";
+    case Setting::Scale4:
+        return L"4";
+    case Setting::Auto:
+        break;
+    }
+    return L"auto";
 }
 
 // Scales to try, best first. A missing file at one scale falls back to the next lower one.
@@ -89,21 +120,86 @@ struct HdImage
     return scaleX;
 }
 
-// Data\Interface\a\b.tga -> Data\Interface@4x\a\b.png (same separators and case). Empty for non-interface paths.
-[[nodiscard]] inline std::wstring HdPath(std::wstring_view originalPath, int scale)
-{
-    if (!UiTextureQuality::IsInterfaceTexturePath(originalPath))
-        return {};
+// World1, World2 ... and Object1, Object2 ...: a family prefix followed by digits only.
+inline constexpr std::wstring_view kNumberedFamilies[] = {L"world", L"object"};
 
-    std::wstring lower(originalPath);
+[[nodiscard]] inline bool IsNumberedFolder(std::wstring_view lowerName)
+{
+    for (const std::wstring_view family : kNumberedFamilies)
+    {
+        if (lowerName.size() <= family.size() || lowerName.substr(0, family.size()) != family)
+            continue;
+        const std::wstring_view digits = lowerName.substr(family.size());
+        if (std::all_of(digits.begin(), digits.end(), [](wchar_t character) { return character >= L'0' && character <= L'9'; }))
+            return true;
+    }
+    return false;
+}
+
+struct RootMatch
+{
+    std::size_t start = 0;
+    std::size_t length = 0;
+    std::wstring folderName;
+};
+
+// The first folder below "data/" when it is one of the folders that may have HD replacements.
+[[nodiscard]] inline std::optional<RootMatch> FindEligibleRoot(std::wstring_view path)
+{
+    std::wstring lower(path);
     std::transform(lower.begin(), lower.end(), lower.begin(), [](wchar_t character)
     {
         return character == L'\\' ? L'/' : static_cast<wchar_t>(std::towlower(character));
     });
-    const std::size_t rootStart = lower.find(kDataFolder) + kDataFolder.size();
+    const std::size_t dataPosition = lower.find(kDataFolder);
+    if (dataPosition == std::wstring::npos)
+        return std::nullopt;
+
+    const std::size_t start = dataPosition + kDataFolder.size();
+    const std::size_t end = lower.find(L'/', start);
+    if (end == std::wstring::npos)
+        return std::nullopt;
+
+    const std::wstring_view name(lower.data() + start, end - start);
+    for (const EligibleRoot& root : kEligibleRoots)
+    {
+        if (root.lowerName == name)
+            return RootMatch{start, name.size(), std::wstring(root.folderName)};
+    }
+    if (IsNumberedFolder(name))
+        return RootMatch{start, name.size(), std::wstring(path.substr(start, name.size()))};
+    return std::nullopt;
+}
+
+[[nodiscard]] inline bool IsHdEligiblePath(std::wstring_view path)
+{
+    return FindEligibleRoot(path).has_value();
+}
+
+// Whether an HD texture may be block-compressed: the character, monster, NPC, item and skill textures. Interface art
+// (thin lines, flat colours) and the terrain and scenery tiles (grass billboards, cut-outs that must keep their exact
+// alpha) stay uncompressed.
+[[nodiscard]] inline bool IsCompressiblePath(std::wstring_view path)
+{
+    const std::optional<RootMatch> root = FindEligibleRoot(path);
+    if (!root)
+        return false;
+    std::wstring lower(root->folderName);
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                   [](wchar_t character) { return static_cast<wchar_t>(std::towlower(character)); });
+    return lower != L"interface" && !IsNumberedFolder(lower);
+}
+
+// Data\Interface\a\b.tga -> Data\Interface@4x\a\b.png (same separators); Skill and Item work the same way.
+// Empty for textures outside the eligible folders.
+[[nodiscard]] inline std::wstring HdPath(std::wstring_view originalPath, int scale)
+{
+    const std::optional<RootMatch> root = FindEligibleRoot(originalPath);
+    if (!root)
+        return {};
 
     std::wstring result(originalPath);
-    result.replace(rootStart, kInterfaceRoot.size(), L"Interface@" + std::to_wstring(scale) + L"x");
+    result.replace(root->start, root->length, std::wstring(root->folderName) + L"@" + std::to_wstring(scale) + L"x");
 
     const std::size_t lastSeparator = result.find_last_of(L"\\/");
     const std::size_t dot = result.find_last_of(L'.');
@@ -111,6 +207,26 @@ struct HdImage
         return result + L".png";
     result.replace(dot, std::wstring::npos, L".png");
     return result;
+}
+
+// For two textures that share a name and differ only by extension (TileGrass01.jpg and TileGrass01.tga are different pictures),
+// the HD file keeps the extension in its name: Data\World1\TileGrass01.jpg -> Data\World1@2x\TileGrass01.jpg.png.
+[[nodiscard]] inline std::wstring HdPathWithExtension(std::wstring_view originalPath, int scale)
+{
+    const std::optional<RootMatch> root = FindEligibleRoot(originalPath);
+    if (!root)
+        return {};
+
+    std::wstring result(originalPath);
+    result.replace(root->start, root->length, std::wstring(root->folderName) + L"@" + std::to_wstring(scale) + L"x");
+
+    const std::size_t lastSeparator = result.find_last_of(L"\/");
+    const std::size_t dot = result.find_last_of(L'.');
+    if (dot == std::wstring::npos || (lastSeparator != std::wstring::npos && dot < lastSeparator))
+        return {};
+    std::transform(result.begin() + static_cast<std::ptrdiff_t>(dot), result.end(), result.begin() + static_cast<std::ptrdiff_t>(dot),
+                   [](wchar_t character) { return static_cast<wchar_t>(std::towlower(character)); });
+    return result + L".png";
 }
 
 // Places a content-sized HD image at the top-left of a padded buffer. Padding is transparent black, or opaque black

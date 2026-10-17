@@ -18,6 +18,9 @@ from PIL import Image
 
 from core_set import CORE_SET
 import gauges
+import gm_icon
+import posbar
+import statrow
 import reframe
 import retext
 from mu_image import read_texture
@@ -58,7 +61,10 @@ def all_textures():
     counts = {}
     for relative in rows:
         counts[stem_key(relative)] = counts.get(stem_key(relative), 0) + 1
-    return [relative for relative in rows if counts[stem_key(relative)] == 1]
+    # Two files with the same stem share one HD path. The game loads the .tga (OZT) one for the shared names, so it keeps
+    # the HD art; the unused .jpg (OZJ) twin gets none.
+    return [relative for relative in rows
+            if counts[stem_key(relative)] == 1 or relative.lower().endswith(".ozt")]
 
 
 def drift(original, master):
@@ -79,6 +85,11 @@ def remove_tiers(relative):
         path = tier_path(relative, scale)
         if os.path.exists(path):
             os.remove(path)
+
+
+def is_redrawn(name):
+    key = name.lower()
+    return key in {n.lower() for n in retext.SPECS} or key in {n.lower() for n in reframe.SPECS} or         key in {n.lower() for n in reframe.SLOT_STRIPS} or key in gauges.SPECS or key in gauges.GEM_SPECS
 
 
 def uses_network(relative, rgba, method):
@@ -126,11 +137,11 @@ def build_batch(names, tiers, method):
         master, label = masters.get(name, (None, "lanczos"))
         if master is None:
             master = enlarge_lanczos(name, rgba, kind)
-        if not within_tolerance(rgba, master):
+        if not is_redrawn(name) and not within_tolerance(rgba, master):
             remove_tiers(name)
             print("skipped", name, "(drifts too far from the original)")
             continue
-        master = gauges.apply(name, reframe.apply(name, retext.apply(name, master)), rgba)
+        master = posbar.apply(name, statrow.apply(name, gm_icon.apply(name, gauges.apply(name, reframe.apply(name, retext.apply(name, master)), rgba))))
         write_tiers(name, master, tiers)
         print("ok", name, f"({label})")
 

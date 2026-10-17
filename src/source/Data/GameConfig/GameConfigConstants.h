@@ -38,6 +38,7 @@ namespace CfgKeys
     inline constexpr wchar_t CfgKeyUILocale[] = L"Locale";
     inline constexpr wchar_t CfgKeyFont[]     = L"Font";
     inline constexpr wchar_t CfgKeyHdTextures[] = L"HdTextures";
+    inline constexpr wchar_t CfgKeyHdCompression[] = L"HdCompression";
 
     // Camera
     inline constexpr wchar_t CfgKeyZoom[] = L"Zoom";
@@ -83,6 +84,8 @@ namespace CfgDefaults
 
     // High-resolution interface textures: auto | off | 2 | 4. Applies on the next start.
     inline constexpr wchar_t CfgDefaultHdTextures[] = L"auto";
+    // Block-compress the large HD model and world textures on the GPU (a quarter of the video memory). Applies on the next start.
+    inline constexpr bool CfgDefaultHdCompression = true;
 
     // Legacy config compatibility only. SDL GPU ignores this key and default.
     inline constexpr bool CfgDefaultCoreProfile = true;

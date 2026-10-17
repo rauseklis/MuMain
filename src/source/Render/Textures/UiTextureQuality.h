@@ -32,6 +32,15 @@ namespace Render::UiTextureQuality
     return root == L"interface";
 }
 
+[[nodiscard]] inline bool IsWindowBackdropPath(std::wstring_view path)
+{
+    constexpr std::wstring_view kBackdropName = L"newui_msgbox_back.";
+    std::wstring normalized(path);
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+                   [](wchar_t character) { return static_cast<wchar_t>(std::towlower(character)); });
+    return IsInterfaceTexturePath(path) && normalized.find(kBackdropName) != std::wstring::npos;
+}
+
 inline void BleedTransparentRgb(std::span<std::uint8_t> rgba, int width, int height)
 {
     constexpr int kComponents = 4;

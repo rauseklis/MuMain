@@ -37,6 +37,14 @@ TEST_CASE("HD setting parses off, auto and explicit scales [render][ui_hd]")
     CHECK(ParseSetting(L"banana") == Setting::Auto);
 }
 
+TEST_CASE("HD setting is written back to the value that parses to it [render][ui_hd]")
+{
+    for (const Setting setting : {Setting::Off, Setting::Auto, Setting::Scale2, Setting::Scale4})
+        CHECK(ParseSetting(SettingConfigValue(setting)) == setting);
+    CHECK(SettingConfigValue(Setting::Off) == L"off");
+    CHECK(SettingConfigValue(Setting::Auto) == L"auto");
+}
+
 TEST_CASE("HD setting selects the scales to try, best first [render][ui_hd]")
 {
     CHECK(CandidateScales(Setting::Off).empty());
@@ -51,6 +59,44 @@ TEST_CASE("HD path mirrors the original under the tier folder [render][ui_hd]")
     CHECK(HdPath(L"Data/Interface/partCharge1/newui_menu03.jpg", 2) == L"Data/Interface@2x/partCharge1/newui_menu03.png");
     CHECK(HdPath(L"C:\\MU\\data\\interface\\a.tga", 2) == L"C:\\MU\\data\\Interface@2x\\a.png");
     CHECK(HdPath(L"Data\\Interface\\noextension", 2) == L"Data\\Interface@2x\\noextension.png");
+}
+
+TEST_CASE("HD path also works for the Skill and Item folders [render][ui_hd]")
+{
+    CHECK(HdPath(L"Data\\Skill\\dkhead2.jpg", 4) == L"Data\\Skill@4x\\dkhead2.png");
+    CHECK(HdPath(L"Data/Item/fenril01.tga", 2) == L"Data/Item@2x/fenril01.png");
+    CHECK(IsHdEligiblePath(L"Data\\Item\\fenril02.tga"));
+    CHECK(IsHdEligiblePath(L"Data\\Monster\\wolf.jpg"));
+    CHECK(IsHdEligiblePath(L"Data\\Player\\skin.jpg"));
+    CHECK(HdPath(L"Data\\NPC\\guard.tga", 2) == L"Data\\NPC@2x\\guard.png");
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\Effect\\spark.jpg"));
+    CHECK(IsHdEligiblePath(L"Data\\World1\\tile.jpg"));
+    CHECK(HdPath(L"Data\\World12\\TileGrass01.jpg", 2) == L"Data\\World12@2x\\TileGrass01.png");
+    CHECK(HdPath(L"Data\\Object57\\wall.tga", 4) == L"Data\\Object57@4x\\wall.png");
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\Worldmap\\tile.jpg"));
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\Objects\\tile.jpg"));
+    CHECK_FALSE(IsHdEligiblePath(L"Data\\World\\tile.jpg"));
+}
+
+TEST_CASE("only model textures are block-compressed [render][ui_hd]")
+{
+    CHECK(IsCompressiblePath(L"Data\\Monster\\wolf.jpg"));
+    CHECK(IsCompressiblePath(L"Data\\Player\\skin.jpg"));
+    CHECK(IsCompressiblePath(L"Data\\NPC\\guard.tga"));
+    CHECK(IsCompressiblePath(L"Data\\Item\\fenril01.tga"));
+    CHECK(IsCompressiblePath(L"Data\\Skill\\dkhead2.jpg"));
+    CHECK_FALSE(IsCompressiblePath(L"Data\\Interface\\newui_item_back01.tga"));
+    CHECK_FALSE(IsCompressiblePath(L"Data\\World1\\TileGrass01.tga"));
+    CHECK_FALSE(IsCompressiblePath(L"Data\\Object12\\grass_01.tga"));
+    CHECK_FALSE(IsCompressiblePath(L"Data\\Effect\\spark.jpg"));
+}
+
+TEST_CASE("HD path keeps the extension for textures that share a name [render][ui_hd]")
+{
+    CHECK(HdPathWithExtension(L"Data\\World1\\TileGrass01.jpg", 2) == L"Data\\World1@2x\\TileGrass01.jpg.png");
+    CHECK(HdPathWithExtension(L"Data\\World1\\TileGrass01.TGA", 4) == L"Data\\World1@4x\\TileGrass01.tga.png");
+    CHECK(HdPathWithExtension(L"Data\\Effect\\spark.jpg", 2).empty());
+    CHECK(HdPathWithExtension(L"Data\\World1\\noextension", 2).empty());
 }
 
 TEST_CASE("HD path is empty for textures outside the interface folder [render][ui_hd]")

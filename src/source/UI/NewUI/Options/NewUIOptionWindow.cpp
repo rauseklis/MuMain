@@ -7,6 +7,7 @@
 #include "UI/NewUI/NewUISystem.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "Render/Renderer/GraphicsQuality.h"
+#include "Render/Textures/UiHdTextures.h"
 #include "Audio/DSPlaySound.h"
 #include "Data/GameConfig/GameConfig.h"
 #include "Data/GameConfig/GameConfigConstants.h"
@@ -127,6 +128,28 @@ static const wchar_t* const* GetLanguageLabels()
 // family value ([UI] Font); empty = the platform default (so the look is
 // unchanged). The curated entries are bundled in the client's ./fonts directory
 // (see Core/Platform/GdiText.cpp), so they resolve even without a system install.
+// Texture quality combo (config.ini [UI] HdTextures): which HD replacement set to load. The order is the order shown.
+static const struct { Render::UiHdTextures::Setting value; const wchar_t* label; } s_TextureQualityOptions[] = {
+    { Render::UiHdTextures::Setting::Auto,   L"Auto" },
+    { Render::UiHdTextures::Setting::Scale4, L"Ultra" },
+    { Render::UiHdTextures::Setting::Scale2, L"High" },
+    { Render::UiHdTextures::Setting::Off,    L"Standard" },
+};
+static const int s_NumTextureQualityOptions = sizeof(s_TextureQualityOptions) / sizeof(s_TextureQualityOptions[0]);
+
+static const wchar_t* const* GetTextureQualityLabels()
+{
+    static const wchar_t* labels[s_NumTextureQualityOptions] = {};
+    static bool initialized = false;
+    if (!initialized)
+    {
+        for (int i = 0; i < s_NumTextureQualityOptions; i++)
+            labels[i] = s_TextureQualityOptions[i].label;
+        initialized = true;
+    }
+    return labels;
+}
+
 namespace
 {
 struct FontOption
@@ -309,6 +332,9 @@ namespace
     constexpr int ANISO_LABEL_Y_LOCAL = 248;
     constexpr int ANISO_COMBO_Y_LOCAL = 261;
     constexpr int ANISO_COMBO_X_LOCAL = RENDER_ROW_COMBO_X_LOCAL;
+    constexpr int TEXQUALITY_LABEL_Y_LOCAL = 299;
+    constexpr int TEXQUALITY_COMBO_Y_LOCAL = 312;
+    constexpr int TEXQUALITY_COMBO_X_LOCAL = RENDER_ROW_COMBO_X_LOCAL;
 
     constexpr int WINDOW_WIDTH = 190;
     constexpr int WINDOW_HEIGHT = 419;
@@ -352,6 +378,7 @@ SEASON3B::CNewUIOptionWindow::CNewUIOptionWindow()
     m_iAntiAliasingIndex = FindCurrentAntiAliasingIndex();
     m_bTextureMipmaps = GameConfig::GetInstance().GetTextureMipmapsEnabled();
     m_iAnisotropyIndex = FindCurrentAnisotropyIndex();
+    m_iTextureQualityIndex = FindCurrentTextureQualityIndex();
     m_iCurrentPage = PAGE_GENERAL;
 }
 
@@ -376,6 +403,7 @@ bool SEASON3B::CNewUIOptionWindow::Create(CNewUIManager* pNewUIMng, int x, int y
     InitMaxFpsCombo();
     InitAntiAliasingCombo();
     InitAnisotropyCombo();
+    InitTextureQualityCombo();
     Show(false);
     return true;
 }
@@ -485,6 +513,20 @@ void SEASON3B::CNewUIOptionWindow::InitAnisotropyCombo()
         RENDER_ROW_COMBO_MAX_VISIBLE);
 }
 
+void SEASON3B::CNewUIOptionWindow::InitTextureQualityCombo()
+{
+    m_iTextureQualityIndex = FindCurrentTextureQualityIndex();
+    m_TextureQualityCombo.Setup(
+        m_Pos.x + TEXQUALITY_COMBO_X_LOCAL,
+        m_Pos.y + TEXQUALITY_COMBO_Y_LOCAL,
+        RENDER_ROW_COMBO_WIDTH,
+        RENDER_ROW_COMBO_HEIGHT,
+        GetTextureQualityLabels(),
+        s_NumTextureQualityOptions,
+        m_iTextureQualityIndex,
+        RENDER_ROW_COMBO_MAX_VISIBLE);
+}
+
 void SEASON3B::CNewUIOptionWindow::SetButtonInfo()
 {
     m_BtnClose.ChangeTextBackColor(RGBA(255, 255, 255, 0));
@@ -516,6 +558,7 @@ void SEASON3B::CNewUIOptionWindow::SetPos(int x, int y)
     m_MaxFpsCombo.SetPos(m_Pos.x + MAXFPS_COMBO_X_LOCAL, m_Pos.y + MAXFPS_COMBO_Y_LOCAL);
     m_AntiAliasingCombo.SetPos(m_Pos.x + AA_COMBO_X_LOCAL, m_Pos.y + AA_COMBO_Y_LOCAL);
     m_AnisotropyCombo.SetPos(m_Pos.x + ANISO_COMBO_X_LOCAL, m_Pos.y + ANISO_COMBO_Y_LOCAL);
+    m_TextureQualityCombo.SetPos(m_Pos.x + TEXQUALITY_COMBO_X_LOCAL, m_Pos.y + TEXQUALITY_COMBO_Y_LOCAL);
 }
 
 bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
@@ -554,6 +597,7 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
         { PAGE_GRAPHICS, &m_MaxFpsCombo,       &m_iMaxFpsIndex,       &CNewUIOptionWindow::ApplyMaxFps        },
         { PAGE_GRAPHICS, &m_AntiAliasingCombo, &m_iAntiAliasingIndex, &CNewUIOptionWindow::ApplyAntiAliasing  },
         { PAGE_GRAPHICS, &m_AnisotropyCombo,   &m_iAnisotropyIndex,   &CNewUIOptionWindow::ApplyAnisotropy    },
+        { PAGE_GRAPHICS, &m_TextureQualityCombo, &m_iTextureQualityIndex, &CNewUIOptionWindow::ApplyTextureQuality },
     };
     for (int pass = 0; pass < 2; ++pass)   // pass 0 = open combo (on top), pass 1 = closed
     {
@@ -835,6 +879,9 @@ void SEASON3B::CNewUIOptionWindow::OpenningProcess()
     m_iAnisotropyIndex = FindCurrentAnisotropyIndex();
     m_AnisotropyCombo.SetSelectedIndex(m_iAnisotropyIndex);
     m_AnisotropyCombo.Close();
+    m_iTextureQualityIndex = FindCurrentTextureQualityIndex();
+    m_TextureQualityCombo.SetSelectedIndex(m_iTextureQualityIndex);
+    m_TextureQualityCombo.Close();
 }
 
 void SEASON3B::CNewUIOptionWindow::ClosingProcess()
@@ -845,6 +892,7 @@ void SEASON3B::CNewUIOptionWindow::ClosingProcess()
     m_MaxFpsCombo.Close();
     m_AntiAliasingCombo.Close();
     m_AnisotropyCombo.Close();
+    m_TextureQualityCombo.Close();
 }
 
 void SEASON3B::CNewUIOptionWindow::LoadImages()
@@ -981,6 +1029,7 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
             { AA_LABEL_Y_LOCAL, I18N::Game::AntiAliasingRestart },
             { MIPMAPS_LABEL_Y_LOCAL, I18N::Game::MipmapsRestart },
             { ANISO_LABEL_Y_LOCAL, I18N::Game::AnisotropyRestart },
+            { TEXQUALITY_LABEL_Y_LOCAL, I18N::Game::TextureQualityRestart },
         };
         for (const Row& row : rows)
         {
@@ -1071,7 +1120,7 @@ void SEASON3B::CNewUIOptionWindow::RenderButtons()
                     m_Pos.y + MIPMAPS_CHECKBOX_Y_LOCAL, 15, 15,
                     0, m_bTextureMipmaps ? 0.f : 15.f);
 
-        CNewUIComboBox* combos[] = { &m_MaxFpsCombo, &m_AntiAliasingCombo, &m_AnisotropyCombo };
+        CNewUIComboBox* combos[] = { &m_MaxFpsCombo, &m_AntiAliasingCombo, &m_AnisotropyCombo, &m_TextureQualityCombo };
         for (auto* c : combos) if (!c->IsOpen()) c->Render();
         for (auto* c : combos) if (c->IsOpen()) c->Render();
     }
@@ -1354,6 +1403,30 @@ void SEASON3B::CNewUIOptionWindow::ApplyAnisotropy()
     // Restart required: anisotropy is applied once per texture, at upload
     // time in GlobalBitmap.cpp's UploadTextureSDLGpu, not something that can
     // be re-applied to already-uploaded textures live.
+}
+
+int SEASON3B::CNewUIOptionWindow::FindCurrentTextureQualityIndex()
+{
+    const auto current = Render::UiHdTextures::ParseSetting(GameConfig::GetInstance().GetHdTextures());
+    for (int i = 0; i < s_NumTextureQualityOptions; ++i)
+    {
+        if (s_TextureQualityOptions[i].value == current)
+            return i;
+    }
+    return 0;  // Auto
+}
+
+void SEASON3B::CNewUIOptionWindow::ApplyTextureQuality()
+{
+    if (m_iTextureQualityIndex < 0 || m_iTextureQualityIndex >= s_NumTextureQualityOptions)
+    {
+        return;
+    }
+
+    GameConfig::GetInstance().SetHdTextures(
+        Render::UiHdTextures::SettingConfigValue(s_TextureQualityOptions[m_iTextureQualityIndex].value));
+    GameConfig::GetInstance().Save();
+    // Restart required: a texture picks its HD or original file once, when it is loaded.
 }
 
 void SEASON3B::CNewUIOptionWindow::ApplyVSync()

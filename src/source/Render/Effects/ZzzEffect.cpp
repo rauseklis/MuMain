@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include <algorithm>
 #include "Core/Time/FrameTiming.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Models/ZzzBMD.h"
@@ -9077,8 +9078,15 @@ void RenderEffects(bool bRenderBlendMesh)
                     break;
                 case MODEL_FENRIR_FOOT_THUNDER:
                 {
+                    // The decal is drawn additively, so its alpha has no effect on screen. Its Move handler only fades some of the
+                    // colour channels (the gold Fenrir keeps full green until the decal is removed), so the flash ended as a
+                    // bright green square that vanished abruptly. Fading the whole colour with the alpha makes it die out smoothly.
+                    vec3_t fadedLight;
+                    const float fade = std::clamp(o->Alpha, 0.0f, 1.0f);
+                    for (int channel = 0; channel < 3; ++channel)
+                        fadedLight[channel] = o->Light[channel] * fade;
                     EnableAlphaBlend();
-                    RenderTerrainAlphaBitmap(BITMAP_FENRIR_FOOT_THUNDER1 + (o->m_iAnimation % 5), o->Position[0], o->Position[1], 0.6f, 0.6f, o->Light);
+                    RenderTerrainAlphaBitmap(BITMAP_FENRIR_FOOT_THUNDER1 + (o->m_iAnimation % 5), o->Position[0], o->Position[1], 0.6f, 0.6f, fadedLight);
                     DisableAlphaBlend();
                 }
                 break;

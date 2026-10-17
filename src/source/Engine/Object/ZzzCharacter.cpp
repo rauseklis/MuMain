@@ -9923,6 +9923,7 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
         {
             for (int i = 0; i < o->m_byNumCloth; i++)
             {
+                pCloth[i].SetHidden(true); // shown again below once the piece is going to be simulated and drawn
                 if (gCharacterManager.GetBaseClass(c->Class) == CLASS_DARK_LORD)
                 {
                     if (i == 2 && ((c->Wing.Type != MODEL_CAPE_OF_LORD && c->Wing.Type != MODEL_CAPE_OF_EMPEROR && c->Wing.Type != MODEL_SMALL_CAPE_OF_LORD) && (CloakLight[0] == 1.f && CloakLight[1] == 1.f && CloakLight[2] == 1.f)))
@@ -9970,7 +9971,7 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
                     continue;
                 }
                 else
-                    if (!pCloth[i].Move2(Flag, 5))
+                    if (pCloth[i].SetHidden(false), !pCloth[i].Move2(Flag, 5))
                     {
                         DeleteCloth(c, o);
                     }

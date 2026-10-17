@@ -7390,11 +7390,11 @@ void ReceiveStorageGold(const BYTE* ReceiveBuffer)
     auto Data = (LPPRECEIVE_STORAGE_GOLD)ReceiveBuffer;
     if (Data->Result)
     {
-        CharacterMachine->StorageGold = Data->StorageGold;
+        CharacterMachine->StorageGold = (__int64)Data->StorageGold;
         CharacterMachine->Gold = Data->Gold;
     }
 
-    g_ConsoleDebug->Write(MCD_RECEIVE, L"0x81 [ReceiveStorageGold(%d %d %d)]", Data->Result, Data->StorageGold,
+    g_ConsoleDebug->Write(MCD_RECEIVE, L"0x81 [ReceiveStorageGold(%d %lld %d)]", Data->Result, (__int64)Data->StorageGold,
                           Data->Gold);
 }
 
@@ -7408,6 +7408,17 @@ void ReceiveStorageStatus(const BYTE* ReceiveBuffer)
     auto Data = (LPPHEADER_DEFAULT)ReceiveBuffer;
 
     g_pStorageInventory->ProcessToReceiveStorageStatus(Data->Value);
+}
+
+void ReceiveVaultSwitched(const BYTE* ReceiveBuffer)
+{
+    auto Data = (LPPRECEIVE_VAULT_SWITCHED)ReceiveBuffer;
+    if (Data->Success && Data->VaultCount > 0)
+    {
+        g_pStorageInventory->ProcessToReceiveVaultSwitched(Data->VaultNumber, Data->VaultCount);
+    }
+
+    g_ConsoleDebug->Write(MCD_RECEIVE, L"0x84 [ReceiveVaultSwitched(%d %d %d)]", Data->Success, Data->VaultNumber, Data->VaultCount);
 }
 
 void ReceiveParty(const BYTE* ReceiveBuffer)
@@ -14159,6 +14170,9 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
         break;
     case 0x83:
         ReceiveStorageStatus(ReceiveBuffer);
+        break;
+    case 0x84:
+        ReceiveVaultSwitched(ReceiveBuffer);
         break;
     case 0x86:
         ReceiveMixExtended(received_span);

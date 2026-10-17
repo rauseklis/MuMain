@@ -228,11 +228,13 @@ bool CNewUIHeroPositionInfo::Render()
     g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
 
-    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW, m_Pos.x, m_Pos.y, float(HERO_POSITION_INFO_BASEA_WINDOW_WIDTH), float(HERO_POSITION_INFO_BASE_WINDOW_HEIGHT));
+    // All three pieces map the texture exactly (no half-texel inset): the plain 4-argument RenderImage stretches rows 0.5..h-0.5
+    // over the quad, which put the left end and the right end 0.5 to 1 pixel off the middle piece and made the bar's lines step.
+    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW, m_Pos.x, m_Pos.y, float(HERO_POSITION_INFO_BASEA_WINDOW_WIDTH), float(HERO_POSITION_INFO_BASE_WINDOW_HEIGHT), 0.f, 0.f, HERO_POSITION_INFO_BASEA_WINDOW_WIDTH / 32.f, HERO_POSITION_INFO_BASE_WINDOW_HEIGHT / 32.f);
 
     RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 1, m_Pos.x + HERO_POSITION_INFO_BASEA_WINDOW_WIDTH, m_Pos.y, float(WidenX), float(HERO_POSITION_INFO_BASE_WINDOW_HEIGHT), 0.1f, 0.f, 22.4f / 32.f, 25.f / 32.f);
 
-    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2, m_Pos.x + HERO_POSITION_INFO_BASEA_WINDOW_WIDTH + WidenX, m_Pos.y, 91.f, 20.f);
+    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2, m_Pos.x + HERO_POSITION_INFO_BASEA_WINDOW_WIDTH + WidenX, m_Pos.y, 91.f, 20.f, 0.f, 0.f, 91.f / 128.f, 20.f / 32.f);
     //--
     m_BtnConfig.Render();
 

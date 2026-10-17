@@ -29,11 +29,11 @@ namespace
     constexpr int TAB_REGION_Y = 40;
     // A compact, equal-width tab cluster leaves the title bar's close control unobstructed. The widest label
     // ("My Listings") still has symmetrical horizontal padding, and every tab shares this exact width.
-    constexpr int TAB_WIDTH = 88;
+    constexpr int TAB_WIDTH = 76;
     // Treat the four views as one compact navigation group. The old 14-pixel gaps made four related
     // choices look like isolated buttons and wasted the most legible part of the window.
     constexpr int TAB_GAP = 6;
-    constexpr int TAB_HEIGHT = 26;
+    constexpr int TAB_HEIGHT = 22;
     constexpr int TOP_BAND_HEIGHT = 64;
     constexpr int BOTTOM_BAND_HEIGHT = 45;
     constexpr int SIDE_BAND_WIDTH = 21;
@@ -68,8 +68,8 @@ namespace
     constexpr int SEARCH_INPUT_HEIGHT = 16;
     // Equal widths so Search/Reset read as a matched pair (not two arbitrarily-different sizes), and wide
     // enough that "Reset" (the longer-looking word at this font) doesn't clip against its own border.
-    constexpr int SEARCH_BUTTON_WIDTH = 56;
-    constexpr int RESET_BUTTON_WIDTH = 56;
+    constexpr int SEARCH_BUTTON_WIDTH = 48;
+    constexpr int RESET_BUTTON_WIDTH = 48;
     constexpr int SEARCH_INPUT_WIDTH = 190;
     constexpr int SEARCH_BUTTON_X_OFFSET = SEARCH_INPUT_X_OFFSET + SEARCH_INPUT_WIDTH + 6;
     constexpr int RESET_BUTTON_X_OFFSET = SEARCH_BUTTON_X_OFFSET + SEARCH_BUTTON_WIDTH + 5;
@@ -255,8 +255,8 @@ namespace
     constexpr unsigned int ROW_HOVER_WASH = 0x22C8A45Au;
     constexpr unsigned int BROWSE_HEADER_LINE_COLOR = 0x30FFFFFFu;
     constexpr unsigned int BROWSE_GRID_COLOR = 0x50C8A45Au;
-    constexpr int PAGE_BTN_WIDTH = 53;
-    constexpr int PAGE_BTN_HEIGHT = 23;
+    constexpr int PAGE_BTN_WIDTH = 46;
+    constexpr int PAGE_BTN_HEIGHT = 20;
     constexpr int PAGE_BTN_MARGIN_X = 20;
     constexpr int PAGE_BTN_Y_OFFSET = SEASON3B::CNewUIAuctionWindow::WINDOW_HEIGHT - BOTTOM_BAND_HEIGHT
         + (BOTTOM_BAND_HEIGHT - PAGE_BTN_HEIGHT) / 2;
@@ -3890,7 +3890,7 @@ void SEASON3B::CNewUIAuctionWindow::ComputeTabLayout(int (&outX)[TAB_COUNT], int
 
 void SEASON3B::CNewUIAuctionWindow::LoadImages()
 {
-    LoadBitmap(L"Interface\\newui_msgbox_back.jpg", IMAGE_AUCTION_BACK, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_back.tga", IMAGE_AUCTION_BACK, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_item_back01.tga", IMAGE_AUCTION_TOP, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_item_back02-L.tga", IMAGE_AUCTION_LEFT, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_item_back02-R.tga", IMAGE_AUCTION_RIGHT, GL_LINEAR);
@@ -3935,7 +3935,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderFrame()
     // Stretch the subdued background, but preserve both ornate frame caps at 1:1 and stretch only their
     // plain center strip so the MU corners retain their original proportions.
     RenderImageStretch(IMAGE_AUCTION_BACK, x, y, static_cast<float>(windowWidth), static_cast<float>(WINDOW_HEIGHT),
-        0.f, 0.f, static_cast<float>(FRAME_TEXTURE_WIDTH), static_cast<float>(FRAME_TEXTURE_HEIGHT));
+        0.f, 0.f, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
 
     RenderImageStretch(IMAGE_AUCTION_TOP, x, y, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
         0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));

@@ -27,6 +27,9 @@ namespace SEASON3B
     static constexpr float INPUTBOX_WIDTH = 50.0f;
     static constexpr float INPUTBOX_HEIGHT = 12.0f;
     static constexpr int INPUTBOX_TEXTLIMIT = 8;
+    static constexpr float ZEN_WITHDRAW_INPUTBOX_WIDTH = 62.0f;
+    static constexpr int ZEN_WITHDRAW_TEXTLIMIT = 9;
+    static constexpr int ZEN_WITHDRAW_MAX = 500000000;
 
     class CNewUITextInputMsgBox : public CNewUIMessageBoxBase
     {

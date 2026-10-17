@@ -14,6 +14,7 @@ namespace Render::UiHdTextures
 namespace
 {
 std::atomic<Setting> g_activeSetting{Setting::Auto};
+std::atomic<bool> g_compressionEnabled{true};
 
 struct SurfaceDeleter
 {
@@ -46,8 +47,13 @@ std::optional<HdImage> LoadAtScale(const std::wstring& originalPath, int scale, 
                                    int paddedWidth, int paddedHeight, bool opaquePadding,
                                    std::string (*resolvePath)(const std::wstring&))
 {
-    const std::wstring hdPath = HdPath(originalPath, scale);
-    SurfacePtr surface = DecodePng(resolvePath(hdPath));
+    std::wstring hdPath = HdPathWithExtension(originalPath, scale);
+    SurfacePtr surface = hdPath.empty() ? nullptr : DecodePng(resolvePath(hdPath));
+    if (!surface)
+    {
+        hdPath = HdPath(originalPath, scale);
+        surface = DecodePng(resolvePath(hdPath));
+    }
     if (!surface)
         return std::nullopt;
 
@@ -80,11 +86,21 @@ Setting GetActiveSetting()
     return g_activeSetting.load();
 }
 
+void SetCompressionEnabled(bool enabled)
+{
+    g_compressionEnabled.store(enabled);
+}
+
+bool GetCompressionEnabled()
+{
+    return g_compressionEnabled.load();
+}
+
 std::optional<HdImage> LoadForTexture(const std::wstring& originalPath, int contentWidth, int contentHeight,
                                       int paddedWidth, int paddedHeight, bool opaquePadding,
                                       std::string (*resolvePath)(const std::wstring&))
 {
-    if (!UiTextureQuality::IsInterfaceTexturePath(originalPath))
+    if (!IsHdEligiblePath(originalPath))
         return std::nullopt;
 
     for (const int scale : CandidateScales(GetActiveSetting()))

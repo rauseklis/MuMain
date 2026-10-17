@@ -223,6 +223,11 @@ bool CNewUIStorageInventoryExt::InsertItem(int iIndex, std::span<const BYTE> pby
     return false;
 }
 
+void CNewUIStorageInventoryExt::ProcessVaultSwitched() const
+{
+    DeleteAllItems();
+}
+
 void CNewUIStorageInventoryExt::DeleteAllItems() const
 {
     if (m_pNewInventoryCtrl)
