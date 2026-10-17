@@ -27,6 +27,9 @@ CNewUIStorageInventory::CNewUIStorageInventory()
     m_pNewInventoryCtrl = nullptr;
     m_Pos.x = m_Pos.y = 0;
     m_nBackupSourceInvenIndex = -1;
+    m_nVaultNumber = 1;
+    m_nVaultCount = 1;
+    m_dwLastVaultSwitchRequest = 0;
 }
 
 CNewUIStorageInventory::~CNewUIStorageInventory()
@@ -112,6 +115,9 @@ bool CNewUIStorageInventory::UpdateMouseEvent()
 
     ProcessInventoryCtrl();
 
+    if (ProcessVaultArrows())
+        return false;
+
     if (ProcessBtns())
         return false;
 
@@ -181,6 +187,8 @@ bool CNewUIStorageInventory::Render()
         m_BtnExpand.Render();
     }
 
+    RenderVaultArrows();
+
     DisableAlphaBlend();
 
     return true;
@@ -207,8 +215,16 @@ void CNewUIStorageInventory::RenderText()
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetBgColor(0);
 
-    mu_swprintf(
-        szTemp, L"%ls (%ls)", I18N::Game::Storage, I18N::Game::Lookup(m_bLock ? 241 : 240));
+    if (m_nVaultCount > 1)
+    {
+        mu_swprintf(
+            szTemp, L"%ls %d/%d (%ls)", I18N::Game::Storage, m_nVaultNumber, m_nVaultCount, I18N::Game::Lookup(m_bLock ? 241 : 240));
+    }
+    else
+    {
+        mu_swprintf(
+            szTemp, L"%ls (%ls)", I18N::Game::Storage, I18N::Game::Lookup(m_bLock ? 241 : 240));
+    }
     if (m_bLock)
         g_pRenderText->SetTextColor(240, 32, 32, 255);
     else
@@ -263,10 +279,14 @@ void CNewUIStorageInventory::LoadImages()
     LoadBitmap(L"Interface\\newui_Bt_lock02.tga", IMAGE_STORAGE_BTN_UNLOCK, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_Bt_lock.tga", IMAGE_STORAGE_BTN_LOCK, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_item_money3.tga", IMAGE_STORAGE_MONEY, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_vault_arrow_L.tga", IMAGE_STORAGE_VAULT_ARROW_L, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_vault_arrow_R.tga", IMAGE_STORAGE_VAULT_ARROW_R, GL_LINEAR);
 }
 
 void CNewUIStorageInventory::UnloadImages()
 {
+    DeleteBitmap(IMAGE_STORAGE_VAULT_ARROW_R);
+    DeleteBitmap(IMAGE_STORAGE_VAULT_ARROW_L);
     DeleteBitmap(IMAGE_STORAGE_MONEY);
     DeleteBitmap(IMAGE_STORAGE_BTN_LOCK);
     DeleteBitmap(IMAGE_STORAGE_BTN_UNLOCK);
@@ -519,6 +539,69 @@ bool CNewUIStorageInventory::ProcessBtns()
         return true;
 
     return false;
+}
+
+bool CNewUIStorageInventory::IsMouseOnVaultArrow(bool bNext) const
+{
+    const int x = m_Pos.x + (bNext ? VAULT_ARROW_NEXT_X : VAULT_ARROW_PREV_X);
+    return CheckMouseIn(x, m_Pos.y + VAULT_ARROW_Y, VAULT_ARROW_WIDTH, VAULT_ARROW_HEIGHT);
+}
+
+void CNewUIStorageInventory::RenderVaultArrows()
+{
+    if (m_nVaultCount <= 1)
+        return;
+
+    for (int i = 0; i < 2; ++i)
+    {
+        const bool bNext = (i == 1);
+        const bool bOver = IsMouseOnVaultArrow(bNext);
+        const DWORD color = bOver ? RGBA(255, 255, 255, 255) : RGBA(205, 205, 205, 255);
+        RenderImage(bNext ? IMAGE_STORAGE_VAULT_ARROW_R : IMAGE_STORAGE_VAULT_ARROW_L,
+            static_cast<float>(m_Pos.x + (bNext ? VAULT_ARROW_NEXT_X : VAULT_ARROW_PREV_X)),
+            static_cast<float>(m_Pos.y + VAULT_ARROW_Y),
+            static_cast<float>(VAULT_ARROW_WIDTH), static_cast<float>(VAULT_ARROW_HEIGHT),
+            0.0f, 0.0f, color);
+    }
+}
+
+bool CNewUIStorageInventory::ProcessVaultArrows()
+{
+    if (m_nVaultCount <= 1)
+        return false;
+
+    for (int i = 0; i < 2; ++i)
+    {
+        const bool bNext = (i == 1);
+        if (!IsMouseOnVaultArrow(bNext) || !IsRelease(VK_LBUTTON))
+            continue;
+
+        // Switching while an item of the current vault is held would drop it into another vault.
+        const DWORD now = GetTickCount();
+        if (!EquipmentItem && !m_bItemAutoMove && now - m_dwLastVaultSwitchRequest >= VAULT_SWITCH_COOLDOWN_MS)
+        {
+            m_dwLastVaultSwitchRequest = now;
+            const int target = bNext
+                ? (m_nVaultNumber % m_nVaultCount) + 1
+                : ((m_nVaultNumber + m_nVaultCount - 2) % m_nVaultCount) + 1;
+            PlayBuffer(SOUND_CLICK01);
+            SocketClient->ToGameServer()->SendVaultSwitchRequest(static_cast<BYTE>(target));
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+void CNewUIStorageInventory::ProcessToReceiveVaultSwitched(int nVaultNumber, int nVaultCount)
+{
+    CNewUIInventoryCtrl::DeletePickedItem();
+    DeleteAllItems();
+    g_pStorageInventoryExt->ProcessVaultSwitched();
+
+    m_nVaultNumber = nVaultNumber;
+    m_nVaultCount = nVaultCount;
 }
 
 void CNewUIStorageInventory::SetItemAutoMove(bool bItemAutoMove, int nSourceInvenIndex)

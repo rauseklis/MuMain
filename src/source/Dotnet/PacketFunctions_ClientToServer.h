@@ -900,6 +900,16 @@ public:
     void SendVaultMoveMoneyRequest(VaultMoneyMoveDirection direction, uint32_t amount);
 
     /// <summary>
+    /// Sends a VaultSwitchRequest to this connection.
+    /// </summary>
+    /// <param name="vaultNumber">The number of the requested vault, starting with 1.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player wants to switch to another vault of the opened vault dialog.
+    /// Causes reaction on server side: The requested vault becomes the active one and its items are sent to the player.
+    /// </remarks>
+    void SendVaultSwitchRequest(BYTE vaultNumber);
+
+    /// <summary>
     /// Sends a LahapJewelMixRequest to this connection.
     /// </summary>
     /// <param name="operation">The operation.</param>

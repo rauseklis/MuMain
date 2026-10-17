@@ -1189,6 +1189,15 @@ typedef struct
 } PRECEIVE_STORAGE_GOLD, * LPPRECEIVE_STORAGE_GOLD;
 #pragma pack(pop)
 
+//receive vault switched
+typedef struct
+{
+    PBMSG_HEADER Header;
+    BYTE         Success;
+    BYTE         VaultNumber;
+    BYTE         VaultCount;
+} PRECEIVE_VAULT_SWITCHED, * LPPRECEIVE_VAULT_SWITCHED;
+
 //receive soccer time
 typedef struct {
     PBMSG_HEADER Header;

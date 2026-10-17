@@ -64,6 +64,7 @@ namespace SEASON3B
 
         bool IsItemAutoMove() const { return m_bItemAutoMove; }
 
+        void ProcessVaultSwitched() const;
         void ProcessToReceiveStorageItems(int nIndex, std::span<const BYTE> pbyItemPacket);
         void ProcessStorageItemAutoMoveSuccess();
         void ProcessStorageItemAutoMoveFailure();
