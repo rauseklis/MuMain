@@ -22,6 +22,7 @@
 #include "GameLogic/Pets/GIPetManager.h"
 #include "GameLogic/Items/CComGem.h"
 #include "GameLogic/Items/ItemCategories.h"
+#include "GameLogic/Items/KingMaceRules.h"
 #include "UI/NewUI/Inventory/NewUIInventoryCtrl.h"
 #include "Network/Server/SocketSystem.h"
 #include "UI/NewUI/NewUISystem.h"
@@ -538,12 +539,7 @@ void CalcDamageMin(ITEM* ip, ITEM_ATTRIBUTE* p, int excelAddValue)
         ip->DamageMin += 5 + (GetDropLevel(p) / 40);
     }
 
-    ip->DamageMin += (std::min<int>(9, ip->Level) * 3);
-
-    if (ip->Level - 9 > 0)
-    {
-        ip->DamageMin += ip->Level - 6;
-    }
+    ip->DamageMin += GameLogic::Items::WeaponUpgradeDamage(ip->Type, MAX_ITEM_INDEX, ip->Level);
 }
 
 void CalcDamageMax(ITEM* ip, ITEM_ATTRIBUTE* p, int excelAddValue)
@@ -569,12 +565,7 @@ void CalcDamageMax(ITEM* ip, ITEM_ATTRIBUTE* p, int excelAddValue)
         ip->DamageMax += 5 + (GetDropLevel(p) / 40);
     }
 
-    ip->DamageMax += (std::min<int>(9, ip->Level) * 3);
-
-    if (ip->Level - 9 > 0)
-    {
-        ip->DamageMax += ip->Level - 6;
-    }
+    ip->DamageMax += GameLogic::Items::WeaponUpgradeDamage(ip->Type, MAX_ITEM_INDEX, ip->Level);
 }
 
 void CalcMagicPower(ITEM* ip, ITEM_ATTRIBUTE* p, int excelAddValue)

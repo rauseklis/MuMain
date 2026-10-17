@@ -38,6 +38,7 @@
 #include "GameLogic/Items/ItemCategories.h"
 #include "Render/Items/ItemDisplay.h"
 #include "Render/Items/ItemPreviewBounds.h"
+#include "UI/Items/KingMaceNameStyle.h"
 #include <set>
 #include "GameLogic/Items/ShopRestrictions.h"
 #include "GameLogic/Items/TradeRestrictions.h"
@@ -223,6 +224,8 @@ int RenderTextList(int sx, int sy, int TextNum, int Tab, int iSort = RT3_SORT_CE
         case TEXT_COLOR_GRAY: g_pRenderText->SetTextColor(102, 102, 102, 255); break;
         case TEXT_COLOR_RED: g_pRenderText->SetTextColor(255, 51, 26, 255); break;
         case TEXT_COLOR_YELLOW: g_pRenderText->SetTextColor(255, 204, 26, 255); break;
+        case TEXT_COLOR_ORANGE: g_pRenderText->SetTextColor(UI::Items::KingMaceNameRed,
+            UI::Items::KingMaceNameGreen, UI::Items::KingMaceNameBlue, 255); break;
         case TEXT_COLOR_GREEN: g_pRenderText->SetTextColor(26, 255, 128, 255); break;
         case TEXT_COLOR_PURPLE: g_pRenderText->SetTextColor(255, 26, 255, 255); break;
         default: g_pRenderText->SetTextColor(255, 255, 255, 255); break;
@@ -874,6 +877,13 @@ void ComputeItemInfo(int iHelpItem)
             case 1: DamageMax += 4; break;	// +10
             default: break;
             };
+        }
+
+        if (GameLogic::Items::IsKingMace(ItemHelp, MAX_ITEM_INDEX))
+        {
+            const int bonus = GameLogic::Items::KingMaceUpgradeDamage(Level);
+            DamageMin = p->DamageMin + bonus;
+            DamageMax = p->DamageMax + bonus;
         }
 
         if (Magic > 0)
@@ -1841,6 +1851,17 @@ void GetSpecialOptionText(int Type, wchar_t* Text, WORD Option, BYTE Value, int 
     }
 }
 
+namespace
+{
+    void FinishItemTooltipNameLine(int itemType, int color, int& textNum)
+    {
+        TextListColor[textNum] = UI::Items::HasKingMaceNameStyle(itemType, MAX_ITEM_INDEX)
+            ? TEXT_COLOR_ORANGE : color;
+        TextBold[textNum] = true;
+        ++textNum;
+    }
+}
+
 void RenderItemInfo(int sx, int sy, ITEM* ip, bool Sell, int Inventype, bool bItemTextListBoxUse)
 {
     if (ip->Type == -1)
@@ -2398,7 +2419,7 @@ void RenderItemInfo(int sx, int sy, ITEM* ip, bool Sell, int Inventype, bool bIt
         }
     }
 
-    TextListColor[TextNum] = Color; TextBold[TextNum] = true; TextNum++;
+    FinishItemTooltipNameLine(ip->Type, Color, TextNum);
     mu_swprintf(TextList[TextNum], L"\n"); TextNum++; SkipNum++;
 
     if (ip->Type == ITEM_WEAPON_OF_ARCHANGEL)
@@ -5958,6 +5979,15 @@ void AppendGroundItemLabelText(wchar_t(&buffer)[BufferSize], const wchar_t* form
     _snwprintf_s(buffer + currentLength, BufferSize - currentLength, _TRUNCATE, format, args...);
 }
 
+void ApplyKingMaceGroundNameStyle(int itemType, GroundItemLabelDescriptor& descriptor)
+{
+    if (!UI::Items::HasKingMaceNameStyle(itemType, MAX_ITEM_INDEX))
+        return;
+
+    descriptor.TextColor = MakeRgba(UI::Items::KingMaceNameRed,
+        UI::Items::KingMaceNameGreen, UI::Items::KingMaceNameBlue);
+}
+
 void BuildGroundItemLabelDescriptor(OBJECT* o, ITEM* ip, GroundItemLabelDescriptor& descriptor)
 {
     auto ItemLevel = ip->Level;
@@ -6341,6 +6371,7 @@ void BuildGroundItemLabelDescriptor(OBJECT* o, ITEM* ip, GroundItemLabelDescript
             AppendGroundItemLabelText(descriptor.Name, L"%ls", I18N::Game::Luck);
         }
     }
+    ApplyKingMaceGroundNameStyle(o->Type - MODEL_ITEM, descriptor);
 }
 
 void ApplyGroundItemLabelDescriptor(const GroundItemLabelDescriptor& descriptor)
