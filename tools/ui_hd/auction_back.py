@@ -155,8 +155,41 @@ def render():
         seg = np.array(c0, np.float32) * (1 - m[..., None]) + np.array(c1, np.float32) * m[..., None]
         sel = ((t >= t0) & (t <= t1))[..., None]
         wash = np.where(sel, seg, wash)
-    img = img * 0.55 + img * (wash / 255.0) * 1.15
+    img = img * 0.62 + img * (wash / 255.0) * 0.85
     img += (np.exp(-(((u - 0.5) / 0.5) ** 2 + (v / 0.2) ** 2)) * 0.7)[..., None] * np.array((190, 120, 30), np.float32)[None, None, :] * 0.5
+
+    # age: coarse pitting, grime pooled in the joints, rain streaks, hairline cracks and chipped corners
+    pits = blurred_noise(rng, 1.6)
+    img *= (1.0 - 0.16 * np.clip(pits - 0.9, 0, 2.0))[..., None]
+    coarse = blurred_noise(rng, 7 * SCALE)
+    img *= (1.0 + 0.10 * coarse)[..., None]
+    streak_rng = np.random.default_rng(21)
+    line = streak_rng.normal(0, 1, W).astype(np.float32)
+    kernel = np.exp(-0.5 * (np.arange(-120, 121) / (7 * SCALE)) ** 2).astype(np.float32)
+    line = np.convolve(line, kernel / kernel.sum(), mode="same")
+    line /= max(float(line.std()), 1e-6)
+    streaks = np.repeat(line[None, :], H, axis=0)
+    fall = np.clip(1.0 - v * 1.2, 0.0, 1.0)
+    img *= (1.0 - 0.07 * np.clip(streaks, 0, 2.5) * fall)[..., None]
+    crack_img = Image.new("L", (W, H), 0)
+    cd = ImageDraw.Draw(crack_img)
+    crng = np.random.default_rng(8)
+    for _ in range(26):
+        x = crng.uniform(0, W)
+        y = crng.uniform(0, H)
+        ang = crng.uniform(0, 2 * np.pi)
+        pts = [(x, y)]
+        for _seg in range(int(crng.integers(5, 14))):
+            ang += crng.normal(0, 0.22)
+            step = crng.uniform(2.0, 5.5) * SCALE
+            x += np.cos(ang) * step
+            y += np.sin(ang) * step
+            pts.append((x, y))
+        cd.line(pts, fill=255, width=max(int(0.35 * SCALE), 1))
+    cracks = gaussian_blur(np.asarray(crack_img, np.float32) / 255.0, 0.35 * SCALE)
+    img *= (1.0 - 0.62 * np.clip(cracks * 1.6, 0, 1))[..., None]
+    img += (np.roll(cracks, (SCALE, SCALE), axis=(0, 1)) * 12.0)[..., None]
+    img *= np.array((1.0, 0.98, 0.94), np.float32)[None, None, :]
 
     # brass rivets where the joints cross, and a warm bronze sheen on the stone
     stone_w, stone_h = FLAG_W * SCALE, FLAG_H * SCALE
