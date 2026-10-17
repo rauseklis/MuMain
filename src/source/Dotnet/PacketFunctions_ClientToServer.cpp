@@ -898,6 +898,17 @@ void PacketFunctions_ClientToServer::SendVaultMoveMoneyRequest(VaultMoneyMoveDir
     dotnet_SendVaultMoveMoneyRequest(this->GetHandle(), direction, amount);
 }
 
+void PacketFunctions_ClientToServer::SendVaultSwitchRequest(BYTE vaultNumber)
+{
+    static const auto dotnet_SendVaultSwitchRequest = LoadManagedSymbol<::SendVaultSwitchRequest>("SendVaultSwitchRequest");
+    if (!dotnet_SendVaultSwitchRequest)
+    {
+        return;
+    }
+
+    dotnet_SendVaultSwitchRequest(this->GetHandle(), vaultNumber);
+}
+
 void PacketFunctions_ClientToServer::SendLahapJewelMixRequest(MixType operation, ItemType item, StackSize mixingStackSize, BYTE unmixingSourceSlot)
 {
     static const auto dotnet_SendLahapJewelMixRequest = LoadManagedSymbol<::SendLahapJewelMixRequest>("SendLahapJewelMixRequest");

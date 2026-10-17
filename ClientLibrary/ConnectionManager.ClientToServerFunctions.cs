@@ -2857,6 +2857,40 @@ public unsafe partial class ConnectionManager
     }
 
     /// <summary>
+    /// Sends a <see cref="VaultSwitchRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="vaultNumber">The number of the requested vault, starting with 1.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player wants to switch to another vault of the opened vault dialog.
+    /// Causes reaction on server side: The requested vault becomes the active one and its items are sent to the player.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendVaultSwitchRequest")]
+    public static void SendVaultSwitchRequest(int handle, byte @vaultNumber)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = VaultSwitchRequestRef.Length;
+                var packet = new VaultSwitchRequestRef(pipeWriter.GetSpan(length)[..length]);
+                packet.VaultNumber = @vaultNumber;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
     /// Sends a <see cref="LahapJewelMixRequest" /> to this connection.
     /// </summary>
     /// <param name="handle">The handle of the connection.</param>

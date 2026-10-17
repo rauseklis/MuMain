@@ -180,6 +180,8 @@ typedef void(CORECLR_DELEGATE_CALLTYPE* SendVaultClosed)(int32_t);
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendVaultMoveMoneyRequest)(int32_t, VaultMoneyMoveDirection , uint32_t );
 
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendVaultSwitchRequest)(int32_t, BYTE );
+
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendLahapJewelMixRequest)(int32_t, MixType , ItemType , StackSize , BYTE );
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendPartyListRequest)(int32_t);

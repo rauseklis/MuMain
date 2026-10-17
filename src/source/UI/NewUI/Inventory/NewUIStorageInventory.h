@@ -33,11 +33,21 @@ namespace SEASON3B
             IMAGE_STORAGE_BTN_LOCK = BITMAP_INTERFACE_NEW_STORAGE_BEGIN + 3,
 
             IMAGE_STORAGE_MONEY = BITMAP_INTERFACE_NEW_STORAGE_BEGIN + 4,
+
+            IMAGE_STORAGE_VAULT_ARROW_L = BITMAP_INTERFACE_NEW_STORAGE_BEGIN + 5,
+            IMAGE_STORAGE_VAULT_ARROW_R = BITMAP_INTERFACE_NEW_STORAGE_BEGIN + 6,
         };
 
     private:
         static constexpr float STORAGE_WIDTH = 190.0f;
         static constexpr float STORAGE_HEIGHT = 429.0f;
+
+        static constexpr int VAULT_ARROW_PREV_X = 128;
+        static constexpr int VAULT_ARROW_NEXT_X = 152;
+        static constexpr int VAULT_ARROW_Y = 399;
+        static constexpr int VAULT_ARROW_WIDTH = 20;
+        static constexpr int VAULT_ARROW_HEIGHT = 14;
+        static constexpr DWORD VAULT_SWITCH_COOLDOWN_MS = 250;
 
         enum STORAGE_BUTTON
         {
@@ -55,6 +65,10 @@ namespace SEASON3B
 
         bool					m_bLock;
         bool					m_bCorrectPassword;
+
+        int						m_nVaultNumber;
+        int						m_nVaultCount;
+        DWORD					m_dwLastVaultSwitchRequest;
 
         bool					m_bItemAutoMove;
         int						m_nBackupMouseX;
@@ -97,6 +111,7 @@ namespace SEASON3B
 
         void SendRequestItemToMyInven(ITEM* pItemObj, int nStorageIndex, int nInvenIndex);
 
+        void ProcessToReceiveVaultSwitched(int nVaultNumber, int nVaultCount);
         void ProcessToReceiveStorageStatus(BYTE byStatus);
         void ProcessToReceiveStorageItems(int nIndex, std::span<const BYTE> pbyItemPacket);
         void ProcessStorageItemAutoMoveSuccess();
@@ -112,6 +127,9 @@ namespace SEASON3B
 
         void RenderBackImage();
         void RenderText();
+        void RenderVaultArrows();
+        bool ProcessVaultArrows();
+        bool IsMouseOnVaultArrow(bool bNext) const;
 
         void ChangeLockBtnImage();
         void DeleteAllItems();
