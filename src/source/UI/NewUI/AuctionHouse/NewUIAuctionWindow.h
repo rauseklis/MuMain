@@ -35,7 +35,7 @@ namespace SEASON3B
 
         enum IMAGE_LIST
         {
-            IMAGE_AUCTION_BACK = CNewUIMessageBoxMng::IMAGE_MSGBOX_BACK,           // newui_msgbox_back.jpg
+            IMAGE_AUCTION_BACK = BITMAP_INTERFACE_AUCTION_HOUSE_BEGIN + 7,            // newui_auction_back.tga (600 x 429, dedicated)
             IMAGE_AUCTION_TOP = CNewUIMyInventory::IMAGE_INVENTORY_BACK_TOP,       // newui_item_back01.tga
             IMAGE_AUCTION_LEFT = CNewUIMyInventory::IMAGE_INVENTORY_BACK_LEFT,     // newui_item_back02-L.tga
             IMAGE_AUCTION_RIGHT = CNewUIMyInventory::IMAGE_INVENTORY_BACK_RIGHT,   // newui_item_back02-R.tga
