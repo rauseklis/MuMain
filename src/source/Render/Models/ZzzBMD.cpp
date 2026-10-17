@@ -3496,6 +3496,10 @@ void BMD::CreateBoundingBox()
         for (int j = 0; j < m->NumVertices; j++)
         {
             Vertex_t* v = &m->Vertices[j];
+            // Some shipped models (CW_Bow_Skill.bmd) carry a vertex whose bone index is outside the bone table;
+            // using it as an array index wrote past the static bounding arrays.
+            if (v->Node < 0 || v->Node >= NumBones || v->Node >= MAX_BONES)
+                continue;
             for (int k = 0; k < 3; k++)
             {
                 if (v->Position[k] < BoundingMin[v->Node][k]) BoundingMin[v->Node][k] = v->Position[k];
