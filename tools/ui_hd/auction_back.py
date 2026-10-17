@@ -23,8 +23,8 @@ WIDTH, HEIGHT = 600, 429
 SCALE = 4
 W, H = WIDTH * SCALE, HEIGHT * SCALE
 
-STONE_DARK = np.array((14, 17, 24), np.float32)
-STONE_LIGHT = np.array((34, 38, 48), np.float32)
+STONE_DARK = np.array((26, 26, 30), np.float32)
+STONE_LIGHT = np.array((74, 70, 70), np.float32)
 GOLD = np.array((224, 168, 62), np.float32)
 GLOW = np.array((150, 96, 26), np.float32)
 
@@ -131,11 +131,11 @@ def render():
     img = stone_layer(rng)
 
     # darken the body overall so UI text stays readable
-    img *= 0.78
+    img *= 1.0
 
     # vignette: the corners and edges sink into shadow
     d = np.sqrt(((u - 0.5) / 0.62) ** 2 + ((v - 0.52) / 0.68) ** 2)
-    vignette = np.clip(1.0 - 0.62 * np.clip(d, 0, 1.4) ** 2.2, 0.28, 1.0)
+    vignette = np.clip(1.0 - 0.55 * np.clip(d, 0, 1.4) ** 2.2, 0.35, 1.0)
     img *= vignette[..., None]
 
     # warm glow behind the title band, fading down the window
@@ -146,25 +146,31 @@ def render():
     pool = np.exp(-(((u - 0.5) / 0.55) ** 2 + ((v - 1.0) / 0.22) ** 2)) * 0.5
     img += pool[..., None] * np.array((16, 26, 44), np.float32)[None, None, :]
 
-    # lattice + emblem, in gold, low strength
-    lat = lattice_layer() * (0.35 + 0.65 * np.clip(v * 1.4, 0, 1)) * vignette
-    img += lat[..., None] * GOLD[None, None, :] * 0.050
-    emb = emblem_layer()
-    img += emb[..., None] * GOLD[None, None, :] * 0.115
+    # rich colour wash: ember gold at the top, rose bronze, then deep teal-steel at the bottom, swept on a diagonal
+    t = np.clip(v * 0.85 + (u - 0.5) * 0.22, 0.0, 1.0)
+    stops = [(0.0, (232, 150, 40)), (0.28, (196, 82, 56)), (0.55, (92, 60, 120)), (0.8, (36, 88, 128)), (1.0, (24, 120, 132))]
+    wash = np.zeros((H, W, 3), np.float32)
+    for (t0, c0), (t1, c1) in zip(stops[:-1], stops[1:]):
+        m = np.clip((t - t0) / (t1 - t0), 0.0, 1.0)
+        seg = np.array(c0, np.float32) * (1 - m[..., None]) + np.array(c1, np.float32) * m[..., None]
+        sel = ((t >= t0) & (t <= t1))[..., None]
+        wash = np.where(sel, seg, wash)
+    img = img * 0.55 + img * (wash / 255.0) * 1.15
+    img += (np.exp(-(((u - 0.5) / 0.5) ** 2 + (v / 0.2) ** 2)) * 0.7)[..., None] * np.array((190, 120, 30), np.float32)[None, None, :] * 0.5
 
-    # thin gold inset line hugging the frame, a few logical pixels inside the edge
-    inset = 26 * SCALE
-    line_w = 0.8 * SCALE
-    dist = np.minimum.reduce([xx - inset, W - 1 - xx - inset, yy - inset, H - 1 - yy - inset])
-    inset_line = np.exp(-(dist / line_w) ** 2) * (dist > -line_w * 3)
-    inset_dark = np.exp(-((dist - 3 * SCALE) / (1.2 * SCALE)) ** 2) * 0.5
-    img += inset_line[..., None] * GOLD[None, None, :] * 0.30
-    img -= inset_dark[..., None] * 14.0
-
-    # corner studs on the inset line
-    for (px, py) in ((inset, inset), (W - 1 - inset, inset), (inset, H - 1 - inset), (W - 1 - inset, H - 1 - inset)):
-        r2 = ((xx - px) ** 2 + (yy - py) ** 2) / (3.4 * SCALE) ** 2
-        img += (np.exp(-r2 * 2.0) * 0.9)[..., None] * GOLD[None, None, :] * 0.55
+    # brass rivets where the joints cross, and a warm bronze sheen on the stone
+    stone_w, stone_h = FLAG_W * SCALE, FLAG_H * SCALE
+    row = np.floor(yy / stone_h)
+    offset = (row % 2) * stone_w * 0.5
+    lx = (xx + offset) % stone_w
+    ly = yy % stone_h
+    for cxr in (0.0, stone_w):
+        for cyr in (0.0, stone_h):
+            r2 = ((lx - cxr) ** 2 + (ly - cyr) ** 2) / (2.6 * SCALE) ** 2
+            rivet = np.exp(-r2 * 2.2)
+            img += rivet[..., None] * np.array((190, 140, 60), np.float32)[None, None, :] * 0.55 * vignette[..., None]
+            img -= (np.exp(-(((lx - cxr) ** 2 + (ly - cyr - 2.2 * SCALE) ** 2) / (3.2 * SCALE) ** 2 * 2.0)) * 0.35)[..., None] * 18.0
+    img *= np.array((1.04, 1.0, 0.94), np.float32)[None, None, :]
 
     # final fine grain so gradients do not band
     img += rng.normal(0.0, 1.1, (H, W, 1)).astype(np.float32)
