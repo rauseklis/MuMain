@@ -38,32 +38,52 @@ def blurred_noise(rng, sigma, shape=(H, W)):
 
 
 def stone_layer(rng):
-    """Flagstone base: per-stone tone, fine grain, mottling, bevelled joints."""
+    """Rough hand-laid masonry: rows of uneven height, blocks of uneven width, wobbly worn joints, uneven tone."""
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    stone_w, stone_h = FLAG_W * SCALE, FLAG_H * SCALE
-    row = np.floor(yy / stone_h)
-    offset = (row % 2) * stone_w * 0.5  # running bond
-    col = np.floor((xx + offset) / stone_w)
-    local_x = (xx + offset) - col * stone_w
-    local_y = yy - row * stone_h
+    # domain warp so every joint wanders and no edge is a ruler line
+    wx = blurred_noise(rng, 9 * SCALE) * 3.2 * SCALE + blurred_noise(rng, 2.5 * SCALE) * 1.1 * SCALE
+    wy = blurred_noise(rng, 9 * SCALE) * 3.2 * SCALE + blurred_noise(rng, 2.5 * SCALE) * 1.1 * SCALE
+    px, py = xx + wx, yy + wy
 
-    tone_rng = np.random.default_rng(11)
-    tones = tone_rng.uniform(0.0, 1.0, (64, 64)).astype(np.float32)
-    tone = tones[(row.astype(int) % 64), (col.astype(int) % 64)]
+    layout = np.random.default_rng(17)
+    row_edges = [0.0]
+    while row_edges[-1] < H + 80 * SCALE:
+        row_edges.append(row_edges[-1] + layout.uniform(38, 72) * SCALE)
+    row_edges = np.array(row_edges, np.float32)
+    row = np.clip(np.searchsorted(row_edges, py, side="right") - 1, 0, len(row_edges) - 2)
 
-    base = STONE_DARK[None, None, :] + (STONE_LIGHT - STONE_DARK)[None, None, :] * (0.25 + 0.5 * tone)[..., None]
-    mottle = blurred_noise(rng, 26 * SCALE / 4)
+    tone = np.zeros((H, W), np.float32)
+    edge = np.full((H, W), 1e9, np.float32)
+    for r in range(len(row_edges) - 1):
+        mask = row == r
+        if not mask.any():
+            continue
+        cuts = [-layout.uniform(0, 60) * SCALE]
+        while cuts[-1] < W + 100 * SCALE:
+            cuts.append(cuts[-1] + layout.uniform(44, 118) * SCALE)
+        cuts = np.array(cuts, np.float32)
+        col = np.clip(np.searchsorted(cuts, px, side="right") - 1, 0, len(cuts) - 2)
+        tones = layout.uniform(0.0, 1.0, len(cuts)).astype(np.float32)
+        left = cuts[col]
+        right = cuts[col + 1]
+        d = np.minimum.reduce([px - left, right - px, py - row_edges[r], row_edges[r + 1] - py])
+        tone = np.where(mask, tones[col], tone)
+        edge = np.where(mask, d, edge)
+
+    base = STONE_DARK[None, None, :] + (STONE_LIGHT - STONE_DARK)[None, None, :] * (0.15 + 0.7 * tone)[..., None]
+    mottle = blurred_noise(rng, 14 * SCALE)
     grain = blurred_noise(rng, 0.9)
-    base = base * (1.0 + 0.10 * mottle[..., None] + 0.05 * grain[..., None])
+    coarse = blurred_noise(rng, 3.0 * SCALE)
+    base = base * (1.0 + 0.16 * mottle[..., None] + 0.07 * grain[..., None] + 0.06 * coarse[..., None])
 
-    # joints: dark groove with a lit lower-left lip and a shadowed upper-right edge
-    edge = np.minimum.reduce([local_x, stone_w - local_x, local_y, stone_h - local_y])
-    groove = np.clip(1.0 - edge / (1.6 * SCALE), 0.0, 1.0) ** 1.5
-    bevel = np.clip(1.0 - edge / (5.0 * SCALE), 0.0, 1.0)
-    light_side = (np.clip(1.0 - local_x / (4 * SCALE), 0, 1) + np.clip(1.0 - local_y / (4 * SCALE), 0, 1)) * 0.5
-    shade_side = (np.clip(1.0 - (stone_w - local_x) / (4 * SCALE), 0, 1) + np.clip(1.0 - (stone_h - local_y) / (4 * SCALE), 0, 1)) * 0.5
-    base = base * (1.0 - 0.75 * groove[..., None])
-    base = base + 14.0 * (light_side * bevel)[..., None] - 10.0 * (shade_side * bevel)[..., None]
+    # worn, rounded joints: a broad soft shadow, a ragged dark core, and eroded (noisy) edges
+    ragged = edge + blurred_noise(rng, 2.2 * SCALE) * 0.55 * SCALE
+    core = np.clip(1.0 - ragged / (1.5 * SCALE), 0.0, 1.0) ** 1.2
+    soft = np.clip(1.0 - ragged / (7.0 * SCALE), 0.0, 1.0) ** 2
+    base = base * (1.0 - 0.62 * core[..., None] - 0.30 * soft[..., None])
+    # blocks catch light on their upper-left shoulder
+    shoulder = np.clip(1.0 - ragged / (6.0 * SCALE), 0.0, 1.0) * np.clip(0.5 + 0.5 * (blurred_noise(rng, 5 * SCALE)), 0, 1)
+    base = base + 9.0 * shoulder[..., None]
     return base
 
 
@@ -131,7 +151,7 @@ def render():
     img = stone_layer(rng)
 
     # darken the body overall so UI text stays readable
-    img *= 1.0
+    img *= 0.78
 
     # vignette: the corners and edges sink into shadow
     d = np.sqrt(((u - 0.5) / 0.62) ** 2 + ((v - 0.52) / 0.68) ** 2)
@@ -190,20 +210,6 @@ def render():
     img *= (1.0 - 0.62 * np.clip(cracks * 1.6, 0, 1))[..., None]
     img += (np.roll(cracks, (SCALE, SCALE), axis=(0, 1)) * 12.0)[..., None]
     img *= np.array((1.0, 0.98, 0.94), np.float32)[None, None, :]
-
-    # brass rivets where the joints cross, and a warm bronze sheen on the stone
-    stone_w, stone_h = FLAG_W * SCALE, FLAG_H * SCALE
-    row = np.floor(yy / stone_h)
-    offset = (row % 2) * stone_w * 0.5
-    lx = (xx + offset) % stone_w
-    ly = yy % stone_h
-    for cxr in (0.0, stone_w):
-        for cyr in (0.0, stone_h):
-            r2 = ((lx - cxr) ** 2 + (ly - cyr) ** 2) / (2.6 * SCALE) ** 2
-            rivet = np.exp(-r2 * 2.2)
-            img += rivet[..., None] * np.array((190, 140, 60), np.float32)[None, None, :] * 0.55 * vignette[..., None]
-            img -= (np.exp(-(((lx - cxr) ** 2 + (ly - cyr - 2.2 * SCALE) ** 2) / (3.2 * SCALE) ** 2 * 2.0)) * 0.35)[..., None] * 18.0
-    img *= np.array((1.04, 1.0, 0.94), np.float32)[None, None, :]
 
     # final fine grain so gradients do not band
     img += rng.normal(0.0, 1.1, (H, W, 1)).astype(np.float32)
