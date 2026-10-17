@@ -3890,7 +3890,7 @@ void SEASON3B::CNewUIAuctionWindow::ComputeTabLayout(int (&outX)[TAB_COUNT], int
 
 void SEASON3B::CNewUIAuctionWindow::LoadImages()
 {
-    LoadBitmap(L"Interface\\newui_msgbox_back.jpg", IMAGE_AUCTION_BACK, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_auction_back.tga", IMAGE_AUCTION_BACK, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_item_back01.tga", IMAGE_AUCTION_TOP, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_item_back02-L.tga", IMAGE_AUCTION_LEFT, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_item_back02-R.tga", IMAGE_AUCTION_RIGHT, GL_LINEAR);
@@ -3935,7 +3935,7 @@ void SEASON3B::CNewUIAuctionWindow::RenderFrame()
     // Stretch the subdued background, but preserve both ornate frame caps at 1:1 and stretch only their
     // plain center strip so the MU corners retain their original proportions.
     RenderImageStretch(IMAGE_AUCTION_BACK, x, y, static_cast<float>(windowWidth), static_cast<float>(WINDOW_HEIGHT),
-        0.f, 0.f, static_cast<float>(FRAME_TEXTURE_WIDTH), static_cast<float>(FRAME_TEXTURE_HEIGHT));
+        0.f, 0.f, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
 
     RenderImageStretch(IMAGE_AUCTION_TOP, x, y, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
         0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
