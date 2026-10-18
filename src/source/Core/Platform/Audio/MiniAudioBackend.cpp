@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
+#include <system_error>
 
 // S_OK, S_FALSE are now provided by PlatformTypes.h (via PCH)
 #ifndef E_INVALIDARG
@@ -183,6 +185,19 @@ void MiniAudioBackend::LoadSound(ESound buffer, const wchar_t* filename, int cha
 
     // Clamp channels to the array dimension
     const int numChannels = (channels > 0 && channels <= MAX_CHANNEL) ? channels : MAX_CHANNEL;
+
+    // A missing file makes miniaudio's resource manager free its node and then read it again on the failure
+    // path (heap-use-after-free in ma_resource_manager_data_buffer_node_acquire), which corrupts the heap and
+    // crashes the game a while later. Skip files that are not there instead of handing them over.
+    {
+        std::error_code existsError;
+        if (!std::filesystem::exists(std::filesystem::u8path(utf8Path), existsError))
+        {
+            mu::log::Get("audio")->error("AUDIO: MiniAudioBackend::LoadSound -- file not found '{}'",
+                                         AudioPathToUtf8(filename));
+            return;
+        }
+    }
 
     // Load each polyphonic slot
     for (int ch = 0; ch < numChannels; ++ch)
@@ -560,8 +575,14 @@ void MiniAudioBackend::PlayMusic(const char* name, bool enforce)
     // (common in server-hosted MU setups) due to file open + ID3 header parse + decoder init
     // on the calling thread. Acceptable for BGM at scene transitions on SSD; known limitation
     // for HDD/network installs. Deferred to 5.2.x if a non-blocking init path is needed.
-    ma_result result = ma_sound_init_from_file(&m_engine, normalizedName.c_str(), MA_SOUND_FLAG_STREAM, nullptr,
-                                               nullptr, &m_musicSound);
+    // Same miniaudio failure-path use-after-free as in LoadSound: do not hand it a file that is not there.
+    std::error_code musicExistsError;
+    ma_result result = MA_DOES_NOT_EXIST;
+    if (std::filesystem::exists(std::filesystem::u8path(normalizedName), musicExistsError))
+    {
+        result = ma_sound_init_from_file(&m_engine, normalizedName.c_str(), MA_SOUND_FLAG_STREAM, nullptr, nullptr,
+                                         &m_musicSound);
+    }
 
     if (result != MA_SUCCESS)
     {

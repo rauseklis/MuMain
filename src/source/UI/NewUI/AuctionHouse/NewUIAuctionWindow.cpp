@@ -25,7 +25,8 @@ using namespace UI::AuctionChrome;
 
 namespace
 {
-    constexpr int TAB_REGION_X = 10;
+    // The four tabs form one cluster centred in the window (TAB_WIDTH/TAB_GAP are declared just below).
+    constexpr int TAB_REGION_X = (SEASON3B::CNewUIAuctionWindow::WINDOW_WIDTH - (4 * 76 + 3 * 6)) / 2;
     constexpr int TAB_REGION_Y = 40;
     // A compact, equal-width tab cluster leaves the title bar's close control unobstructed. The widest label
     // ("My Listings") still has symmetrical horizontal padding, and every tab shares this exact width.

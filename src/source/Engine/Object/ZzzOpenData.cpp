@@ -557,6 +557,14 @@ void DeleteNpcs()
         ReleaseBuffer(i);
 }
 
+// An NPC model with fewer actions than the stock one (a replaced model) must not be indexed past its action table:
+// the write used to land in the neighbouring heap block.
+static void SetNpcPlaySpeed(int Type, int action, float speed)
+{
+    if (action >= 0 && action < Models[Type].NumActions && Models[Type].Actions != nullptr)
+        Models[Type].Actions[action].PlaySpeed = speed;
+}
+
 void OpenNpc(int Type)
 {
     BMD* b = &Models[Type];
@@ -981,50 +989,50 @@ void OpenNpc(int Type)
     switch (Type)
     {
     case MODEL_XMAS2008_SNOWMAN:
-        Models[Type].Actions[MONSTER01_WALK].PlaySpeed = 0.9f;
+        SetNpcPlaySpeed(Type, MONSTER01_WALK, 0.9f);
         break;
     case MODEL_PANDA:
-        Models[Type].Actions[MONSTER01_WALK].PlaySpeed = 0.9f;
+        SetNpcPlaySpeed(Type, MONSTER01_WALK, 0.9f);
         break;
     case MODEL_DOPPELGANGER_NPC_BOX:
-        Models[Type].Actions[MONSTER01_DIE].PlaySpeed = 0.1f;
+        SetNpcPlaySpeed(Type, MONSTER01_DIE, 0.1f);
         break;
     case MODEL_DOPPELGANGER_NPC_GOLDENBOX:
-        Models[Type].Actions[MONSTER01_DIE].PlaySpeed = 0.1f;
+        SetNpcPlaySpeed(Type, MONSTER01_DIE, 0.1f);
         break;
     case MODAL_GENS_NPC_DUPRIAN:
-        Models[Type].Actions[MONSTER01_STOP1].PlaySpeed = 0.6f;
-        Models[Type].Actions[MONSTER01_STOP2].PlaySpeed = 0.6f;
-        Models[Type].Actions[MONSTER01_WALK].PlaySpeed = 1.4f;
+        SetNpcPlaySpeed(Type, MONSTER01_STOP1, 0.6f);
+        SetNpcPlaySpeed(Type, MONSTER01_STOP2, 0.6f);
+        SetNpcPlaySpeed(Type, MONSTER01_WALK, 1.4f);
         break;
     case MODAL_GENS_NPC_BARNERT:
-        Models[Type].Actions[MONSTER01_STOP1].PlaySpeed = 0.3f;
-        Models[Type].Actions[MONSTER01_STOP2].PlaySpeed = 1.2f;
-        Models[Type].Actions[MONSTER01_WALK].PlaySpeed = 0.3f;
+        SetNpcPlaySpeed(Type, MONSTER01_STOP1, 0.3f);
+        SetNpcPlaySpeed(Type, MONSTER01_STOP2, 1.2f);
+        SetNpcPlaySpeed(Type, MONSTER01_WALK, 0.3f);
         break;
     case MODEL_UNITEDMARKETPLACE_RAUL:
-        Models[Type].Actions[MONSTER01_STOP1].PlaySpeed = 0.5f;
-        Models[Type].Actions[MONSTER01_STOP2].PlaySpeed = 0.5f;
-        Models[Type].Actions[MONSTER01_WALK].PlaySpeed = 0.5f;
+        SetNpcPlaySpeed(Type, MONSTER01_STOP1, 0.5f);
+        SetNpcPlaySpeed(Type, MONSTER01_STOP2, 0.5f);
+        SetNpcPlaySpeed(Type, MONSTER01_WALK, 0.5f);
         break;
     case MODEL_UNITEDMARKETPLACE_JULIA:
-        Models[Type].Actions[MONSTER01_STOP1].PlaySpeed = 0.5f;
-        Models[Type].Actions[MONSTER01_STOP2].PlaySpeed = 0.5f;
-        Models[Type].Actions[MONSTER01_WALK].PlaySpeed = 0.5f;
+        SetNpcPlaySpeed(Type, MONSTER01_STOP1, 0.5f);
+        SetNpcPlaySpeed(Type, MONSTER01_STOP2, 0.5f);
+        SetNpcPlaySpeed(Type, MONSTER01_WALK, 0.5f);
         break;
     case MODEL_UNITEDMARKETPLACE_CHRISTIN:
     case MODEL_KARUTAN_NPC_REINA:
-        Models[Type].Actions[MONSTER01_STOP1].PlaySpeed = 0.5f;
-        Models[Type].Actions[MONSTER01_STOP2].PlaySpeed = 0.6f;
-        Models[Type].Actions[MONSTER01_WALK].PlaySpeed = 0.5f;
+        SetNpcPlaySpeed(Type, MONSTER01_STOP1, 0.5f);
+        SetNpcPlaySpeed(Type, MONSTER01_STOP2, 0.6f);
+        SetNpcPlaySpeed(Type, MONSTER01_WALK, 0.5f);
         break;
     case MODEL_TERSIA:
-        Models[Type].Actions[MONSTER01_STOP1].PlaySpeed = 0.35f;
-        Models[Type].Actions[MONSTER01_STOP2].PlaySpeed = 0.3f;
+        SetNpcPlaySpeed(Type, MONSTER01_STOP1, 0.35f);
+        SetNpcPlaySpeed(Type, MONSTER01_STOP2, 0.3f);
         break;
     case MODEL_KARUTAN_NPC_VOLVO:
-        Models[Type].Actions[MONSTER01_STOP1].PlaySpeed = 0.2f;
-        Models[Type].Actions[MONSTER01_STOP2].PlaySpeed = 0.25f;
+        SetNpcPlaySpeed(Type, MONSTER01_STOP1, 0.2f);
+        SetNpcPlaySpeed(Type, MONSTER01_STOP2, 0.25f);
         break;
     }
 
