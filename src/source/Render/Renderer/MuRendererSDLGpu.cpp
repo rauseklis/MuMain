@@ -581,6 +581,16 @@ struct RenderCmd
 };
 
 static std::vector<RenderCmd> s_renderCmds;
+
+// Depth range of the viewport. The world is drawn with the full range. The replay is one render pass, so a real mid-frame depth clear
+// is not possible; a UI 3D panel which asks for one (ClearDepthBuffer) gets a range nested in front of everything drawn before
+// it instead. Without that, the depth of the world behind a window cuts the item models of the window into slices.
+static float s_viewportMinDepth = 0.0f;
+static float s_viewportMaxDepth = 1.0f;
+static SDL_GPUViewport s_lastViewport{};
+static bool s_lastViewportValid = false;
+// Nearer than almost anything the world draws, and far enough from zero that many nested panels keep their precision (D32_FLOAT).
+static constexpr float kUiDepthLayerTop = 1.0e-3f;
 static constexpr std::size_t kNoDrawCommand = std::numeric_limits<std::size_t>::max();
 static Render::DrawCommandHistory s_previousDrawCommands;
 
@@ -1616,6 +1626,9 @@ public:
         // Draw calls record RenderCmds into s_renderCmds during the frame.
         // EndFrame will: copy vertex data → begin render pass → replay → end → submit.
         s_frameActive = true;
+        s_viewportMinDepth = 0.0f;
+        s_viewportMaxDepth = 1.0f;
+        s_lastViewportValid = false;
     }
 
     // -----------------------------------------------------------------------
@@ -2099,6 +2112,10 @@ public:
             return;
         }
 
+        // A new main 3D pass: the world uses the full depth range again (see ClearDepthBuffer).
+        s_viewportMinDepth = 0.0f;
+        s_viewportMaxDepth = 1.0f;
+
         // Use swapchain physical pixels for viewport (correct on HiDPI/Retina).
         const float scaleX = static_cast<float>(s_swapW) / 640.0f;
         const float scaleY = static_cast<float>(s_swapH) / 480.0f;
@@ -2109,8 +2126,10 @@ public:
         cmd.viewport.y = static_cast<float>(y) * scaleY;
         cmd.viewport.w = static_cast<float>(w) * scaleX;
         cmd.viewport.h = static_cast<float>(h) * scaleY;
-        cmd.viewport.min_depth = 0.0f;
-        cmd.viewport.max_depth = 1.0f;
+        cmd.viewport.min_depth = s_viewportMinDepth;
+        cmd.viewport.max_depth = s_viewportMaxDepth;
+        s_lastViewport = cmd.viewport;
+        s_lastViewportValid = true;
         s_renderCmds.push_back(cmd);
     }
 
@@ -2132,8 +2151,10 @@ public:
         cmd.viewport.y = 0.0f;
         cmd.viewport.w = static_cast<float>(s_swapW);
         cmd.viewport.h = static_cast<float>(s_swapH);
-        cmd.viewport.min_depth = 0.0f;
-        cmd.viewport.max_depth = 1.0f;
+        cmd.viewport.min_depth = s_viewportMinDepth;
+        cmd.viewport.max_depth = s_viewportMaxDepth;
+        s_lastViewport = cmd.viewport;
+        s_lastViewportValid = true;
         s_renderCmds.push_back(cmd);
     }
 
@@ -2167,8 +2188,10 @@ public:
         cmd.viewport.y = static_cast<float>(y) * yScale;
         cmd.viewport.w = static_cast<float>(w) * xScale;
         cmd.viewport.h = static_cast<float>(h) * yScale;
-        cmd.viewport.min_depth = 0.0f;
-        cmd.viewport.max_depth = 1.0f;
+        cmd.viewport.min_depth = s_viewportMinDepth;
+        cmd.viewport.max_depth = s_viewportMaxDepth;
+        s_lastViewport = cmd.viewport;
+        s_lastViewportValid = true;
         s_renderCmds.push_back(cmd);
     }
 
@@ -2223,8 +2246,10 @@ public:
         cmd.viewport.y = 0.0f;
         cmd.viewport.w = static_cast<float>(s_swapW);
         cmd.viewport.h = static_cast<float>(s_swapH);
-        cmd.viewport.min_depth = 0.0f;
-        cmd.viewport.max_depth = 1.0f;
+        cmd.viewport.min_depth = s_viewportMinDepth;
+        cmd.viewport.max_depth = s_viewportMaxDepth;
+        s_lastViewport = cmd.viewport;
+        s_lastViewportValid = true;
         s_renderCmds.push_back(cmd);
 
         RenderCmd scissorCmd{};
@@ -2249,6 +2274,33 @@ public:
     void ClearScreen() override
     {
         // No-op: SDL_gpu clears in BeginFrame via SDL_GPU_LOADOP_CLEAR.
+    }
+
+    // -----------------------------------------------------------------------
+    // Mid-frame depth reset for UI 3D panels. The replayed frame is one render pass, so instead of clearing, every call moves the
+    // viewport depth range into a band in front of everything drawn so far: the first call below the world, each following call
+    // in front of the previous one. Panels then only compete with their own items, never with the world or with panels below.
+    // -----------------------------------------------------------------------
+    void ClearDepthBuffer() override
+    {
+        if (!s_frameActive)
+        {
+            return;
+        }
+
+        const float top = (s_viewportMinDepth > 0.0f) ? s_viewportMinDepth : kUiDepthLayerTop;
+        s_viewportMaxDepth = top;
+        s_viewportMinDepth = top * 0.5f;
+
+        RenderCmd cmd{};
+        cmd.type = RenderCmdType::SetViewport;
+        cmd.viewport = s_lastViewportValid ? s_lastViewport
+                                           : SDL_GPUViewport{0.0f, 0.0f, static_cast<float>(s_swapW), static_cast<float>(s_swapH), 0.0f, 1.0f};
+        cmd.viewport.min_depth = s_viewportMinDepth;
+        cmd.viewport.max_depth = s_viewportMaxDepth;
+        s_lastViewport = cmd.viewport;
+        s_lastViewportValid = true;
+        s_renderCmds.push_back(cmd);
     }
 
     void SetClearColor(float r, float g, float b, float a) override
