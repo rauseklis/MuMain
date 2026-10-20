@@ -5,6 +5,7 @@
 #include "Core/Utilities/_GlobalFunctions.h"
 #include "Engine/Object/w_ObjectInfo.h"
 #include "Render/Models/ZzzBMD.h"
+#include "Render/Sprites/GlobalBitmap.h"
 #include "Render/Effects/ZzzEffect.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include <algorithm>
