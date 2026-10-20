@@ -1,6 +1,6 @@
 # King mace names
 
-Mace of King (group 2, item 22) and Royal Mace of King (group 2, item 23)
+Mace of King (group 2, item 22) and Royal Mace of Emberion (group 2, item 23)
 use orange name text in inventory tooltips and ground labels. Other item names
 and the colors of stats, requirements and option descriptions are unchanged.
 Excellent/ancient prefixes and option text remain visible where applicable.

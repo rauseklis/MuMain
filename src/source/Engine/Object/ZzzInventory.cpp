@@ -38,6 +38,7 @@
 #include "GameLogic/Items/ItemCategories.h"
 #include "Render/Items/ItemDisplay.h"
 #include "Render/Items/ItemPreviewBounds.h"
+#include "Render/Items/RoyalMaceFlames.h"
 #include "UI/Items/KingMaceNameStyle.h"
 #include <set>
 #include "GameLogic/Items/ShopRestrictions.h"
@@ -6811,6 +6812,7 @@ void RenderObjectScreen(int Type, int ItemLevel, int excellentFlags, int ancient
     Vector(1.f, 1.f, 1.f, Light);
 
     RenderPartObject(o, Type, NULL, Light, alpha, ItemLevel, excellentFlags, ancientDiscriminator, true, true, true);
+    Render::Items::RoyalFlames::RenderPreview(b, Type, ItemLevel, true, BoneTransform);
 }
 
 bool UI::Items::ShouldAnimatePreview(bool pointerInside, bool pickedItemActive, bool renderingPickedItem)
