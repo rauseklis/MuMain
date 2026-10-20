@@ -7275,4 +7275,145 @@ public unsafe partial class ConnectionManager
         {
             Debug.WriteLine(ex);
         }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="JewelBankOpenRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player opens the Jewel Bank window (Ctrl+J) or asks for its current state.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendJewelBankOpenRequest")]
+    public static void SendJewelBankOpenRequest(int handle)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = JewelBankOpenRequestRef.Length;
+                var packet = new JewelBankOpenRequestRef(pipeWriter.GetSpan(length)[..length]);
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="JewelBankDepositRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
+    /// <param name="kindCode">The kind code.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player deposits the bankable items of the inventory (KindCode 0 = every kind).
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendJewelBankDepositRequest")]
+    public static void SendJewelBankDepositRequest(int handle, byte* @operationId, uint operationIdByteLength, byte @kindCode)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = JewelBankDepositRequestRef.Length;
+                var packet = new JewelBankDepositRequestRef(pipeWriter.GetSpan(length)[..length]);
+                new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
+                packet.KindCode = @kindCode;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="JewelBankWithdrawRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
+    /// <param name="kindCode">The kind code.</param>
+    /// <param name="units">The units.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player withdraws units of one kind as items.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendJewelBankWithdrawRequest")]
+    public static void SendJewelBankWithdrawRequest(int handle, byte* @operationId, uint operationIdByteLength, byte @kindCode, uint @units)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = JewelBankWithdrawRequestRef.Length;
+                var packet = new JewelBankWithdrawRequestRef(pipeWriter.GetSpan(length)[..length]);
+                new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
+                packet.KindCode = @kindCode;
+                packet.Units = @units;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="JewelBankSetAutoDepositRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="enabled">The enabled.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player switches the auto-deposit of picked-up jewels and fruits on or off.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendJewelBankSetAutoDepositRequest")]
+    public static void SendJewelBankSetAutoDepositRequest(int handle, byte @enabled)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = JewelBankSetAutoDepositRequestRef.Length;
+                var packet = new JewelBankSetAutoDepositRequestRef(pipeWriter.GetSpan(length)[..length]);
+                packet.Enabled = @enabled;
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
     }}

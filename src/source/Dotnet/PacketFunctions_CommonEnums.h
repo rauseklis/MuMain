@@ -218,3 +218,17 @@ Collected = 5, ///< Collected.
 AdminAdjusted = 6, ///< AdminAdjusted.
 };
 
+enum class JewelBankResult : uint32_t
+{
+Success = 0, ///< Success.
+InvalidRequest = 1, ///< InvalidRequest.
+InsufficientBalance = 2, ///< InsufficientBalance.
+InventoryFull = 3, ///< InventoryFull.
+CapReached = 4, ///< CapReached.
+NothingToDeposit = 5, ///< NothingToDeposit.
+NotConfigured = 6, ///< NotConfigured.
+StateRestricted = 7, ///< StateRestricted.
+RateLimited = 8, ///< RateLimited.
+ServiceUnavailable = 9, ///< ServiceUnavailable.
+};
+

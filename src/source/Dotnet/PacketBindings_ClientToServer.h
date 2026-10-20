@@ -425,3 +425,11 @@ typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionMyListingsRequest)(int32_t, u
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionMailboxRequest)(int32_t, uint32_t , uint16_t , BYTE );
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionCollectRequest)(int32_t, const BYTE* , uint32_t, uint64_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankOpenRequest)(int32_t);
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankDepositRequest)(int32_t, const BYTE* , uint32_t, BYTE );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankWithdrawRequest)(int32_t, const BYTE* , uint32_t, BYTE , uint32_t );
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankSetAutoDepositRequest)(int32_t, BYTE );

@@ -54,6 +54,7 @@
 #include "World/MapInfra/MapManager.h"
 #include "UI/Legacy/UIGuardsMan.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "UI/NewUI/JewelBank/JewelBankModel.h"
 #include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "UI/NewUI/Dialogs/NewUICustomMessageBox.h"
@@ -15144,6 +15145,43 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
                 if (g_pAuctionWindow)
                 {
                     g_pAuctionWindow->SetNotification(*notification);
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    break;
+    case 0xD6:
+    {
+        // Jewel Bank (0xD6): all of its packets are C1 with a sub-code, which sits right after the code byte at offset 3.
+        switch (ReceiveBuffer[3])
+        {
+        case 0x80: // JewelBankStateResponse
+            if (auto state = JewelBank::StateResponse::Parse(received_span))
+            {
+                if (g_pJewelBankWindow)
+                {
+                    g_pJewelBankWindow->SetState(*state);
+                }
+            }
+            break;
+        case 0x81: // JewelBankOperationResponse
+            if (auto response = JewelBank::OperationResponse::Parse(received_span))
+            {
+                if (g_pJewelBankWindow)
+                {
+                    g_pJewelBankWindow->SetOperationResponse(*response);
+                }
+            }
+            break;
+        case 0x82: // JewelBankPickupNotification
+            if (auto notification = JewelBank::PickupNotification::Parse(received_span))
+            {
+                if (g_pJewelBankWindow)
+                {
+                    g_pJewelBankWindow->SetPickupNotification(*notification);
                 }
             }
             break;

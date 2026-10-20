@@ -96,6 +96,7 @@ CNewUISystem::CNewUISystem()
     m_pNewCryWolfInterface = nullptr;
     m_pNewMaster_Level_Interface = nullptr;
     m_pNewAuctionWindow = nullptr;
+    m_pNewJewelBankWindow = nullptr;
     m_pNewCursedTempleResultWindow = nullptr;
     m_pNewCursedTempleWindow = nullptr;
     m_pNewCursedTempleEnterWindow = nullptr;
@@ -468,6 +469,10 @@ bool CNewUISystem::LoadMainSceneInterface()
     if (m_pNewAuctionWindow->Create(m_pNewUIMng, m_pNewUI3DRenderMng, 20, 25) == false)
         return false;
 
+    m_pNewJewelBankWindow = new CNewUIJewelBankWindow;
+    if (m_pNewJewelBankWindow->Create(m_pNewUIMng, 20, 25) == false)
+        return false;
+
     m_pNewMiniMap = new CNewUIMiniMap;
     if (m_pNewMiniMap->Create(m_pNewUIMng, 0, 0) == false)
         return false;
@@ -625,6 +630,7 @@ void CNewUISystem::UnloadMainSceneInterface()
     SAFE_DELETE(m_pNewCryWolfInterface);
     SAFE_DELETE(m_pNewMaster_Level_Interface);
     SAFE_DELETE(m_pNewAuctionWindow);
+    SAFE_DELETE(m_pNewJewelBankWindow);
     SAFE_DELETE(m_pNewGoldBowman);
     SAFE_DELETE(m_pNewGoldBowmanLena);
     SAFE_DELETE(m_pNewLuckyCoinRegistration);
@@ -995,6 +1001,11 @@ void CNewUISystem::Show(DWORD dwKey)
     {
         HideAllGroupA();
         m_pNewAuctionWindow->OpeningProcess();
+    }
+    else if (dwKey == INTERFACE_JEWEL_BANK)
+    {
+        HideAllGroupA();
+        m_pNewJewelBankWindow->OpeningProcess();
     }
     else if (dwKey == INTERFACE_KANTURU2ND_ENTERNPC)
     {
@@ -1397,6 +1408,10 @@ void CNewUISystem::Hide(DWORD dwKey)
     else if (dwKey == INTERFACE_AUCTION_HOUSE)
     {
         m_pNewAuctionWindow->ClosingProcess();
+    }
+    else if (dwKey == INTERFACE_JEWEL_BANK)
+    {
+        m_pNewJewelBankWindow->ClosingProcess();
     }
     else if (dwKey == INTERFACE_GATEKEEPER)
     {
@@ -2299,6 +2314,11 @@ CNewUIMasterLevel* CNewUISystem::GetUI_NewMasterLevelInterface() const
 CNewUIAuctionWindow* CNewUISystem::GetUI_NewAuctionWindow() const
 {
     return m_pNewAuctionWindow;
+}
+
+CNewUIJewelBankWindow* CNewUISystem::GetUI_NewJewelBankWindow() const
+{
+    return m_pNewJewelBankWindow;
 }
 
 CNewUIMyShopInventory* CNewUISystem::GetUI_NewMyShopInventory() const

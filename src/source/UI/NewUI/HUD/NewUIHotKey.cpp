@@ -274,6 +274,14 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
         PlayBuffer(SOUND_CLICK01);
         return false;
     }
+    else if (SEASON3B::IsPress('J') == true && SEASON3B::IsRepeat(VK_CONTROL))
+    {
+        // Ctrl+J is the Jewel Bank; the plain key below keeps showing the chat commands.
+        g_pNewUISystem->Toggle(SEASON3B::INTERFACE_JEWEL_BANK);
+        PlayBuffer(SOUND_CLICK01);
+
+        return false;
+    }
     else if (SEASON3B::IsPress('J') == true)
     {
         // Only servers which offer their chat commands have something to show.

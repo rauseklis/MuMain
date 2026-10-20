@@ -99,3 +99,10 @@ mu_add_test(
         ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/AuctionHouse/AuctionModel.cpp
         ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/AuctionHouse/AuctionWireResponses.cpp
 )
+
+mu_add_test(
+    NAME jewel_bank_model_tests
+    SOURCES
+        test_jewel_bank_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/JewelBank/JewelBankModel.cpp
+)

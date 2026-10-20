@@ -2269,4 +2269,48 @@ public:
     /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
     /// </remarks>
     void SendAuctionCollectRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t collectionId, uint32_t expectedVersion, uint32_t requestedScalar, uint32_t requestedStrength, uint32_t requestedAgility, uint32_t requestedVitality, uint32_t requestedEnergy, uint32_t requestedCommand);
+
+    /// <summary>
+    /// Sends a JewelBankOpenRequest to this connection.
+    /// </summary>
+    /// <remarks>
+    /// Is sent by the client when: The player opens the Jewel Bank window (Ctrl+J) or asks for its current state.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    void SendJewelBankOpenRequest();
+
+    /// <summary>
+    /// Sends a JewelBankDepositRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="kindCode">The kind code.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player deposits the bankable items of the inventory (KindCode 0 = every kind).
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    void SendJewelBankDepositRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE kindCode);
+
+    /// <summary>
+    /// Sends a JewelBankWithdrawRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="kindCode">The kind code.</param>
+    /// <param name="units">The units.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player withdraws units of one kind as items.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    void SendJewelBankWithdrawRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE kindCode, uint32_t units);
+
+    /// <summary>
+    /// Sends a JewelBankSetAutoDepositRequest to this connection.
+    /// </summary>
+    /// <param name="enabled">The enabled.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player switches the auto-deposit of picked-up jewels and fruits on or off.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    void SendJewelBankSetAutoDepositRequest(BYTE enabled);
 };
