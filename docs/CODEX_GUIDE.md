@@ -234,6 +234,9 @@ when the branch is merged. Only one session at a time may build in a worktree.
   2. Extract it into a folder, then copy `Data` and `fonts` into it from `src/bin/` of your client clone.
   3. In its `config.ini` set `ServerIP=109.199.104.230` and `ServerPort=44406`.
   4. Run `Main.exe`, log in with the account the owner gave you.
+- **Updating the client after a merge is automated:** `scripts/update-live-client.ps1 -Target <client folder>` downloads the newest bundle that
+  matches `main`, unpacks it and copies it over the client folder (keeping `config.ini`, `Data`, `fonts`); it waits for or starts the build if needed and
+  refuses to touch a folder whose game is running. Run it yourself as the last step of every client change and then tell the person to restart `Main.exe`.
 - **GM commands** (a game-master account): `/item <group> <number> [level]` drops an item at your feet (Jewel of Bless `14 13 0`; Fruit of Strength
   `13 15 3`), `/move <map>`, `/jewelrain` starts the Jewel Rain event; the list of commands is in the chat-commands plug-ins
   (`src/GameLogic/PlugIns/ChatCommands/`) and `docs/chat-commands.md` in the client repository.

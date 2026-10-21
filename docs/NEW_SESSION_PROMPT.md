@@ -33,6 +33,9 @@ AFTER MY ANSWER
 1. Tell me in a few lines what you understood and your plan (and ask me only if you must choose between different designs).
 2. Build it with tests, try it on a throwaway server, and check the effect in the database.
 3. Open a pull request with a clear description, merge it, watch the deployment (Actions tab), and check that a login still works.
+   For a CLIENT change also update my game folder yourself: run scripts/update-live-client.ps1 from the client repository with -Target <my client folder>
+   (it downloads the new bundle from GitHub, unpacks it and keeps my config.ini, Data and fonts; it refuses while the game is running, then ask me to close it).
+   Then tell me to restart Main.exe. I never download or unpack anything by hand.
 4. Finish with a short report: what changed, what you tested, what you did not test, and what I should check myself.
 If something in the docs is wrong or missing, tell me and fix the document in the same pull request.
 ```

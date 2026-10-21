@@ -55,6 +55,14 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 
 ## The client
 
+- **After every merged client change, update the client folder with `scripts/update-live-client.ps1` — nobody downloads or unpacks anything by hand.**
+  Run `powershell -ExecutionPolicy Bypass -File scripts\update-live-client.ps1 -Target <the client folder>` (the owner's is
+  `C:\Users\rause\OneDrive\Desktop\OpenMU Live Client`). It finds the newest bundle that matches `main` (a build that only misses documentation changes counts),
+  waits for a running build or starts one if none exists, downloads the artifact, unpacks it and copies it over the client folder while keeping
+  `config.ini`, `Data` and `fonts`. It refuses to run while `Main.exe` of that folder is running (it never closes the game): ask the owner to close
+  the game, run it again, then tell them to start `Main.exe`. `-RunId <id>` installs an older build; `-Force` reinstalls the same one. The assistant
+  runs this itself as the last step of a client change: the owner only restarts the game. Downloading bundles built by this repository's own
+  workflows into the client folder is permitted (standing permission, 2026-10-21).
 - **Bundle:** the Windows x64 no-data bundle is built by the `CI` workflow of the client repository (`Windows Native Build`) on pushes to `main`
   and can be started by hand (Actions → CI → Run workflow, on `main`). Download the artifact
   `mu-client-windows-native-x64-release-editor-off-no-data-main`, extract it, and add the `Data` and `fonts` folders from `src/bin/` of this
