@@ -86,45 +86,33 @@ namespace JewelBank
         return &KINDS[code - FIRST_KIND_CODE];
     }
 
-    int KindIndexAt(int row, int column)
+    int PageOf(int index)
     {
-        if (row < 0 || row >= ROW_COUNT || column < 0 || column >= COLUMN_COUNT)
-        {
-            return -1;
-        }
-        if (column == 0)
-        {
-            return row;
-        }
-        // Only the ten jewels have bundles; the bundles are listed by size, each size in the order of the jewels.
-        return row < BUNDLES_PER_SIZE ? FIRST_BUNDLE_INDEX + (column - 1) * BUNDLES_PER_SIZE + row : -1;
-    }
-
-    bool CellOf(int index, int& row, int& column)
-    {
-        if (index < 0 || index >= KIND_COUNT)
-        {
-            return false;
-        }
         if (index < FIRST_BUNDLE_INDEX)
         {
-            row = index;
-            column = 0;
-            return true;
+            return 0;
         }
-        row = (index - FIRST_BUNDLE_INDEX) % BUNDLES_PER_SIZE;
-        column = 1 + (index - FIRST_BUNDLE_INDEX) / BUNDLES_PER_SIZE;
-        return true;
+        return 1 + (index - FIRST_BUNDLE_INDEX) / BUNDLES_PER_PAGE;
     }
 
-    const wchar_t* ColumnName(int column)
+    int PageFirstIndex(int page)
     {
-        switch (column)
+        return page <= 0 ? 0 : FIRST_BUNDLE_INDEX + (std::min(page, PAGE_COUNT - 1) - 1) * BUNDLES_PER_PAGE;
+    }
+
+    int PageSize(int page)
+    {
+        return page <= 0 ? FIRST_BUNDLE_INDEX : BUNDLES_PER_PAGE;
+    }
+
+    const wchar_t* PageName(int page)
+    {
+        switch (page)
         {
-        case 0: return L"Single";
-        case 1: return L"Bundle x10";
-        case 2: return L"Bundle x20";
-        default: return L"Bundle x30";
+        case 0: return L"Jewels & fruits";
+        case 1: return L"Bundles x10";
+        case 2: return L"Bundles x20";
+        default: return L"Bundles x30";
         }
     }
 
