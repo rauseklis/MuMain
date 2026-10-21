@@ -8,6 +8,8 @@ on:
       - 'src/bin/fonts/**'
   pull_request:
     branches: [main]
+  # Run by hand (Actions -> CI -> Run workflow, on main) to build the Windows client bundle without a push.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -118,7 +120,7 @@ jobs:
 
   build-windows:
     name: Windows Native Build (x64, Release, editor OFF)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: windows-latest
 
     steps:
