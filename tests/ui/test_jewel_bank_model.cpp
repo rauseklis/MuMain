@@ -165,6 +165,14 @@ TEST_CASE("a pickup notification is read at the documented offsets")
     CHECK(notification->NewCount == 1204);
 }
 
+TEST_CASE("a pickup fits the bank until the kind is at its cap")
+{
+    CHECK(HasRoomForPickup(0));
+    CHECK(HasRoomForPickup(MAX_PER_KIND - 1));
+    CHECK_FALSE(HasRoomForPickup(MAX_PER_KIND));
+    CHECK_FALSE(HasRoomForPickup(MAX_PER_KIND + 1));
+}
+
 TEST_CASE("counts are written with thousands separators")
 {
     CHECK(FormatCount(0) == L"0");

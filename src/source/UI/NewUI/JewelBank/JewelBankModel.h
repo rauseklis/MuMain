@@ -114,6 +114,12 @@ namespace JewelBank
         [[nodiscard]] static std::optional<PickupNotification> Parse(std::span<const uint8_t> packet);
     };
 
+    // The most the server stores of one kind (JewelBankOptions.MaximumPerKind). Only used to guess whether a pickup would be
+    // banked; the server decides.
+    constexpr uint64_t MAX_PER_KIND = 25000;
+    // Whether one more item of a kind with this stored count would still fit into the bank.
+    [[nodiscard]] bool HasRoomForPickup(uint64_t stored);
+
     // The most items one withdrawal may ask for; the server refuses more (an inventory could not hold them anyway).
     constexpr uint32_t MAX_WITHDRAW_UNITS = 256;
 

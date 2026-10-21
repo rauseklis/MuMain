@@ -46,6 +46,13 @@ namespace SEASON3B
         // Called once when the window is hidden.
         void ClosingProcess();
 
+        // Called when the character enters the world: forgets what was known and asks the server for the state, so that pickups
+        // know whether auto-deposit is on before the window was ever opened.
+        void RequestStateOnWorldEntry();
+        // Whether picking this dropped item up would go into the bank (auto-deposit is on, it is a plain item of a bankable
+        // kind, and the kind has room). Such a pickup must not be refused because the inventory is full.
+        bool WouldBankPickup(const ITEM& item) const;
+
         // Called from the network dispatch (WSclient.cpp, 0xD6).
         void SetState(const JewelBank::StateResponse& state);
         void SetOperationResponse(const JewelBank::OperationResponse& response);

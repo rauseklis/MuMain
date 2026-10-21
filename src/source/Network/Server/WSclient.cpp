@@ -1266,6 +1266,13 @@ BOOL ReceiveJoinMapServer(std::span<const BYTE> ReceiveBuffer)
     GameLogic::Commands::Catalog().Reset();
     GameLogic::Commands::Catalog().RequestOnce();
 
+    // The Jewel Bank setting decides whether a pickup with a full inventory may go ahead, so it is asked for here, not
+    // only when the window is opened.
+    if (g_pJewelBankWindow != nullptr)
+    {
+        g_pJewelBankWindow->RequestStateOnWorldEntry();
+    }
+
     g_ConsoleDebug->Write(MCD_RECEIVE, L"0x03 [ReceiveJoinMapServer]");
 
     return (TRUE);
