@@ -7317,7 +7317,7 @@ public unsafe partial class ConnectionManager
     /// <param name="amounts">The amounts.</param>
     /// <param name="amountsByteLength">The length of <paramref name="amounts"/>.</param>
     /// <remarks>
-    /// Is sent by the client when: The player deposits the chosen amount of each kind from the inventory. Amounts holds 45 little-endian 32-bit counts, one per kind with code 1..45 (jewels, fruits, then the bundles of 10, 20 and 30); 0 skips a kind.
+    /// Is sent by the client when: (A C4 packet: the encrypted request is longer than a C3 packet can be.) The player deposits the chosen amount of each kind from the inventory. Amounts holds 45 little-endian 32-bit counts, one per kind with code 1..45 (jewels, fruits, then the bundles of 10, 20 and 30); 0 skips a kind.
     /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendJewelBankDepositRequest")]
@@ -7355,7 +7355,7 @@ public unsafe partial class ConnectionManager
     /// <param name="amounts">The amounts.</param>
     /// <param name="amountsByteLength">The length of <paramref name="amounts"/>.</param>
     /// <remarks>
-    /// Is sent by the client when: The player withdraws the chosen amount of each kind as items. Amounts holds 45 little-endian 32-bit counts, one per kind with code 1..45 (jewels, fruits, then the bundles of 10, 20 and 30); 0 skips a kind.
+    /// Is sent by the client when: (A C4 packet: the encrypted request is longer than a C3 packet can be.) The player withdraws the chosen amount of each kind as items. Amounts holds 45 little-endian 32-bit counts, one per kind with code 1..45 (jewels, fruits, then the bundles of 10, 20 and 30); 0 skips a kind.
     /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendJewelBankWithdrawRequest")]
