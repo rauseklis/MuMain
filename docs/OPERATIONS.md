@@ -69,6 +69,13 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 - **Never use the real database or the real server.** The owner has their own local server and database (`openmu`, started from the
   `auction-create-c4` worktree); do not stop, change or point anything at it. Test with a throwaway PostgreSQL database and a second server
   with shifted ports (`docs/jewel-bank-handover-2026-10-20.md`, "Trying it in the game"), or on the live server when the owner says so.
+- **Client builds: use the long-lived "dev" worktree.** A new worktree has an empty build folder, so its first client build compiles about 820 steps
+  (10 to 20 minutes); later builds in the same worktree only recompile what changed. The owner's machine has one with a warm x64 Release build:
+  `C:\Users\rause\OneDrive\Desktop\mu-online-openmu\client\.worktrees\dev`. Start a client task there with `git switch -c <branch> origin/main`
+  (never edit `main` itself), build with `cmake --build --preset windows-x64-release` from a Developer PowerShell (or `cmd` after
+  `vcvarsall.bat x64`, with `VCPKG_ROOT` set), and when the branch is merged put it back with `git switch --detach origin/main`. Two sessions must not
+  build in the same worktree at the same time: a second session creates its own worktree and accepts the one-time slow build. Server builds take
+  1 to 2 minutes, so a fresh server worktree per task is fine.
 - **Do not control the game** (no automated clicks or keys into the game window); starting and stopping your own test processes is fine, and
   the owner plays and reports.
 - GM commands for staging items and events on a test server: `/item <group> <number> [level]`, `/jewelrain` (see the Jewel Rain design).
