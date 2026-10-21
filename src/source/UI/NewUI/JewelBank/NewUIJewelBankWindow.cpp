@@ -712,9 +712,10 @@ void SEASON3B::CNewUIJewelBankWindow::RenderFrame()
     const float y = static_cast<float>(m_Pos.y);
     const float centerWidth = static_cast<float>(WINDOW_WIDTH - 2 * FRAME_CAP_WIDTH);
 
-    // The frame is built like the Auction House's (and the stone background is the Commands window's, which has no glow): the two ornate
+    // The same construction as the Auction House frame, with its custom background image stretched over the window: the two ornate
     // caps of each band at 1:1, and only the plain centre strip stretched.
-    RenderImage(CNewUIMessageBoxMng::IMAGE_MSGBOX_BACK, x, y, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
+    RenderImageStretch(Auction::IMAGE_AUCTION_BACK, x, y, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
+        0.f, 0.f, static_cast<float>(Auction::WINDOW_WIDTH), static_cast<float>(Auction::WINDOW_HEIGHT));
 
     RenderImageStretch(Auction::IMAGE_AUCTION_TOP, x, y, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
         0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
