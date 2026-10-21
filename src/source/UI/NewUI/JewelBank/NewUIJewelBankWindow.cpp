@@ -6,6 +6,7 @@
 #include "UI/NewUI/AuctionHouse/AuctionChrome.h"
 #include "UI/NewUI/AuctionHouse/AuctionModel.h"
 #include "UI/NewUI/AuctionHouse/NewUIAuctionWindow.h"
+#include "UI/NewUI/Inventory/NewUIStorageInventory.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "UI/NewUI/Widgets/NineSlice.h"
 #include "Audio/DSPlaySound.h"
@@ -43,18 +44,18 @@ namespace
     constexpr int LIST_X = 22;
     constexpr int LIST_Y = 74;
     constexpr int LIST_WIDTH = 316;
-    // The first page lists 15 slim rows; the bundle pages list 10 taller rows with bigger models, so every page fills the same height.
+    // Every page lists fifteen rows of the same size.
     constexpr int ROW_HEIGHT = 16;
-    constexpr int BUNDLE_ROW_HEIGHT = 25;
     constexpr int ROW_GAP = 1;
 
-    // The pager under the list: an arrow, the page name, an arrow, centred in the window.
-    constexpr int PAGER_ARROW_WIDTH = 30;
+    // The pager under the list: an arrow, the page name, an arrow, centred in the window. The arrows are the storage window's
+    // hand-made HD arrow buttons (20 x 14 logical pixels, 4x art), drawn a little larger.
+    constexpr int PAGER_ARROW_WIDTH = 28;
     constexpr int PAGER_LABEL_WIDTH = 120;
     constexpr int PAGER_GAP = 6;
     constexpr int PAGER_WIDTH = 2 * PAGER_ARROW_WIDTH + PAGER_LABEL_WIDTH + 2 * PAGER_GAP;
-    constexpr int PAGER_HEIGHT = 18;
-    constexpr int PAGER_Y = LIST_Y + JewelBank::BUNDLES_PER_PAGE * (BUNDLE_ROW_HEIGHT + ROW_GAP) + 3;
+    constexpr int PAGER_HEIGHT = 20;
+    constexpr int PAGER_Y = LIST_Y + JewelBank::ROW_COUNT * (ROW_HEIGHT + ROW_GAP) + 3;
 
     // Columns, relative to the left edge of a row.
     // A row is selected by clicking it, so it has no tick box. The icon is a little smaller than the row, so the model
@@ -91,26 +92,10 @@ namespace
     const DWORD TAB_TINT_HOVER = RGBA(236, 241, 250, 255);
     const DWORD TAB_TINT_ACTIVE = RGBA(232, 198, 112, 255);
 
-    int RowHeight(int page)
+    // The top of a row, from the window's top.
+    int RowY(int row)
     {
-        return page == 0 ? ROW_HEIGHT : BUNDLE_ROW_HEIGHT;
-    }
-
-    // The top of a row, from the window's top; row is the position within the page.
-    int RowY(int page, int row)
-    {
-        return LIST_Y + row * (RowHeight(page) + ROW_GAP);
-    }
-
-    int IconSize(int page)
-    {
-        return page == 0 ? ICON_SIZE : 17;
-    }
-
-    // Where the text of a row starts below its top, so the text stays vertically centred in taller rows.
-    int TextY(int page)
-    {
-        return (RowHeight(page) - ROW_HEIGHT) / 2 + AMOUNT_TEXT_Y;
+        return LIST_Y + row * (ROW_HEIGHT + ROW_GAP);
     }
 
     // The left edges of the pager's two arrows, from the window's left.
@@ -143,7 +128,7 @@ namespace
     KindIcon IconOf(int index)
     {
         // The bundles are the jewels' packed items, in the order of the jewels (the same ten, once per size, level 0 / 1 / 2).
-        static const int packed[JewelBank::BUNDLES_PER_PAGE] = {
+        static const int packed[JewelBank::BUNDLES_PER_SIZE] = {
             ITEM_PACKED_JEWEL_OF_CHAOS, ITEM_PACKED_JEWEL_OF_BLESS, ITEM_PACKED_JEWEL_OF_SOUL, ITEM_PACKED_JEWEL_OF_LIFE,
             ITEM_PACKED_JEWEL_OF_CREATION, ITEM_PACKED_JEWEL_OF_GUARDIAN, ITEM_PACKED_JEWEL_OF_HARMONY, ITEM_PACKED_GEMSTONE,
             ITEM_PACKED_LOWER_REFINE_STONE, ITEM_PACKED_HIGHER_REFINE_STONE,
@@ -151,7 +136,7 @@ namespace
         if (index >= JewelBank::FIRST_BUNDLE_INDEX)
         {
             const int bundle = std::clamp(index, JewelBank::FIRST_BUNDLE_INDEX, JewelBank::KIND_COUNT - 1) - JewelBank::FIRST_BUNDLE_INDEX;
-            return { packed[bundle % JewelBank::BUNDLES_PER_PAGE], bundle / JewelBank::BUNDLES_PER_PAGE, 0.78f };
+            return { packed[bundle % JewelBank::BUNDLES_PER_SIZE], bundle / JewelBank::BUNDLES_PER_SIZE, 0.84f };
         }
 
         static const KindIcon icons[JewelBank::FIRST_BUNDLE_INDEX] = {
@@ -268,7 +253,7 @@ void SEASON3B::CNewUIJewelBankWindow::PositionChildren()
     m_BtnAction.ChangeButtonInfo(m_Pos.x + LIST_X + 2 * (BUTTON_WIDTH + BUTTON_GAP), m_Pos.y + BUTTON_ROW_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
     if (m_iEditRow >= 0)
     {
-        m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(m_iPage, m_iEditRow - JewelBank::PageFirstIndex(m_iPage)) + TextY(m_iPage));
+        m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(JewelBank::RowOnPage(m_iEditRow)) + AMOUNT_TEXT_Y);
     }
 }
 
@@ -496,7 +481,7 @@ void SEASON3B::CNewUIJewelBankWindow::BeginEdit(int row)
     m_iEditRow = row;
     const uint32_t current = CurrentAmounts()[row];
     m_AmountInput.SetText(current > 0 ? std::to_wstring(current).c_str() : L"");
-    m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(m_iPage, row - JewelBank::PageFirstIndex(m_iPage)) + TextY(m_iPage));
+    m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(JewelBank::RowOnPage(row)) + AMOUNT_TEXT_Y);
     m_AmountInput.SetState(UISTATE_NORMAL);
     m_AmountInput.GiveFocus(TRUE);
     SetRelatedWnd(m_AmountInput.GetHandle());
@@ -534,13 +519,12 @@ bool SEASON3B::CNewUIJewelBankWindow::RowAt(int mouseX, int mouseY, int& row, bo
         return false;
     }
 
-    const int first = JewelBank::PageFirstIndex(m_iPage);
-    for (int r = 0; r < JewelBank::PageSize(m_iPage); ++r)
+    for (int r = 0; r < JewelBank::ROW_COUNT; ++r)
     {
-        const int top = m_Pos.y + RowY(m_iPage, r);
-        if (mouseY >= top && mouseY < top + RowHeight(m_iPage))
+        const int top = m_Pos.y + RowY(r);
+        if (mouseY >= top && mouseY < top + ROW_HEIGHT)
         {
-            row = first + r;
+            row = JewelBank::KindOnPage(m_iPage, r);
             onAmount = mouseX >= m_Pos.x + LIST_X + AMOUNT_X;
             return true;
         }
@@ -591,7 +575,7 @@ bool SEASON3B::CNewUIJewelBankWindow::UpdateMouseEvent()
 {
     // A click outside the amount cell being edited accepts what was typed.
     if (m_iEditRow >= 0 && IsPress(VK_LBUTTON)
-        && !CheckMouseIn(m_Pos.x + LIST_X + AMOUNT_X, m_Pos.y + RowY(m_iPage, m_iEditRow - JewelBank::PageFirstIndex(m_iPage)), AMOUNT_WIDTH, RowHeight(m_iPage)))
+        && !CheckMouseIn(m_Pos.x + LIST_X + AMOUNT_X, m_Pos.y + RowY(JewelBank::RowOnPage(m_iEditRow)), AMOUNT_WIDTH, ROW_HEIGHT))
     {
         CommitEdit();
     }
@@ -789,13 +773,11 @@ void SEASON3B::CNewUIJewelBankWindow::Render3D()
         return;
     }
 
-    const int first = JewelBank::PageFirstIndex(m_iPage);
-    const int size = IconSize(m_iPage);
-    for (int r = 0; r < JewelBank::PageSize(m_iPage); ++r)
+    for (int r = 0; r < JewelBank::ROW_COUNT; ++r)
     {
-        const KindIcon icon = IconOf(first + r);
-        RenderItem3DFittedToSlot(static_cast<float>(m_Pos.x + LIST_X + ICON_X), static_cast<float>(m_Pos.y + RowY(m_iPage, r) + (RowHeight(m_iPage) - size) / 2),
-            static_cast<float>(size), static_cast<float>(size), icon.type, icon.level, 0, 0, icon.fill, false);
+        const KindIcon icon = IconOf(JewelBank::KindOnPage(m_iPage, r));
+        RenderItem3DFittedToSlot(static_cast<float>(m_Pos.x + LIST_X + ICON_X), static_cast<float>(m_Pos.y + RowY(r) + (ROW_HEIGHT - ICON_SIZE) / 2),
+            static_cast<float>(ICON_SIZE), static_cast<float>(ICON_SIZE), icon.type, icon.level, 0, 0, icon.fill, false);
     }
 }
 
@@ -862,17 +844,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderTabs()
 
 void SEASON3B::CNewUIJewelBankWindow::RenderPager()
 {
-    // A chevron drawn from small steps, pointing left or right.
-    const auto chevron = [](float centerX, float centerY, bool pointsLeft, unsigned int argb)
-    {
-        for (int step = 0; step < 5; ++step)
-        {
-            const float x = pointsLeft ? centerX + 2.f - step : centerX - 2.f + step;
-            RenderColorQuadARGB(x, centerY - 4.f + step, 2.f, 1.f, argb);
-            RenderColorQuadARGB(x, centerY + 3.f - step, 2.f, 1.f, argb);
-        }
-    };
-
+    using Storage = SEASON3B::CNewUIStorageInventory;
     const int y = m_Pos.y + PAGER_Y;
     for (int arrow = 0; arrow < 2; ++arrow)
     {
@@ -880,20 +852,17 @@ void SEASON3B::CNewUIJewelBankWindow::RenderPager()
         const bool enabled = left ? m_iPage > 0 : m_iPage < JewelBank::PAGE_COUNT - 1;
         const int x = m_Pos.x + (left ? PagerLeftX() : PagerRightX());
         const bool hovered = enabled && CheckMouseIn(x, y, PAGER_ARROW_WIDTH, PAGER_HEIGHT);
-        UI::NineSlice::Render(UI::AuctionChrome::AuctionButtonSkin().texture, static_cast<float>(x), static_cast<float>(y),
-            static_cast<float>(PAGER_ARROW_WIDTH), static_cast<float>(PAGER_HEIGHT),
-            enabled ? (hovered ? TAB_TINT_HOVER : TAB_TINT_IDLE) : RGBA(90, 90, 90, 255));
-        chevron(static_cast<float>(x) + PAGER_ARROW_WIDTH * 0.5f, static_cast<float>(y) + PAGER_HEIGHT * 0.5f, left,
-            enabled ? (hovered ? 0xFFFFE08Au : 0xFFF0F0F0u) : 0xFF6E6E6Eu);
+        const DWORD color = !enabled ? RGBA(80, 80, 80, 255) : (hovered ? RGBA(255, 255, 255, 255) : RGBA(205, 205, 205, 255));
+        RenderImage(left ? Storage::IMAGE_STORAGE_VAULT_ARROW_L : Storage::IMAGE_STORAGE_VAULT_ARROW_R,
+            static_cast<float>(x), static_cast<float>(y), static_cast<float>(PAGER_ARROW_WIDTH), static_cast<float>(PAGER_HEIGHT), 0.0f, 0.0f, color);
     }
-    EndRenderColor();
     EnableAlphaTest();
 
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     g_pRenderText->SetTextColor(255, 226, 130, 255);
     const std::wstring label = std::wstring(JewelBank::PageName(m_iPage)) + L"  " + std::to_wstring(m_iPage + 1) + L"/" + std::to_wstring(JewelBank::PAGE_COUNT);
-    g_pRenderText->RenderText(static_cast<float>(m_Pos.x + PagerLeftX() + PAGER_ARROW_WIDTH + PAGER_GAP), static_cast<float>(y + 5), label.c_str(),
+    g_pRenderText->RenderText(static_cast<float>(m_Pos.x + PagerLeftX() + PAGER_ARROW_WIDTH + PAGER_GAP), static_cast<float>(y + 6), label.c_str(),
         static_cast<float>(PAGER_LABEL_WIDTH), 0, RT3_SORT_CENTER);
 }
 
@@ -930,15 +899,14 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
     const JewelBank::Amounts& amounts = CurrentAmounts();
     const UI::NineSlice::StateTints& fieldTints = UI::AuctionChrome::AuctionFieldSkin().tints;
 
-    const int first = JewelBank::PageFirstIndex(m_iPage);
-    const int rowHeight = RowHeight(m_iPage);
-    const int textY = TextY(m_iPage);
-    for (int r = 0; r < JewelBank::PageSize(m_iPage); ++r)
+    const int rowHeight = ROW_HEIGHT;
+    const int textY = AMOUNT_TEXT_Y;
+    for (int r = 0; r < JewelBank::ROW_COUNT; ++r)
     {
-        const int i = first + r;
+        const int i = JewelBank::KindOnPage(m_iPage, r);
         const JewelBank::KindInfo& kind = JewelBank::KindAt(i);
         const int rowX = m_Pos.x + LIST_X;
-        const int rowY = m_Pos.y + RowY(m_iPage, r);
+        const int rowY = m_Pos.y + RowY(r);
         const bool selected = amounts[i] > 0;
         UI::NineSlice::Render(UI::AuctionChrome::AuctionRowSkin().texture, static_cast<float>(rowX), static_cast<float>(rowY),
             static_cast<float>(LIST_WIDTH), static_cast<float>(rowHeight),

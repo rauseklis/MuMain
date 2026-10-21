@@ -17,10 +17,13 @@ namespace JewelBank
     constexpr int KIND_COUNT = 45;
     // Where the bundles start (list position 15) and how many each page of bundles holds (one size of the ten jewels).
     constexpr int FIRST_BUNDLE_INDEX = 15;
-    constexpr int BUNDLES_PER_PAGE = 10;
-    // The list is shown in four pages: jewels and fruits, then the bundles of 10, 20 and 30.
-    constexpr int PAGE_COUNT = 4;
+    constexpr int BUNDLES_PER_SIZE = 10;
     constexpr uint8_t FIRST_KIND_CODE = 1;
+
+    // The window lists the kinds in three pages of fifteen rows each: the jewels and fruits, then the bundles of the first
+    // five jewels and of the last five (each jewel's bundles of 10, 20 and 30 together).
+    constexpr int ROW_COUNT = 15;
+    constexpr int PAGE_COUNT = 3;
 
     struct KindInfo
     {
@@ -30,10 +33,11 @@ namespace JewelBank
         uint32_t Color;
     };
 
-    // The page a list position belongs to, the first position of a page, and how many kinds a page shows.
+    // The list position of the kind shown in a row of a page.
+    [[nodiscard]] int KindOnPage(int page, int row);
+    // The page a list position is shown on, and the row it has there.
     [[nodiscard]] int PageOf(int index);
-    [[nodiscard]] int PageFirstIndex(int page);
-    [[nodiscard]] int PageSize(int page);
+    [[nodiscard]] int RowOnPage(int index);
     [[nodiscard]] const wchar_t* PageName(int page);
 
     // The kind at a list position (0 to 44); the position is code - 1.

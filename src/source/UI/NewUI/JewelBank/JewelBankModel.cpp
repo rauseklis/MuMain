@@ -86,34 +86,41 @@ namespace JewelBank
         return &KINDS[code - FIRST_KIND_CODE];
     }
 
+    int KindOnPage(int page, int row)
+    {
+        row = std::clamp(row, 0, ROW_COUNT - 1);
+        if (page <= 0)
+        {
+            return row;
+        }
+
+        // Five jewels a page, three rows each: the bundle of 10, of 20, of 30. The bundles are listed by size in the kind list.
+        const int jewel = (std::min(page, PAGE_COUNT - 1) - 1) * (ROW_COUNT / 3) + row / 3;
+        return FIRST_BUNDLE_INDEX + (row % 3) * BUNDLES_PER_SIZE + jewel;
+    }
+
     int PageOf(int index)
     {
         if (index < FIRST_BUNDLE_INDEX)
         {
             return 0;
         }
-        return 1 + (index - FIRST_BUNDLE_INDEX) / BUNDLES_PER_PAGE;
+        return 1 + ((index - FIRST_BUNDLE_INDEX) % BUNDLES_PER_SIZE) / (ROW_COUNT / 3);
     }
 
-    int PageFirstIndex(int page)
+    int RowOnPage(int index)
     {
-        return page <= 0 ? 0 : FIRST_BUNDLE_INDEX + (std::min(page, PAGE_COUNT - 1) - 1) * BUNDLES_PER_PAGE;
-    }
-
-    int PageSize(int page)
-    {
-        return page <= 0 ? FIRST_BUNDLE_INDEX : BUNDLES_PER_PAGE;
+        if (index < FIRST_BUNDLE_INDEX)
+        {
+            return std::max(index, 0);
+        }
+        const int bundle = index - FIRST_BUNDLE_INDEX;
+        return ((bundle % BUNDLES_PER_SIZE) % (ROW_COUNT / 3)) * 3 + bundle / BUNDLES_PER_SIZE;
     }
 
     const wchar_t* PageName(int page)
     {
-        switch (page)
-        {
-        case 0: return L"Jewels & fruits";
-        case 1: return L"Bundles x10";
-        case 2: return L"Bundles x20";
-        default: return L"Bundles x30";
-        }
+        return page <= 0 ? L"Jewels & fruits" : L"Bundles";
     }
 
     void AppendRequestAmounts(const Amounts& amounts, uint8_t* destination)

@@ -18,8 +18,8 @@ namespace SEASON3B
 {
     // A per-account bank for the ten jewels, the five stat fruits and the bundles (packs of 10, 20 and 30) of each jewel.
     // Two tabs, Deposit and Withdraw, both list every kind with what the bank holds and what the player carries. The
-    // first page holds the jewels and fruits, the next three the bundles of 10, 20 and 30; two arrows below the list
-    // turn the pages. A row is clicked to move everything available of the kind, or given an amount; any combination of
+    // first page holds the jewels and fruits, the next two the bundles (each jewel's of 10, 20 and 30 together); two
+    // arrows below the list turn the pages. A row is clicked to move everything available of the kind, or given an amount; any combination of
     // rows, across pages, is moved with one button. The server is authoritative: the window only sends requests and
     // shows what the server answers.
     class CNewUIJewelBankWindow : public CNewUIObj, public INewUI3DRenderObj

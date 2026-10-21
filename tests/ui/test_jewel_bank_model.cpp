@@ -1,5 +1,6 @@
 #include <doctest.h>
 
+#include <array>
 #include <cstring>
 #include <vector>
 
@@ -38,21 +39,37 @@ TEST_CASE("the kinds are the server's forty-five codes in order")
     CHECK(std::wstring(KindAt(44).Name) == L"Higher Refining Bundle x30");
 }
 
-TEST_CASE("the list is split into four pages which together cover every kind once")
+TEST_CASE("every page has fifteen rows and together the pages show every kind once")
 {
-    CHECK(PageSize(0) == 15);
-    int covered = 0;
+    std::array<int, KIND_COUNT> seen{};
     for (int page = 0; page < PAGE_COUNT; ++page)
     {
-        CHECK(PageFirstIndex(page) == covered);
-        for (int i = 0; i < PageSize(page); ++i)
+        for (int row = 0; row < ROW_COUNT; ++row)
         {
-            CHECK(PageOf(PageFirstIndex(page) + i) == page);
+            const int kind = KindOnPage(page, row);
+            REQUIRE(kind >= 0);
+            REQUIRE(kind < KIND_COUNT);
+            ++seen[kind];
+            CHECK(PageOf(kind) == page);
+            CHECK(RowOnPage(kind) == row);
         }
-        covered += PageSize(page);
     }
-    CHECK(covered == KIND_COUNT);
-    CHECK(std::wstring(PageName(1)) == L"Bundles x10");
+    for (const int count : seen)
+    {
+        CHECK(count == 1);
+    }
+}
+
+TEST_CASE("a jewel's three bundles sit together on one page")
+{
+    CHECK(std::wstring(KindAt(KindOnPage(1, 0)).Name) == L"Chaos Bundle x10");
+    CHECK(std::wstring(KindAt(KindOnPage(1, 1)).Name) == L"Chaos Bundle x20");
+    CHECK(std::wstring(KindAt(KindOnPage(1, 2)).Name) == L"Chaos Bundle x30");
+    CHECK(std::wstring(KindAt(KindOnPage(1, 14)).Name) == L"Creation Bundle x30");
+    CHECK(std::wstring(KindAt(KindOnPage(2, 0)).Name) == L"Guardian Bundle x10");
+    CHECK(std::wstring(KindAt(KindOnPage(2, 14)).Name) == L"Higher Refining Bundle x30");
+    CHECK(std::wstring(PageName(0)) == L"Jewels & fruits");
+    CHECK(std::wstring(PageName(2)) == L"Bundles");
 }
 
 TEST_CASE("request amounts are written as little-endian 32-bit values per kind")
