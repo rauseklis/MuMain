@@ -32,14 +32,15 @@ namespace
     constexpr int TITLE_BAND_HEIGHT = 30;
     constexpr int CORNER_CLOSE_RESERVE = 34;
 
-    constexpr int TAB_Y = 34;
+    // Everything below the frame's title bar starts under the soft shadow line the frame art draws there (it ends at y 36).
+    constexpr int TAB_Y = 41;
     constexpr int TAB_WIDTH = 72;
     constexpr int TAB_HEIGHT = 18;
     constexpr int TAB_GAP = 3;
 
-    constexpr int HEADER_Y = 56;
+    constexpr int HEADER_Y = 62;
     constexpr int LIST_X = 22;
-    constexpr int LIST_Y = 68;
+    constexpr int LIST_Y = 74;
     constexpr int LIST_WIDTH = Window::WINDOW_WIDTH - 2 * LIST_X;
     constexpr int ROW_HEIGHT = 17;
     constexpr int ROW_GAP = 1;
