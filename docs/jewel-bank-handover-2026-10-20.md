@@ -41,7 +41,7 @@ The MSPRO S6E19 backup was inspiration only; nothing of its schema is used.
   withdraw carry an amount for each of the 15 kinds. Responses are C1: 80 state (counts of the bank **and** of the inventory),
   81 operation result, 82 pickup notification. See `docs/Packets/*D6*.md`.
 - Safety: every mutation is one transaction that first claims `(AccountId, OperationId)`; balances are guarded (`>= 0`, per-kind
-  cap `JewelBankOptions.MaximumPerKind` = 1,000,000); every movement is in the ledger; only items of durability exactly 1,
+  cap `JewelBankOptions.MaximumPerKind` = 25,000); every movement is in the ledger; only items of durability exactly 1,
   without options or sockets, are banked; a multi-kind withdrawal is all-or-nothing.
 
 ## Client
