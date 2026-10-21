@@ -470,7 +470,7 @@ bool CNewUISystem::LoadMainSceneInterface()
         return false;
 
     m_pNewJewelBankWindow = new CNewUIJewelBankWindow;
-    if (m_pNewJewelBankWindow->Create(m_pNewUIMng, 20, 15) == false)
+    if (m_pNewJewelBankWindow->Create(m_pNewUIMng, m_pNewUI3DRenderMng, 20, 8) == false)
         return false;
 
     m_pNewMiniMap = new CNewUIMiniMap;

@@ -9,6 +9,7 @@
 
 #include "UI/NewUI/NewUIBase.h"
 #include "UI/NewUI/NewUIManager.h"
+#include "UI/NewUI/NewUI3DRenderMng.h"
 #include "UI/NewUI/Widgets/NewUIButton.h"
 #include "UI/Legacy/UIControls.h"
 #include "UI/NewUI/JewelBank/JewelBankModel.h"
@@ -19,7 +20,7 @@ namespace SEASON3B
     // kind with what the bank holds and what the player carries. A row is ticked to move everything available of the
     // kind, or given an amount; any combination of rows is moved with one button. The server is authoritative: the
     // window only sends requests and shows what the server answers.
-    class CNewUIJewelBankWindow : public CNewUIObj
+    class CNewUIJewelBankWindow : public CNewUIObj, public INewUI3DRenderObj
     {
     public:
         enum TAB
@@ -29,13 +30,13 @@ namespace SEASON3B
             TAB_COUNT,
         };
 
-        static constexpr int WINDOW_WIDTH = 330;
-        static constexpr int WINDOW_HEIGHT = 400;
+        static constexpr int WINDOW_WIDTH = 360;
+        static constexpr int WINDOW_HEIGHT = 412;
 
         CNewUIJewelBankWindow();
         ~CNewUIJewelBankWindow() override;
 
-        bool Create(CNewUIManager* pNewUIMng, int x, int y);
+        bool Create(CNewUIManager* pNewUIMng, CNewUI3DRenderMng* pNewUI3DRenderMng, int x, int y);
         void Release();
 
         // Called once when the window becomes visible.
@@ -49,6 +50,8 @@ namespace SEASON3B
         void SetPickupNotification(const JewelBank::PickupNotification& notification);
 
         bool Render() override;
+        // The item models of the rows, drawn in the 3D pass after every 2D control (like the Auction House icons).
+        void Render3D() override;
         bool IsVisible() const override;
         bool Update() override;
         bool UpdateMouseEvent() override;
@@ -82,6 +85,7 @@ namespace SEASON3B
         void RefreshButtons();
 
         CNewUIManager* m_pNewUIMng;
+        CNewUI3DRenderMng* m_pNewUI3DRenderMng;
         POINT m_Pos;
 
         bool m_bDragging;

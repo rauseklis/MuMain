@@ -32,30 +32,31 @@ namespace
     constexpr int TITLE_BAND_HEIGHT = 30;
     constexpr int CORNER_CLOSE_RESERVE = 34;
 
-    constexpr int TAB_X = 22;
-    constexpr int TAB_Y = 34;
+    constexpr int TAB_Y = 32;
     constexpr int TAB_WIDTH = 96;
     constexpr int TAB_HEIGHT = 22;
     constexpr int TAB_GAP = 4;
 
-    constexpr int HEADER_Y = 62;
+    constexpr int HEADER_Y = 59;
     constexpr int LIST_X = 22;
-    constexpr int LIST_Y = 76;
+    constexpr int LIST_Y = 72;
     constexpr int LIST_WIDTH = Window::WINDOW_WIDTH - 2 * LIST_X;
-    constexpr int ROW_HEIGHT = 15;
+    constexpr int ROW_HEIGHT = 17;
     constexpr int ROW_GAP = 1;
 
     // Columns, relative to the left edge of a row.
     constexpr int CHECK_X = 6;
     constexpr int CHECK_SIZE = 11;
-    constexpr int MARKER_X = 24;
-    constexpr int MARKER_SIZE = 9;
-    constexpr int NAME_X = 40;
-    constexpr int BANK_RIGHT = 176;
-    constexpr int BAG_RIGHT = 226;
-    constexpr int COUNT_WIDTH = 52;
-    constexpr int AMOUNT_X = 232;
-    constexpr int AMOUNT_WIDTH = 50;
+    constexpr int ICON_X = 22;
+    constexpr int ICON_SIZE = 17;
+    constexpr float ICON_FILL = 0.92f;
+    constexpr int NAME_X = 44;
+    constexpr int BANK_RIGHT = 180;
+    constexpr int BANK_WIDTH = 44;
+    constexpr int INVENTORY_RIGHT = 246;
+    constexpr int INVENTORY_WIDTH = 62;
+    constexpr int AMOUNT_X = 252;
+    constexpr int AMOUNT_WIDTH = 58;
     constexpr int AMOUNT_INSET = 4;
 
     constexpr int BUTTON_HEIGHT = 20;
@@ -81,9 +82,29 @@ namespace
         return LIST_Y + index * (ROW_HEIGHT + ROW_GAP);
     }
 
+    // The two tabs are centred in the window.
     int TabX(int tab)
     {
-        return TAB_X + tab * (TAB_WIDTH + TAB_GAP);
+        const int total = Window::TAB_COUNT * TAB_WIDTH + (Window::TAB_COUNT - 1) * TAB_GAP;
+        return (Window::WINDOW_WIDTH - total) / 2 + tab * (TAB_WIDTH + TAB_GAP);
+    }
+
+    // The item model each kind is shown with: the jewel's own item, or the fruit item at the fruit type's level.
+    struct KindIcon
+    {
+        int type;
+        int level;
+    };
+
+    KindIcon IconOf(int index)
+    {
+        static const KindIcon icons[JewelBank::KIND_COUNT] = {
+            { ITEM_JEWEL_OF_CHAOS, 0 }, { ITEM_JEWEL_OF_BLESS, 0 }, { ITEM_JEWEL_OF_SOUL, 0 }, { ITEM_JEWEL_OF_LIFE, 0 },
+            { ITEM_JEWEL_OF_CREATION, 0 }, { ITEM_JEWEL_OF_GUARDIAN, 0 }, { ITEM_JEWEL_OF_HARMONY, 0 }, { ITEM_GEMSTONE, 0 },
+            { ITEM_LOWER_REFINE_STONE, 0 }, { ITEM_HIGHER_REFINE_STONE, 0 },
+            { ITEM_FRUITS, 0 }, { ITEM_FRUITS, 1 }, { ITEM_FRUITS, 2 }, { ITEM_FRUITS, 3 }, { ITEM_FRUITS, 4 },
+        };
+        return icons[std::clamp(index, 0, JewelBank::KIND_COUNT - 1)];
     }
 
     void SetTextColorArgb(DWORD argb)
@@ -93,7 +114,7 @@ namespace
 } // namespace
 
 SEASON3B::CNewUIJewelBankWindow::CNewUIJewelBankWindow()
-    : m_pNewUIMng(nullptr), m_Pos{ 0, 0 }, m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_iEditRow(-1),
+    : m_pNewUIMng(nullptr), m_pNewUI3DRenderMng(nullptr), m_Pos{ 0, 0 }, m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_iEditRow(-1),
       m_iTab(TAB_DEPOSIT), m_Amounts{}, m_Counts{}, m_Inventory{}, m_bHasState(false), m_bAutoDeposit(false),
       m_bOperationPending(false), m_PendingOperationId{}, m_PendingOperation(JewelBank::Operation::Deposit), m_PendingRequested(0),
       m_OperationDeadline{}, m_NextPoll{}, m_bMessageGood(true)
@@ -105,15 +126,17 @@ SEASON3B::CNewUIJewelBankWindow::~CNewUIJewelBankWindow()
     Release();
 }
 
-bool SEASON3B::CNewUIJewelBankWindow::Create(CNewUIManager* pNewUIMng, int x, int y)
+bool SEASON3B::CNewUIJewelBankWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRenderMng* pNewUI3DRenderMng, int x, int y)
 {
-    if (nullptr == pNewUIMng)
+    if (nullptr == pNewUIMng || nullptr == pNewUI3DRenderMng)
     {
         return false;
     }
 
     m_pNewUIMng = pNewUIMng;
     m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_JEWEL_BANK, this);
+    m_pNewUI3DRenderMng = pNewUI3DRenderMng;
+    m_pNewUI3DRenderMng->Add3DRenderObj(this, INFORMATION_CAMERA_Z_ORDER);
     m_Pos.x = x;
     m_Pos.y = y;
 
@@ -143,6 +166,12 @@ void SEASON3B::CNewUIJewelBankWindow::Release()
     if (m_AmountInput.HaveFocus())
     {
         CUITextInputBox::ReleaseFocus();
+    }
+
+    if (m_pNewUI3DRenderMng)
+    {
+        m_pNewUI3DRenderMng->Remove3DRenderObj(this);
+        m_pNewUI3DRenderMng = nullptr;
     }
 
     if (m_pNewUIMng)
@@ -660,6 +689,21 @@ bool SEASON3B::CNewUIJewelBankWindow::Render()
     return true;
 }
 
+void SEASON3B::CNewUIJewelBankWindow::Render3D()
+{
+    if (!IsVisible())
+    {
+        return;
+    }
+
+    for (int i = 0; i < JewelBank::KIND_COUNT; ++i)
+    {
+        const KindIcon icon = IconOf(i);
+        RenderItem3DFittedToSlot(static_cast<float>(m_Pos.x + LIST_X + ICON_X), static_cast<float>(m_Pos.y + RowY(i) + (ROW_HEIGHT - ICON_SIZE) / 2),
+            static_cast<float>(ICON_SIZE), static_cast<float>(ICON_SIZE), icon.type, icon.level, 0, 0, ICON_FILL, false);
+    }
+}
+
 void SEASON3B::CNewUIJewelBankWindow::RenderFrame()
 {
     const float x = static_cast<float>(m_Pos.x);
@@ -734,9 +778,9 @@ void SEASON3B::CNewUIJewelBankWindow::RenderHeader()
 
     // The column the tab takes from is the one in gold.
     SetTextColorArgb(deposit ? 0xFFB4B4B4u : 0xFFFFD25Au);
-    g_pRenderText->RenderText(static_cast<float>(left + BANK_RIGHT - COUNT_WIDTH), static_cast<float>(y), L"In bank", static_cast<float>(COUNT_WIDTH), 0, RT3_SORT_RIGHT);
+    g_pRenderText->RenderText(static_cast<float>(left + BANK_RIGHT - BANK_WIDTH), static_cast<float>(y), L"In bank", static_cast<float>(BANK_WIDTH), 0, RT3_SORT_RIGHT);
     SetTextColorArgb(deposit ? 0xFFFFD25Au : 0xFFB4B4B4u);
-    g_pRenderText->RenderText(static_cast<float>(left + BAG_RIGHT - COUNT_WIDTH), static_cast<float>(y), L"In bag", static_cast<float>(COUNT_WIDTH), 0, RT3_SORT_RIGHT);
+    g_pRenderText->RenderText(static_cast<float>(left + INVENTORY_RIGHT - INVENTORY_WIDTH), static_cast<float>(y), L"In inventory", static_cast<float>(INVENTORY_WIDTH), 0, RT3_SORT_RIGHT);
     SetTextColorArgb(0xFFB4B4B4u);
     g_pRenderText->RenderText(static_cast<float>(left + AMOUNT_X), static_cast<float>(y), deposit ? L"Deposit" : L"Withdraw", static_cast<float>(AMOUNT_WIDTH), 0, RT3_SORT_CENTER);
 }
@@ -774,20 +818,17 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             RenderColorQuadARGB(static_cast<float>(checkX + 3), static_cast<float>(checkY + 3), static_cast<float>(CHECK_SIZE - 6), static_cast<float>(CHECK_SIZE - 6), 0xFFFFD25Au);
         }
 
-        // A coloured square stands in for the item icon.
-        const int markerY = rowY + (ROW_HEIGHT - MARKER_SIZE) / 2;
-        RenderColorQuadARGB(static_cast<float>(rowX + MARKER_X - 1), static_cast<float>(markerY - 1), static_cast<float>(MARKER_SIZE + 2), static_cast<float>(MARKER_SIZE + 2), 0xFF0C0C0Cu);
-        RenderColorQuadARGB(static_cast<float>(rowX + MARKER_X), static_cast<float>(markerY), static_cast<float>(MARKER_SIZE), static_cast<float>(MARKER_SIZE), kind.Color);
+        // The item model is drawn in the 3D pass (Render3D); the tick box above is the last flat shape of the row.
         EndRenderColor();
         EnableAlphaTest();
 
         const bool hasAny = available[i] > 0;
         g_pRenderText->SetTextColor(selected ? 255 : 230, selected ? 232 : 230, selected ? 170 : 230, 255);
-        g_pRenderText->RenderText(static_cast<float>(rowX + NAME_X), static_cast<float>(rowY + 3), kind.Name, 0, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText(static_cast<float>(rowX + NAME_X), static_cast<float>(rowY + 4), kind.Name, 0, 0, RT3_SORT_LEFT);
 
         const uint64_t bank = m_Counts[i];
         const uint64_t bag = m_Inventory[i];
-        const auto renderCount = [&](uint64_t value, int right, bool source)
+        const auto renderCount = [&](uint64_t value, int right, int width, bool source)
         {
             if (value == 0)
             {
@@ -801,11 +842,11 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             {
                 g_pRenderText->SetTextColor(200, 200, 200, 255);
             }
-            g_pRenderText->RenderText(static_cast<float>(rowX + right - COUNT_WIDTH), static_cast<float>(rowY + 3),
-                JewelBank::FormatCount(value).c_str(), static_cast<float>(COUNT_WIDTH), 0, RT3_SORT_RIGHT);
+            g_pRenderText->RenderText(static_cast<float>(rowX + right - width), static_cast<float>(rowY + 4),
+                JewelBank::FormatCount(value).c_str(), static_cast<float>(width), 0, RT3_SORT_RIGHT);
         };
-        renderCount(bank, BANK_RIGHT, !deposit);
-        renderCount(bag, BAG_RIGHT, deposit);
+        renderCount(bank, BANK_RIGHT, BANK_WIDTH, !deposit);
+        renderCount(bag, INVENTORY_RIGHT, INVENTORY_WIDTH, deposit);
 
         // The amount cell: a recessed field, gold ring while it is being edited.
         const int cellX = rowX + AMOUNT_X;
@@ -826,7 +867,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             {
                 g_pRenderText->SetTextColor(115, 115, 115, 255);
             }
-            g_pRenderText->RenderText(static_cast<float>(cellX), static_cast<float>(rowY + 3),
+            g_pRenderText->RenderText(static_cast<float>(cellX), static_cast<float>(rowY + 4),
                 amounts[i] > 0 ? std::to_wstring(amounts[i]).c_str() : L"-", static_cast<float>(AMOUNT_WIDTH), 0, RT3_SORT_CENTER);
         }
     }
