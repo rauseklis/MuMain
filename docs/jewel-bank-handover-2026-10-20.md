@@ -99,3 +99,11 @@ watch the chat line "+1 Jewel of Bless -> Jewel Bank (n)".
 - The cap and the request interval are constants in `JewelBankOptions`, not an `.ini`.
 - A change made on another game server process can take up to 30 s to apply to pickups (auto-deposit cache).
 - Nothing is pushed or merged; both branches wait for review.
+
+## Update 2026-10-21: bundles, pages and the pickup test
+
+- **45 kinds.** Codes 1-10 jewels, 11-15 fruits, 16-45 bundles (10 jewels x sizes 10/20/30, in jewel order; item group 12, level 0/1/2). A kind is exactly one item definition at one item level; a bundle is banked and withdrawn as itself, never merged into or split from loose jewels. Server: `JewelBankKinds`, repository (deposit removes N items, withdraw creates N, all-or-nothing); withdrawal cap 256 items per request.
+- **Wire.** Deposit/Withdraw requests are C3, `OperationId[16]` + `Amounts` binary (45 x u32 LE), length 200. The state response is a C2 packet (367 bytes): `Counts` and `Inventory` binary (45 x u32 LE) at 7 and 187. The client reads the 0xD6 sub-code at `[4]` for C2. Packet package 0.9.19 (`OpenMuPacketsVersion` in `ClientLibrary`).
+- **Window.** Three pages of 15 equal rows: jewels and fruits; bundles of the first five jewels; bundles of the last five (each jewel's x10/x20/x30 together). `< >` pager under the list uses the storage window's HD arrow textures (`newui_vault_arrow_L/R`). Bundle icons use their jewel's fill so a jewel keeps its size. The Auction House and the Jewel Bank close each other (`NewUIHotKey.cpp`).
+- **Tried and dropped:** a page rail on the right, a grid (row per jewel, column per form), a dual bank/inventory cell. The user wanted the plain list with In bank / In inventory / amount columns on every page.
+- **Testing a pickup deposit.** There is no jewel drop event (the Golden Invasion drops Box of Luck and cannot be started by command). Use a GM character (status 32; on the test database `testgm` / `testgm2` characters) and type `/item 14 13 0` (Bless), `/item 12 15 0` (Chaos), `/item 13 15 3` (Strength fruit), `/item 12 30 2` (Bless Bundle x30) in Lorencia with the Deposit tab's auto-deposit tick on, then pick the item up. Not yet verified live.
