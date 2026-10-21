@@ -241,6 +241,12 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
         }
         else
         {
+            // The Auction House and the Jewel Bank are both large windows in the same place: only one at a time.
+            if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_JEWEL_BANK))
+            {
+                g_pNewUISystem->Hide(SEASON3B::INTERFACE_JEWEL_BANK);
+            }
+
             g_pNewUISystem->Toggle(SEASON3B::INTERFACE_AUCTION_HOUSE);
             PlayBuffer(SOUND_CLICK01);
         }
@@ -277,6 +283,11 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
     else if (SEASON3B::IsPress('J') == true && SEASON3B::IsRepeat(VK_CONTROL))
     {
         // Ctrl+J is the Jewel Bank; the plain key below keeps showing the chat commands.
+        if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_AUCTION_HOUSE))
+        {
+            g_pNewUISystem->Hide(SEASON3B::INTERFACE_AUCTION_HOUSE);
+        }
+
         g_pNewUISystem->Toggle(SEASON3B::INTERFACE_JEWEL_BANK);
         PlayBuffer(SOUND_CLICK01);
 

@@ -8,13 +8,18 @@
 #include <string>
 
 // The pure side of the Jewel Bank window: the kinds the bank stores, the server's result codes with their
-// messages, the parsers of the three server packets (0xD6 sub 0x80 to 0x82, all C1-with-subcode) and the
+// messages, the parsers of the three server packets (0xD6 sub 0x80 to 0x82; the state is a C2, the others C1) and the
 // amount helpers. No window state, no drawing, so it is unit tested without the game.
 namespace JewelBank
 {
-    // The kinds are stored by code 1 to 15, in this order: ten jewels, then the five stat fruits. The codes are the
-    // server's (JewelBankKinds) and are never renumbered.
-    constexpr int KIND_COUNT = 15;
+    // The kinds are stored by code 1 to 45, in this order: ten jewels, the five stat fruits, then the bundles (packs) of
+    // ten, twenty and thirty of each of the ten jewels. The codes are the server's (JewelBankKinds) and are never renumbered.
+    constexpr int KIND_COUNT = 45;
+    // Where the bundles start (list position 15) and how many each page of bundles holds (one size of the ten jewels).
+    constexpr int FIRST_BUNDLE_INDEX = 15;
+    constexpr int BUNDLES_PER_PAGE = 10;
+    // The list is shown in four pages: jewels and fruits, then the bundles of 10, 20 and 30.
+    constexpr int PAGE_COUNT = 4;
     constexpr uint8_t FIRST_KIND_CODE = 1;
 
     struct KindInfo
@@ -25,7 +30,13 @@ namespace JewelBank
         uint32_t Color;
     };
 
-    // The kind at a list position (0 to 14); the position is code - 1.
+    // The page a list position belongs to, the first position of a page, and how many kinds a page shows.
+    [[nodiscard]] int PageOf(int index);
+    [[nodiscard]] int PageFirstIndex(int page);
+    [[nodiscard]] int PageSize(int page);
+    [[nodiscard]] const wchar_t* PageName(int page);
+
+    // The kind at a list position (0 to 44); the position is code - 1.
     [[nodiscard]] const KindInfo& KindAt(int index);
     // The kind with a wire code, or null for an unknown code.
     [[nodiscard]] const KindInfo* FindKind(uint8_t code);
@@ -56,11 +67,13 @@ namespace JewelBank
     // A sentence for the player: what the result means and, for a refusal, what to do about it.
     [[nodiscard]] const wchar_t* ResultText(Result result);
 
-    // The stored counts of the account and what the player carries (wire 0xD6 sub 0x80): Result@4, AutoDeposit@5, Count1..Count15 as
-    // u64 @6 + 8 * i, Inventory1..Inventory15 as u32 @126 + 4 * i (the units a deposit could take, packs counted as the units they hold).
+    // The stored counts of the account and what the player carries (wire 0xD6 sub 0x80, a C2 packet): Result@5, AutoDeposit@6,
+    // Counts as 45 u32 @7 + 4 * i, Inventory as 45 u32 @187 + 4 * i (the items a deposit could take, a bundle counted as one).
     struct StateResponse
     {
-        static constexpr size_t FullWireLength = 186;
+        static constexpr size_t COUNTS_OFFSET = 7;
+        static constexpr size_t INVENTORY_OFFSET = 187;
+        static constexpr size_t FullWireLength = 367;
 
         JewelBank::Result Result = JewelBank::Result::Success;
         bool AutoDeposit = false;
@@ -97,8 +110,8 @@ namespace JewelBank
         [[nodiscard]] static std::optional<PickupNotification> Parse(std::span<const uint8_t> packet);
     };
 
-    // The most units one withdrawal may ask for; the server refuses more.
-    constexpr uint32_t MAX_WITHDRAW_UNITS = 100000;
+    // The most items one withdrawal may ask for; the server refuses more (an inventory could not hold them anyway).
+    constexpr uint32_t MAX_WITHDRAW_UNITS = 256;
 
     // "1,234,567".
     [[nodiscard]] std::wstring FormatCount(uint64_t value);
@@ -107,7 +120,7 @@ namespace JewelBank
     // 32 bits) is null. The caller still limits it to the stored count.
     [[nodiscard]] std::optional<uint32_t> ParseAmount(const std::wstring& text);
 
-    // The amount a player chose for each kind (list position 0 to 14); 0 means the kind is not part of the request.
+    // The amount a player chose for each kind (list position 0 to 44); 0 means the kind is not part of the request.
     using Amounts = std::array<uint32_t, KIND_COUNT>;
 
     // The units of each kind a tab can move: the stored counts when withdrawing, what is carried when depositing.
@@ -131,6 +144,9 @@ namespace JewelBank
 
     // The sum of all amounts.
     [[nodiscard]] uint64_t TotalAmount(const Amounts& amounts);
+
+    // Writes the amounts as the 45 little-endian 32-bit values of a deposit or withdrawal request (180 bytes).
+    void AppendRequestAmounts(const Amounts& amounts, uint8_t* destination);
 
     // "+3 Jewel of Bless -> Jewel Bank (1,204)"; empty for an unknown kind.
     [[nodiscard]] std::wstring PickupMessage(const PickupNotification& notification);

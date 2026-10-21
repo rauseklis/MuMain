@@ -20,7 +20,7 @@ namespace
     }
 } // namespace
 
-TEST_CASE("the kinds are the server's fifteen codes in order")
+TEST_CASE("the kinds are the server's forty-five codes in order")
 {
     for (int i = 0; i < KIND_COUNT; ++i)
     {
@@ -30,20 +30,56 @@ TEST_CASE("the kinds are the server's fifteen codes in order")
     }
 
     CHECK(FindKind(0) == nullptr);
-    CHECK(FindKind(16) == nullptr);
+    CHECK(FindKind(46) == nullptr);
     CHECK(std::wstring(KindAt(1).Name) == L"Jewel of Bless");
     CHECK(std::wstring(KindAt(13).Name) == L"Fruit of Strength");
+    CHECK(std::wstring(KindAt(15).Name) == L"Chaos Bundle x10");
+    CHECK(std::wstring(KindAt(25).Name) == L"Chaos Bundle x20");
+    CHECK(std::wstring(KindAt(44).Name) == L"Higher Refining Bundle x30");
+}
+
+TEST_CASE("the list is split into four pages which together cover every kind once")
+{
+    CHECK(PageSize(0) == 15);
+    int covered = 0;
+    for (int page = 0; page < PAGE_COUNT; ++page)
+    {
+        CHECK(PageFirstIndex(page) == covered);
+        for (int i = 0; i < PageSize(page); ++i)
+        {
+            CHECK(PageOf(PageFirstIndex(page) + i) == page);
+        }
+        covered += PageSize(page);
+    }
+    CHECK(covered == KIND_COUNT);
+    CHECK(std::wstring(PageName(1)) == L"Bundles x10");
+}
+
+TEST_CASE("request amounts are written as little-endian 32-bit values per kind")
+{
+    Amounts amounts{};
+    amounts[0] = 0x01020304u;
+    amounts[44] = 7;
+    std::vector<uint8_t> bytes(KIND_COUNT * 4, 0xFF);
+
+    AppendRequestAmounts(amounts, bytes.data());
+
+    CHECK(bytes[0] == 0x04);
+    CHECK(bytes[3] == 0x01);
+    CHECK(bytes[4] == 0);
+    CHECK(bytes[44 * 4] == 7);
+    CHECK(bytes[44 * 4 + 3] == 0);
 }
 
 TEST_CASE("a state response is read at the documented offsets")
 {
     std::vector<uint8_t> packet(StateResponse::FullWireLength, 0);
-    packet[4] = static_cast<uint8_t>(Result::Success);
-    packet[5] = 1;
-    PutU64(packet, 6, 1234567);
-    PutU64(packet, 6 + 8 * 14, 42);
-    PutU32(packet, 126, 7);
-    PutU32(packet, 126 + 4 * 14, 99);
+    packet[5] = static_cast<uint8_t>(Result::Success);
+    packet[6] = 1;
+    PutU32(packet, 7, 1234567);
+    PutU32(packet, 7 + 4 * 44, 42);
+    PutU32(packet, 187, 7);
+    PutU32(packet, 187 + 4 * 44, 99);
 
     const auto response = StateResponse::Parse(packet);
 
@@ -52,10 +88,10 @@ TEST_CASE("a state response is read at the documented offsets")
     CHECK(response->AutoDeposit);
     CHECK(response->Counts[0] == 1234567);
     CHECK(response->Counts[1] == 0);
-    CHECK(response->Counts[14] == 42);
+    CHECK(response->Counts[44] == 42);
     CHECK(response->Inventory[0] == 7);
     CHECK(response->Inventory[1] == 0);
-    CHECK(response->Inventory[14] == 99);
+    CHECK(response->Inventory[44] == 99);
 }
 
 TEST_CASE("a short or unknown packet is not a response")
@@ -68,7 +104,7 @@ TEST_CASE("a short or unknown packet is not a response")
     CHECK_FALSE(PickupNotification::Parse(shortPickup).has_value());
 
     std::vector<uint8_t> unknown(StateResponse::FullWireLength, 0);
-    unknown[4] = 200;
+    unknown[5] = 200;
     const auto response = StateResponse::Parse(unknown);
     REQUIRE(response.has_value());
     CHECK(response->Result == Result::InvalidRequest);

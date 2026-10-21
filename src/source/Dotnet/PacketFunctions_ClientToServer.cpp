@@ -2262,7 +2262,7 @@ void PacketFunctions_ClientToServer::SendJewelBankOpenRequest()
     dotnet_SendJewelBankOpenRequest(this->GetHandle());
 }
 
-void PacketFunctions_ClientToServer::SendJewelBankDepositRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint32_t amount1, uint32_t amount2, uint32_t amount3, uint32_t amount4, uint32_t amount5, uint32_t amount6, uint32_t amount7, uint32_t amount8, uint32_t amount9, uint32_t amount10, uint32_t amount11, uint32_t amount12, uint32_t amount13, uint32_t amount14, uint32_t amount15)
+void PacketFunctions_ClientToServer::SendJewelBankDepositRequest(const BYTE* operationId, uint32_t operationIdByteLength, const BYTE* amounts, uint32_t amountsByteLength)
 {
     static const auto dotnet_SendJewelBankDepositRequest = LoadManagedSymbol<::SendJewelBankDepositRequest>("SendJewelBankDepositRequest");
     if (!dotnet_SendJewelBankDepositRequest)
@@ -2270,10 +2270,10 @@ void PacketFunctions_ClientToServer::SendJewelBankDepositRequest(const BYTE* ope
         return;
     }
 
-    dotnet_SendJewelBankDepositRequest(this->GetHandle(), operationId, operationIdByteLength, amount1, amount2, amount3, amount4, amount5, amount6, amount7, amount8, amount9, amount10, amount11, amount12, amount13, amount14, amount15);
+    dotnet_SendJewelBankDepositRequest(this->GetHandle(), operationId, operationIdByteLength, amounts, amountsByteLength);
 }
 
-void PacketFunctions_ClientToServer::SendJewelBankWithdrawRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint32_t amount1, uint32_t amount2, uint32_t amount3, uint32_t amount4, uint32_t amount5, uint32_t amount6, uint32_t amount7, uint32_t amount8, uint32_t amount9, uint32_t amount10, uint32_t amount11, uint32_t amount12, uint32_t amount13, uint32_t amount14, uint32_t amount15)
+void PacketFunctions_ClientToServer::SendJewelBankWithdrawRequest(const BYTE* operationId, uint32_t operationIdByteLength, const BYTE* amounts, uint32_t amountsByteLength)
 {
     static const auto dotnet_SendJewelBankWithdrawRequest = LoadManagedSymbol<::SendJewelBankWithdrawRequest>("SendJewelBankWithdrawRequest");
     if (!dotnet_SendJewelBankWithdrawRequest)
@@ -2281,7 +2281,7 @@ void PacketFunctions_ClientToServer::SendJewelBankWithdrawRequest(const BYTE* op
         return;
     }
 
-    dotnet_SendJewelBankWithdrawRequest(this->GetHandle(), operationId, operationIdByteLength, amount1, amount2, amount3, amount4, amount5, amount6, amount7, amount8, amount9, amount10, amount11, amount12, amount13, amount14, amount15);
+    dotnet_SendJewelBankWithdrawRequest(this->GetHandle(), operationId, operationIdByteLength, amounts, amountsByteLength);
 }
 
 void PacketFunctions_ClientToServer::SendJewelBankSetAutoDepositRequest(BYTE enabled)

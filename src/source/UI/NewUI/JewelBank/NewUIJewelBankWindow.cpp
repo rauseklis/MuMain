@@ -42,9 +42,19 @@ namespace
     constexpr int HEADER_Y = 62;
     constexpr int LIST_X = 22;
     constexpr int LIST_Y = 74;
-    constexpr int LIST_WIDTH = Window::WINDOW_WIDTH - 2 * LIST_X;
+    constexpr int LIST_WIDTH = 316;
+    // The first page lists 15 slim rows; the bundle pages list 10 taller rows with bigger models, so every page fills the same height.
     constexpr int ROW_HEIGHT = 17;
+    constexpr int BUNDLE_ROW_HEIGHT = 26;
     constexpr int ROW_GAP = 1;
+
+    // The page rail, to the right of the list.
+    constexpr int RAIL_GAP = 8;
+    constexpr int RAIL_X = LIST_X + LIST_WIDTH + RAIL_GAP;
+    constexpr int RAIL_WIDTH = 92;
+    constexpr int RAIL_BUTTON_HEIGHT = 24;
+    constexpr int RAIL_BUTTON_GAP = 4;
+    static_assert(RAIL_X + RAIL_WIDTH + LIST_X == Window::WINDOW_WIDTH, "the rail ends where the left margin mirrors");
 
     // Columns, relative to the left edge of a row.
     // A row is selected by clicking it, so it has no tick box. The icon is a little smaller than the row, so the model
@@ -66,7 +76,7 @@ namespace
     constexpr int BUTTON_HEIGHT = 20;
     constexpr int BUTTON_GAP = 6;
     constexpr int BUTTON_WIDTH = (LIST_WIDTH - 2 * BUTTON_GAP) / 3;
-    constexpr int BUTTON_ROW_Y = LIST_Y + JewelBank::KIND_COUNT * (ROW_HEIGHT + ROW_GAP) + 6;
+    constexpr int BUTTON_ROW_Y = LIST_Y + JewelBank::FIRST_BUNDLE_INDEX * (ROW_HEIGHT + ROW_GAP) + 6;
     constexpr int AUTO_Y = BUTTON_ROW_Y + BUTTON_HEIGHT + 8;
     constexpr int MESSAGE_Y = AUTO_Y + 20;
     constexpr int AMOUNT_MAX_DIGITS = 6;
@@ -81,9 +91,31 @@ namespace
     const DWORD TAB_TINT_HOVER = RGBA(236, 241, 250, 255);
     const DWORD TAB_TINT_ACTIVE = RGBA(232, 198, 112, 255);
 
-    int RowY(int index)
+    int RowHeight(int page)
     {
-        return LIST_Y + index * (ROW_HEIGHT + ROW_GAP);
+        return page == 0 ? ROW_HEIGHT : BUNDLE_ROW_HEIGHT;
+    }
+
+    // The top of a row, from the window's top; row is the position within the page.
+    int RowY(int page, int row)
+    {
+        return LIST_Y + row * (RowHeight(page) + ROW_GAP);
+    }
+
+    int IconSize(int page)
+    {
+        return page == 0 ? ICON_SIZE : 22;
+    }
+
+    // Where the text of a row starts below its top, so the text stays vertically centred in taller rows.
+    int TextY(int page)
+    {
+        return (RowHeight(page) - ROW_HEIGHT) / 2 + AMOUNT_TEXT_Y;
+    }
+
+    int RailY(int page)
+    {
+        return LIST_Y + page * (RAIL_BUTTON_HEIGHT + RAIL_BUTTON_GAP);
     }
 
     // The two tabs are centred in the window.
@@ -104,14 +136,26 @@ namespace
 
     KindIcon IconOf(int index)
     {
-        static const KindIcon icons[JewelBank::KIND_COUNT] = {
+        // The bundles are the jewels' packed items, in the order of the jewels (the same ten, once per size, level 0 / 1 / 2).
+        static const int packed[JewelBank::BUNDLES_PER_PAGE] = {
+            ITEM_PACKED_JEWEL_OF_CHAOS, ITEM_PACKED_JEWEL_OF_BLESS, ITEM_PACKED_JEWEL_OF_SOUL, ITEM_PACKED_JEWEL_OF_LIFE,
+            ITEM_PACKED_JEWEL_OF_CREATION, ITEM_PACKED_JEWEL_OF_GUARDIAN, ITEM_PACKED_JEWEL_OF_HARMONY, ITEM_PACKED_GEMSTONE,
+            ITEM_PACKED_LOWER_REFINE_STONE, ITEM_PACKED_HIGHER_REFINE_STONE,
+        };
+        if (index >= JewelBank::FIRST_BUNDLE_INDEX)
+        {
+            const int bundle = std::clamp(index, JewelBank::FIRST_BUNDLE_INDEX, JewelBank::KIND_COUNT - 1) - JewelBank::FIRST_BUNDLE_INDEX;
+            return { packed[bundle % JewelBank::BUNDLES_PER_PAGE], bundle / JewelBank::BUNDLES_PER_PAGE, 0.92f };
+        }
+
+        static const KindIcon icons[JewelBank::FIRST_BUNDLE_INDEX] = {
             { ITEM_JEWEL_OF_CHAOS, 0, 0.80f }, { ITEM_JEWEL_OF_BLESS, 0, 0.84f }, { ITEM_JEWEL_OF_SOUL, 0, 0.70f },
             { ITEM_JEWEL_OF_LIFE, 0, 0.80f }, { ITEM_JEWEL_OF_CREATION, 0, 0.74f }, { ITEM_JEWEL_OF_GUARDIAN, 0, 0.80f },
             { ITEM_JEWEL_OF_HARMONY, 0, 0.80f }, { ITEM_GEMSTONE, 0, 0.80f },
             { ITEM_LOWER_REFINE_STONE, 0, 0.80f }, { ITEM_HIGHER_REFINE_STONE, 0, 0.80f },
             { ITEM_FRUITS, 0, 0.96f }, { ITEM_FRUITS, 1, 0.96f }, { ITEM_FRUITS, 2, 0.96f }, { ITEM_FRUITS, 3, 0.96f }, { ITEM_FRUITS, 4, 0.96f },
         };
-        return icons[std::clamp(index, 0, JewelBank::KIND_COUNT - 1)];
+        return icons[std::clamp(index, 0, JewelBank::FIRST_BUNDLE_INDEX - 1)];
     }
 
     // A filled circle drawn from half-pixel slices (the flat-colour helper only draws rectangles).
@@ -134,7 +178,7 @@ namespace
 
 SEASON3B::CNewUIJewelBankWindow::CNewUIJewelBankWindow()
     : m_pNewUIMng(nullptr), m_pNewUI3DRenderMng(nullptr), m_Pos{ 0, 0 }, m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_iEditRow(-1),
-      m_iTab(TAB_DEPOSIT), m_Amounts{}, m_Counts{}, m_Inventory{}, m_bHasState(false), m_bAutoDeposit(false),
+      m_iTab(TAB_DEPOSIT), m_iPage(0), m_Amounts{}, m_Counts{}, m_Inventory{}, m_bHasState(false), m_bAutoDeposit(false),
       m_bOperationPending(false), m_PendingOperationId{}, m_PendingOperation(JewelBank::Operation::Deposit), m_PendingRequested(0),
       m_OperationDeadline{}, m_NextPoll{}, m_bMessageGood(true)
 {
@@ -218,7 +262,7 @@ void SEASON3B::CNewUIJewelBankWindow::PositionChildren()
     m_BtnAction.ChangeButtonInfo(m_Pos.x + LIST_X + 2 * (BUTTON_WIDTH + BUTTON_GAP), m_Pos.y + BUTTON_ROW_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
     if (m_iEditRow >= 0)
     {
-        m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(m_iEditRow));
+        m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(m_iPage, m_iEditRow - JewelBank::PageFirstIndex(m_iPage)) + TextY(m_iPage));
     }
 }
 
@@ -232,6 +276,7 @@ void SEASON3B::CNewUIJewelBankWindow::OpeningProcess()
     m_AmountInput.SetState(UISTATE_HIDE);
     m_Amounts = {};
     PositionChildren();
+    m_iPage = 0;
     SwitchTab(TAB_DEPOSIT);
     SetRelatedWnd(g_hWnd);
     SendOpenRequest();
@@ -272,6 +317,13 @@ void SEASON3B::CNewUIJewelBankWindow::SwitchTab(int tab)
     m_Message.clear();
     m_BtnAction.ChangeText(tab == TAB_DEPOSIT ? L"Deposit" : L"Withdraw");
     RefreshButtons();
+}
+
+void SEASON3B::CNewUIJewelBankWindow::SwitchPage(int page)
+{
+    CancelEdit();
+    m_iPage = std::clamp(page, 0, JewelBank::PAGE_COUNT - 1);
+    m_Message.clear();
 }
 
 void SEASON3B::CNewUIJewelBankWindow::SetState(const JewelBank::StateResponse& state)
@@ -315,7 +367,7 @@ void SEASON3B::CNewUIJewelBankWindow::SetOperationResponse(const JewelBank::Oper
         std::wstring text = L"Deposited " + JewelBank::FormatCount(response.Units);
         if (response.Units < m_PendingRequested)
         {
-            // Bundles go in whole, so a request which is not a sum of the bundles carried moves a little less.
+            // Less than asked for was carried, or fitted into the bank, by the time the server looked.
             text += L" of " + JewelBank::FormatCount(m_PendingRequested);
         }
         ShowMessage(text + L".", true);
@@ -395,7 +447,7 @@ void SEASON3B::CNewUIJewelBankWindow::SendAction()
     const uint64_t total = JewelBank::TotalAmount(a);
     if (total == 0)
     {
-        ShowMessage(m_iTab == TAB_DEPOSIT ? L"Tick what you want to deposit." : L"Tick what you want to withdraw.", false);
+        ShowMessage(m_iTab == TAB_DEPOSIT ? L"Click what you want to deposit." : L"Click what you want to withdraw.", false);
         return;
     }
 
@@ -409,15 +461,16 @@ void SEASON3B::CNewUIJewelBankWindow::SendAction()
     BeginOperation(m_iTab == TAB_DEPOSIT ? JewelBank::Operation::Deposit : JewelBank::Operation::Withdraw);
     const uint8_t* id = m_PendingOperationId.data();
     const uint32_t idLength = static_cast<uint32_t>(m_PendingOperationId.size());
+    // The amounts travel as one little-endian 32-bit value per kind, in the order of the kind codes.
+    uint8_t amounts[JewelBank::KIND_COUNT * sizeof(uint32_t)]{};
+    JewelBank::AppendRequestAmounts(a, amounts);
     if (m_iTab == TAB_DEPOSIT)
     {
-        SocketClient->ToGameServer()->SendJewelBankDepositRequest(id, idLength, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
-            a[8], a[9], a[10], a[11], a[12], a[13], a[14]);
+        SocketClient->ToGameServer()->SendJewelBankDepositRequest(id, idLength, amounts, static_cast<uint32_t>(sizeof(amounts)));
     }
     else
     {
-        SocketClient->ToGameServer()->SendJewelBankWithdrawRequest(id, idLength, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
-            a[8], a[9], a[10], a[11], a[12], a[13], a[14]);
+        SocketClient->ToGameServer()->SendJewelBankWithdrawRequest(id, idLength, amounts, static_cast<uint32_t>(sizeof(amounts)));
     }
 }
 
@@ -437,7 +490,7 @@ void SEASON3B::CNewUIJewelBankWindow::BeginEdit(int row)
     m_iEditRow = row;
     const uint32_t current = CurrentAmounts()[row];
     m_AmountInput.SetText(current > 0 ? std::to_wstring(current).c_str() : L"");
-    m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(row) + AMOUNT_TEXT_Y);
+    m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(m_iPage, row - JewelBank::PageFirstIndex(m_iPage)) + TextY(m_iPage));
     m_AmountInput.SetState(UISTATE_NORMAL);
     m_AmountInput.GiveFocus(TRUE);
     SetRelatedWnd(m_AmountInput.GetHandle());
@@ -475,12 +528,13 @@ bool SEASON3B::CNewUIJewelBankWindow::RowAt(int mouseX, int mouseY, int& row, bo
         return false;
     }
 
-    for (int i = 0; i < JewelBank::KIND_COUNT; ++i)
+    const int first = JewelBank::PageFirstIndex(m_iPage);
+    for (int r = 0; r < JewelBank::PageSize(m_iPage); ++r)
     {
-        const int top = m_Pos.y + RowY(i);
-        if (mouseY >= top && mouseY < top + ROW_HEIGHT)
+        const int top = m_Pos.y + RowY(m_iPage, r);
+        if (mouseY >= top && mouseY < top + RowHeight(m_iPage))
         {
-            row = i;
+            row = first + r;
             onAmount = mouseX >= m_Pos.x + LIST_X + AMOUNT_X;
             return true;
         }
@@ -531,7 +585,7 @@ bool SEASON3B::CNewUIJewelBankWindow::UpdateMouseEvent()
 {
     // A click outside the amount cell being edited accepts what was typed.
     if (m_iEditRow >= 0 && IsPress(VK_LBUTTON)
-        && !CheckMouseIn(m_Pos.x + LIST_X + AMOUNT_X, m_Pos.y + RowY(m_iEditRow), AMOUNT_WIDTH, ROW_HEIGHT))
+        && !CheckMouseIn(m_Pos.x + LIST_X + AMOUNT_X, m_Pos.y + RowY(m_iPage, m_iEditRow - JewelBank::PageFirstIndex(m_iPage)), AMOUNT_WIDTH, RowHeight(m_iPage)))
     {
         CommitEdit();
     }
@@ -580,6 +634,16 @@ bool SEASON3B::CNewUIJewelBankWindow::UpdateMouseEvent()
             if (tab != m_iTab && CheckMouseIn(m_Pos.x + TabX(tab), m_Pos.y + TAB_Y, TAB_WIDTH, TAB_HEIGHT))
             {
                 SwitchTab(tab);
+                PlayBuffer(SOUND_CLICK01);
+                return false;
+            }
+        }
+
+        for (int page = 0; page < JewelBank::PAGE_COUNT; ++page)
+        {
+            if (page != m_iPage && CheckMouseIn(m_Pos.x + RAIL_X, m_Pos.y + RailY(page), RAIL_WIDTH, RAIL_BUTTON_HEIGHT))
+            {
+                SwitchPage(page);
                 PlayBuffer(SOUND_CLICK01);
                 return false;
             }
@@ -700,6 +764,7 @@ bool SEASON3B::CNewUIJewelBankWindow::Render()
     g_pRenderText->RenderText((float)(m_Pos.x + 15), (float)(m_Pos.y + 13), L"Jewel Bank", (float)(WINDOW_WIDTH - 30), 0, RT3_SORT_CENTER);
 
     RenderTabs();
+    RenderRail();
     RenderHeader();
     RenderRows();
     RenderActions();
@@ -715,11 +780,13 @@ void SEASON3B::CNewUIJewelBankWindow::Render3D()
         return;
     }
 
-    for (int i = 0; i < JewelBank::KIND_COUNT; ++i)
+    const int first = JewelBank::PageFirstIndex(m_iPage);
+    const int size = IconSize(m_iPage);
+    for (int r = 0; r < JewelBank::PageSize(m_iPage); ++r)
     {
-        const KindIcon icon = IconOf(i);
-        RenderItem3DFittedToSlot(static_cast<float>(m_Pos.x + LIST_X + ICON_X), static_cast<float>(m_Pos.y + RowY(i) + (ROW_HEIGHT - ICON_SIZE) / 2),
-            static_cast<float>(ICON_SIZE), static_cast<float>(ICON_SIZE), icon.type, icon.level, 0, 0, icon.fill, false);
+        const KindIcon icon = IconOf(first + r);
+        RenderItem3DFittedToSlot(static_cast<float>(m_Pos.x + LIST_X + ICON_X), static_cast<float>(m_Pos.y + RowY(m_iPage, r) + (RowHeight(m_iPage) - size) / 2),
+            static_cast<float>(size), static_cast<float>(size), icon.type, icon.level, 0, 0, icon.fill, false);
     }
 }
 
@@ -784,6 +851,31 @@ void SEASON3B::CNewUIJewelBankWindow::RenderTabs()
     }
 }
 
+void SEASON3B::CNewUIJewelBankWindow::RenderRail()
+{
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    for (int page = 0; page < JewelBank::PAGE_COUNT; ++page)
+    {
+        const int x = m_Pos.x + RAIL_X;
+        const int y = m_Pos.y + RailY(page);
+        const bool active = page == m_iPage;
+        const bool hovered = !active && CheckMouseIn(x, y, RAIL_WIDTH, RAIL_BUTTON_HEIGHT);
+        UI::NineSlice::Render(UI::AuctionChrome::AuctionButtonSkin().texture, static_cast<float>(x), static_cast<float>(y),
+            static_cast<float>(RAIL_WIDTH), static_cast<float>(RAIL_BUTTON_HEIGHT),
+            active ? TAB_TINT_ACTIVE : (hovered ? TAB_TINT_HOVER : TAB_TINT_IDLE));
+        if (active)
+        {
+            g_pRenderText->SetTextColor(255, 226, 130, 255);
+        }
+        else
+        {
+            g_pRenderText->SetTextColor(235, 235, 235, 255);
+        }
+        g_pRenderText->RenderText(static_cast<float>(x), static_cast<float>(y + 6), JewelBank::PageName(page), static_cast<float>(RAIL_WIDTH), 0, RT3_SORT_CENTER);
+    }
+}
+
 void SEASON3B::CNewUIJewelBankWindow::RenderHeader()
 {
     g_pRenderText->SetFont(g_hFont);
@@ -817,21 +909,25 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
     const JewelBank::Amounts& amounts = CurrentAmounts();
     const UI::NineSlice::StateTints& fieldTints = UI::AuctionChrome::AuctionFieldSkin().tints;
 
-    for (int i = 0; i < JewelBank::KIND_COUNT; ++i)
+    const int first = JewelBank::PageFirstIndex(m_iPage);
+    const int rowHeight = RowHeight(m_iPage);
+    const int textY = TextY(m_iPage);
+    for (int r = 0; r < JewelBank::PageSize(m_iPage); ++r)
     {
+        const int i = first + r;
         const JewelBank::KindInfo& kind = JewelBank::KindAt(i);
         const int rowX = m_Pos.x + LIST_X;
-        const int rowY = m_Pos.y + RowY(i);
+        const int rowY = m_Pos.y + RowY(m_iPage, r);
         const bool selected = amounts[i] > 0;
         UI::NineSlice::Render(UI::AuctionChrome::AuctionRowSkin().texture, static_cast<float>(rowX), static_cast<float>(rowY),
-            static_cast<float>(LIST_WIDTH), static_cast<float>(ROW_HEIGHT),
+            static_cast<float>(LIST_WIDTH), static_cast<float>(rowHeight),
             selected ? ROW_TINT_SELECTED : (i == hovered && !hoveredOnAmount ? ROW_TINT_HOVER : ROW_TINT_IDLE));
 
         // The item model is drawn in the 3D pass (Render3D). A selected row is shown by its gold ring and gold text.
 
         const bool hasAny = available[i] > 0;
         g_pRenderText->SetTextColor(selected ? 255 : 230, selected ? 226 : 230, selected ? 130 : 230, 255);
-        g_pRenderText->RenderText(static_cast<float>(rowX + NAME_X), static_cast<float>(rowY + 3), kind.Name, 0, 0, RT3_SORT_LEFT);
+        g_pRenderText->RenderText(static_cast<float>(rowX + NAME_X), static_cast<float>(rowY + textY), kind.Name, 0, 0, RT3_SORT_LEFT);
 
         const uint64_t bank = m_Counts[i];
         const uint64_t bag = m_Inventory[i];
@@ -849,7 +945,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             {
                 g_pRenderText->SetTextColor(200, 200, 200, 255);
             }
-            g_pRenderText->RenderText(static_cast<float>(rowX + right - width), static_cast<float>(rowY + 3),
+            g_pRenderText->RenderText(static_cast<float>(rowX + right - width), static_cast<float>(rowY + textY),
                 JewelBank::FormatCount(value).c_str(), static_cast<float>(width), 0, RT3_SORT_RIGHT);
         };
         renderCount(bank, BANK_RIGHT, BANK_WIDTH, !deposit);
@@ -858,7 +954,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
         // The amount cell: a recessed field, gold ring while it is being edited.
         const int cellX = rowX + AMOUNT_X;
         UI::NineSlice::Render(UI::AuctionChrome::AuctionFieldSkin().texture, static_cast<float>(cellX), static_cast<float>(rowY),
-            static_cast<float>(AMOUNT_WIDTH), static_cast<float>(ROW_HEIGHT),
+            static_cast<float>(AMOUNT_WIDTH), static_cast<float>(rowHeight),
             m_iEditRow == i ? fieldTints.pressed : (i == hovered && hoveredOnAmount && hasAny ? fieldTints.hover : fieldTints.normal));
         if (m_iEditRow == i)
         {
@@ -866,7 +962,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             wchar_t typed[16]{};
             m_AmountInput.GetText(typed, static_cast<int>(std::size(typed)));
             const int textWidth = static_cast<int>(g_pRenderText->MeasureText(typed, static_cast<int>(wcslen(typed))).cx);
-            m_AmountInput.SetPosition(cellX + std::max(AMOUNT_INSET, (AMOUNT_WIDTH - textWidth) / 2), rowY + AMOUNT_TEXT_Y);
+            m_AmountInput.SetPosition(cellX + std::max(AMOUNT_INSET, (AMOUNT_WIDTH - textWidth) / 2), rowY + textY);
             m_AmountInput.Render();
         }
         else
@@ -879,7 +975,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             {
                 g_pRenderText->SetTextColor(115, 115, 115, 255);
             }
-            g_pRenderText->RenderText(static_cast<float>(cellX), static_cast<float>(rowY + 3),
+            g_pRenderText->RenderText(static_cast<float>(cellX), static_cast<float>(rowY + textY),
                 amounts[i] > 0 ? std::to_wstring(amounts[i]).c_str() : L"-", static_cast<float>(AMOUNT_WIDTH), 0, RT3_SORT_CENTER);
         }
     }
@@ -910,7 +1006,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderActions()
         EnableAlphaTest();
         g_pRenderText->SetTextColor(220, 220, 200, 255);
         g_pRenderText->RenderText(static_cast<float>(m_Pos.x + LIST_X + CHECK_X + CHECK_SIZE + 8), static_cast<float>(m_Pos.y + AUTO_Y + 3),
-            L"Send picked-up jewels and fruits to the bank", 0, 0, RT3_SORT_LEFT);
+            L"Send picked-up jewels, fruits and bundles to the bank", 0, 0, RT3_SORT_LEFT);
     }
 
     if (!m_Message.empty())

@@ -16,9 +16,10 @@
 
 namespace SEASON3B
 {
-    // A per-account bank for the ten jewels and the five stat fruits. Two tabs, Deposit and Withdraw, both list every
-    // kind with what the bank holds and what the player carries. A row is ticked to move everything available of the
-    // kind, or given an amount; any combination of rows is moved with one button. The server is authoritative: the
+    // A per-account bank for the ten jewels, the five stat fruits and the bundles (packs of 10, 20 and 30) of each jewel.
+    // Two tabs, Deposit and Withdraw, both list every kind with what the bank holds and what the player carries; a rail
+    // on the right switches between four pages (jewels and fruits, bundles x10, x20, x30). A row is clicked to move
+    // everything available of the kind, or given an amount; any combination of rows, across pages, is moved with one button. The server is authoritative: the
     // window only sends requests and shows what the server answers.
     class CNewUIJewelBankWindow : public CNewUIObj, public INewUI3DRenderObj
     {
@@ -30,7 +31,7 @@ namespace SEASON3B
             TAB_COUNT,
         };
 
-        static constexpr int WINDOW_WIDTH = 360;
+        static constexpr int WINDOW_WIDTH = 460;
         static constexpr int WINDOW_HEIGHT = 414;
 
         CNewUIJewelBankWindow();
@@ -64,6 +65,7 @@ namespace SEASON3B
         void RenderFrame();
         void RenderTabs();
         void RenderHeader();
+        void RenderRail();
         void RenderRows();
         void RenderActions();
         void InitButton(CNewUIButton* button, const wchar_t* caption);
@@ -74,6 +76,7 @@ namespace SEASON3B
         JewelBank::Available AvailableFor(int tab) const;
         JewelBank::Amounts& CurrentAmounts();
         void SwitchTab(int tab);
+        void SwitchPage(int page);
         void BeginEdit(int row);
         void CommitEdit();
         void CancelEdit();
@@ -99,6 +102,7 @@ namespace SEASON3B
         int m_iEditRow;
 
         int m_iTab;
+        int m_iPage;
         std::array<JewelBank::Amounts, TAB_COUNT> m_Amounts;
         std::array<uint64_t, JewelBank::KIND_COUNT> m_Counts;
         std::array<uint32_t, JewelBank::KIND_COUNT> m_Inventory;

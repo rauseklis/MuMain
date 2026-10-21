@@ -15155,8 +15155,9 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
     break;
     case 0xD6:
     {
-        // Jewel Bank (0xD6): all of its packets are C1 with a sub-code, which sits right after the code byte at offset 3.
-        switch (ReceiveBuffer[3])
+        // Jewel Bank (0xD6): the sub-code sits right after the code byte: at offset 3 in a C1 packet, at 4 in the C2 state
+        // response (which is longer than 255 bytes).
+        switch (bIsC1C3 ? ReceiveBuffer[3] : ReceiveBuffer[4])
         {
         case 0x80: // JewelBankStateResponse
             if (auto state = JewelBank::StateResponse::Parse(received_span))

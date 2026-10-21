@@ -7314,27 +7314,14 @@ public unsafe partial class ConnectionManager
     /// <param name="handle">The handle of the connection.</param>
     /// <param name="operationId">The operation id.</param>
     /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
-    /// <param name="amount1">The amount 1.</param>
-    /// <param name="amount2">The amount 2.</param>
-    /// <param name="amount3">The amount 3.</param>
-    /// <param name="amount4">The amount 4.</param>
-    /// <param name="amount5">The amount 5.</param>
-    /// <param name="amount6">The amount 6.</param>
-    /// <param name="amount7">The amount 7.</param>
-    /// <param name="amount8">The amount 8.</param>
-    /// <param name="amount9">The amount 9.</param>
-    /// <param name="amount10">The amount 1 0.</param>
-    /// <param name="amount11">The amount 1 1.</param>
-    /// <param name="amount12">The amount 1 2.</param>
-    /// <param name="amount13">The amount 1 3.</param>
-    /// <param name="amount14">The amount 1 4.</param>
-    /// <param name="amount15">The amount 1 5.</param>
+    /// <param name="amounts">The amounts.</param>
+    /// <param name="amountsByteLength">The length of <paramref name="amounts"/>.</param>
     /// <remarks>
-    /// Is sent by the client when: The player deposits the chosen amount of each kind from the inventory; Amount1..Amount15 are the units for the kinds with code 1..15, and 0 skips a kind.
+    /// Is sent by the client when: The player deposits the chosen amount of each kind from the inventory. Amounts holds 45 little-endian 32-bit counts, one per kind with code 1..45 (jewels, fruits, then the bundles of 10, 20 and 30); 0 skips a kind.
     /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendJewelBankDepositRequest")]
-    public static void SendJewelBankDepositRequest(int handle, byte* @operationId, uint operationIdByteLength, uint @amount1, uint @amount2, uint @amount3, uint @amount4, uint @amount5, uint @amount6, uint @amount7, uint @amount8, uint @amount9, uint @amount10, uint @amount11, uint @amount12, uint @amount13, uint @amount14, uint @amount15)
+    public static void SendJewelBankDepositRequest(int handle, byte* @operationId, uint operationIdByteLength, byte* @amounts, uint amountsByteLength)
     {
         if (!Connections.TryGetValue(handle, out var connection))
         {
@@ -7348,21 +7335,7 @@ public unsafe partial class ConnectionManager
                 var length = JewelBankDepositRequestRef.Length;
                 var packet = new JewelBankDepositRequestRef(pipeWriter.GetSpan(length)[..length]);
                 new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
-                packet.Amount1 = @amount1;
-                packet.Amount2 = @amount2;
-                packet.Amount3 = @amount3;
-                packet.Amount4 = @amount4;
-                packet.Amount5 = @amount5;
-                packet.Amount6 = @amount6;
-                packet.Amount7 = @amount7;
-                packet.Amount8 = @amount8;
-                packet.Amount9 = @amount9;
-                packet.Amount10 = @amount10;
-                packet.Amount11 = @amount11;
-                packet.Amount12 = @amount12;
-                packet.Amount13 = @amount13;
-                packet.Amount14 = @amount14;
-                packet.Amount15 = @amount15;
+                new Span<byte>(@amounts, (int)amountsByteLength).CopyTo(packet.Amounts);
 
                 return length;
             });
@@ -7379,27 +7352,14 @@ public unsafe partial class ConnectionManager
     /// <param name="handle">The handle of the connection.</param>
     /// <param name="operationId">The operation id.</param>
     /// <param name="operationIdByteLength">The length of <paramref name="operationId"/>.</param>
-    /// <param name="amount1">The amount 1.</param>
-    /// <param name="amount2">The amount 2.</param>
-    /// <param name="amount3">The amount 3.</param>
-    /// <param name="amount4">The amount 4.</param>
-    /// <param name="amount5">The amount 5.</param>
-    /// <param name="amount6">The amount 6.</param>
-    /// <param name="amount7">The amount 7.</param>
-    /// <param name="amount8">The amount 8.</param>
-    /// <param name="amount9">The amount 9.</param>
-    /// <param name="amount10">The amount 1 0.</param>
-    /// <param name="amount11">The amount 1 1.</param>
-    /// <param name="amount12">The amount 1 2.</param>
-    /// <param name="amount13">The amount 1 3.</param>
-    /// <param name="amount14">The amount 1 4.</param>
-    /// <param name="amount15">The amount 1 5.</param>
+    /// <param name="amounts">The amounts.</param>
+    /// <param name="amountsByteLength">The length of <paramref name="amounts"/>.</param>
     /// <remarks>
-    /// Is sent by the client when: The player withdraws the chosen amount of each kind as items; Amount1..Amount15 are the units for the kinds with code 1..15, and 0 skips a kind.
+    /// Is sent by the client when: The player withdraws the chosen amount of each kind as items. Amounts holds 45 little-endian 32-bit counts, one per kind with code 1..45 (jewels, fruits, then the bundles of 10, 20 and 30); 0 skips a kind.
     /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
     /// </remarks>
     [UnmanagedCallersOnly(EntryPoint = "SendJewelBankWithdrawRequest")]
-    public static void SendJewelBankWithdrawRequest(int handle, byte* @operationId, uint operationIdByteLength, uint @amount1, uint @amount2, uint @amount3, uint @amount4, uint @amount5, uint @amount6, uint @amount7, uint @amount8, uint @amount9, uint @amount10, uint @amount11, uint @amount12, uint @amount13, uint @amount14, uint @amount15)
+    public static void SendJewelBankWithdrawRequest(int handle, byte* @operationId, uint operationIdByteLength, byte* @amounts, uint amountsByteLength)
     {
         if (!Connections.TryGetValue(handle, out var connection))
         {
@@ -7413,21 +7373,7 @@ public unsafe partial class ConnectionManager
                 var length = JewelBankWithdrawRequestRef.Length;
                 var packet = new JewelBankWithdrawRequestRef(pipeWriter.GetSpan(length)[..length]);
                 new Span<byte>(@operationId, (int)operationIdByteLength).CopyTo(packet.OperationId);
-                packet.Amount1 = @amount1;
-                packet.Amount2 = @amount2;
-                packet.Amount3 = @amount3;
-                packet.Amount4 = @amount4;
-                packet.Amount5 = @amount5;
-                packet.Amount6 = @amount6;
-                packet.Amount7 = @amount7;
-                packet.Amount8 = @amount8;
-                packet.Amount9 = @amount9;
-                packet.Amount10 = @amount10;
-                packet.Amount11 = @amount11;
-                packet.Amount12 = @amount12;
-                packet.Amount13 = @amount13;
-                packet.Amount14 = @amount14;
-                packet.Amount15 = @amount15;
+                new Span<byte>(@amounts, (int)amountsByteLength).CopyTo(packet.Amounts);
 
                 return length;
             });
