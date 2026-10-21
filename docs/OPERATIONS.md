@@ -1,0 +1,107 @@
+# Operations — how the whole project fits together
+
+Read this first if you start work on the game, whether you are a person, Claude, Codex or any other assistant. It describes the two
+repositories, the live server, how changes reach it, how to test safely, and the rules the owner set. Details of single features are in
+`docs/` (see the index at the end).
+
+## The project
+
+A private MU Online server and its game client, built by two people (the owner and their brother).
+
+| | Server | Client |
+| --- | --- | --- |
+| Repository | [`rauseklis/OpenMU`](https://github.com/rauseklis/OpenMU) (C#, .NET 10, PostgreSQL), a fork of `MUnique/OpenMU` | [`rauseklis/MuMain`](https://github.com/rauseklis/MuMain) (C++, CMake), a fork of `sven-n/MuMain` |
+| Default branch | `master` | `main` |
+| Features added | Auction House, vaults, Jewel Bank, Jewel Rain, king maces, Lorencia lost maps, ... | their windows and rendering |
+
+Both repositories use **pull requests with merge commits**; work is done on a branch in a git worktree under `.worktrees/` (one folder per
+branch, next to the checkout), and the PR is merged on GitHub. The client repository has `AGENTS.md` and `docs/CODING_RULES.md`: follow them.
+
+### The protocol ties the two together
+
+The client and the server speak a protocol that is defined in XML in the **server** repository (`src/Network/Packets/**/*.xml`). The client
+is built from three NuGet packages packed from it (`MUnique.OpenMU.PlugIns`, `.Network`, `.Network.Packets`), kept in this repository's
+`nuget-feed/` folder; `nuget-feed/README.md` says how to update them. The version (now 0.9.20) is in the three server project files and in
+`ClientLibrary/MUnique.Client.Library.csproj` (`OpenMuPacketsVersion`). **A change to the packets must be merged to both repositories
+together**, because a client with other packets cannot talk to the server. Encrypted requests longer than about 180 bytes must be C4
+packets (a C3 packet cannot carry them); see `docs/jewel-bank-handover-2026-10-20.md`.
+
+## The live server
+
+A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed monthly by the owner. It runs 24/7.
+
+- **Address:** `109.199.104.230`. Connect server `44405` (GMO client definition) and `44406` (open-source client definition; use this one), game
+  servers `55901`-`55906`, chat `55980`. The admin panel is **not** public: it listens on the server's `127.0.0.1:8080` only.
+- **What runs:** `/opt/openmu` holds `docker-compose.yml`, the scripts and `.env` (the generated database and admin passwords; never commit or
+  print it). Two containers: `openmu` (the image `ghcr.io/rauseklis/openmu`, built from `src/Startup/Dockerfile`) and `database` (PostgreSQL 17,
+  the data in a Docker volume). Both restart by themselves. The server clock is UTC.
+- **Deploys happen by themselves.** Every merge to `master` of the server repository runs `.github/workflows/deploy-live.yml`: build the image,
+  push it to GitHub's container registry, copy the compose files to the VPS over SSH, run `/opt/openmu/deploy.sh <image>` (backup, pull, restart).
+  About 5 to 10 minutes; players are disconnected for about a minute. The workflow needs the repository secrets `DEPLOY_HOST`, `DEPLOY_USER`
+  (`deploy`), `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`; without them it only builds the image. Documentation-only changes do not deploy.
+  Setup details and the roll-back steps: `deploy/live/README.md` in the server repository.
+- **Backups:** `/opt/openmu/backups` (a dump before every deploy and nightly at 03:30, 14 days) plus Contabo's Auto Backup snapshots. Copy the dumps
+  off the server now and then.
+- **Looking at it** (needs an SSH key that is on the server): `ssh <user>@109.199.104.230`, then `cd /opt/openmu && docker compose ps`,
+  `docker compose logs --tail 100 openmu`; the database: `docker compose exec database psql -U postgres -d openmu`.
+- **The owner's PC:** `C:\Users\rause\.ssh\config` has the shortcut `openmu`: `ssh -N openmu` opens the admin panel at `http://localhost:8080`.
+  The keys are in `C:\Users\rause\.ssh\openmu-vps\` and `openmu_admin_ed25519`; the game account and admin panel logins are in
+  `C:\Users\rause\.ssh\openmu-vps\game-accounts.txt`. None of this is in any repository.
+- **Accounts:** the 20 default OpenMU test accounts were banned (they have well-known passwords); only `testgm` and `testgm2` (game masters) are
+  active, with random passwords. Make real accounts in the admin panel. Note: the Auction House refuses accounts younger than 24 hours
+  (`MinimumAccountAgeHours`), and `Account.RegistrationDate` of the two GM accounts was set back to get round it.
+- **Security rules:** SSH accepts keys only; fail2ban runs; the firewall (`ufw`) allows SSH and the game ports only. Never print or commit
+  secrets or the Contabo API credentials. Other people's keys are added to `/home/deploy/.ssh/authorized_keys`.
+
+## The client
+
+- **Bundle:** the Windows x64 no-data bundle is built by the `CI` workflow of the client repository (`Windows Native Build`) on pushes to `main`
+  and can be started by hand (Actions → CI → Run workflow, on `main`). Download the artifact
+  `mu-client-windows-native-x64-release-editor-off-no-data-main`, extract it, and add the `Data` and `fonts` folders from `src/bin/` of this
+  repository (the bundle has the program only). The owner's complete copy is `C:\Users\rause\OneDrive\Desktop\OpenMU Live Client`.
+- **`config.ini`** decides the server: `ServerIP=109.199.104.230`, `ServerPort=44406`. The client **ignores the `/p` argument**; it reads
+  `config.ini`.
+- The CI also runs a test that pins the Windows job's workflow text (`tests/test_windows_workflow_contract.py`); change both together.
+- The production game client the owner runs elsewhere (`C:\Games\Emberion Client`) is an older build; leave it alone.
+
+## Working and testing
+
+- **Never use the real database or the real server.** The owner has their own local server and database (`openmu`, started from the
+  `auction-create-c4` worktree); do not stop, change or point anything at it. Test with a throwaway PostgreSQL database and a second server
+  with shifted ports (`docs/jewel-bank-handover-2026-10-20.md`, "Trying it in the game"), or on the live server when the owner says so.
+- **Do not control the game** (no automated clicks or keys into the game window); starting and stopping your own test processes is fine, and
+  the owner plays and reports.
+- GM commands for staging items and events on a test server: `/item <group> <number> [level]`, `/jewelrain` (see the Jewel Rain design).
+- Build the client with `-DBUILD_TESTING=OFF` for the game; unit tests are built separately (see the Jewel Bank handover).
+- The repository mixes LF and CRLF line endings: keep the file's own endings when you edit.
+
+## Rules set by the owner
+
+1. **A session may push, open pull requests and merge, and so deploy** (the owner said on 2026-10-21 that any new session is allowed to
+   deploy). A merge to `master` goes **live within minutes** and disconnects players for about a minute, so before merging: run the tests,
+   test the change on a throwaway server when it touches the game, say plainly what was and was not tested, and merge server and client
+   changes that share packets together. Do not merge a change you have not built and tested.
+2. Do not change GitHub settings or secrets, or the live server's configuration (firewall, SSH, accounts, the `.env` file), without showing the owner first and getting a yes.
+3. Never touch the owner's real server or database. Do not delete the live database, backups, or other people's branches or worktrees without a yes.
+4. Do not control the game window.
+5. Do not ask for or handle passwords; secrets go through files on the owner's PC or GitHub secrets, not into chat.
+6. Be honest about what was tested and what was not.
+
+## Common tasks
+
+- **Ship a server change:** PR to `master` → merge → watch Actions → Deploy live server → check `docker compose ps` and that a login still works.
+- **Ship a client change:** PR to `main` → merge → run CI by hand if no push run started → download the artifact → tell the owner where it is.
+- **Roll back the server:** run the deploy workflow from an older commit, or on the VPS `./deploy.sh ghcr.io/rauseklis/openmu:<older commit>`;
+  restore a dump if a database change must be undone (`deploy/live/README.md`).
+- **Change a setting that lives in a file the container cannot write** (for example `AuctionHouse.ini`, which the server cannot read inside the
+  container yet): it needs a mount in `deploy/live/docker-compose.yml` first.
+- **Time zone:** the server runs in UTC; the Jewel Rain schedule assumes Latvian time (see its design); set the container's `TZ` if the clock matters.
+
+## Index of feature documents
+
+- Jewel Bank: `docs/superpowers/specs/2026-10-20-jewel-bank-design.md`, `docs/jewel-bank-handover-2026-10-20.md`
+- Jewel Rain: `docs/superpowers/specs/2026-10-21-jewel-rain-event-design.md`, `docs/superpowers/plans/2026-10-21-jewel-rain-event.md`
+- Auction House: `docs/auction-house-claude-handover-2026-10-13.md`, `docs/auction-house-claude-handover-2026-10-11.md`
+- Packets folder: `nuget-feed/README.md`
+- Live server setup (server repository): `deploy/live/README.md`
+- HD interface textures: `docs/ui-hd-textures.md`
