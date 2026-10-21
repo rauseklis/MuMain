@@ -17,10 +17,10 @@
 namespace SEASON3B
 {
     // A per-account bank for the ten jewels, the five stat fruits and the bundles (packs of 10, 20 and 30) of each jewel.
-    // Two tabs, Deposit and Withdraw, both list every kind with what the bank holds and what the player carries; a rail
-    // on the right switches between four pages (jewels and fruits, bundles x10, x20, x30). A row is clicked to move
-    // everything available of the kind, or given an amount; any combination of rows, across pages, is moved with one button. The server is authoritative: the
-    // window only sends requests and shows what the server answers.
+    // Two tabs, Deposit and Withdraw, show one grid: a row per jewel or fruit, a column per form (single, bundle x10, x20,
+    // x30), each cell holding what the tab can move (what the player carries, or what the bank holds). A cell is clicked
+    // to select everything in it and clicked again to type an exact amount; any combination of cells is moved with one
+    // button. The server is authoritative: the window only sends requests and shows what the server answers.
     class CNewUIJewelBankWindow : public CNewUIObj, public INewUI3DRenderObj
     {
     public:
@@ -65,19 +65,17 @@ namespace SEASON3B
         void RenderFrame();
         void RenderTabs();
         void RenderHeader();
-        void RenderRail();
         void RenderRows();
         void RenderActions();
         void InitButton(CNewUIButton* button, const wchar_t* caption);
         void PositionChildren();
         bool BtnProcess();
-        bool RowAt(int mouseX, int mouseY, int& row, bool& onAmount) const;
+        int KindAtMouse(int mouseX, int mouseY) const;
         JewelBank::Available CurrentAvailable() const;
         JewelBank::Available AvailableFor(int tab) const;
         JewelBank::Amounts& CurrentAmounts();
         void SwitchTab(int tab);
-        void SwitchPage(int page);
-        void BeginEdit(int row);
+        void BeginEdit(int kind);
         void CommitEdit();
         void CancelEdit();
         void SendOpenRequest();
@@ -102,7 +100,6 @@ namespace SEASON3B
         int m_iEditRow;
 
         int m_iTab;
-        int m_iPage;
         std::array<JewelBank::Amounts, TAB_COUNT> m_Amounts;
         std::array<uint64_t, JewelBank::KIND_COUNT> m_Counts;
         std::array<uint32_t, JewelBank::KIND_COUNT> m_Inventory;

@@ -15,12 +15,15 @@ namespace JewelBank
     // The kinds are stored by code 1 to 45, in this order: ten jewels, the five stat fruits, then the bundles (packs) of
     // ten, twenty and thirty of each of the ten jewels. The codes are the server's (JewelBankKinds) and are never renumbered.
     constexpr int KIND_COUNT = 45;
-    // Where the bundles start (list position 15) and how many each page of bundles holds (one size of the ten jewels).
+    // Where the bundles start in the list (position 15) and how many each size has (one per jewel).
     constexpr int FIRST_BUNDLE_INDEX = 15;
-    constexpr int BUNDLES_PER_PAGE = 10;
-    // The list is shown in four pages: jewels and fruits, then the bundles of 10, 20 and 30.
-    constexpr int PAGE_COUNT = 4;
+    constexpr int BUNDLES_PER_SIZE = 10;
     constexpr uint8_t FIRST_KIND_CODE = 1;
+
+    // The window shows the kinds as a grid: one row per jewel or fruit (15 rows), one column per form of it: the single
+    // item, then the bundles of 10, 20 and 30 (4 columns). Fruits have no bundles, so only their first cell is used.
+    constexpr int ROW_COUNT = 15;
+    constexpr int COLUMN_COUNT = 4;
 
     struct KindInfo
     {
@@ -30,11 +33,12 @@ namespace JewelBank
         uint32_t Color;
     };
 
-    // The page a list position belongs to, the first position of a page, and how many kinds a page shows.
-    [[nodiscard]] int PageOf(int index);
-    [[nodiscard]] int PageFirstIndex(int page);
-    [[nodiscard]] int PageSize(int page);
-    [[nodiscard]] const wchar_t* PageName(int page);
+    // The list position of the kind in a grid cell, or -1 when the cell has no kind (a fruit has no bundles).
+    [[nodiscard]] int KindIndexAt(int row, int column);
+    // The grid cell of a list position; false for a position outside the list.
+    [[nodiscard]] bool CellOf(int index, int& row, int& column);
+    // The caption of a grid column: "Single", "Bundle x10", "Bundle x20", "Bundle x30".
+    [[nodiscard]] const wchar_t* ColumnName(int column);
 
     // The kind at a list position (0 to 44); the position is code - 1.
     [[nodiscard]] const KindInfo& KindAt(int index);

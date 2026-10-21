@@ -38,21 +38,46 @@ TEST_CASE("the kinds are the server's forty-five codes in order")
     CHECK(std::wstring(KindAt(44).Name) == L"Higher Refining Bundle x30");
 }
 
-TEST_CASE("the list is split into four pages which together cover every kind once")
+TEST_CASE("the grid maps every cell to one kind and every kind to one cell")
 {
-    CHECK(PageSize(0) == 15);
-    int covered = 0;
-    for (int page = 0; page < PAGE_COUNT; ++page)
+    int used = 0;
+    for (int row = 0; row < ROW_COUNT; ++row)
     {
-        CHECK(PageFirstIndex(page) == covered);
-        for (int i = 0; i < PageSize(page); ++i)
+        for (int column = 0; column < COLUMN_COUNT; ++column)
         {
-            CHECK(PageOf(PageFirstIndex(page) + i) == page);
+            const int index = KindIndexAt(row, column);
+            if (index < 0)
+            {
+                CHECK(row >= BUNDLES_PER_SIZE);
+                CHECK(column > 0);
+                continue;
+            }
+
+            int backRow = -1;
+            int backColumn = -1;
+            REQUIRE(CellOf(index, backRow, backColumn));
+            CHECK(backRow == row);
+            CHECK(backColumn == column);
+            ++used;
         }
-        covered += PageSize(page);
     }
-    CHECK(covered == KIND_COUNT);
-    CHECK(std::wstring(PageName(1)) == L"Bundles x10");
+    CHECK(used == KIND_COUNT);
+}
+
+TEST_CASE("a jewel's bundles are in its own row, one column per size")
+{
+    CHECK(std::wstring(KindAt(KindIndexAt(0, 0)).Name) == L"Jewel of Chaos");
+    CHECK(std::wstring(KindAt(KindIndexAt(0, 1)).Name) == L"Chaos Bundle x10");
+    CHECK(std::wstring(KindAt(KindIndexAt(0, 3)).Name) == L"Chaos Bundle x30");
+    CHECK(std::wstring(KindAt(KindIndexAt(9, 2)).Name) == L"Higher Refining Bundle x20");
+    CHECK(std::wstring(KindAt(KindIndexAt(10, 0)).Name) == L"Fruit of Energy");
+    CHECK(KindIndexAt(10, 1) == -1);
+    CHECK(KindIndexAt(15, 0) == -1);
+    CHECK(KindIndexAt(0, 4) == -1);
+    int row = 0;
+    int column = 0;
+    CHECK_FALSE(CellOf(45, row, column));
+    CHECK(std::wstring(ColumnName(2)) == L"Bundle x20");
 }
 
 TEST_CASE("request amounts are written as little-endian 32-bit values per kind")
