@@ -14,6 +14,7 @@
 #include "UI/Scaling/UITransform.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -111,6 +112,18 @@ namespace
             { ITEM_FRUITS, 0, 0.96f }, { ITEM_FRUITS, 1, 0.96f }, { ITEM_FRUITS, 2, 0.96f }, { ITEM_FRUITS, 3, 0.96f }, { ITEM_FRUITS, 4, 0.96f },
         };
         return icons[std::clamp(index, 0, JewelBank::KIND_COUNT - 1)];
+    }
+
+    // A filled circle drawn from half-pixel slices (the flat-colour helper only draws rectangles).
+    void FillCircle(float centerX, float centerY, float radius, unsigned int argb)
+    {
+        constexpr float STEP = 0.5f;
+        for (float y = -radius; y < radius; y += STEP)
+        {
+            const float mid = y + STEP * 0.5f;
+            const float half = std::sqrt(std::max(0.f, radius * radius - mid * mid));
+            RenderColorQuadARGB(centerX - half, centerY + y, half * 2.f, STEP, argb);
+        }
     }
 
     void SetTextColorArgb(DWORD argb)
@@ -884,13 +897,14 @@ void SEASON3B::CNewUIJewelBankWindow::RenderActions()
     // The auto-deposit tick belongs to the Deposit tab: it decides where picked-up jewels and fruits go.
     if (m_iTab == TAB_DEPOSIT)
     {
-        const int boxX = m_Pos.x + LIST_X + CHECK_X;
-        const int boxY = m_Pos.y + AUTO_Y + 2;
-        RenderColorQuadARGB(static_cast<float>(boxX), static_cast<float>(boxY), static_cast<float>(CHECK_SIZE), static_cast<float>(CHECK_SIZE), 0xFFB8B8B8u);
-        RenderColorQuadARGB(static_cast<float>(boxX + 1), static_cast<float>(boxY + 1), static_cast<float>(CHECK_SIZE - 2), static_cast<float>(CHECK_SIZE - 2), 0xFF15181Eu);
+        // A round tick: a light ring, a dark centre, and a gold dot when on.
+        const float centerX = static_cast<float>(m_Pos.x + LIST_X + CHECK_X) + CHECK_SIZE * 0.5f;
+        const float centerY = static_cast<float>(m_Pos.y + AUTO_Y + 2) + CHECK_SIZE * 0.5f;
+        FillCircle(centerX, centerY, CHECK_SIZE * 0.5f, 0xFFB8B8B8u);
+        FillCircle(centerX, centerY, CHECK_SIZE * 0.5f - 1.f, 0xFF15181Eu);
         if (m_bAutoDeposit)
         {
-            RenderColorQuadARGB(static_cast<float>(boxX + 3), static_cast<float>(boxY + 3), static_cast<float>(CHECK_SIZE - 6), static_cast<float>(CHECK_SIZE - 6), 0xFFFFD25Au);
+            FillCircle(centerX, centerY, CHECK_SIZE * 0.5f - 2.6f, 0xFFFFD25Au);
         }
         EndRenderColor();
         EnableAlphaTest();
