@@ -85,7 +85,7 @@ function Get-WindowsArtifact([string]$runId) {
 function Test-OnlyHarmlessChanges([string]$fromSha, [string]$toSha) {
     if ($fromSha -eq $toSha) { return $true }
     $files = (Invoke-Gh @('api', "repos/$Repo/compare/$fromSha...$toSha", '--paginate', '--jq', '.files[].filename')) -split "`r?`n" | Where-Object { $_ }
-    $changed = $files | Where-Object { $_ -notmatch '^(docs/|nuget-feed/README\.md$|\.github/ISSUE_TEMPLATE/|.*\.md$)' }
+    $changed = $files | Where-Object { $_ -notmatch '^(docs/|nuget-feed/README\.md$|scripts/update-live-client\.ps1$|\.github/ISSUE_TEMPLATE/|.*\.md$)' }
     return -not $changed
 }
 
