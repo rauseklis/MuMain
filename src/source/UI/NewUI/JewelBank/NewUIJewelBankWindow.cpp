@@ -52,7 +52,6 @@ namespace
     constexpr int CHECK_SIZE = 11;
     constexpr int ICON_X = 6;
     constexpr int ICON_SIZE = 14;
-    constexpr float ICON_FILL = 0.8f;
     constexpr int NAME_X = 28;
     constexpr int BANK_RIGHT = 170;
     constexpr int BANK_WIDTH = 40;
@@ -61,6 +60,7 @@ namespace
     constexpr int AMOUNT_WIDTH = 64;
     constexpr int AMOUNT_X = LIST_WIDTH - AMOUNT_WIDTH;
     constexpr int AMOUNT_INSET = 4;
+    constexpr int AMOUNT_TEXT_Y = 3;
 
     constexpr int BUTTON_HEIGHT = 20;
     constexpr int BUTTON_GAP = 6;
@@ -97,15 +97,18 @@ namespace
     {
         int type;
         int level;
+        // How much of the slot the model fills. The models are not authored to one size, so this evens them out.
+        float fill;
     };
 
     KindIcon IconOf(int index)
     {
         static const KindIcon icons[JewelBank::KIND_COUNT] = {
-            { ITEM_JEWEL_OF_CHAOS, 0 }, { ITEM_JEWEL_OF_BLESS, 0 }, { ITEM_JEWEL_OF_SOUL, 0 }, { ITEM_JEWEL_OF_LIFE, 0 },
-            { ITEM_JEWEL_OF_CREATION, 0 }, { ITEM_JEWEL_OF_GUARDIAN, 0 }, { ITEM_JEWEL_OF_HARMONY, 0 }, { ITEM_GEMSTONE, 0 },
-            { ITEM_LOWER_REFINE_STONE, 0 }, { ITEM_HIGHER_REFINE_STONE, 0 },
-            { ITEM_FRUITS, 0 }, { ITEM_FRUITS, 1 }, { ITEM_FRUITS, 2 }, { ITEM_FRUITS, 3 }, { ITEM_FRUITS, 4 },
+            { ITEM_JEWEL_OF_CHAOS, 0, 0.80f }, { ITEM_JEWEL_OF_BLESS, 0, 0.84f }, { ITEM_JEWEL_OF_SOUL, 0, 0.70f },
+            { ITEM_JEWEL_OF_LIFE, 0, 0.80f }, { ITEM_JEWEL_OF_CREATION, 0, 0.74f }, { ITEM_JEWEL_OF_GUARDIAN, 0, 0.80f },
+            { ITEM_JEWEL_OF_HARMONY, 0, 0.80f }, { ITEM_GEMSTONE, 0, 0.80f },
+            { ITEM_LOWER_REFINE_STONE, 0, 0.80f }, { ITEM_HIGHER_REFINE_STONE, 0, 0.80f },
+            { ITEM_FRUITS, 0, 0.96f }, { ITEM_FRUITS, 1, 0.96f }, { ITEM_FRUITS, 2, 0.96f }, { ITEM_FRUITS, 3, 0.96f }, { ITEM_FRUITS, 4, 0.96f },
         };
         return icons[std::clamp(index, 0, JewelBank::KIND_COUNT - 1)];
     }
@@ -151,7 +154,7 @@ bool SEASON3B::CNewUIJewelBankWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DR
     m_AmountInput.Init(g_hWnd, AMOUNT_WIDTH - 2 * AMOUNT_INSET, ROW_HEIGHT, AMOUNT_MAX_DIGITS, false);
     m_AmountInput.SetTextColor(255, 255, 230, 210);
     m_AmountInput.SetBackColor(0, 0, 0, 0);
-    m_AmountInput.SetSelectBackColor(255, 95, 68, 24);
+    m_AmountInput.SetSelectBackColor(255, 120, 96, 40);
     m_AmountInput.SetFont(g_hFont);
     m_AmountInput.SetParentUIID(SEASON3B::INTERFACE_JEWEL_BANK);
     m_AmountInput.SetOption(UIOPTION_NUMBERONLY);
@@ -421,7 +424,7 @@ void SEASON3B::CNewUIJewelBankWindow::BeginEdit(int row)
     m_iEditRow = row;
     const uint32_t current = CurrentAmounts()[row];
     m_AmountInput.SetText(current > 0 ? std::to_wstring(current).c_str() : L"");
-    m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(row));
+    m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(row) + AMOUNT_TEXT_Y);
     m_AmountInput.SetState(UISTATE_NORMAL);
     m_AmountInput.GiveFocus(TRUE);
     SetRelatedWnd(m_AmountInput.GetHandle());
@@ -703,7 +706,7 @@ void SEASON3B::CNewUIJewelBankWindow::Render3D()
     {
         const KindIcon icon = IconOf(i);
         RenderItem3DFittedToSlot(static_cast<float>(m_Pos.x + LIST_X + ICON_X), static_cast<float>(m_Pos.y + RowY(i) + (ROW_HEIGHT - ICON_SIZE) / 2),
-            static_cast<float>(ICON_SIZE), static_cast<float>(ICON_SIZE), icon.type, icon.level, 0, 0, ICON_FILL, false);
+            static_cast<float>(ICON_SIZE), static_cast<float>(ICON_SIZE), icon.type, icon.level, 0, 0, icon.fill, false);
     }
 }
 
@@ -846,6 +849,11 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             m_iEditRow == i ? fieldTints.pressed : (i == hovered && hoveredOnAmount && hasAny ? fieldTints.hover : fieldTints.normal));
         if (m_iEditRow == i)
         {
+            // Typed digits sit where the shown amount sits: centred in the cell, on the same line as the other texts.
+            wchar_t typed[16]{};
+            m_AmountInput.GetText(typed, static_cast<int>(std::size(typed)));
+            const int textWidth = static_cast<int>(g_pRenderText->MeasureText(typed, static_cast<int>(wcslen(typed))).cx);
+            m_AmountInput.SetPosition(cellX + std::max(AMOUNT_INSET, (AMOUNT_WIDTH - textWidth) / 2), rowY + AMOUNT_TEXT_Y);
             m_AmountInput.Render();
         }
         else
