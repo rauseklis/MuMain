@@ -6,8 +6,16 @@ on:
     paths-ignore:
       - 'src/bin/Data/**'
       - 'src/bin/fonts/**'
+      # Documentation and the client-update helper are not part of the game: they must not start a 30 minute build.
+      - 'docs/**'
+      - '**/*.md'
+      - 'scripts/update-live-client.ps1'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'scripts/update-live-client.ps1'
   # Run by hand (Actions -> CI -> Run workflow, on main) to build the Windows client bundle without a push.
   workflow_dispatch:
 
