@@ -108,11 +108,11 @@ Key facts about the client:
 
 ## 3. What you need from the owner
 
-You have GitHub access already. Ask the owner for:
+Verify GitHub access as described in section 4. The owner may need the following for manual play or administration:
 
 | You need | Why | How it is handled |
 | --- | --- | --- |
-| A **game account** on the live server | to log in and test | The owner makes you an account in the admin panel, or gives you `testgm2` (a game-master account). The password is sent privately, not through the repository. |
+| A **game account** on the live server | for the owner to play and test manually | The owner creates or selects an account and enters its credentials themselves. Assistants do not request the password, control the game, or log in. |
 | Your **SSH public key added to the live server** | to open the admin panel and read logs (optional) | You create a key (`ssh-keygen -t ed25519`), send the `.pub` file's single line; the owner (or Claude) adds it to `/home/deploy/.ssh/authorized_keys`. |
 | The **game's `Data` folder** | the client needs the assets | It is in the client repository (`src/bin/Data`, 2.5 GB); a normal clone has it. |
 
@@ -146,8 +146,24 @@ git clone --recurse-submodules https://github.com/rauseklis/MuMain.git client
 git clone https://github.com/rauseklis/OpenMU.git server
 ```
 
-**Work in worktrees.** Do not work on `main`/`master` directly. For each task: `git worktree add .worktrees/<name> -b <branch> origin/<main|master>`
-(from inside the repository), work in that folder, and remove it when the branch is merged.
+**Work in worktrees.** Do not work on `main`/`master` directly. For a server task or a docs-only task, create a separate worktree with
+`git worktree add .worktrees/<name> -b <branch> origin/<main|master>` and remove it after its branch is merged. For client tasks needing a
+build, reuse an available long-lived build worktree as described in section 6; keep that worktree after the task. Never reuse one another
+session is using. Initialize submodules inside a new client worktree with `git submodule update --init --recursive`.
+
+**Verify access before shipping.** Check the active CLI account and both repositories:
+
+```powershell
+gh auth status
+gh api user --jq .login
+gh api repos/rauseklis/OpenMU --jq .permissions
+gh api repos/rauseklis/MuMain --jq .permissions
+```
+
+The active account must be yours (for example `AuseklisR`), and both permission objects must contain `"push": true`.
+Do not print an authentication token or paste unredacted credentials into reports. A permission flag alone does not prove Git transport
+works: when requested, create a uniquely named throwaway branch in your own worktree, push it, delete that remote branch, then remove only
+that probe's local branch and worktree. Do not merge it or change repository settings. Record success or the actual failure for each repository.
 
 Line endings: the repositories mix LF and CRLF. Keep each file's own line endings when you edit it (an editor that converts them creates huge
 diffs). Git may print "LF will be replaced by CRLF" warnings; they are harmless.
@@ -157,17 +173,26 @@ diffs). Git may print "LF will be replaced by CRLF" warnings; they are harmless.
 ```powershell
 cd server
 dotnet restore
+# A clean checkout needs this executable before the persistence projects run their pre-build steps.
+dotnet build src/Persistence/SourceGenerator/MUnique.OpenMU.Persistence.SourceGenerator.csproj -c Release
 dotnet build src/Startup/MUnique.OpenMU.Startup.csproj -c Release
 ```
 
-**Database.** The server needs PostgreSQL and creates the database and its tables itself. Give it the admin login through environment
-variables (the defaults are user `postgres`, password `admin`):
+**Database: configure isolation before running anything.** The server creates the configured database and tables itself. The checked-in
+`ConnectionSettings.xml` targets `openmu`; do not run it unchanged on a machine with the owner's real database. `DB_HOST`, `DB_ADMIN_USER`, and
+`DB_ADMIN_PW` override the host/admin credentials, **not the database name or port**. A different admin-panel port does not isolate a database.
+
+Prefer a separate disposable PostgreSQL cluster on a dedicated loopback port. After building, edit only the ignored runtime copy at
+`src/Startup/bin/Release/ConnectionSettings.xml`: point **every connection/context**, including admin authentication and the restricted roles,
+to the disposable cluster and a unique test database. Keep the key spelling `User Id=...;` because the migration role parser expects it.
+Verify all connection targets before startup or `-reinit`; rebuilding may copy the template again, so verify again after builds. Never edit
+the tracked template to contain real credentials. Supply required admin credentials privately through the process environment:
 
 ```powershell
 $env:DB_ADMIN_USER = 'postgres'
 $env:DB_ADMIN_PW   = '<your postgres password>'     # avoid ';' in the password
-$env:ASPNETCORE_URLS = 'http://+:8090'               # the admin panel address (choose a free port)
-dotnet run --project src/Startup/MUnique.OpenMU.Startup.csproj -c Release -- -autostart
+$env:ASPNETCORE_URLS = 'http://127.0.0.1:8090'               # the admin panel address (choose a free port)
+dotnet run --no-build --no-launch-profile --project src/Startup/MUnique.OpenMU.Startup.csproj -c Release -- -autostart
 ```
 
 - The first start **creates and fills the database** (a few minutes) with the default Season 6 data, including ~20 **default test accounts**
@@ -175,18 +200,20 @@ dotnet run --project src/Startup/MUnique.OpenMU.Startup.csproj -c Release -- -au
   well known, that is fine here, **not** on a public server).
 - Ports: connect server **44405** (GMO client definition) and **44406** (open-source client definition — use this one), game servers
   **55901–55906**, chat **55980**.
-- **Use a throwaway database for development**, not one you care about: `-reinit` recreates and re-initialises it. To run a second server
-  next to another one, copy a database (`CREATE DATABASE x TEMPLATE y`), shift the ports stored in it
-  (`ConnectServerDefinition.ClientListenerPort`, `GameServerEndpoint.NetworkPort`, `ChatServerEndpoint.NetworkPort`) and use another
-  `ASPNETCORE_URLS`.
+- **Use a throwaway database for development**: `-reinit` recreates it. Never copy, query, or modify the real local database as part of testing.
+  To run a second server, prepare fresh disposable data or copy an existing throwaway database, shift its ports
+  (`ConnectServerDefinition.ClientListenerPort`, `GameServerEndpoint.NetworkPort`, `ChatServerEndpoint.NetworkPort`), and use another
+  `ASPNETCORE_URLS`. Fresh seed data enables automatic server startup: omitting `-autostart` does not prevent listeners from starting.
+  Beside a real server, initialize the fixture separately and shift endpoints before launching it; do not run the unmodified first-start
+  command against default game ports. Stop only processes you started, after verifying their executable paths.
 - The server's console and log show almost nothing about players. To check what happened, query the database (for example the Jewel Bank tables
   `data."JewelBankBalance"` and `"JewelBankMovement"`).
 
 **Tests.**
 
 ```powershell
-dotnet test tests/MUnique.OpenMU.Tests/MUnique.OpenMU.Tests.csproj
-dotnet test tests/MUnique.OpenMU.Network.Packets.Tests
+dotnet test tests/MUnique.OpenMU.Tests/MUnique.OpenMU.Tests.csproj -c Release
+dotnet test tests/MUnique.OpenMU.Network.Packets.Tests -c Release
 ```
 
 Tests marked `PostgreSql` are skipped unless you set `AUCTION_TEST_CONNECTION_STRING` to a **throwaway** database that already has the
@@ -231,9 +258,11 @@ when the branch is merged. Only one session at a time may build in a worktree.
   1. In `rauseklis/MuMain` → **Actions** → the latest successful **CI** run on `main` → artifact
      `mu-client-windows-native-x64-release-editor-off-no-data-main` (about 260 MB; the program without the game's data). If no run exists, start one:
      Actions → CI → **Run workflow** on `main` (the Windows job takes 20–40 minutes the first time).
-  2. Extract it into a folder, then copy `Data` and `fonts` into it from `src/bin/` of your client clone.
+  2. Extract the artifact ZIP, then unpack its runtime `.tar.gz` if present. Put the complete runtime in a new folder outside Git
+     repositories, then copy `Data` and `fonts` into it from `src/bin/` of the matching client checkout.
   3. In its `config.ini` set `ServerIP=109.199.104.230` and `ServerPort=44406`.
-  4. Run `Main.exe`, log in with the account the owner gave you.
+  4. The owner runs `Main.exe` from that folder and logs in manually. Assistants may prepare and verify files and connectivity, but must
+     not control the game window or log in.
 - **GM commands** (a game-master account): `/item <group> <number> [level]` drops an item at your feet (Jewel of Bless `14 13 0`; Fruit of Strength
   `13 15 3`), `/move <map>`, `/jewelrain` starts the Jewel Rain event; the list of commands is in the chat-commands plug-ins
   (`src/GameLogic/PlugIns/ChatCommands/`) and `docs/chat-commands.md` in the client repository.
@@ -241,6 +270,32 @@ when the branch is merged. Only one session at a time may build in a worktree.
 - The Auction House refuses accounts younger than 24 hours (`MinimumAccountAgeHours`); the owner set the registration date of the two game-master
   accounts back to get round it.
 - Remember: on the live server **your actions are real for the other player**. Do not wipe or damage characters or the database.
+
+### Assemble a standalone client from a local build
+
+A locally built x86 or x64 Release client from this repository is also suitable; keep its runtime DLLs from the same build and architecture.
+Use a new folder **outside all Git repositories**, for example `C:\OpenMU Live Client`. Copy the complete runnable build output
+(`out/build/<preset>/src/Release`), including `Main.exe`, `MUnique.Client.Library.dll`, dependency DLLs, `shaders`, and the icon.
+Copy `src/bin/Data` and `src/bin/fonts` from the matching client checkout into that folder as `Data` and `fonts`; do not copy just `Main.exe`.
+Seed a clean `config.ini` from `src/bin/config.ini.template` so saved login credentials are not carried over, then set:
+
+```ini
+[CONNECTION SETTINGS]
+ServerIP=109.199.104.230
+ServerPort=44406
+```
+
+Run `Main.exe` with the standalone folder as its working directory. A shortcut's **Start in** field must point there. Leave other installed
+clients and their configuration alone. Report the full executable path, source commit/build, and whether the executable, native network DLL,
+runtime DLLs, `Data`, `fonts`, and shaders were verified. File checks and a successful build do not verify rendering or login: the owner
+launches the game and signs in manually; assistants must not control the window or log in.
+
+### Check the live connection without a game login
+
+From the player's PC, open a TCP connection to each of `109.199.104.230:44406` and `109.199.104.230:55901`, wait up to five seconds for
+connection and greeting data, and read at least four bytes (TCP may split them across reads). Close each connection without sending a login.
+Report each port independently, including the received byte count or timeout/error. An open port alone is insufficient; neither greeting
+proves account login or gameplay works. These checks are read-only and need no game credentials.
 
 ## 8. The protocol: how the client and server stay in step
 
@@ -320,9 +375,10 @@ Use the Jewel Bank as the model (`docs/superpowers/specs/2026-10-20-jewel-bank-d
   Restore steps: `deploy/live/README.md` in the server repository.
 - **Rollback:** run the deploy workflow from an older commit (Actions → Deploy live server → Run workflow, on that commit), or on the server
   `./deploy.sh ghcr.io/rauseklis/openmu:<older commit>`. Database changes are not undone by that: restore a dump if needed.
-- **Known open items:** the container's clock is UTC while the Jewel Rain schedule assumes Latvian time; the Auction House settings file
-  `AuctionHouse.ini` cannot be read inside the container (it needs a volume mount in `deploy/live/docker-compose.yml`); the brother's SSH key is
-  not on the server yet.
+- **Deployment checks (verify current live state):** event schedules use `SystemConfiguration.TimeZoneId`; an empty or invalid value falls
+  back to UTC. For Latvian schedules, the intended value is `Europe/Riga`, independent of the container clock. Confirm any required
+  `AuctionHouse.ini` mount and the brother's SSH access with the owner. Historical handover notes do not establish their current live state.
+  Do not change live configuration or authorized keys without showing the owner and obtaining approval.
 
 ## 12. Rules for assistants and security
 
@@ -332,7 +388,7 @@ Use the Jewel Bank as the model (`docs/superpowers/specs/2026-10-20-jewel-bank-d
 3. Do not control the game window. Start and stop **your own** test processes only (check the process path before you stop anything).
 4. Never print, commit or send passwords, keys, tokens or the Contabo API credentials. Use environment variables, files outside the repository, or
    GitHub secrets.
-5. Do not download or run files from untrusted sources; the only builds that are trusted are the ones made by the repository's own workflows.
+5. Use builds from the repository's own workflows or local builds from its trusted source. Do not download or run unrelated/untrusted launchers.
 6. Say plainly what you did **not** test (for example "I could not run the game").
 7. Do not make large unrelated clean-ups; follow the style of the code around you and `docs/CODING_RULES.md`.
 
@@ -348,7 +404,7 @@ Use the Jewel Bank as the model (`docs/superpowers/specs/2026-10-20-jewel-bank-d
 | `nuget.config` is not committed on your machine | A local git exclude rule may hide it; use `git add -f nuget.config` only if you really change it. |
 | The whole client fails to compile with "out of heap" | You configured with `-DBUILD_TESTING=ON`: configure with `OFF` for the game; build test targets separately. |
 | Server: no log lines for what a player did | The log shows almost nothing about players. Check the database. |
-| `docker compose up` seems up but the game port is closed | Docker accepts connections on a published port while the app is still starting; wait until the admin panel answers (`curl http://127.0.0.1:8080` gives 302). |
+| `docker compose up` seems up but the game port is closed | Docker accepts connections on a published port while the app is still starting; wait until the admin panel answers (HTTP 200 or the expected login redirect; do not require exactly 302). |
 | A first deploy or first start takes minutes | The database is created and filled the first time. The Kerberos library message and the `AuctionHouse.ini` warning in the log are harmless. |
 | Anyone can log in as a game master on a new server | Default test accounts have known passwords. Ban or re-password them before the server is reachable (as done on the live server). |
 | Jewels cannot be dropped by a player | The server refuses it ("expensive item"); use the `/item` GM command to stage items. |
@@ -360,10 +416,11 @@ Use the Jewel Bank as the model (`docs/superpowers/specs/2026-10-20-jewel-bank-d
 ## 14. Cheat sheet
 
 ```powershell
-# server: build, run locally, test
+# server: build, run locally, test (only after disposable database/port isolation above)
+dotnet build src/Persistence/SourceGenerator/MUnique.OpenMU.Persistence.SourceGenerator.csproj -c Release
 dotnet build src/Startup/MUnique.OpenMU.Startup.csproj -c Release
-dotnet run --project src/Startup/MUnique.OpenMU.Startup.csproj -c Release -- -autostart
-dotnet test tests/MUnique.OpenMU.Tests/MUnique.OpenMU.Tests.csproj
+dotnet run --no-build --no-launch-profile --project src/Startup/MUnique.OpenMU.Startup.csproj -c Release -- -autostart
+dotnet test tests/MUnique.OpenMU.Tests/MUnique.OpenMU.Tests.csproj -c Release
 
 # client: configure, build, run
 cmake --preset windows-x64 -DBUILD_TESTING=OFF

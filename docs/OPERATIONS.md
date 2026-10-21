@@ -14,8 +14,9 @@ A private MU Online server and its game client, built by two people (the owner a
 | Default branch | `master` | `main` |
 | Features added | Auction House, vaults, Jewel Bank, Jewel Rain, king maces, Lorencia lost maps, ... | their windows and rendering |
 
-Both repositories use **pull requests with merge commits**; work is done on a branch in a git worktree under `.worktrees/` (one folder per
-branch, next to the checkout), and the PR is merged on GitHub. The client repository has `AGENTS.md` and `docs/CODING_RULES.md`: follow them.
+Both repositories use **pull requests with merge commits**; work is done on branches in git worktrees under `.worktrees/`. Server and
+docs-only tasks use separate worktrees; client builds reuse an available long-lived worktree as described below. Keep the client build
+worktree after a task; remove a task-specific worktree after its branch is merged. The client repository has `AGENTS.md` and `docs/CODING_RULES.md`: follow them.
 
 ### The protocol ties the two together
 
@@ -46,7 +47,8 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
   `docker compose logs --tail 100 openmu`; the database: `docker compose exec database psql -U postgres -d openmu`.
 - **The owner's PC:** `C:\Users\rause\.ssh\config` has the shortcut `openmu`: `ssh -N openmu` opens the admin panel at `http://localhost:8080`.
   The keys are in `C:\Users\rause\.ssh\openmu-vps\` and `openmu_admin_ed25519`; the game account and admin panel logins are in
-  `C:\Users\rause\.ssh\openmu-vps\game-accounts.txt`. None of this is in any repository.
+  `C:\Users\rause\.ssh\openmu-vps\game-accounts.txt`. None of this is in any repository. These paths describe the owner's PC, not every
+  contributor's machine; do not assume they exist or read credential files to prepare a client. The owner enters game credentials manually.
 - **Accounts:** the 20 default OpenMU test accounts were banned (they have well-known passwords); only `testgm` and `testgm2` (game masters) are
   active, with random passwords. Make real accounts in the admin panel. Note: the Auction House refuses accounts younger than 24 hours
   (`MinimumAccountAgeHours`), and `Account.RegistrationDate` of the two GM accounts was set back to get round it.
@@ -58,9 +60,17 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 - **Bundle:** the Windows x64 no-data bundle is built by the `CI` workflow of the client repository (`Windows Native Build`) on pushes to `main`
   and can be started by hand (Actions → CI → Run workflow, on `main`). Download the artifact
   `mu-client-windows-native-x64-release-editor-off-no-data-main`, extract it, and add the `Data` and `fonts` folders from `src/bin/` of this
-  repository (the bundle has the program only). The owner's complete copy is `C:\Users\rause\OneDrive\Desktop\OpenMU Live Client`.
+  repository (the bundle has the program only). The ZIP may contain a runtime `.tar.gz` that must also be unpacked. A locally built x86
+  or x64 Release runtime is also supported. Use a standalone folder outside Git repositories, for example `C:\OpenMU Live Client`; existing
+  paths on another person's PC are examples, not prerequisites. Copy all matching runtime DLLs and shaders, seed a clean configuration,
+  and launch with that folder as the working directory. See [the assembly checklist](CODEX_GUIDE.md#assemble-a-standalone-client-from-a-local-build).
 - **`config.ini`** decides the server: `ServerIP=109.199.104.230`, `ServerPort=44406`. The client **ignores the `/p` argument**; it reads
-  `config.ini`.
+  `config.ini`. The owner signs in manually; assistants do not log in or control the window. File/build verification does not verify gameplay.
+- **Readiness:** verify TCP connections and at least four greeting bytes on both live ports 44406 and 55901, without sending login packets.
+  Record failures/timeouts separately; an open port does not prove login succeeds. Report the full prepared `Main.exe` path.
+- **Shipping access:** `gh auth status` and `gh api user --jq .login` must identify your active account; check `.permissions.push` using
+  `gh api repos/rauseklis/OpenMU --jq .permissions` and the equivalent for `rauseklis/MuMain`. When requested, prove Git push access with
+  a throwaway branch/worktree in each repository, delete only your probes afterward, and do not merge them. Never print an auth token.
 - The CI also runs a test that pins the Windows job's workflow text (`tests/test_windows_workflow_contract.py`); change both together.
 - The production game client the owner runs elsewhere (`C:\Games\Emberion Client`) is an older build; leave it alone.
 
@@ -69,6 +79,10 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 - **Never use the real database or the real server.** The owner has their own local server and database (`openmu`, started from the
   `auction-create-c4` worktree); do not stop, change or point anything at it. Test with a throwaway PostgreSQL database and a second server
   with shifted ports (`docs/jewel-bank-handover-2026-10-20.md`, "Trying it in the game"), or on the live server when the owner says so.
+  The shipped `ConnectionSettings.xml` defaults to `openmu`: before starting, point every runtime context to a disposable database/cluster
+  and port. `DB_HOST`/admin environment variables do not change the database name or port. Fresh seed data enables automatic startup,
+  even without `-autostart`; prepare the fixture and shift game endpoints before running beside the real server. The complete guide
+  describes these safeguards and the clean-build source-generator prerequisite.
 - **Client builds: use the long-lived "dev" worktree.** A new worktree has an empty build folder, so its first client build compiles about 820 steps
   (10 to 20 minutes); later builds in the same worktree only recompile what changed. The owner's machine has one with a warm x64 Release build:
   `C:\Users\rause\OneDrive\Desktop\mu-online-openmu\client\.worktrees\dev`. Start a client task there with `git switch -c <branch> origin/main`
@@ -102,7 +116,9 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
   restore a dump if a database change must be undone (`deploy/live/README.md`).
 - **Change a setting that lives in a file the container cannot write** (for example `AuctionHouse.ini`, which the server cannot read inside the
   container yet): it needs a mount in `deploy/live/docker-compose.yml` first.
-- **Time zone:** the server runs in UTC; the Jewel Rain schedule assumes Latvian time (see its design); set the container's `TZ` if the clock matters.
+- **Time zone:** periodic events and Jewel Rain use `SystemConfiguration.TimeZoneId`; empty or invalid values fall back to UTC.
+  `Europe/Riga` selects Latvian time; changing only the container's `TZ` does not configure the event time zone. Verify the actual live value
+  and obtain the owner's approval before any live configuration change.
 
 ## Index of feature documents
 
