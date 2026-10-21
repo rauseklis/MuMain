@@ -401,6 +401,34 @@ void SEASON3B::CNewUIJewelBankWindow::SetPickupNotification(const JewelBank::Pic
     PlayBuffer(isJewel ? SOUND_JEWEL01 : (isGemstone ? SOUND_JEWEL02 : SOUND_GET_ITEM01), &Hero->Object);
 }
 
+void SEASON3B::CNewUIJewelBankWindow::RequestStateOnWorldEntry()
+{
+    m_bHasState = false;
+    m_bAutoDeposit = false;
+    m_Counts = {};
+    SendOpenRequest();
+}
+
+bool SEASON3B::CNewUIJewelBankWindow::WouldBankPickup(const ITEM& item) const
+{
+    // The same rules as the server: a plain item, durability exactly 1, no options, no sockets.
+    if (!m_bHasState || !m_bAutoDeposit || item.Durability != 1 || item.OptionLevel != 0 || item.OptionType != 0 || item.ExcellentFlags != 0
+        || item.AncientDiscriminator != 0 || item.Jewel_Of_Harmony_Option != 0 || item.HasLuck || item.SocketCount != 0)
+    {
+        return false;
+    }
+
+    for (int kind = 0; kind < JewelBank::KIND_COUNT; ++kind)
+    {
+        const KindIcon icon = IconOf(kind);
+        if (icon.type == item.Type && icon.level == item.Level)
+        {
+            return JewelBank::HasRoomForPickup(m_Counts[kind]);
+        }
+    }
+    return false;
+}
+
 void SEASON3B::CNewUIJewelBankWindow::ShowMessage(const std::wstring& text, bool good)
 {
     m_Message = text;

@@ -200,6 +200,11 @@ namespace JewelBank
         return notification;
     }
 
+    bool HasRoomForPickup(uint64_t stored)
+    {
+        return stored < MAX_PER_KIND;
+    }
+
     std::wstring FormatCount(uint64_t value)
     {
         std::wstring digits = std::to_wstring(value);

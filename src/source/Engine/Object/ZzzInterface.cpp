@@ -1513,8 +1513,10 @@ void Action(CHARACTER* c, OBJECT* o, bool Now)
             SendGetItem = ItemKey;
             SocketClient->ToGameServer()->SendPickupItemRequest(ItemKey);
         }
-        else if (g_pMyInventory->FindEmptySlotIncludingExtensions(&Items[ItemKey].Item) == -1)
+        else if (g_pMyInventory->FindEmptySlotIncludingExtensions(&Items[ItemKey].Item) == -1
+            && !(g_pJewelBankWindow != nullptr && g_pJewelBankWindow->WouldBankPickup(Items[ItemKey].Item)))
         {
+            // (An item the Jewel Bank would take goes on to the request below: the bank needs no inventory slot.)
             wchar_t Text[256];
             mu_swprintf(Text, I18N::Game::InventoryIsFull);
 

@@ -92,6 +92,9 @@ inventory counts as 32-bit values), Operation (81, C1) and PickupNotification (8
   together; a `< >` pager under the list (the storage window's HD arrow buttons). Selections carry across pages.
 - A banked pickup shows the normal blue line "<item> Obtained and moved to the Jewel Bank" with the item's pickup
   sound, and ends the outstanding pickup request.
+- A pickup the bank would take is not refused for a full inventory: the client asks for the bank state when the character
+  enters the world and lets a plain item of a bankable kind (auto-deposit on, kind below its cap) through to the server,
+  which decides.
 - The client never writes items or counts; it renders what the server sends. Pure logic (kinds, packet parsing, amounts,
   pages) is unit tested in `tests/ui/test_jewel_bank_model.cpp`.
 
@@ -105,7 +108,5 @@ inventory counts as 32-bit values), Operation (81, C1) and PickupNotification (8
 
 ## Known gaps
 
-- The client refuses a pickup with "inventory is full" when no inventory slot is free, even if auto-deposit would bank
-  the item (the client does not know the setting while the window is closed).
 - Texts are English only. The cap is a constant, not a setting.
 - Auto-deposit for the offline helper has not been verified.
