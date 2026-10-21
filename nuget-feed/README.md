@@ -3,7 +3,7 @@
 The client takes its network protocol from three NuGet packages built from the **server** repository (`rauseklis/OpenMU`):
 `MUnique.OpenMU.PlugIns`, `MUnique.OpenMU.Network` and `MUnique.OpenMU.Network.Packets`. They are kept in this folder, and
 `nuget.config` makes it a package source, so no package server or token is needed. `OpenMuPacketsVersion` in
-`ClientLibrary/MUnique.Client.Library.csproj` (and `-DOPENMU_PACKETS_VERSION` for CMake) names the version in use: **0.9.20**.
+`ClientLibrary/MUnique.Client.Library.csproj` names the version in use: **0.9.20** (CMake reads it from there too).
 
 ## When the server's packets change
 
