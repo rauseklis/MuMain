@@ -57,6 +57,12 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 
 ## The client
 
+- **The fast path for your own testing: build locally, install locally.** GitHub's build takes 20 to 40 minutes (its machines start empty and recompile
+  the whole client; builds also queue one after another). A local incremental build in the warm dev worktree takes about a minute. So after a client
+  change: in the dev worktree run `scripts\build-client-windows.cmd x64` (finds Visual Studio, activates it, configures and builds), then
+  `powershell -ExecutionPolicy Bypass -File scripts\update-live-client.ps1 -Target <client folder> -LocalBuild out\build\windows-x64\src\Release`
+  (keeps `config.ini`, `Data`, `fonts`; refuses while the game runs). Use the GitHub bundle (`update-live-client.ps1` without `-LocalBuild`) for a person
+  who does not build locally, for example to give the brother's PC the same build as the merged `main`.
 - **After every merged client change, update the client folder with `scripts/update-live-client.ps1` — nobody downloads or unpacks anything by hand.**
   Run `powershell -ExecutionPolicy Bypass -File scripts\update-live-client.ps1 -Target <the client folder>` (the owner's is
   `C:\Users\rause\OneDrive\Desktop\OpenMU Live Client`, the brother's `C:\OpenMU Live Client`). It finds the newest bundle that matches `main` (a build that only misses documentation changes counts),
