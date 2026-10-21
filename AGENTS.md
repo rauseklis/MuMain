@@ -20,7 +20,8 @@ this codebase. Follow the style of surrounding code where the rules don't speak.
 
 ## The whole project, the live server and the owner's rules
 
-**Read [`docs/OPERATIONS.md`](docs/OPERATIONS.md) first.** It explains how the server repository (`rauseklis/OpenMU`) and this one fit together
+**New here? Read [`docs/CODEX_GUIDE.md`](docs/CODEX_GUIDE.md), the complete guide (setup, building, testing, the protocol, the live
+server, the rules, the traps), then [`docs/OPERATIONS.md`](docs/OPERATIONS.md), the short reference.** It explains how the server repository (`rauseklis/OpenMU`) and this one fit together
 (the packets), the live server on a VPS and how a merge deploys to it, how to test safely, and the rules the owner set.
 
 ## Build setup
