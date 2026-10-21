@@ -104,7 +104,7 @@ namespace
 
     int IconSize(int page)
     {
-        return page == 0 ? ICON_SIZE : 22;
+        return page == 0 ? ICON_SIZE : 17;
     }
 
     // Where the text of a row starts below its top, so the text stays vertically centred in taller rows.
@@ -145,7 +145,7 @@ namespace
         if (index >= JewelBank::FIRST_BUNDLE_INDEX)
         {
             const int bundle = std::clamp(index, JewelBank::FIRST_BUNDLE_INDEX, JewelBank::KIND_COUNT - 1) - JewelBank::FIRST_BUNDLE_INDEX;
-            return { packed[bundle % JewelBank::BUNDLES_PER_PAGE], bundle / JewelBank::BUNDLES_PER_PAGE, 0.92f };
+            return { packed[bundle % JewelBank::BUNDLES_PER_PAGE], bundle / JewelBank::BUNDLES_PER_PAGE, 0.78f };
         }
 
         static const KindIcon icons[JewelBank::FIRST_BUNDLE_INDEX] = {
