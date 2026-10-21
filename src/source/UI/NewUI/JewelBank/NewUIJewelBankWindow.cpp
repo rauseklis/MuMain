@@ -127,6 +127,16 @@ namespace
 
     KindIcon IconOf(int index)
     {
+        // The fill which makes each jewel look as big as the others; a bundle of a jewel uses the same fill as the jewel,
+        // so a jewel keeps its size on every page.
+        static const KindIcon icons[JewelBank::ROW_COUNT] = {
+            { ITEM_JEWEL_OF_CHAOS, 0, 0.80f }, { ITEM_JEWEL_OF_BLESS, 0, 0.84f }, { ITEM_JEWEL_OF_SOUL, 0, 0.70f },
+            { ITEM_JEWEL_OF_LIFE, 0, 0.80f }, { ITEM_JEWEL_OF_CREATION, 0, 0.74f }, { ITEM_JEWEL_OF_GUARDIAN, 0, 0.80f },
+            { ITEM_JEWEL_OF_HARMONY, 0, 0.80f }, { ITEM_GEMSTONE, 0, 0.80f },
+            { ITEM_LOWER_REFINE_STONE, 0, 0.80f }, { ITEM_HIGHER_REFINE_STONE, 0, 0.80f },
+            { ITEM_FRUITS, 0, 0.96f }, { ITEM_FRUITS, 1, 0.96f }, { ITEM_FRUITS, 2, 0.96f }, { ITEM_FRUITS, 3, 0.96f }, { ITEM_FRUITS, 4, 0.96f },
+        };
+
         // The bundles are the jewels' packed items, in the order of the jewels (the same ten, once per size, level 0 / 1 / 2).
         static const int packed[JewelBank::BUNDLES_PER_SIZE] = {
             ITEM_PACKED_JEWEL_OF_CHAOS, ITEM_PACKED_JEWEL_OF_BLESS, ITEM_PACKED_JEWEL_OF_SOUL, ITEM_PACKED_JEWEL_OF_LIFE,
@@ -136,17 +146,11 @@ namespace
         if (index >= JewelBank::FIRST_BUNDLE_INDEX)
         {
             const int bundle = std::clamp(index, JewelBank::FIRST_BUNDLE_INDEX, JewelBank::KIND_COUNT - 1) - JewelBank::FIRST_BUNDLE_INDEX;
-            return { packed[bundle % JewelBank::BUNDLES_PER_SIZE], bundle / JewelBank::BUNDLES_PER_SIZE, 0.84f };
+            const int jewel = bundle % JewelBank::BUNDLES_PER_SIZE;
+            return { packed[jewel], bundle / JewelBank::BUNDLES_PER_SIZE, icons[jewel].fill };
         }
 
-        static const KindIcon icons[JewelBank::FIRST_BUNDLE_INDEX] = {
-            { ITEM_JEWEL_OF_CHAOS, 0, 0.80f }, { ITEM_JEWEL_OF_BLESS, 0, 0.84f }, { ITEM_JEWEL_OF_SOUL, 0, 0.70f },
-            { ITEM_JEWEL_OF_LIFE, 0, 0.80f }, { ITEM_JEWEL_OF_CREATION, 0, 0.74f }, { ITEM_JEWEL_OF_GUARDIAN, 0, 0.80f },
-            { ITEM_JEWEL_OF_HARMONY, 0, 0.80f }, { ITEM_GEMSTONE, 0, 0.80f },
-            { ITEM_LOWER_REFINE_STONE, 0, 0.80f }, { ITEM_HIGHER_REFINE_STONE, 0, 0.80f },
-            { ITEM_FRUITS, 0, 0.96f }, { ITEM_FRUITS, 1, 0.96f }, { ITEM_FRUITS, 2, 0.96f }, { ITEM_FRUITS, 3, 0.96f }, { ITEM_FRUITS, 4, 0.96f },
-        };
-        return icons[std::clamp(index, 0, JewelBank::FIRST_BUNDLE_INDEX - 1)];
+        return icons[std::clamp(index, 0, JewelBank::ROW_COUNT - 1)];
     }
 
     // A filled circle drawn from half-pixel slices (the flat-colour helper only draws rectangles).
