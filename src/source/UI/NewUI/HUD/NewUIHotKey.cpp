@@ -244,8 +244,7 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
     else if (SEASON3B::IsPress('S') && g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY) == false)
     {
         // The skill tree (Master Level window). With the inventory open 'S' stays the "my shop" key.
-        if (gCharacterManager.IsMasterLevel(Hero->Class) == true
-            && Hero->Class != CLASS_TEMPLENIGHT)
+        if (gCharacterManager.IsMasterLevel(Hero->Class) == true && Hero->Class != CLASS_TEMPLENIGHT)
         {
             g_pNewUISystem->Toggle(SEASON3B::INTERFACE_MASTER_LEVEL);
             PlayBuffer(SOUND_CLICK01);

@@ -466,8 +466,10 @@ bool SEASON3B::CNewUIMasterLevel::UpdateMouseEvent()
 bool SEASON3B::CNewUIMasterLevel::UpdateKeyEvent()
 {
     // 'S' opens and closes the skill tree (see CNewUIHotKey); with the inventory open it is the "my shop" key.
-    const bool closeKeyPressed = SEASON3B::IsPress('S') == true && g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY) == false;
-    if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_MASTER_LEVEL) == false || SEASON3B::IsPress(VK_ESCAPE) == false && closeKeyPressed == false)
+    const bool closeKeyPressed =
+        SEASON3B::IsPress('S') == true && g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY) == false;
+    if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_MASTER_LEVEL) == false ||
+        SEASON3B::IsPress(VK_ESCAPE) == false && closeKeyPressed == false)
     {
         return true;
     }
