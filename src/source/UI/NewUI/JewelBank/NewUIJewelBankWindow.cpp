@@ -2,6 +2,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "I18N/All.h"
 #include "UI/NewUI/JewelBank/NewUIJewelBankWindow.h"
 #include "UI/NewUI/AuctionHouse/AuctionChrome.h"
 #include "UI/NewUI/AuctionHouse/AuctionModel.h"
