@@ -230,24 +230,24 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
     }
     else if (SEASON3B::IsPress('A'))
     {
-        if (SEASON3B::IsRepeat(VK_SHIFT))
+        // The Auction House and the Jewel Bank are both large windows in the same place: only one at a time.
+        if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_JEWEL_BANK))
         {
-            if (gCharacterManager.IsMasterLevel(Hero->Class) == true
-                && Hero->Class != CLASS_TEMPLENIGHT)
-            {
-                g_pNewUISystem->Toggle(SEASON3B::INTERFACE_MASTER_LEVEL);
-                PlayBuffer(SOUND_CLICK01);
-            }
+            g_pNewUISystem->Hide(SEASON3B::INTERFACE_JEWEL_BANK);
         }
-        else
-        {
-            // The Auction House and the Jewel Bank are both large windows in the same place: only one at a time.
-            if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_JEWEL_BANK))
-            {
-                g_pNewUISystem->Hide(SEASON3B::INTERFACE_JEWEL_BANK);
-            }
 
-            g_pNewUISystem->Toggle(SEASON3B::INTERFACE_AUCTION_HOUSE);
+        g_pNewUISystem->Toggle(SEASON3B::INTERFACE_AUCTION_HOUSE);
+        PlayBuffer(SOUND_CLICK01);
+
+        return false;
+    }
+    else if (SEASON3B::IsPress('S') && g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_INVENTORY) == false)
+    {
+        // The skill tree (Master Level window). With the inventory open 'S' stays the "my shop" key.
+        if (gCharacterManager.IsMasterLevel(Hero->Class) == true
+            && Hero->Class != CLASS_TEMPLENIGHT)
+        {
+            g_pNewUISystem->Toggle(SEASON3B::INTERFACE_MASTER_LEVEL);
             PlayBuffer(SOUND_CLICK01);
         }
 
