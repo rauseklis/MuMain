@@ -15178,6 +15178,9 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
             }
             break;
         case 0x82: // JewelBankPickupNotification
+            // A pickup which went into the bank is answered by this notification instead of the usual item reply (0x22), so it
+            // also ends the outstanding pickup request; without this no further item could be picked up.
+            SendGetItem = -1;
             if (auto notification = JewelBank::PickupNotification::Parse(received_span))
             {
                 if (g_pJewelBankWindow)
