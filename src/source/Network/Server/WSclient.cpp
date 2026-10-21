@@ -54,6 +54,7 @@
 #include "World/MapInfra/MapManager.h"
 #include "UI/Legacy/UIGuardsMan.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "UI/NewUI/JewelBank/JewelBankModel.h"
 #include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "UI/NewUI/Dialogs/NewUICustomMessageBox.h"
@@ -15144,6 +15145,47 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
                 if (g_pAuctionWindow)
                 {
                     g_pAuctionWindow->SetNotification(*notification);
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    break;
+    case 0xD6:
+    {
+        // Jewel Bank (0xD6): the sub-code sits right after the code byte: at offset 3 in a C1 packet, at 4 in the C2 state
+        // response (which is longer than 255 bytes).
+        switch (bIsC1C3 ? ReceiveBuffer[3] : ReceiveBuffer[4])
+        {
+        case 0x80: // JewelBankStateResponse
+            if (auto state = JewelBank::StateResponse::Parse(received_span))
+            {
+                if (g_pJewelBankWindow)
+                {
+                    g_pJewelBankWindow->SetState(*state);
+                }
+            }
+            break;
+        case 0x81: // JewelBankOperationResponse
+            if (auto response = JewelBank::OperationResponse::Parse(received_span))
+            {
+                if (g_pJewelBankWindow)
+                {
+                    g_pJewelBankWindow->SetOperationResponse(*response);
+                }
+            }
+            break;
+        case 0x82: // JewelBankPickupNotification
+            // A pickup which went into the bank is answered by this notification instead of the usual item reply (0x22), so it
+            // also ends the outstanding pickup request; without this no further item could be picked up.
+            SendGetItem = -1;
+            if (auto notification = JewelBank::PickupNotification::Parse(received_span))
+            {
+                if (g_pJewelBankWindow)
+                {
+                    g_pJewelBankWindow->SetPickupNotification(*notification);
                 }
             }
             break;

@@ -2269,4 +2269,49 @@ public:
     /// Causes reaction on server side: Auction House service, see docs/superpowers/specs/2026-10-06-auction-house-design.md.
     /// </remarks>
     void SendAuctionCollectRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint64_t collectionId, uint32_t expectedVersion, uint32_t requestedScalar, uint32_t requestedStrength, uint32_t requestedAgility, uint32_t requestedVitality, uint32_t requestedEnergy, uint32_t requestedCommand);
+
+    /// <summary>
+    /// Sends a JewelBankOpenRequest to this connection.
+    /// </summary>
+    /// <remarks>
+    /// Is sent by the client when: The player opens the Jewel Bank window (Ctrl+J) or asks for its current state.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    void SendJewelBankOpenRequest();
+
+    /// <summary>
+    /// Sends a JewelBankDepositRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="amounts">The amounts.</param>
+    /// <param name="amountsByteLength">The length of <paramref name="amounts"/> in bytes.
+    /// <remarks>
+    /// Is sent by the client when: (A C4 packet: the encrypted request is longer than a C3 packet can be.) The player deposits the chosen amount of each kind from the inventory. Amounts holds 45 little-endian 32-bit counts, one per kind with code 1..45 (jewels, fruits, then the bundles of 10, 20 and 30); 0 skips a kind.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    void SendJewelBankDepositRequest(const BYTE* operationId, uint32_t operationIdByteLength, const BYTE* amounts, uint32_t amountsByteLength);
+
+    /// <summary>
+    /// Sends a JewelBankWithdrawRequest to this connection.
+    /// </summary>
+    /// <param name="operationId">The operation id.</param>
+    /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
+    /// <param name="amounts">The amounts.</param>
+    /// <param name="amountsByteLength">The length of <paramref name="amounts"/> in bytes.
+    /// <remarks>
+    /// Is sent by the client when: (A C4 packet: the encrypted request is longer than a C3 packet can be.) The player withdraws the chosen amount of each kind as items. Amounts holds 45 little-endian 32-bit counts, one per kind with code 1..45 (jewels, fruits, then the bundles of 10, 20 and 30); 0 skips a kind.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    void SendJewelBankWithdrawRequest(const BYTE* operationId, uint32_t operationIdByteLength, const BYTE* amounts, uint32_t amountsByteLength);
+
+    /// <summary>
+    /// Sends a JewelBankSetAutoDepositRequest to this connection.
+    /// </summary>
+    /// <param name="enabled">The enabled.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player switches the auto-deposit of picked-up jewels and fruits on or off.
+    /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
+    /// </remarks>
+    void SendJewelBankSetAutoDepositRequest(BYTE enabled);
 };

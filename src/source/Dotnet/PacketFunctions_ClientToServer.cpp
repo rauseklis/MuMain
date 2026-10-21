@@ -2250,3 +2250,47 @@ void PacketFunctions_ClientToServer::SendAuctionCollectRequest(const BYTE* opera
 
     dotnet_SendAuctionCollectRequest(this->GetHandle(), operationId, operationIdByteLength, collectionId, expectedVersion, requestedScalar, requestedStrength, requestedAgility, requestedVitality, requestedEnergy, requestedCommand);
 }
+
+void PacketFunctions_ClientToServer::SendJewelBankOpenRequest()
+{
+    static const auto dotnet_SendJewelBankOpenRequest = LoadManagedSymbol<::SendJewelBankOpenRequest>("SendJewelBankOpenRequest");
+    if (!dotnet_SendJewelBankOpenRequest)
+    {
+        return;
+    }
+
+    dotnet_SendJewelBankOpenRequest(this->GetHandle());
+}
+
+void PacketFunctions_ClientToServer::SendJewelBankDepositRequest(const BYTE* operationId, uint32_t operationIdByteLength, const BYTE* amounts, uint32_t amountsByteLength)
+{
+    static const auto dotnet_SendJewelBankDepositRequest = LoadManagedSymbol<::SendJewelBankDepositRequest>("SendJewelBankDepositRequest");
+    if (!dotnet_SendJewelBankDepositRequest)
+    {
+        return;
+    }
+
+    dotnet_SendJewelBankDepositRequest(this->GetHandle(), operationId, operationIdByteLength, amounts, amountsByteLength);
+}
+
+void PacketFunctions_ClientToServer::SendJewelBankWithdrawRequest(const BYTE* operationId, uint32_t operationIdByteLength, const BYTE* amounts, uint32_t amountsByteLength)
+{
+    static const auto dotnet_SendJewelBankWithdrawRequest = LoadManagedSymbol<::SendJewelBankWithdrawRequest>("SendJewelBankWithdrawRequest");
+    if (!dotnet_SendJewelBankWithdrawRequest)
+    {
+        return;
+    }
+
+    dotnet_SendJewelBankWithdrawRequest(this->GetHandle(), operationId, operationIdByteLength, amounts, amountsByteLength);
+}
+
+void PacketFunctions_ClientToServer::SendJewelBankSetAutoDepositRequest(BYTE enabled)
+{
+    static const auto dotnet_SendJewelBankSetAutoDepositRequest = LoadManagedSymbol<::SendJewelBankSetAutoDepositRequest>("SendJewelBankSetAutoDepositRequest");
+    if (!dotnet_SendJewelBankSetAutoDepositRequest)
+    {
+        return;
+    }
+
+    dotnet_SendJewelBankSetAutoDepositRequest(this->GetHandle(), enabled);
+}
