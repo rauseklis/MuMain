@@ -147,7 +147,7 @@ try {
     New-Item -ItemType Directory -Path $extract | Out-Null
     Write-Step 'Unpacking...'
     Push-Location $work
-    try { & tar --force-local -xzf $archive.Name -C 'files' } finally { Pop-Location }
+    try { & tar -xzf $archive.Name -C 'files' } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $extract 'Main.exe'))) { throw 'Unpacking failed: no Main.exe in the bundle.' }
 
     Write-Step "Installing into $Target (your config.ini, Data and fonts are kept)"
