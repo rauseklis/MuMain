@@ -32,11 +32,19 @@
 .PARAMETER DataSource
     Where to copy `Data` and `fonts` from if the client folder has none (the `src/bin` folder of a client clone).
 
+.PARAMETER LocalBuild
+    The FAST path for your own testing: install the output of a local build (the folder with Main.exe, for example
+    <dev worktree>\out\build\windows-x64\src\Release) instead of downloading from GitHub. An incremental local build takes about a minute, the
+    GitHub build 20 to 40 minutes. Same rules: config.ini, Data and fonts are kept, and the game must not be running.
+
 .PARAMETER Force
     Install even if the same build is already installed.
 
 .EXAMPLE
     .\scripts\update-live-client.ps1 -Target "C:\Users\rause\OneDrive\Desktop\OpenMU Live Client"
+
+.EXAMPLE
+    .\scripts\update-live-client.ps1 -Target "C:\OpenMU Live Client" -LocalBuild ".\out\build\windows-x64\src\Release"
 #>
 [CmdletBinding()]
 param(
@@ -46,6 +54,7 @@ param(
     [int]$WaitMinutes = 60,
     [string]$RunId,
     [string]$DataSource,
+    [string]$LocalBuild,
     [switch]$Force
 )
 
@@ -70,6 +79,36 @@ $Target = (Resolve-Path -LiteralPath $Target).Path
 # The game must not be running from this folder: its files are in use, and the script never closes a game.
 $running = Get-Process -Name Main -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($Target, [System.StringComparison]::OrdinalIgnoreCase) }
 if ($running) { throw "The game is running from $Target (Main.exe, process $($running.Id)). Close it first, then run this again." }
+
+# --- local build: no GitHub at all ----------------------------------------------------------------------------------------------
+if ($LocalBuild) {
+    $LocalBuild = (Resolve-Path -LiteralPath $LocalBuild).Path
+    if (-not (Test-Path -LiteralPath (Join-Path $LocalBuild 'Main.exe'))) { throw "No Main.exe in $LocalBuild. Build the client first (scripts\build-client-windows.cmd)." }
+    Write-Step "Installing the local build $LocalBuild into $Target (your config.ini, Data and fonts are kept)"
+    & robocopy $LocalBuild $Target /E /XD Data fonts /XF config.ini /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy failed with code $LASTEXITCODE." }
+    foreach ($folder in 'Data', 'fonts') {
+        if (-not (Test-Path -LiteralPath (Join-Path $Target $folder))) {
+            if ([string]::IsNullOrWhiteSpace($DataSource) -or -not (Test-Path -LiteralPath (Join-Path $DataSource $folder))) {
+                Write-Warning "$folder is missing in $Target. Pass -DataSource <client clone>\src\bin so it can be copied."
+            } else {
+                Write-Step "Copying $folder from $DataSource ..."
+                Copy-Item -LiteralPath (Join-Path $DataSource $folder) -Destination (Join-Path $Target $folder) -Recurse
+            }
+        }
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $Target 'config.ini')) -and (Test-Path -LiteralPath (Join-Path $LocalBuild 'config.ini'))) {
+        Copy-Item -LiteralPath (Join-Path $LocalBuild 'config.ini') -Destination (Join-Path $Target 'config.ini')
+        Write-Warning 'There was no config.ini: the default one was copied (ServerIP=localhost). Set ServerIP and ServerPort in it.'
+    }
+    $commit = (& git -C $LocalBuild rev-parse HEAD 2>$null)
+    "source=local build $LocalBuild`ncommit=$commit`ninstalled=$((Get-Date).ToString('s'))" | Set-Content -LiteralPath (Join-Path $Target 'bundle-info.txt') -Encoding ascii
+    $server = (Select-String -LiteralPath (Join-Path $Target 'config.ini') -Pattern '^(ServerIP|ServerPort)=' | ForEach-Object { $_.Line }) -join '  '
+    Write-Host ''
+    Write-Host "Done. Settings kept: $server"
+    Write-Host "Start the game again: $(Join-Path $Target 'Main.exe')"
+    return
+}
 
 # --- find the bundle ---------------------------------------------------------------------------------------------------------
 $latestSha = (Invoke-Gh @('api', "repos/$Repo/commits/$Ref", '--jq', '.sha')).Trim()

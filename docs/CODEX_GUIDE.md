@@ -263,6 +263,8 @@ when the branch is merged. Only one session at a time may build in a worktree.
   3. In its `config.ini` set `ServerIP=109.199.104.230` and `ServerPort=44406`.
   4. The owner runs `Main.exe` from that folder and logs in manually. Assistants may prepare and verify files and connectivity, but must
      not control the game window or log in.
+- **Fastest for your own testing:** build locally (`scripts\build-client-windows.cmd x64` in your build worktree, about a minute when it is warm) and install it with
+  `scripts/update-live-client.ps1 -Target <client folder> -LocalBuild out\build\windows-x64\src\Release` instead of waiting 20 to 40 minutes for GitHub.
 - **Updating the client after a merge is automated:** `scripts/update-live-client.ps1 -Target <client folder>` downloads the newest bundle that
   matches `main`, unpacks it and copies it over the client folder (keeping `config.ini`, `Data`, `fonts`); it waits for or starts the build if needed and
   refuses to touch a folder whose game is running. Run it yourself as the last step of every client change and then tell the person to restart `Main.exe`.
