@@ -428,8 +428,8 @@ typedef void(CORECLR_DELEGATE_CALLTYPE* SendAuctionCollectRequest)(int32_t, cons
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankOpenRequest)(int32_t);
 
-typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankDepositRequest)(int32_t, const BYTE* , uint32_t, BYTE );
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankDepositRequest)(int32_t, const BYTE* , uint32_t, uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t );
 
-typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankWithdrawRequest)(int32_t, const BYTE* , uint32_t, BYTE , uint32_t );
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankWithdrawRequest)(int32_t, const BYTE* , uint32_t, uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , uint32_t );
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankSetAutoDepositRequest)(int32_t, BYTE );

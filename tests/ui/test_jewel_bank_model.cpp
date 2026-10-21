@@ -42,6 +42,8 @@ TEST_CASE("a state response is read at the documented offsets")
     packet[5] = 1;
     PutU64(packet, 6, 1234567);
     PutU64(packet, 6 + 8 * 14, 42);
+    PutU32(packet, 126, 7);
+    PutU32(packet, 126 + 4 * 14, 99);
 
     const auto response = StateResponse::Parse(packet);
 
@@ -51,6 +53,9 @@ TEST_CASE("a state response is read at the documented offsets")
     CHECK(response->Counts[0] == 1234567);
     CHECK(response->Counts[1] == 0);
     CHECK(response->Counts[14] == 42);
+    CHECK(response->Inventory[0] == 7);
+    CHECK(response->Inventory[1] == 0);
+    CHECK(response->Inventory[14] == 99);
 }
 
 TEST_CASE("a short or unknown packet is not a response")
@@ -132,13 +137,59 @@ TEST_CASE("only a positive whole number is an amount")
     CHECK_FALSE(ParseAmount(L"99999999999").has_value());
 }
 
-TEST_CASE("a withdrawal is limited to the stored count and the per-request maximum")
+TEST_CASE("an amount is limited to what is available and to the per-request maximum")
 {
-    CHECK(WithdrawAmount(5u, 100) == 5u);
-    CHECK(WithdrawAmount(500u, 100) == 100u);
-    CHECK(WithdrawAmount(5u, 0) == 0u);
-    CHECK(WithdrawAmount(std::nullopt, 100) == 0u);
-    CHECK(WithdrawAmount(4000000000u, 5000000000ULL) == MAX_WITHDRAW_UNITS);
+    CHECK(ClampAmount(5u, 100) == 5u);
+    CHECK(ClampAmount(500u, 100) == 100u);
+    CHECK(ClampAmount(5u, 0) == 0u);
+    CHECK(ClampAmount(std::nullopt, 100) == 0u);
+    CHECK(ClampAmount(4000000000u, 5000000000ULL) == MAX_WITHDRAW_UNITS);
+}
+
+TEST_CASE("ticking a row selects everything available, un-ticking clears it")
+{
+    CHECK(ToggleAmount(0, 12) == 12u);
+    CHECK(ToggleAmount(5, 12) == 0u);
+    CHECK(ToggleAmount(0, 0) == 0u);
+    CHECK(ToggleAmount(0, 5000000000ULL) == MAX_WITHDRAW_UNITS);
+}
+
+TEST_CASE("select all takes every kind which has something available")
+{
+    Available available{};
+    available[0] = 3;
+    available[4] = 250000;
+    available[14] = 1;
+
+    const Amounts amounts = SelectAll(available);
+
+    CHECK(amounts[0] == 3u);
+    CHECK(amounts[1] == 0u);
+    CHECK(amounts[4] == MAX_WITHDRAW_UNITS);
+    CHECK(amounts[14] == 1u);
+    CHECK(SelectedKinds(amounts) == 3);
+    CHECK(TotalAmount(amounts) == 3u + MAX_WITHDRAW_UNITS + 1u);
+}
+
+TEST_CASE("amounts shrink when the available counts shrink, and empty rows stay empty")
+{
+    Available available{};
+    available[0] = 10;
+    available[1] = 2;
+    Amounts amounts{};
+    amounts[0] = 8;
+    amounts[1] = 5;
+    amounts[2] = 0;
+
+    LimitToAvailable(amounts, available);
+
+    CHECK(amounts[0] == 8u);
+    CHECK(amounts[1] == 2u);
+    CHECK(amounts[2] == 0u);
+
+    available[0] = 3;
+    LimitToAvailable(amounts, available);
+    CHECK(amounts[0] == 3u);
 }
 
 TEST_CASE("every result has a message and Success is the only cheerful one")

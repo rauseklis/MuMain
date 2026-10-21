@@ -65,7 +65,7 @@ namespace JewelBank
         case Result::InsufficientBalance: return L"The bank does not hold that many.";
         case Result::InventoryFull: return L"Not enough free space in your inventory.";
         case Result::CapReached: return L"The bank is full for that item.";
-        case Result::NothingToDeposit: return L"You carry nothing the bank accepts.";
+        case Result::NothingToDeposit: return L"Nothing to deposit. Bundles are deposited whole.";
         case Result::NotConfigured: return L"This item is not available on the server.";
         case Result::StateRestricted: return L"Go to a safe zone and close other windows first.";
         case Result::RateLimited: return L"Please wait a moment.";
@@ -87,6 +87,7 @@ namespace JewelBank
         for (size_t i = 0; i < response.Counts.size(); ++i)
         {
             response.Counts[i] = ReadU64(packet, 6 + 8 * i);
+            response.Inventory[i] = ReadU32(packet, 126 + 4 * i);
         }
         return response;
     }
@@ -161,15 +162,57 @@ namespace JewelBank
         return static_cast<uint32_t>(value);
     }
 
-    uint32_t WithdrawAmount(const std::optional<uint32_t>& typed, uint64_t stored)
+    uint32_t ClampAmount(const std::optional<uint32_t>& typed, uint64_t available)
     {
-        if (!typed.has_value() || stored == 0)
+        if (!typed.has_value() || available == 0)
         {
             return 0;
         }
 
-        const uint64_t limited = std::min<uint64_t>({ *typed, stored, MAX_WITHDRAW_UNITS });
+        const uint64_t limited = std::min<uint64_t>({ *typed, available, MAX_WITHDRAW_UNITS });
         return static_cast<uint32_t>(limited);
+    }
+
+    uint32_t ToggleAmount(uint32_t current, uint64_t available)
+    {
+        if (current > 0)
+        {
+            return 0;
+        }
+        return ClampAmount(UINT32_MAX, available);
+    }
+
+    Amounts SelectAll(const Available& available)
+    {
+        Amounts amounts{};
+        for (size_t i = 0; i < amounts.size(); ++i)
+        {
+            amounts[i] = ClampAmount(UINT32_MAX, available[i]);
+        }
+        return amounts;
+    }
+
+    void LimitToAvailable(Amounts& amounts, const Available& available)
+    {
+        for (size_t i = 0; i < amounts.size(); ++i)
+        {
+            amounts[i] = std::min<uint64_t>(amounts[i], std::min<uint64_t>(available[i], MAX_WITHDRAW_UNITS));
+        }
+    }
+
+    int SelectedKinds(const Amounts& amounts)
+    {
+        return static_cast<int>(std::count_if(amounts.begin(), amounts.end(), [](uint32_t amount) { return amount > 0; }));
+    }
+
+    uint64_t TotalAmount(const Amounts& amounts)
+    {
+        uint64_t total = 0;
+        for (const uint32_t amount : amounts)
+        {
+            total += amount;
+        }
+        return total;
     }
 
     std::wstring PickupMessage(const PickupNotification& notification)

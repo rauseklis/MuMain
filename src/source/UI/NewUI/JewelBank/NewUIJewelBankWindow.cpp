@@ -12,15 +12,16 @@
 #include "Network/Server/WSclient.h"
 #include "Network/Server/SocketSystem.h"
 #include "UI/Scaling/UITransform.h"
-#include "I18N/All.h"
 
 #include <algorithm>
 
 namespace
 {
     // The frame is the Auction House's: its textures are loaded for good when the Auction window is created at startup,
-    // so this window borrows them instead of loading a second copy.
+    // so this window borrows them instead of loading a second copy. The round close "X" is part of that frame's top
+    // right corner; the shared HandleFrameCornerClose gives it its click.
     using Auction = SEASON3B::CNewUIAuctionWindow;
+    using Window = SEASON3B::CNewUIJewelBankWindow;
 
     constexpr int TOP_BAND_HEIGHT = 64;
     constexpr int BOTTOM_BAND_HEIGHT = 45;
@@ -28,46 +29,74 @@ namespace
     constexpr int FRAME_TEXTURE_WIDTH = 190;
     constexpr int FRAME_CAP_WIDTH = 64;
     constexpr int FRAME_CENTER_WIDTH = FRAME_TEXTURE_WIDTH - 2 * FRAME_CAP_WIDTH;
-    constexpr int CLOSE_BTN_WIDTH = 36;
-    constexpr int CLOSE_BTN_HEIGHT = 29;
-    constexpr int CLOSE_BTN_MARGIN = 8;
-    constexpr int TITLE_BAND_HEIGHT = 40;
+    constexpr int TITLE_BAND_HEIGHT = 30;
+    constexpr int CORNER_CLOSE_RESERVE = 34;
 
+    constexpr int TAB_X = 22;
+    constexpr int TAB_Y = 34;
+    constexpr int TAB_WIDTH = 96;
+    constexpr int TAB_HEIGHT = 22;
+    constexpr int TAB_GAP = 4;
+
+    constexpr int HEADER_Y = 62;
     constexpr int LIST_X = 22;
-    constexpr int LIST_Y = 50;
-    constexpr int LIST_WIDTH = SEASON3B::CNewUIJewelBankWindow::WINDOW_WIDTH - 2 * LIST_X;
-    constexpr int ROW_HEIGHT = 20;
-    constexpr int ROW_GAP = 2;
-    constexpr int MARKER_SIZE = 12;
+    constexpr int LIST_Y = 76;
+    constexpr int LIST_WIDTH = Window::WINDOW_WIDTH - 2 * LIST_X;
+    constexpr int ROW_HEIGHT = 15;
+    constexpr int ROW_GAP = 1;
 
-    constexpr int PANEL_Y = LIST_Y + JewelBank::KIND_COUNT * (ROW_HEIGHT + ROW_GAP) + 6;
-    constexpr int AMOUNT_LABEL_Y = PANEL_Y + 6;
-    constexpr int AMOUNT_FIELD_X = LIST_X + 64;
-    constexpr int AMOUNT_FIELD_WIDTH = 96;
-    constexpr int AMOUNT_FIELD_HEIGHT = 23;
-    constexpr int AMOUNT_FIELD_TEXT_INSET = 6;
+    // Columns, relative to the left edge of a row.
+    constexpr int CHECK_X = 6;
+    constexpr int CHECK_SIZE = 11;
+    constexpr int MARKER_X = 24;
+    constexpr int MARKER_SIZE = 9;
+    constexpr int NAME_X = 40;
+    constexpr int BANK_RIGHT = 176;
+    constexpr int BAG_RIGHT = 226;
+    constexpr int COUNT_WIDTH = 52;
+    constexpr int AMOUNT_X = 232;
+    constexpr int AMOUNT_WIDTH = 50;
+    constexpr int AMOUNT_INSET = 4;
+
     constexpr int BUTTON_HEIGHT = 20;
-    constexpr int BUTTON_ROW_1_Y = PANEL_Y + 34;
-    constexpr int BUTTON_ROW_2_Y = BUTTON_ROW_1_Y + BUTTON_HEIGHT + 6;
-    constexpr int BUTTON_WIDTH = 96;
-    constexpr int CHECKBOX_Y = BUTTON_ROW_2_Y + BUTTON_HEIGHT + 10;
-    constexpr int MESSAGE_Y = CHECKBOX_Y + 22;
+    constexpr int BUTTON_GAP = 6;
+    constexpr int BUTTON_WIDTH = (LIST_WIDTH - 2 * BUTTON_GAP) / 3;
+    constexpr int BUTTON_ROW_Y = LIST_Y + JewelBank::KIND_COUNT * (ROW_HEIGHT + ROW_GAP) + 6;
+    constexpr int AUTO_Y = BUTTON_ROW_Y + BUTTON_HEIGHT + 8;
+    constexpr int MESSAGE_Y = AUTO_Y + 20;
     constexpr int AMOUNT_MAX_DIGITS = 6;
 
+    constexpr auto POLL_INTERVAL = std::chrono::milliseconds(1500);
+    constexpr auto OPERATION_TIMEOUT = std::chrono::seconds(6);
+
     const DWORD ROW_TINT_IDLE = RGBA(68, 74, 86, 255);
-    const DWORD ROW_TINT_HOVER = RGBA(160, 140, 90, 255);
+    const DWORD ROW_TINT_HOVER = RGBA(120, 112, 84, 255);
     const DWORD ROW_TINT_SELECTED = RGBA(224, 192, 108, 255);
+    const DWORD TAB_TINT_IDLE = RGBA(172, 178, 190, 255);
+    const DWORD TAB_TINT_HOVER = RGBA(236, 241, 250, 255);
+    const DWORD TAB_TINT_ACTIVE = RGBA(232, 198, 112, 255);
 
     int RowY(int index)
     {
         return LIST_Y + index * (ROW_HEIGHT + ROW_GAP);
     }
+
+    int TabX(int tab)
+    {
+        return TAB_X + tab * (TAB_WIDTH + TAB_GAP);
+    }
+
+    void SetTextColorArgb(DWORD argb)
+    {
+        g_pRenderText->SetTextColor((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, argb >> 24);
+    }
 } // namespace
 
 SEASON3B::CNewUIJewelBankWindow::CNewUIJewelBankWindow()
-    : m_pNewUIMng(nullptr), m_Pos{ 0, 0 }, m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_Counts{},
-      m_bHasState(false), m_bAutoDeposit(false), m_iSelected(-1), m_bOperationPending(false), m_PendingOperationId{},
-      m_PendingOperation(JewelBank::Operation::Deposit), m_bMessageGood(true)
+    : m_pNewUIMng(nullptr), m_Pos{ 0, 0 }, m_bDragging(false), m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0), m_iEditRow(-1),
+      m_iTab(TAB_DEPOSIT), m_Amounts{}, m_Counts{}, m_Inventory{}, m_bHasState(false), m_bAutoDeposit(false),
+      m_bOperationPending(false), m_PendingOperationId{}, m_PendingOperation(JewelBank::Operation::Deposit), m_PendingRequested(0),
+      m_OperationDeadline{}, m_NextPoll{}, m_bMessageGood(true)
 {
 }
 
@@ -88,16 +117,12 @@ bool SEASON3B::CNewUIJewelBankWindow::Create(CNewUIManager* pNewUIMng, int x, in
     m_Pos.x = x;
     m_Pos.y = y;
 
-    m_BtnClose.ChangeButtonImgState(true, Auction::IMAGE_AUCTION_CLOSE_BTN, false);
-    m_BtnClose.ChangeToolTipText(&I18N::Game::Close388);
+    InitButton(&m_BtnSelectAll, L"Select all");
+    InitButton(&m_BtnClear, L"Clear");
+    InitButton(&m_BtnAction, L"Deposit");
 
-    InitButton(&m_BtnWithdraw, 0, 0, BUTTON_WIDTH, L"Withdraw");
-    InitButton(&m_BtnMax, 0, 0, BUTTON_WIDTH, L"Max");
-    InitButton(&m_BtnDeposit, 0, 0, BUTTON_WIDTH, L"Deposit");
-    InitButton(&m_BtnDepositAll, 0, 0, BUTTON_WIDTH, L"Deposit All");
-
-    // The input sits in a recessed field drawn behind it, so it paints no background of its own.
-    m_AmountInput.Init(g_hWnd, AMOUNT_FIELD_WIDTH - 2 * AMOUNT_FIELD_TEXT_INSET, AMOUNT_FIELD_HEIGHT, AMOUNT_MAX_DIGITS, false);
+    // The input sits over the amount cell of the row being edited, which draws its own recessed field behind it.
+    m_AmountInput.Init(g_hWnd, AMOUNT_WIDTH - 2 * AMOUNT_INSET, ROW_HEIGHT, AMOUNT_MAX_DIGITS, false);
     m_AmountInput.SetTextColor(255, 255, 230, 210);
     m_AmountInput.SetBackColor(0, 0, 0, 0);
     m_AmountInput.SetSelectBackColor(255, 95, 68, 24);
@@ -127,12 +152,12 @@ void SEASON3B::CNewUIJewelBankWindow::Release()
     }
 }
 
-void SEASON3B::CNewUIJewelBankWindow::InitButton(CNewUIButton* button, int x, int y, int width, const wchar_t* caption)
+void SEASON3B::CNewUIJewelBankWindow::InitButton(CNewUIButton* button, const wchar_t* caption)
 {
     button->ChangeText(caption);
     button->ChangeTextBackColor(RGBA(255, 255, 255, 0));
     button->ChangeButtonImgState(true, Auction::IMAGE_AUCTION_PAGE_BTN, true);
-    button->ChangeButtonInfo(x, y, width, BUTTON_HEIGHT);
+    button->ChangeButtonInfo(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT);
     button->ChangeImgColor(BUTTON_STATE_UP, RGBA(255, 255, 255, 255));
     button->ChangeImgColor(BUTTON_STATE_DOWN, RGBA(255, 255, 255, 255));
     button->SetNineSliceSkin(&UI::AuctionChrome::AuctionButtonSkin());
@@ -140,13 +165,13 @@ void SEASON3B::CNewUIJewelBankWindow::InitButton(CNewUIButton* button, int x, in
 
 void SEASON3B::CNewUIJewelBankWindow::PositionChildren()
 {
-    m_BtnClose.ChangeButtonInfo(m_Pos.x + WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, m_Pos.y + CLOSE_BTN_MARGIN, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT);
-    const int rightX = m_Pos.x + WINDOW_WIDTH - LIST_X - BUTTON_WIDTH;
-    m_BtnMax.ChangeButtonInfo(m_Pos.x + AMOUNT_FIELD_X + AMOUNT_FIELD_WIDTH + 8, m_Pos.y + AMOUNT_LABEL_Y - 1, 52, BUTTON_HEIGHT);
-    m_BtnWithdraw.ChangeButtonInfo(m_Pos.x + LIST_X, m_Pos.y + BUTTON_ROW_1_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
-    m_BtnDeposit.ChangeButtonInfo(rightX, m_Pos.y + BUTTON_ROW_1_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
-    m_BtnDepositAll.ChangeButtonInfo(rightX, m_Pos.y + BUTTON_ROW_2_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
-    m_AmountInput.SetPosition(m_Pos.x + AMOUNT_FIELD_X + AMOUNT_FIELD_TEXT_INSET, m_Pos.y + AMOUNT_LABEL_Y);
+    m_BtnSelectAll.ChangeButtonInfo(m_Pos.x + LIST_X, m_Pos.y + BUTTON_ROW_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
+    m_BtnClear.ChangeButtonInfo(m_Pos.x + LIST_X + BUTTON_WIDTH + BUTTON_GAP, m_Pos.y + BUTTON_ROW_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
+    m_BtnAction.ChangeButtonInfo(m_Pos.x + LIST_X + 2 * (BUTTON_WIDTH + BUTTON_GAP), m_Pos.y + BUTTON_ROW_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
+    if (m_iEditRow >= 0)
+    {
+        m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(m_iEditRow));
+    }
 }
 
 void SEASON3B::CNewUIJewelBankWindow::OpeningProcess()
@@ -155,24 +180,50 @@ void SEASON3B::CNewUIJewelBankWindow::OpeningProcess()
     m_bDragging = false;
     m_bOperationPending = false;
     m_Message.clear();
-    m_iSelected = -1;
-    m_AmountInput.SetText(L"");
-    m_AmountInput.SetState(UISTATE_NORMAL);
+    m_iEditRow = -1;
+    m_AmountInput.SetState(UISTATE_HIDE);
+    m_Amounts = {};
     PositionChildren();
-    RefreshButtons();
+    SwitchTab(TAB_DEPOSIT);
     SetRelatedWnd(g_hWnd);
     SendOpenRequest();
+    m_NextPoll = Clock::now() + POLL_INTERVAL;
 }
 
 void SEASON3B::CNewUIJewelBankWindow::ClosingProcess()
 {
     m_bDragging = false;
-    m_AmountInput.SetState(UISTATE_HIDE);
-    if (m_AmountInput.HaveFocus())
-    {
-        CUITextInputBox::ReleaseFocus();
-    }
+    CancelEdit();
     SetRelatedWnd(g_hWnd);
+}
+
+JewelBank::Available SEASON3B::CNewUIJewelBankWindow::AvailableFor(int tab) const
+{
+    JewelBank::Available available{};
+    for (size_t i = 0; i < available.size(); ++i)
+    {
+        available[i] = tab == TAB_DEPOSIT ? static_cast<uint64_t>(m_Inventory[i]) : m_Counts[i];
+    }
+    return available;
+}
+
+JewelBank::Available SEASON3B::CNewUIJewelBankWindow::CurrentAvailable() const
+{
+    return AvailableFor(m_iTab);
+}
+
+JewelBank::Amounts& SEASON3B::CNewUIJewelBankWindow::CurrentAmounts()
+{
+    return m_Amounts[m_iTab];
+}
+
+void SEASON3B::CNewUIJewelBankWindow::SwitchTab(int tab)
+{
+    CancelEdit();
+    m_iTab = tab;
+    m_Message.clear();
+    m_BtnAction.ChangeText(tab == TAB_DEPOSIT ? L"Deposit" : L"Withdraw");
+    RefreshButtons();
 }
 
 void SEASON3B::CNewUIJewelBankWindow::SetState(const JewelBank::StateResponse& state)
@@ -184,8 +235,13 @@ void SEASON3B::CNewUIJewelBankWindow::SetState(const JewelBank::StateResponse& s
     }
 
     m_Counts = state.Counts;
+    m_Inventory = state.Inventory;
     m_bAutoDeposit = state.AutoDeposit;
     m_bHasState = true;
+    for (int tab = 0; tab < TAB_COUNT; ++tab)
+    {
+        JewelBank::LimitToAvailable(m_Amounts[tab], AvailableFor(tab));
+    }
     RefreshButtons();
 }
 
@@ -203,12 +259,19 @@ void SEASON3B::CNewUIJewelBankWindow::SetOperationResponse(const JewelBank::Oper
     }
     else if (response.Operation == JewelBank::Operation::Withdraw)
     {
-        const JewelBank::KindInfo* kind = JewelBank::FindKind(response.KindCode);
-        ShowMessage(L"Withdrew " + JewelBank::FormatCount(response.Units) + L" " + (kind ? kind->Name : L"items") + L".", true);
+        ShowMessage(L"Withdrew " + JewelBank::FormatCount(response.Units) + L".", true);
+        m_Amounts[TAB_WITHDRAW] = {};
     }
     else if (response.Operation == JewelBank::Operation::Deposit)
     {
-        ShowMessage(response.Units > 0 ? L"Deposited " + JewelBank::FormatCount(response.Units) + L" items." : std::wstring(L"Deposited."), true);
+        std::wstring text = L"Deposited " + JewelBank::FormatCount(response.Units);
+        if (response.Units < m_PendingRequested)
+        {
+            // Bundles go in whole, so a request which is not a sum of the bundles carried moves a little less.
+            text += L" of " + JewelBank::FormatCount(m_PendingRequested);
+        }
+        ShowMessage(text + L".", true);
+        m_Amounts[TAB_DEPOSIT] = {};
     }
     else
     {
@@ -237,11 +300,6 @@ void SEASON3B::CNewUIJewelBankWindow::ShowMessage(const std::wstring& text, bool
     m_bMessageGood = good;
 }
 
-uint64_t SEASON3B::CNewUIJewelBankWindow::SelectedCount() const
-{
-    return m_iSelected >= 0 && m_iSelected < JewelBank::KIND_COUNT ? m_Counts[m_iSelected] : 0;
-}
-
 void SEASON3B::CNewUIJewelBankWindow::RefreshButtons()
 {
     const auto setEnabled = [](CNewUIButton& button, bool enabled)
@@ -260,10 +318,11 @@ void SEASON3B::CNewUIJewelBankWindow::RefreshButtons()
     };
 
     const bool idle = !m_bOperationPending && m_bHasState;
-    setEnabled(m_BtnWithdraw, idle && SelectedCount() > 0);
-    setEnabled(m_BtnMax, idle && SelectedCount() > 0);
-    setEnabled(m_BtnDeposit, idle && m_iSelected >= 0);
-    setEnabled(m_BtnDepositAll, idle);
+    const JewelBank::Available available = CurrentAvailable();
+    const bool anyAvailable = std::any_of(available.begin(), available.end(), [](uint64_t units) { return units > 0; });
+    setEnabled(m_BtnSelectAll, idle && anyAvailable);
+    setEnabled(m_BtnClear, idle && JewelBank::SelectedKinds(CurrentAmounts()) > 0);
+    setEnabled(m_BtnAction, idle && JewelBank::SelectedKinds(CurrentAmounts()) > 0);
 }
 
 void SEASON3B::CNewUIJewelBankWindow::BeginOperation(JewelBank::Operation operation)
@@ -271,6 +330,7 @@ void SEASON3B::CNewUIJewelBankWindow::BeginOperation(JewelBank::Operation operat
     m_PendingOperationId = AuctionHouse::GenerateAuctionOperationId();
     m_PendingOperation = operation;
     m_bOperationPending = true;
+    m_OperationDeadline = Clock::now() + OPERATION_TIMEOUT;
     m_Message.clear();
     RefreshButtons();
 }
@@ -280,28 +340,37 @@ void SEASON3B::CNewUIJewelBankWindow::SendOpenRequest()
     SocketClient->ToGameServer()->SendJewelBankOpenRequest();
 }
 
-void SEASON3B::CNewUIJewelBankWindow::SendDeposit(uint8_t kindCode)
+void SEASON3B::CNewUIJewelBankWindow::SendAction()
 {
-    BeginOperation(JewelBank::Operation::Deposit);
-    SocketClient->ToGameServer()->SendJewelBankDepositRequest(
-        m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()), kindCode);
-}
-
-void SEASON3B::CNewUIJewelBankWindow::SendWithdraw()
-{
-    wchar_t text[16]{};
-    m_AmountInput.GetText(text, static_cast<int>(std::size(text)));
-    const uint32_t units = JewelBank::WithdrawAmount(JewelBank::ParseAmount(text), SelectedCount());
-    if (units == 0)
+    CommitEdit();
+    const JewelBank::Amounts& a = CurrentAmounts();
+    const uint64_t total = JewelBank::TotalAmount(a);
+    if (total == 0)
     {
-        ShowMessage(L"Enter how many to withdraw.", false);
+        ShowMessage(m_iTab == TAB_DEPOSIT ? L"Tick what you want to deposit." : L"Tick what you want to withdraw.", false);
         return;
     }
 
-    BeginOperation(JewelBank::Operation::Withdraw);
-    SocketClient->ToGameServer()->SendJewelBankWithdrawRequest(
-        m_PendingOperationId.data(), static_cast<uint32_t>(m_PendingOperationId.size()),
-        JewelBank::KindAt(m_iSelected).Code, units);
+    if (m_iTab == TAB_WITHDRAW && total > JewelBank::MAX_WITHDRAW_UNITS)
+    {
+        ShowMessage(L"Withdraw at most " + JewelBank::FormatCount(JewelBank::MAX_WITHDRAW_UNITS) + L" at a time.", false);
+        return;
+    }
+
+    m_PendingRequested = total;
+    BeginOperation(m_iTab == TAB_DEPOSIT ? JewelBank::Operation::Deposit : JewelBank::Operation::Withdraw);
+    const uint8_t* id = m_PendingOperationId.data();
+    const uint32_t idLength = static_cast<uint32_t>(m_PendingOperationId.size());
+    if (m_iTab == TAB_DEPOSIT)
+    {
+        SocketClient->ToGameServer()->SendJewelBankDepositRequest(id, idLength, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
+            a[8], a[9], a[10], a[11], a[12], a[13], a[14]);
+    }
+    else
+    {
+        SocketClient->ToGameServer()->SendJewelBankWithdrawRequest(id, idLength, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
+            a[8], a[9], a[10], a[11], a[12], a[13], a[14]);
+    }
 }
 
 void SEASON3B::CNewUIJewelBankWindow::SendAutoDeposit(bool enabled)
@@ -309,7 +378,49 @@ void SEASON3B::CNewUIJewelBankWindow::SendAutoDeposit(bool enabled)
     SocketClient->ToGameServer()->SendJewelBankSetAutoDepositRequest(enabled ? 1 : 0);
 }
 
-bool SEASON3B::CNewUIJewelBankWindow::RowAt(int mouseX, int mouseY, int& index) const
+void SEASON3B::CNewUIJewelBankWindow::BeginEdit(int row)
+{
+    CommitEdit();
+    if (row < 0 || row >= JewelBank::KIND_COUNT || CurrentAvailable()[row] == 0)
+    {
+        return;
+    }
+
+    m_iEditRow = row;
+    const uint32_t current = CurrentAmounts()[row];
+    m_AmountInput.SetText(current > 0 ? std::to_wstring(current).c_str() : L"");
+    m_AmountInput.SetPosition(m_Pos.x + LIST_X + AMOUNT_X + AMOUNT_INSET, m_Pos.y + RowY(row));
+    m_AmountInput.SetState(UISTATE_NORMAL);
+    m_AmountInput.GiveFocus(TRUE);
+    SetRelatedWnd(m_AmountInput.GetHandle());
+}
+
+void SEASON3B::CNewUIJewelBankWindow::CommitEdit()
+{
+    if (m_iEditRow < 0)
+    {
+        return;
+    }
+
+    wchar_t text[16]{};
+    m_AmountInput.GetText(text, static_cast<int>(std::size(text)));
+    CurrentAmounts()[m_iEditRow] = JewelBank::ClampAmount(JewelBank::ParseAmount(text), CurrentAvailable()[m_iEditRow]);
+    CancelEdit();
+    RefreshButtons();
+}
+
+void SEASON3B::CNewUIJewelBankWindow::CancelEdit()
+{
+    m_iEditRow = -1;
+    m_AmountInput.SetState(UISTATE_HIDE);
+    if (m_AmountInput.HaveFocus())
+    {
+        CUITextInputBox::ReleaseFocus();
+    }
+    SetRelatedWnd(g_hWnd);
+}
+
+bool SEASON3B::CNewUIJewelBankWindow::RowAt(int mouseX, int mouseY, int& row, bool& onAmount) const
 {
     if (mouseX < m_Pos.x + LIST_X || mouseX >= m_Pos.x + LIST_X + LIST_WIDTH)
     {
@@ -321,7 +432,8 @@ bool SEASON3B::CNewUIJewelBankWindow::RowAt(int mouseX, int mouseY, int& index) 
         const int top = m_Pos.y + RowY(i);
         if (mouseY >= top && mouseY < top + ROW_HEIGHT)
         {
-            index = i;
+            row = i;
+            onAmount = mouseX >= m_Pos.x + LIST_X + AMOUNT_X;
             return true;
         }
     }
@@ -330,43 +442,36 @@ bool SEASON3B::CNewUIJewelBankWindow::RowAt(int mouseX, int mouseY, int& index) 
 
 bool SEASON3B::CNewUIJewelBankWindow::BtnProcess()
 {
-    const int closeX = m_Pos.x + WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN;
-    const int closeY = m_Pos.y + CLOSE_BTN_MARGIN;
-    if (CheckMouseIn(closeX, closeY, CLOSE_BTN_WIDTH, CLOSE_BTN_HEIGHT) && IsRelease(VK_LBUTTON))
+    // The frame's own round "X" in the top right corner closes the window. The shared helper expects the 190 pixel wide
+    // frame the glyph is drawn on, which here is the right-hand end of the wider frame.
+    const POINT cornerFrame{ m_Pos.x + WINDOW_WIDTH - FRAME_TEXTURE_WIDTH, m_Pos.y };
+    if (g_pNewUISystem->HandleFrameCornerClose(cornerFrame, SEASON3B::INTERFACE_JEWEL_BANK))
     {
-        g_pNewUISystem->Hide(SEASON3B::INTERFACE_JEWEL_BANK);
         PlayBuffer(SOUND_CLICK01);
         return true;
     }
 
-    if (m_BtnMax.UpdateMouseEvent() == true)
+    if (m_BtnSelectAll.UpdateMouseEvent() == true)
     {
-        const uint32_t units = JewelBank::WithdrawAmount(UINT32_MAX, SelectedCount());
-        m_AmountInput.SetText(std::to_wstring(units).c_str());
+        CommitEdit();
+        CurrentAmounts() = JewelBank::SelectAll(CurrentAvailable());
+        RefreshButtons();
         PlayBuffer(SOUND_CLICK01);
         return true;
     }
 
-    if (m_BtnWithdraw.UpdateMouseEvent() == true)
+    if (m_BtnClear.UpdateMouseEvent() == true)
     {
-        SendWithdraw();
+        CommitEdit();
+        CurrentAmounts() = {};
+        RefreshButtons();
         PlayBuffer(SOUND_CLICK01);
         return true;
     }
 
-    if (m_BtnDeposit.UpdateMouseEvent() == true)
+    if (m_BtnAction.UpdateMouseEvent() == true)
     {
-        if (m_iSelected >= 0)
-        {
-            SendDeposit(JewelBank::KindAt(m_iSelected).Code);
-        }
-        PlayBuffer(SOUND_CLICK01);
-        return true;
-    }
-
-    if (m_BtnDepositAll.UpdateMouseEvent() == true)
-    {
-        SendDeposit(0);
+        SendAction();
         PlayBuffer(SOUND_CLICK01);
         return true;
     }
@@ -376,15 +481,25 @@ bool SEASON3B::CNewUIJewelBankWindow::BtnProcess()
 
 bool SEASON3B::CNewUIJewelBankWindow::UpdateMouseEvent()
 {
+    // A click outside the amount cell being edited accepts what was typed.
+    if (m_iEditRow >= 0 && IsPress(VK_LBUTTON)
+        && !CheckMouseIn(m_Pos.x + LIST_X + AMOUNT_X, m_Pos.y + RowY(m_iEditRow), AMOUNT_WIDTH, ROW_HEIGHT))
+    {
+        CommitEdit();
+    }
+
     if (BtnProcess())
     {
         return false;
     }
 
-    m_AmountInput.DoAction();
-    if (m_AmountInput.HaveFocus())
+    if (m_iEditRow >= 0)
     {
-        SetRelatedWnd(m_AmountInput.GetHandle());
+        m_AmountInput.DoAction();
+        if (m_AmountInput.HaveFocus())
+        {
+            SetRelatedWnd(m_AmountInput.GetHandle());
+        }
     }
 
     if (m_bDragging)
@@ -401,7 +516,7 @@ bool SEASON3B::CNewUIJewelBankWindow::UpdateMouseEvent()
         return false;
     }
 
-    const bool overTitleBar = CheckMouseIn(m_Pos.x, m_Pos.y, WINDOW_WIDTH - CLOSE_BTN_WIDTH - CLOSE_BTN_MARGIN, TITLE_BAND_HEIGHT);
+    const bool overTitleBar = CheckMouseIn(m_Pos.x, m_Pos.y, WINDOW_WIDTH - CORNER_CLOSE_RESERVE, TITLE_BAND_HEIGHT);
     if (overTitleBar && IsPress(VK_LBUTTON))
     {
         m_bDragging = true;
@@ -410,23 +525,43 @@ bool SEASON3B::CNewUIJewelBankWindow::UpdateMouseEvent()
         return false;
     }
 
-    int row = 0;
-    if (IsRelease(VK_LBUTTON) && RowAt(MouseX, MouseY, row))
+    if (IsRelease(VK_LBUTTON))
     {
-        m_iSelected = row;
-        RefreshButtons();
-        PlayBuffer(SOUND_CLICK01);
-        return false;
-    }
+        for (int tab = 0; tab < TAB_COUNT; ++tab)
+        {
+            if (tab != m_iTab && CheckMouseIn(m_Pos.x + TabX(tab), m_Pos.y + TAB_Y, TAB_WIDTH, TAB_HEIGHT))
+            {
+                SwitchTab(tab);
+                PlayBuffer(SOUND_CLICK01);
+                return false;
+            }
+        }
 
-    // The auto-deposit tick: the box and its label are one click target.
-    const int boxX = m_Pos.x + LIST_X;
-    const int boxY = m_Pos.y + CHECKBOX_Y;
-    if (!m_bOperationPending && IsRelease(VK_LBUTTON) && CheckMouseIn(boxX, boxY, LIST_WIDTH, 18))
-    {
-        SendAutoDeposit(!m_bAutoDeposit);
-        PlayBuffer(SOUND_CLICK01);
-        return false;
+        int row = 0;
+        bool onAmount = false;
+        if (RowAt(MouseX, MouseY, row, onAmount))
+        {
+            if (onAmount)
+            {
+                BeginEdit(row);
+            }
+            else
+            {
+                const JewelBank::Available available = CurrentAvailable();
+                CurrentAmounts()[row] = JewelBank::ToggleAmount(CurrentAmounts()[row], available[row]);
+                RefreshButtons();
+            }
+            PlayBuffer(SOUND_CLICK01);
+            return false;
+        }
+
+        // The auto-deposit tick (Deposit tab only): the box and its label are one click target.
+        if (m_iTab == TAB_DEPOSIT && !m_bOperationPending && CheckMouseIn(m_Pos.x + LIST_X, m_Pos.y + AUTO_Y, LIST_WIDTH, 16))
+        {
+            SendAutoDeposit(!m_bAutoDeposit);
+            PlayBuffer(SOUND_CLICK01);
+            return false;
+        }
     }
 
     if (CheckMouseIn(m_Pos.x, m_Pos.y, WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -444,19 +579,16 @@ bool SEASON3B::CNewUIJewelBankWindow::UpdateKeyEvent()
         return true;
     }
 
-    if (m_AmountInput.HaveFocus())
+    if (m_iEditRow >= 0)
     {
         if (SEASON3B::IsPress(VK_RETURN) == true)
         {
-            SendWithdraw();
-            CUITextInputBox::ReleaseFocus();
-            SetRelatedWnd(g_hWnd);
+            CommitEdit();
             return false;
         }
         if (SEASON3B::IsPress(VK_ESCAPE) == true)
         {
-            CUITextInputBox::ReleaseFocus();
-            SetRelatedWnd(g_hWnd);
+            CancelEdit();
             return false;
         }
         return true;
@@ -474,6 +606,26 @@ bool SEASON3B::CNewUIJewelBankWindow::UpdateKeyEvent()
 
 bool SEASON3B::CNewUIJewelBankWindow::Update()
 {
+    if (!IsVisible())
+    {
+        return true;
+    }
+
+    const auto now = Clock::now();
+    if (m_bOperationPending && now >= m_OperationDeadline)
+    {
+        // No answer in time: let the player try again rather than keeping the buttons locked.
+        m_bOperationPending = false;
+        ShowMessage(L"No answer from the server. Try again.", false);
+        RefreshButtons();
+    }
+
+    if (!m_bOperationPending && now >= m_NextPoll)
+    {
+        // What the player carries changes while the window is open (pickups, trades), so the counts are asked for again.
+        SendOpenRequest();
+        m_NextPoll = now + POLL_INTERVAL;
+    }
     return true;
 }
 
@@ -499,9 +651,10 @@ bool SEASON3B::CNewUIJewelBankWindow::Render()
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     g_pRenderText->RenderText((float)(m_Pos.x + 15), (float)(m_Pos.y + 13), L"Jewel Bank", (float)(WINDOW_WIDTH - 30), 0, RT3_SORT_CENTER);
 
+    RenderTabs();
+    RenderHeader();
     RenderRows();
-    RenderActionPanel();
-    m_BtnClose.Render();
+    RenderActions();
 
     EnableAlphaTest();
     return true;
@@ -542,69 +695,169 @@ void SEASON3B::CNewUIJewelBankWindow::RenderFrame()
         static_cast<float>(FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH), 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(BOTTOM_BAND_HEIGHT));
 }
 
+void SEASON3B::CNewUIJewelBankWindow::RenderTabs()
+{
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    const wchar_t* const labels[TAB_COUNT] = { L"Deposit", L"Withdraw" };
+    for (int tab = 0; tab < TAB_COUNT; ++tab)
+    {
+        const int x = m_Pos.x + TabX(tab);
+        const int y = m_Pos.y + TAB_Y;
+        const bool active = tab == m_iTab;
+        const bool hovered = !active && CheckMouseIn(x, y, TAB_WIDTH, TAB_HEIGHT);
+        UI::NineSlice::Render(UI::AuctionChrome::AuctionButtonSkin().texture, static_cast<float>(x), static_cast<float>(y),
+            static_cast<float>(TAB_WIDTH), static_cast<float>(TAB_HEIGHT),
+            active ? TAB_TINT_ACTIVE : (hovered ? TAB_TINT_HOVER : TAB_TINT_IDLE));
+        if (active)
+        {
+            g_pRenderText->SetTextColor(255, 226, 130, 255);
+        }
+        else
+        {
+            g_pRenderText->SetTextColor(235, 235, 235, 255);
+        }
+        g_pRenderText->RenderText(static_cast<float>(x), static_cast<float>(y + 7), labels[tab], static_cast<float>(TAB_WIDTH), 0, RT3_SORT_CENTER);
+    }
+}
+
+void SEASON3B::CNewUIJewelBankWindow::RenderHeader()
+{
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    const int left = m_Pos.x + LIST_X;
+    const int y = m_Pos.y + HEADER_Y;
+    const bool deposit = m_iTab == TAB_DEPOSIT;
+
+    SetTextColorArgb(0xFFB4B4B4u);
+    g_pRenderText->RenderText(static_cast<float>(left + NAME_X), static_cast<float>(y), L"Item", 0, 0, RT3_SORT_LEFT);
+
+    // The column the tab takes from is the one in gold.
+    SetTextColorArgb(deposit ? 0xFFB4B4B4u : 0xFFFFD25Au);
+    g_pRenderText->RenderText(static_cast<float>(left + BANK_RIGHT - COUNT_WIDTH), static_cast<float>(y), L"In bank", static_cast<float>(COUNT_WIDTH), 0, RT3_SORT_RIGHT);
+    SetTextColorArgb(deposit ? 0xFFFFD25Au : 0xFFB4B4B4u);
+    g_pRenderText->RenderText(static_cast<float>(left + BAG_RIGHT - COUNT_WIDTH), static_cast<float>(y), L"In bag", static_cast<float>(COUNT_WIDTH), 0, RT3_SORT_RIGHT);
+    SetTextColorArgb(0xFFB4B4B4u);
+    g_pRenderText->RenderText(static_cast<float>(left + AMOUNT_X), static_cast<float>(y), deposit ? L"Deposit" : L"Withdraw", static_cast<float>(AMOUNT_WIDTH), 0, RT3_SORT_CENTER);
+}
+
 void SEASON3B::CNewUIJewelBankWindow::RenderRows()
 {
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
 
     int hovered = -1;
-    RowAt(MouseX, MouseY, hovered);
+    bool hoveredOnAmount = false;
+    RowAt(MouseX, MouseY, hovered, hoveredOnAmount);
+    const bool deposit = m_iTab == TAB_DEPOSIT;
+    const JewelBank::Available available = CurrentAvailable();
+    const JewelBank::Amounts& amounts = CurrentAmounts();
+    const UI::NineSlice::StateTints& fieldTints = UI::AuctionChrome::AuctionFieldSkin().tints;
+
     for (int i = 0; i < JewelBank::KIND_COUNT; ++i)
     {
         const JewelBank::KindInfo& kind = JewelBank::KindAt(i);
         const int rowX = m_Pos.x + LIST_X;
         const int rowY = m_Pos.y + RowY(i);
-        const bool selected = i == m_iSelected;
+        const bool selected = amounts[i] > 0;
         UI::NineSlice::Render(UI::AuctionChrome::AuctionRowSkin().texture, static_cast<float>(rowX), static_cast<float>(rowY),
             static_cast<float>(LIST_WIDTH), static_cast<float>(ROW_HEIGHT),
-            selected ? ROW_TINT_SELECTED : (i == hovered ? ROW_TINT_HOVER : ROW_TINT_IDLE));
+            selected ? ROW_TINT_SELECTED : (i == hovered && !hoveredOnAmount ? ROW_TINT_HOVER : ROW_TINT_IDLE));
 
-        // A small coloured marker in front of the name stands in for the item icon.
-        UI::AuctionChrome::RenderAuctionItemSlot(rowX + 6, rowY + (ROW_HEIGHT - MARKER_SIZE) / 2, MARKER_SIZE, kind.Color);
-
-        g_pRenderText->SetTextColor(230, 230, 230, 255);
-        g_pRenderText->RenderText(static_cast<float>(rowX + 24), static_cast<float>(rowY + 5), kind.Name, 0, 0, RT3_SORT_LEFT);
-
-        const uint64_t count = m_Counts[i];
-        if (count > 0)
+        // The tick box.
+        const int checkX = rowX + CHECK_X;
+        const int checkY = rowY + (ROW_HEIGHT - CHECK_SIZE) / 2;
+        RenderColorQuadARGB(static_cast<float>(checkX), static_cast<float>(checkY), static_cast<float>(CHECK_SIZE), static_cast<float>(CHECK_SIZE), 0xFFB8B8B8u);
+        RenderColorQuadARGB(static_cast<float>(checkX + 1), static_cast<float>(checkY + 1), static_cast<float>(CHECK_SIZE - 2), static_cast<float>(CHECK_SIZE - 2), 0xFF15181Eu);
+        if (selected)
         {
-            g_pRenderText->SetTextColor(255, 220, 130, 255);
+            RenderColorQuadARGB(static_cast<float>(checkX + 3), static_cast<float>(checkY + 3), static_cast<float>(CHECK_SIZE - 6), static_cast<float>(CHECK_SIZE - 6), 0xFFFFD25Au);
+        }
+
+        // A coloured square stands in for the item icon.
+        const int markerY = rowY + (ROW_HEIGHT - MARKER_SIZE) / 2;
+        RenderColorQuadARGB(static_cast<float>(rowX + MARKER_X - 1), static_cast<float>(markerY - 1), static_cast<float>(MARKER_SIZE + 2), static_cast<float>(MARKER_SIZE + 2), 0xFF0C0C0Cu);
+        RenderColorQuadARGB(static_cast<float>(rowX + MARKER_X), static_cast<float>(markerY), static_cast<float>(MARKER_SIZE), static_cast<float>(MARKER_SIZE), kind.Color);
+        EndRenderColor();
+        EnableAlphaTest();
+
+        const bool hasAny = available[i] > 0;
+        g_pRenderText->SetTextColor(selected ? 255 : 230, selected ? 232 : 230, selected ? 170 : 230, 255);
+        g_pRenderText->RenderText(static_cast<float>(rowX + NAME_X), static_cast<float>(rowY + 3), kind.Name, 0, 0, RT3_SORT_LEFT);
+
+        const uint64_t bank = m_Counts[i];
+        const uint64_t bag = m_Inventory[i];
+        const auto renderCount = [&](uint64_t value, int right, bool source)
+        {
+            if (value == 0)
+            {
+                g_pRenderText->SetTextColor(115, 115, 115, 255);
+            }
+            else if (source)
+            {
+                g_pRenderText->SetTextColor(255, 220, 130, 255);
+            }
+            else
+            {
+                g_pRenderText->SetTextColor(200, 200, 200, 255);
+            }
+            g_pRenderText->RenderText(static_cast<float>(rowX + right - COUNT_WIDTH), static_cast<float>(rowY + 3),
+                JewelBank::FormatCount(value).c_str(), static_cast<float>(COUNT_WIDTH), 0, RT3_SORT_RIGHT);
+        };
+        renderCount(bank, BANK_RIGHT, !deposit);
+        renderCount(bag, BAG_RIGHT, deposit);
+
+        // The amount cell: a recessed field, gold ring while it is being edited.
+        const int cellX = rowX + AMOUNT_X;
+        UI::NineSlice::Render(UI::AuctionChrome::AuctionFieldSkin().texture, static_cast<float>(cellX), static_cast<float>(rowY),
+            static_cast<float>(AMOUNT_WIDTH), static_cast<float>(ROW_HEIGHT),
+            m_iEditRow == i ? fieldTints.pressed : (i == hovered && hoveredOnAmount && hasAny ? fieldTints.hover : fieldTints.normal));
+        if (m_iEditRow == i)
+        {
+            m_AmountInput.Render();
         }
         else
         {
-            g_pRenderText->SetTextColor(130, 130, 130, 255);
+            if (amounts[i] > 0)
+            {
+                g_pRenderText->SetTextColor(255, 220, 130, 255);
+            }
+            else
+            {
+                g_pRenderText->SetTextColor(115, 115, 115, 255);
+            }
+            g_pRenderText->RenderText(static_cast<float>(cellX), static_cast<float>(rowY + 3),
+                amounts[i] > 0 ? std::to_wstring(amounts[i]).c_str() : L"-", static_cast<float>(AMOUNT_WIDTH), 0, RT3_SORT_CENTER);
         }
-        g_pRenderText->RenderText(static_cast<float>(rowX), static_cast<float>(rowY + 5), JewelBank::FormatCount(count).c_str(),
-            static_cast<float>(LIST_WIDTH - 10), 0, RT3_SORT_RIGHT);
     }
 }
 
-void SEASON3B::CNewUIJewelBankWindow::RenderActionPanel()
+void SEASON3B::CNewUIJewelBankWindow::RenderActions()
 {
+    m_BtnSelectAll.Render();
+    m_BtnClear.Render();
+    m_BtnAction.Render();
+
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
 
-    // The amount: a caption, a recessed field behind the input (a gold ring while it has focus), and Max.
-    g_pRenderText->SetTextColor(190, 190, 190, 255);
-    g_pRenderText->RenderText(static_cast<float>(m_Pos.x + LIST_X), static_cast<float>(m_Pos.y + AMOUNT_LABEL_Y + 6), L"Amount", 0, 0, RT3_SORT_LEFT);
-    const UI::NineSlice::StateTints& tints = UI::AuctionChrome::AuctionFieldSkin().tints;
-    UI::NineSlice::Render(UI::AuctionChrome::AuctionFieldSkin().texture, static_cast<float>(m_Pos.x + AMOUNT_FIELD_X),
-        static_cast<float>(m_Pos.y + AMOUNT_LABEL_Y - 2), static_cast<float>(AMOUNT_FIELD_WIDTH), static_cast<float>(AMOUNT_FIELD_HEIGHT),
-        m_AmountInput.HaveFocus() ? tints.pressed : tints.normal);
-    m_AmountInput.Render();
-
-    m_BtnMax.Render();
-    m_BtnWithdraw.Render();
-    m_BtnDeposit.Render();
-    m_BtnDepositAll.Render();
-
-    // The auto-deposit tick.
-    RenderCheckBox(m_Pos.x + LIST_X, m_Pos.y + CHECKBOX_Y, m_bAutoDeposit ? TRUE : FALSE);
-    g_pRenderText->SetFont(g_hFont);
-    g_pRenderText->SetBgColor(0, 0, 0, 0);
-    g_pRenderText->SetTextColor(220, 220, 200, 255);
-    g_pRenderText->RenderText(static_cast<float>(m_Pos.x + LIST_X + 22), static_cast<float>(m_Pos.y + CHECKBOX_Y + 3),
-        L"Send picked-up jewels and fruits to the bank", 0, 0, RT3_SORT_LEFT);
+    // The auto-deposit tick belongs to the Deposit tab: it decides where picked-up jewels and fruits go.
+    if (m_iTab == TAB_DEPOSIT)
+    {
+        const int boxX = m_Pos.x + LIST_X + CHECK_X;
+        const int boxY = m_Pos.y + AUTO_Y + 2;
+        RenderColorQuadARGB(static_cast<float>(boxX), static_cast<float>(boxY), static_cast<float>(CHECK_SIZE), static_cast<float>(CHECK_SIZE), 0xFFB8B8B8u);
+        RenderColorQuadARGB(static_cast<float>(boxX + 1), static_cast<float>(boxY + 1), static_cast<float>(CHECK_SIZE - 2), static_cast<float>(CHECK_SIZE - 2), 0xFF15181Eu);
+        if (m_bAutoDeposit)
+        {
+            RenderColorQuadARGB(static_cast<float>(boxX + 3), static_cast<float>(boxY + 3), static_cast<float>(CHECK_SIZE - 6), static_cast<float>(CHECK_SIZE - 6), 0xFFFFD25Au);
+        }
+        EndRenderColor();
+        EnableAlphaTest();
+        g_pRenderText->SetTextColor(220, 220, 200, 255);
+        g_pRenderText->RenderText(static_cast<float>(m_Pos.x + LIST_X + CHECK_X + CHECK_SIZE + 8), static_cast<float>(m_Pos.y + AUTO_Y + 3),
+            L"Send picked-up jewels and fruits to the bank", 0, 0, RT3_SORT_LEFT);
+    }
 
     if (!m_Message.empty())
     {
@@ -617,12 +870,6 @@ void SEASON3B::CNewUIJewelBankWindow::RenderActionPanel()
             g_pRenderText->SetTextColor(255, 130, 110, 255);
         }
         g_pRenderText->RenderText(static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y + MESSAGE_Y), m_Message.c_str(),
-            static_cast<float>(WINDOW_WIDTH), 0, RT3_SORT_CENTER);
-    }
-    else if (!m_bHasState)
-    {
-        g_pRenderText->SetTextColor(170, 170, 170, 255);
-        g_pRenderText->RenderText(static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y + MESSAGE_Y), L"Loading...",
             static_cast<float>(WINDOW_WIDTH), 0, RT3_SORT_CENTER);
     }
 }

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <string>
 
 #include "UI/NewUI/NewUIBase.h"
@@ -14,15 +15,22 @@
 
 namespace SEASON3B
 {
-    // A per-account bank for the ten jewels and the five stat fruits. It lists every kind with the stored count;
-    // the player picks a row, types an amount and withdraws it as items, deposits the kind or everything the bank
-    // accepts from the inventory, and chooses whether picked-up jewels and fruits go to the bank automatically.
-    // The server is authoritative: the window only sends requests and shows what the server answers.
+    // A per-account bank for the ten jewels and the five stat fruits. Two tabs, Deposit and Withdraw, both list every
+    // kind with what the bank holds and what the player carries. A row is ticked to move everything available of the
+    // kind, or given an amount; any combination of rows is moved with one button. The server is authoritative: the
+    // window only sends requests and shows what the server answers.
     class CNewUIJewelBankWindow : public CNewUIObj
     {
     public:
+        enum TAB
+        {
+            TAB_DEPOSIT = 0,
+            TAB_WITHDRAW,
+            TAB_COUNT,
+        };
+
         static constexpr int WINDOW_WIDTH = 330;
-        static constexpr int WINDOW_HEIGHT = 446;
+        static constexpr int WINDOW_HEIGHT = 400;
 
         CNewUIJewelBankWindow();
         ~CNewUIJewelBankWindow() override;
@@ -30,7 +38,7 @@ namespace SEASON3B
         bool Create(CNewUIManager* pNewUIMng, int x, int y);
         void Release();
 
-        // Called once when the window becomes visible: asks the server for the current counts.
+        // Called once when the window becomes visible.
         void OpeningProcess();
         // Called once when the window is hidden.
         void ClosingProcess();
@@ -48,17 +56,26 @@ namespace SEASON3B
         float GetLayerDepth() override;
 
     private:
+        using Clock = std::chrono::steady_clock;
+
         void RenderFrame();
+        void RenderTabs();
+        void RenderHeader();
         void RenderRows();
-        void RenderActionPanel();
-        void InitButton(CNewUIButton* button, int x, int y, int width, const wchar_t* caption);
+        void RenderActions();
+        void InitButton(CNewUIButton* button, const wchar_t* caption);
         void PositionChildren();
         bool BtnProcess();
-        bool RowAt(int mouseX, int mouseY, int& index) const;
-        uint64_t SelectedCount() const;
+        bool RowAt(int mouseX, int mouseY, int& row, bool& onAmount) const;
+        JewelBank::Available CurrentAvailable() const;
+        JewelBank::Available AvailableFor(int tab) const;
+        JewelBank::Amounts& CurrentAmounts();
+        void SwitchTab(int tab);
+        void BeginEdit(int row);
+        void CommitEdit();
+        void CancelEdit();
         void SendOpenRequest();
-        void SendDeposit(uint8_t kindCode);
-        void SendWithdraw();
+        void SendAction();
         void SendAutoDeposit(bool enabled);
         void BeginOperation(JewelBank::Operation operation);
         void ShowMessage(const std::wstring& text, bool good);
@@ -71,21 +88,25 @@ namespace SEASON3B
         int m_iDragGrabOffsetX;
         int m_iDragGrabOffsetY;
 
-        CNewUIButton m_BtnClose;
-        CNewUIButton m_BtnWithdraw;
-        CNewUIButton m_BtnMax;
-        CNewUIButton m_BtnDeposit;
-        CNewUIButton m_BtnDepositAll;
+        CNewUIButton m_BtnSelectAll;
+        CNewUIButton m_BtnClear;
+        CNewUIButton m_BtnAction;
         CUITextInputBox m_AmountInput;
+        int m_iEditRow;
 
+        int m_iTab;
+        std::array<JewelBank::Amounts, TAB_COUNT> m_Amounts;
         std::array<uint64_t, JewelBank::KIND_COUNT> m_Counts;
+        std::array<uint32_t, JewelBank::KIND_COUNT> m_Inventory;
         bool m_bHasState;
         bool m_bAutoDeposit;
-        int m_iSelected;
 
         bool m_bOperationPending;
         std::array<uint8_t, 16> m_PendingOperationId;
         JewelBank::Operation m_PendingOperation;
+        uint64_t m_PendingRequested;
+        Clock::time_point m_OperationDeadline;
+        Clock::time_point m_NextPoll;
 
         std::wstring m_Message;
         bool m_bMessageGood;

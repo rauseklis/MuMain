@@ -56,14 +56,16 @@ namespace JewelBank
     // A sentence for the player: what the result means and, for a refusal, what to do about it.
     [[nodiscard]] const wchar_t* ResultText(Result result);
 
-    // The stored counts of the account (wire 0xD6 sub 0x80): Result@4, AutoDeposit@5, Count1..Count15 as u64 @6 + 8 * i.
+    // The stored counts of the account and what the player carries (wire 0xD6 sub 0x80): Result@4, AutoDeposit@5, Count1..Count15 as
+    // u64 @6 + 8 * i, Inventory1..Inventory15 as u32 @126 + 4 * i (the units a deposit could take, packs counted as the units they hold).
     struct StateResponse
     {
-        static constexpr size_t FullWireLength = 126;
+        static constexpr size_t FullWireLength = 186;
 
         JewelBank::Result Result = JewelBank::Result::Success;
         bool AutoDeposit = false;
         std::array<uint64_t, KIND_COUNT> Counts{};
+        std::array<uint32_t, KIND_COUNT> Inventory{};
 
         [[nodiscard]] static std::optional<StateResponse> Parse(std::span<const uint8_t> packet);
     };
@@ -105,9 +107,30 @@ namespace JewelBank
     // 32 bits) is null. The caller still limits it to the stored count.
     [[nodiscard]] std::optional<uint32_t> ParseAmount(const std::wstring& text);
 
-    // The amount to withdraw: the typed amount limited to what the bank holds and to the per-request maximum;
-    // zero when nothing can be withdrawn.
-    [[nodiscard]] uint32_t WithdrawAmount(const std::optional<uint32_t>& typed, uint64_t stored);
+    // The amount a player chose for each kind (list position 0 to 14); 0 means the kind is not part of the request.
+    using Amounts = std::array<uint32_t, KIND_COUNT>;
+
+    // The units of each kind a tab can move: the stored counts when withdrawing, what is carried when depositing.
+    using Available = std::array<uint64_t, KIND_COUNT>;
+
+    // The amount for one row: the typed amount limited to what is available and to the per-request maximum; zero when
+    // nothing is typed or nothing is available.
+    [[nodiscard]] uint32_t ClampAmount(const std::optional<uint32_t>& typed, uint64_t available);
+
+    // Ticking a row selects everything available of the kind, un-ticking it clears the amount.
+    [[nodiscard]] uint32_t ToggleAmount(uint32_t current, uint64_t available);
+
+    // Selects everything available of every kind.
+    [[nodiscard]] Amounts SelectAll(const Available& available);
+
+    // Limits every amount to what is available now (the counts change while the window is open), keeping empty rows empty.
+    void LimitToAvailable(Amounts& amounts, const Available& available);
+
+    // How many kinds have an amount.
+    [[nodiscard]] int SelectedKinds(const Amounts& amounts);
+
+    // The sum of all amounts.
+    [[nodiscard]] uint64_t TotalAmount(const Amounts& amounts);
 
     // "+3 Jewel of Bless -> Jewel Bank (1,204)"; empty for an unknown kind.
     [[nodiscard]] std::wstring PickupMessage(const PickupNotification& notification);

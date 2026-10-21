@@ -2284,25 +2284,52 @@ public:
     /// </summary>
     /// <param name="operationId">The operation id.</param>
     /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
-    /// <param name="kindCode">The kind code.</param>
+    /// <param name="amount1">The amount 1.</param>
+    /// <param name="amount2">The amount 2.</param>
+    /// <param name="amount3">The amount 3.</param>
+    /// <param name="amount4">The amount 4.</param>
+    /// <param name="amount5">The amount 5.</param>
+    /// <param name="amount6">The amount 6.</param>
+    /// <param name="amount7">The amount 7.</param>
+    /// <param name="amount8">The amount 8.</param>
+    /// <param name="amount9">The amount 9.</param>
+    /// <param name="amount10">The amount 1 0.</param>
+    /// <param name="amount11">The amount 1 1.</param>
+    /// <param name="amount12">The amount 1 2.</param>
+    /// <param name="amount13">The amount 1 3.</param>
+    /// <param name="amount14">The amount 1 4.</param>
+    /// <param name="amount15">The amount 1 5.</param>
     /// <remarks>
-    /// Is sent by the client when: The player deposits the bankable items of the inventory (KindCode 0 = every kind).
+    /// Is sent by the client when: The player deposits the chosen amount of each kind from the inventory; Amount1..Amount15 are the units for the kinds with code 1..15, and 0 skips a kind.
     /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
     /// </remarks>
-    void SendJewelBankDepositRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE kindCode);
+    void SendJewelBankDepositRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint32_t amount1, uint32_t amount2, uint32_t amount3, uint32_t amount4, uint32_t amount5, uint32_t amount6, uint32_t amount7, uint32_t amount8, uint32_t amount9, uint32_t amount10, uint32_t amount11, uint32_t amount12, uint32_t amount13, uint32_t amount14, uint32_t amount15);
 
     /// <summary>
     /// Sends a JewelBankWithdrawRequest to this connection.
     /// </summary>
     /// <param name="operationId">The operation id.</param>
     /// <param name="operationIdByteLength">The length of <paramref name="operationId"/> in bytes.
-    /// <param name="kindCode">The kind code.</param>
-    /// <param name="units">The units.</param>
+    /// <param name="amount1">The amount 1.</param>
+    /// <param name="amount2">The amount 2.</param>
+    /// <param name="amount3">The amount 3.</param>
+    /// <param name="amount4">The amount 4.</param>
+    /// <param name="amount5">The amount 5.</param>
+    /// <param name="amount6">The amount 6.</param>
+    /// <param name="amount7">The amount 7.</param>
+    /// <param name="amount8">The amount 8.</param>
+    /// <param name="amount9">The amount 9.</param>
+    /// <param name="amount10">The amount 1 0.</param>
+    /// <param name="amount11">The amount 1 1.</param>
+    /// <param name="amount12">The amount 1 2.</param>
+    /// <param name="amount13">The amount 1 3.</param>
+    /// <param name="amount14">The amount 1 4.</param>
+    /// <param name="amount15">The amount 1 5.</param>
     /// <remarks>
-    /// Is sent by the client when: The player withdraws units of one kind as items.
+    /// Is sent by the client when: The player withdraws the chosen amount of each kind as items; Amount1..Amount15 are the units for the kinds with code 1..15, and 0 skips a kind.
     /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
     /// </remarks>
-    void SendJewelBankWithdrawRequest(const BYTE* operationId, uint32_t operationIdByteLength, BYTE kindCode, uint32_t units);
+    void SendJewelBankWithdrawRequest(const BYTE* operationId, uint32_t operationIdByteLength, uint32_t amount1, uint32_t amount2, uint32_t amount3, uint32_t amount4, uint32_t amount5, uint32_t amount6, uint32_t amount7, uint32_t amount8, uint32_t amount9, uint32_t amount10, uint32_t amount11, uint32_t amount12, uint32_t amount13, uint32_t amount14, uint32_t amount15);
 
     /// <summary>
     /// Sends a JewelBankSetAutoDepositRequest to this connection.
