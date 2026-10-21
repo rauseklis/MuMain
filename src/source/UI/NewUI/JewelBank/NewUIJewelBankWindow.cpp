@@ -32,31 +32,33 @@ namespace
     constexpr int TITLE_BAND_HEIGHT = 30;
     constexpr int CORNER_CLOSE_RESERVE = 34;
 
-    constexpr int TAB_Y = 32;
-    constexpr int TAB_WIDTH = 96;
-    constexpr int TAB_HEIGHT = 22;
-    constexpr int TAB_GAP = 4;
+    constexpr int TAB_Y = 34;
+    constexpr int TAB_WIDTH = 72;
+    constexpr int TAB_HEIGHT = 18;
+    constexpr int TAB_GAP = 3;
 
-    constexpr int HEADER_Y = 59;
+    constexpr int HEADER_Y = 56;
     constexpr int LIST_X = 22;
-    constexpr int LIST_Y = 72;
+    constexpr int LIST_Y = 68;
     constexpr int LIST_WIDTH = Window::WINDOW_WIDTH - 2 * LIST_X;
     constexpr int ROW_HEIGHT = 17;
     constexpr int ROW_GAP = 1;
 
     // Columns, relative to the left edge of a row.
+    // A row is selected by clicking it, so it has no tick box. The icon is a little smaller than the row, so the model
+    // stays inside it; the amount cell is flush with the row's right edge.
     constexpr int CHECK_X = 6;
     constexpr int CHECK_SIZE = 11;
-    constexpr int ICON_X = 22;
-    constexpr int ICON_SIZE = 17;
-    constexpr float ICON_FILL = 0.92f;
-    constexpr int NAME_X = 44;
-    constexpr int BANK_RIGHT = 180;
-    constexpr int BANK_WIDTH = 44;
-    constexpr int INVENTORY_RIGHT = 246;
-    constexpr int INVENTORY_WIDTH = 62;
-    constexpr int AMOUNT_X = 252;
-    constexpr int AMOUNT_WIDTH = 58;
+    constexpr int ICON_X = 6;
+    constexpr int ICON_SIZE = 14;
+    constexpr float ICON_FILL = 0.8f;
+    constexpr int NAME_X = 28;
+    constexpr int BANK_RIGHT = 170;
+    constexpr int BANK_WIDTH = 40;
+    constexpr int INVENTORY_RIGHT = 232;
+    constexpr int INVENTORY_WIDTH = 60;
+    constexpr int AMOUNT_WIDTH = 64;
+    constexpr int AMOUNT_X = LIST_WIDTH - AMOUNT_WIDTH;
     constexpr int AMOUNT_INSET = 4;
 
     constexpr int BUTTON_HEIGHT = 20;
@@ -710,10 +712,9 @@ void SEASON3B::CNewUIJewelBankWindow::RenderFrame()
     const float y = static_cast<float>(m_Pos.y);
     const float centerWidth = static_cast<float>(WINDOW_WIDTH - 2 * FRAME_CAP_WIDTH);
 
-    // The same construction as the Auction House frame: the stone background stretched over the window, the two ornate
+    // The frame is built like the Auction House's (and the stone background is the Commands window's, which has no glow): the two ornate
     // caps of each band at 1:1, and only the plain centre strip stretched.
-    RenderImageStretch(Auction::IMAGE_AUCTION_BACK, x, y, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT),
-        0.f, 0.f, static_cast<float>(Auction::WINDOW_WIDTH), static_cast<float>(Auction::WINDOW_HEIGHT));
+    RenderImage(CNewUIMessageBoxMng::IMAGE_MSGBOX_BACK, x, y, static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
 
     RenderImageStretch(Auction::IMAGE_AUCTION_TOP, x, y, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT),
         0.f, 0.f, static_cast<float>(FRAME_CAP_WIDTH), static_cast<float>(TOP_BAND_HEIGHT));
@@ -761,7 +762,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderTabs()
         {
             g_pRenderText->SetTextColor(235, 235, 235, 255);
         }
-        g_pRenderText->RenderText(static_cast<float>(x), static_cast<float>(y + 7), labels[tab], static_cast<float>(TAB_WIDTH), 0, RT3_SORT_CENTER);
+        g_pRenderText->RenderText(static_cast<float>(x), static_cast<float>(y + 4), labels[tab], static_cast<float>(TAB_WIDTH), 0, RT3_SORT_CENTER);
     }
 }
 
@@ -808,23 +809,11 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             static_cast<float>(LIST_WIDTH), static_cast<float>(ROW_HEIGHT),
             selected ? ROW_TINT_SELECTED : (i == hovered && !hoveredOnAmount ? ROW_TINT_HOVER : ROW_TINT_IDLE));
 
-        // The tick box.
-        const int checkX = rowX + CHECK_X;
-        const int checkY = rowY + (ROW_HEIGHT - CHECK_SIZE) / 2;
-        RenderColorQuadARGB(static_cast<float>(checkX), static_cast<float>(checkY), static_cast<float>(CHECK_SIZE), static_cast<float>(CHECK_SIZE), 0xFFB8B8B8u);
-        RenderColorQuadARGB(static_cast<float>(checkX + 1), static_cast<float>(checkY + 1), static_cast<float>(CHECK_SIZE - 2), static_cast<float>(CHECK_SIZE - 2), 0xFF15181Eu);
-        if (selected)
-        {
-            RenderColorQuadARGB(static_cast<float>(checkX + 3), static_cast<float>(checkY + 3), static_cast<float>(CHECK_SIZE - 6), static_cast<float>(CHECK_SIZE - 6), 0xFFFFD25Au);
-        }
-
-        // The item model is drawn in the 3D pass (Render3D); the tick box above is the last flat shape of the row.
-        EndRenderColor();
-        EnableAlphaTest();
+        // The item model is drawn in the 3D pass (Render3D). A selected row is shown by its gold ring and gold text.
 
         const bool hasAny = available[i] > 0;
-        g_pRenderText->SetTextColor(selected ? 255 : 230, selected ? 232 : 230, selected ? 170 : 230, 255);
-        g_pRenderText->RenderText(static_cast<float>(rowX + NAME_X), static_cast<float>(rowY + 4), kind.Name, 0, 0, RT3_SORT_LEFT);
+        g_pRenderText->SetTextColor(selected ? 255 : 230, selected ? 226 : 230, selected ? 130 : 230, 255);
+        g_pRenderText->RenderText(static_cast<float>(rowX + NAME_X), static_cast<float>(rowY + 3), kind.Name, 0, 0, RT3_SORT_LEFT);
 
         const uint64_t bank = m_Counts[i];
         const uint64_t bag = m_Inventory[i];
@@ -842,7 +831,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             {
                 g_pRenderText->SetTextColor(200, 200, 200, 255);
             }
-            g_pRenderText->RenderText(static_cast<float>(rowX + right - width), static_cast<float>(rowY + 4),
+            g_pRenderText->RenderText(static_cast<float>(rowX + right - width), static_cast<float>(rowY + 3),
                 JewelBank::FormatCount(value).c_str(), static_cast<float>(width), 0, RT3_SORT_RIGHT);
         };
         renderCount(bank, BANK_RIGHT, BANK_WIDTH, !deposit);
@@ -867,7 +856,7 @@ void SEASON3B::CNewUIJewelBankWindow::RenderRows()
             {
                 g_pRenderText->SetTextColor(115, 115, 115, 255);
             }
-            g_pRenderText->RenderText(static_cast<float>(cellX), static_cast<float>(rowY + 4),
+            g_pRenderText->RenderText(static_cast<float>(cellX), static_cast<float>(rowY + 3),
                 amounts[i] > 0 ? std::to_wstring(amounts[i]).c_str() : L"-", static_cast<float>(AMOUNT_WIDTH), 0, RT3_SORT_CENTER);
         }
     }
@@ -912,5 +901,11 @@ void SEASON3B::CNewUIJewelBankWindow::RenderActions()
         }
         g_pRenderText->RenderText(static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y + MESSAGE_Y), m_Message.c_str(),
             static_cast<float>(WINDOW_WIDTH), 0, RT3_SORT_CENTER);
+    }
+    else
+    {
+        g_pRenderText->SetTextColor(150, 150, 150, 255);
+        g_pRenderText->RenderText(static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y + MESSAGE_Y),
+            L"Click a row to select it, or type an amount.", static_cast<float>(WINDOW_WIDTH), 0, RT3_SORT_CENTER);
     }
 }

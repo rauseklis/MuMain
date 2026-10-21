@@ -31,7 +31,7 @@ namespace SEASON3B
         };
 
         static constexpr int WINDOW_WIDTH = 360;
-        static constexpr int WINDOW_HEIGHT = 412;
+        static constexpr int WINDOW_HEIGHT = 408;
 
         CNewUIJewelBankWindow();
         ~CNewUIJewelBankWindow() override;
