@@ -217,6 +217,11 @@ cd out\build\windows-x64\src\Release
   `out/build/<preset>/tests/...`. (With testing ON the whole client can fail to compile for lack of memory; build only the test target.)
 - More: `docs/build/README.md` and `docs/build/windows/*.md`.
 
+**Keep one long-lived worktree for client builds.** The first build in any new worktree compiles everything (about 820 steps, 10 to 20 minutes);
+later builds in the same worktree are incremental and fast. So do not create a new client worktree for every task: keep one (the owner's is
+`client\.worktrees\dev`), switch branches inside it (`git switch -c <branch> origin/main`), and put it back with `git switch --detach origin/main`
+when the branch is merged. Only one session at a time may build in a worktree.
+
 **To avoid building the client at all:** download the ready-made bundle from GitHub (section 7).
 
 ## 7. Playing on the live server
