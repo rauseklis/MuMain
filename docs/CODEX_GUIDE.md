@@ -415,6 +415,8 @@ Use the Jewel Bank as the model (`docs/superpowers/specs/2026-10-20-jewel-bank-d
 | A picked-up item does not go into the Jewel Bank with a full inventory | Fixed in the client; needs the current client (it asks for the bank state when you enter the world). |
 | Windows `tar` says "Cannot connect to C: resolve failed" | `tar` treats `C:` as a host name: use `--force-local` or a relative path. |
 | Git warns "LF will be replaced by CRLF" | Harmless; keep each file's own line endings when editing. |
+| CI "Quality Gates" fails on "Check formatting" | It runs `clang-format` only on the lines your pull request changed. Visual Studio ships it: `C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin\clang-format.exe`; run it with `-i --lines=<start>:<end>` on your changed lines (or `--dry-run --Werror` to check). |
+| The macOS CI job fails with "The job was not acquired by Runner" | GitHub could not provide a macOS runner: an infrastructure problem, not your change. Ignore it. |
 
 ## 14. Cheat sheet
 
