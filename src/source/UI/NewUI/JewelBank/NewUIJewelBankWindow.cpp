@@ -377,16 +377,27 @@ void SEASON3B::CNewUIJewelBankWindow::SetOperationResponse(const JewelBank::Oper
 
 void SEASON3B::CNewUIJewelBankWindow::SetPickupNotification(const JewelBank::PickupNotification& notification)
 {
-    const std::wstring text = JewelBank::PickupMessage(notification);
-    if (!text.empty())
+    const JewelBank::KindInfo* kind = JewelBank::FindKind(notification.KindCode);
+    if (kind == nullptr)
     {
-        g_pSystemLogBox->AddText(text.c_str(), SEASON3B::TYPE_SYSTEM_MESSAGE);
+        return;
     }
 
-    if (const JewelBank::KindInfo* kind = JewelBank::FindKind(notification.KindCode))
-    {
-        m_Counts[kind->Code - JewelBank::FIRST_KIND_CODE] = notification.NewCount;
-    }
+    const int index = kind->Code - JewelBank::FIRST_KIND_CODE;
+    m_Counts[index] = notification.NewCount;
+
+    // The same blue line as any other pickup ("<item> Obtained"), with where the item went; the bank's count is not part of it.
+    const KindIcon icon = IconOf(index);
+    wchar_t name[64]{};
+    GetItemName(icon.type, icon.level, name);
+    wchar_t message[160]{};
+    mu_swprintf(message, L"%ls %ls and moved to the Jewel Bank", name, I18N::Game::Obtained);
+    g_pSystemLogBox->AddText(message, SEASON3B::TYPE_SYSTEM_MESSAGE);
+
+    // And the same pickup sound as the item would make: jewels, the gemstone, everything else.
+    const bool isGemstone = icon.type == ITEM_GEMSTONE;
+    const bool isJewel = index < JewelBank::FIRST_BUNDLE_INDEX && index < 10 && !isGemstone;
+    PlayBuffer(isJewel ? SOUND_JEWEL01 : (isGemstone ? SOUND_JEWEL02 : SOUND_GET_ITEM01), &Hero->Object);
 }
 
 void SEASON3B::CNewUIJewelBankWindow::ShowMessage(const std::wstring& text, bool good)

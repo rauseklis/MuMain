@@ -152,6 +152,4 @@ namespace JewelBank
     // Writes the amounts as the 45 little-endian 32-bit values of a deposit or withdrawal request (180 bytes).
     void AppendRequestAmounts(const Amounts& amounts, uint8_t* destination);
 
-    // "+3 Jewel of Bless -> Jewel Bank (1,204)"; empty for an unknown kind.
-    [[nodiscard]] std::wstring PickupMessage(const PickupNotification& notification);
 } // namespace JewelBank

@@ -292,15 +292,4 @@ namespace JewelBank
         }
         return total;
     }
-
-    std::wstring PickupMessage(const PickupNotification& notification)
-    {
-        const KindInfo* kind = FindKind(notification.KindCode);
-        if (kind == nullptr)
-        {
-            return {};
-        }
-
-        return L"+" + std::to_wstring(notification.Units) + L" " + kind->Name + L" -> Jewel Bank (" + FormatCount(notification.NewCount) + L")";
-    }
 } // namespace JewelBank

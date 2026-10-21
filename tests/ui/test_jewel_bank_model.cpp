@@ -150,7 +150,7 @@ TEST_CASE("an operation response carries its identifier, result and units")
     CHECK(response->Units == 65);
 }
 
-TEST_CASE("a pickup notification becomes a chat line")
+TEST_CASE("a pickup notification is read at the documented offsets")
 {
     std::vector<uint8_t> packet(PickupNotification::FullWireLength, 0);
     packet[4] = 2;
@@ -160,11 +160,9 @@ TEST_CASE("a pickup notification becomes a chat line")
     const auto notification = PickupNotification::Parse(packet);
 
     REQUIRE(notification.has_value());
-    CHECK(PickupMessage(*notification) == L"+1 Jewel of Bless -> Jewel Bank (1,204)");
-
-    PickupNotification unknown;
-    unknown.KindCode = 99;
-    CHECK(PickupMessage(unknown).empty());
+    CHECK(notification->KindCode == 2);
+    CHECK(notification->Units == 1);
+    CHECK(notification->NewCount == 1204);
 }
 
 TEST_CASE("counts are written with thousands separators")
