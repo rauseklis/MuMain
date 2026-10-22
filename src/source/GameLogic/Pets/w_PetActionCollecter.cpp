@@ -137,7 +137,7 @@ bool PetActionCollecter::Move(OBJECT* obj, CHARACTER* Owner, int targetKey, doub
         if (Distance >= FlyRange)
         {
             float Angle = CreateAngle2D(obj->Position, targetPos); // test
-            obj->Angle[2] = TurnAngle2(obj->Angle[2], Angle, 20.0f);
+            obj->Angle[2] = TurnAngle2(obj->Angle[2], Angle, 20.0f * FPS_ANIMATION_FACTOR);
         }
 
         AngleMatrix(obj->Angle, obj->Matrix);
@@ -172,7 +172,7 @@ bool PetActionCollecter::Move(OBJECT* obj, CHARACTER* Owner, int targetKey, doub
         VectorCopy(m_RootItem.position, targetPos);
 
         float Angle = CreateAngle2D(obj->Position, targetPos);
-        obj->Angle[2] = TurnAngle2(obj->Angle[2], Angle, 10.0f);
+        obj->Angle[2] = TurnAngle2(obj->Angle[2], Angle, 10.0f * FPS_ANIMATION_FACTOR);
 
         if (CompTimeControl(1000, m_dwSendDelayTime) && &Hero->Object == obj->Owner && SendGetItem == -1)
         {
@@ -194,7 +194,7 @@ bool PetActionCollecter::Move(OBJECT* obj, CHARACTER* Owner, int targetKey, doub
         if (Distance >= FlyRange)
         {
             float Angle = CreateAngle2D(obj->Position, targetPos);
-            obj->Angle[2] = TurnAngle2(obj->Angle[2], Angle, 20.0f);
+            obj->Angle[2] = TurnAngle2(obj->Angle[2], Angle, 20.0f * FPS_ANIMATION_FACTOR);
         }
 
         AngleMatrix(obj->Angle, obj->Matrix);
