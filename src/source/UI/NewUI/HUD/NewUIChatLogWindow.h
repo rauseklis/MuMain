@@ -10,6 +10,7 @@
 #pragma warning(disable : 4786)
 #include <string>
 #include <vector>
+#include <chrono>
 
 namespace SEASON3B
 {
@@ -40,6 +41,7 @@ namespace SEASON3B
         type_string	m_strID, m_strText;
         MESSAGE_TYPE m_MsgType;
         DWORD m_dwIndentSize;
+        std::chrono::steady_clock::time_point m_createdAt;
 
     public:
         TMessageText() : m_MsgType(TYPE_UNKNOWN), m_dwIndentSize(0) {}
@@ -53,6 +55,7 @@ namespace SEASON3B
             m_strID = strID;
             m_strText = strText;
             m_MsgType = MsgType;
+            m_createdAt = std::chrono::steady_clock::now();
 
             return true;
         }
@@ -66,6 +69,10 @@ namespace SEASON3B
         const type_string& GetID() const { return m_strID; }
         const type_string& GetText() const { return m_strText; }
         MESSAGE_TYPE GetType() const { return m_MsgType; }
+        float GetAgeSeconds() const
+        {
+            return std::chrono::duration<float>(std::chrono::steady_clock::now() - m_createdAt).count();
+        }
     };
 
     typedef TMessageText<wchar_t> CMessageText;
@@ -94,7 +101,7 @@ namespace SEASON3B
         static constexpr float RESIZING_BTN_HEIGHT = 10.0f;
         static constexpr float SCROLL_BAR_WIDTH = 7.0f;
         static constexpr float SCROLL_TOP_BOTTOM_PART_HEIGHT = 3.0f;
-        static constexpr float SCROLL_MIDDLE_PART_HEIGHT = 15.0f;
+        static constexpr float SCROLL_MIDDLE_PART_HEIGHT = 13.0f;
         static constexpr float SCROLL_BTN_WIDTH = 15.0f;
         static constexpr float SCROLL_BTN_HEIGHT = 30.0f;
         static constexpr float CLIENT_WIDTH = WND_WIDTH - SCROLL_BAR_WIDTH * 2.0f - (WND_LEFT_RIGHT_EDGE * 2.0f);

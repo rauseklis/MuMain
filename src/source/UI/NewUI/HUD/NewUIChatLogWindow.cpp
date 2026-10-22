@@ -10,6 +10,37 @@
 
 using namespace SEASON3B;
 
+namespace
+{
+    // The server sends /post messages as normal chat from the sender "[POST]". They get their own colours: a deep
+    // plum, nearly opaque background with warm gold letters (about 10:1 contrast), so they read on dark maps and
+    // on bright ones, where the translucent black of normal chat lets the ground show through.
+    constexpr wchar_t POST_SENDER[] = L"[POST]";
+    constexpr BYTE POST_BG_R = 70;
+    constexpr BYTE POST_BG_G = 10;
+    constexpr BYTE POST_BG_B = 50;
+    constexpr BYTE POST_BG_ALPHA = 230;
+    constexpr BYTE POST_TEXT_R = 255;
+    constexpr BYTE POST_TEXT_G = 214;
+    constexpr BYTE POST_TEXT_B = 102;
+
+    // A message stays fully visible for this long, then fades out over the fade time. Each message has its own
+    // clock, so the oldest one always fades first. Fading only hides a message while the chat frame is closed.
+    constexpr float MESSAGE_VISIBLE_SECONDS = 60.0f;
+    constexpr float MESSAGE_FADE_SECONDS = 3.0f;
+
+    float MessageOpacity(const CMessageText& message)
+    {
+        const float fadedFor = message.GetAgeSeconds() - MESSAGE_VISIBLE_SECONDS;
+        return std::clamp(1.0f - fadedFor / MESSAGE_FADE_SECONDS, 0.0f, 1.0f);
+    }
+
+    bool IsPostMessage(const CMessageText& message)
+    {
+        return message.GetID() == POST_SENDER;
+    }
+}
+
 
 
 SEASON3B::CNewUIChatLogWindow::CNewUIChatLogWindow()
@@ -113,50 +144,66 @@ bool SEASON3B::CNewUIChatLogWindow::RenderMessages()
 
         auto const pMsgText = (*pvecMsgs)[i];
 
+        const float opacity = m_bShowFrame ? 1.0f : MessageOpacity(*pMsgText);
+        auto setBg = [opacity](BYTE r, BYTE g, BYTE b, BYTE a)
+        {
+            g_pRenderText->SetBgColor(r, g, b, static_cast<BYTE>(a * opacity));
+        };
+        auto setText = [opacity](BYTE r, BYTE g, BYTE b, BYTE a)
+        {
+            g_pRenderText->SetTextColor(r, g, b, static_cast<BYTE>(a * opacity));
+        };
+
         if (pMsgText->GetType() == TYPE_WHISPER_MESSAGE)
         {
-            g_pRenderText->SetBgColor(255, 200, 50, 150);
-            g_pRenderText->SetTextColor(0, 0, 0, 255);
+            setBg(255, 200, 50, 150);
+            setText(0, 0, 0, 255);
         }
         else if (pMsgText->GetType() == TYPE_SYSTEM_MESSAGE)
         {
-            g_pRenderText->SetBgColor(0, 0, 0, 150);
-            g_pRenderText->SetTextColor(100, 150, 255, 255);
+            setBg(0, 0, 0, 150);
+            setText(100, 150, 255, 255);
         }
         else if (pMsgText->GetType() == TYPE_ERROR_MESSAGE)
         {
-            g_pRenderText->SetBgColor(0, 0, 0, 150);
-            g_pRenderText->SetTextColor(255, 30, 0, 255);
+            setBg(0, 0, 0, 150);
+            setText(255, 30, 0, 255);
+        }
+        else if (pMsgText->GetType() == TYPE_CHAT_MESSAGE && IsPostMessage(*pMsgText))
+        {
+            setBg(POST_BG_R, POST_BG_G, POST_BG_B, POST_BG_ALPHA);
+            setText(POST_TEXT_R, POST_TEXT_G, POST_TEXT_B, 255);
+            g_pRenderText->SetFont(g_hFontBold);
         }
         else if (pMsgText->GetType() == TYPE_CHAT_MESSAGE)
         {
-            g_pRenderText->SetBgColor(0, 0, 0, byAlpha);
-            g_pRenderText->SetTextColor(205, 220, 239, 255);
+            setBg(0, 0, 0, byAlpha);
+            setText(205, 220, 239, 255);
         }
         else if (pMsgText->GetType() == TYPE_PARTY_MESSAGE)
         {
-            g_pRenderText->SetBgColor(0, 200, 255, 150);
-            g_pRenderText->SetTextColor(0, 0, 0, 255);
+            setBg(0, 200, 255, 150);
+            setText(0, 0, 0, 255);
         }
         else if (pMsgText->GetType() == TYPE_GUILD_MESSAGE)
         {
-            g_pRenderText->SetBgColor(0, 255, 150, 200);
-            g_pRenderText->SetTextColor(0, 0, 0, 255);
+            setBg(0, 255, 150, 200);
+            setText(0, 0, 0, 255);
         }
         else if (pMsgText->GetType() == TYPE_UNION_MESSAGE)
         {
-            g_pRenderText->SetBgColor(200, 200, 0, 200);
-            g_pRenderText->SetTextColor(0, 0, 0, 255);
+            setBg(200, 200, 0, 200);
+            setText(0, 0, 0, 255);
         }
         else if (pMsgText->GetType() == TYPE_GENS_MESSAGE)
         {
-            g_pRenderText->SetBgColor(150, 200, 100, 200);
-            g_pRenderText->SetTextColor(0, 0, 0, 255);
+            setBg(150, 200, 100, 200);
+            setText(0, 0, 0, 255);
         }
         else if (pMsgText->GetType() == TYPE_GM_MESSAGE)
         {
-            g_pRenderText->SetBgColor(30, 30, 30, 200);
-            g_pRenderText->SetTextColor(250, 200, 50, 255);
+            setBg(30, 30, 30, 200);
+            setText(250, 200, 50, 255);
             g_pRenderText->SetFont(g_hFontBold);
         }
         else
@@ -164,7 +211,7 @@ bool SEASON3B::CNewUIChatLogWindow::RenderMessages()
             bRenderMessage = false;
         }
 
-        if (bRenderMessage && !pMsgText->GetText().empty())
+        if (bRenderMessage && opacity > 0.0f && !pMsgText->GetText().empty())
         {
             POINT ptRenderPos = {
                 static_cast<LONG>(fRenderPosX + WND_LEFT_RIGHT_EDGE),
@@ -174,8 +221,8 @@ bool SEASON3B::CNewUIChatLogWindow::RenderMessages()
             {
                 if (m_bPointedMessage == true && m_iPointedMessageIndex == i)
                 {
-                    g_pRenderText->SetBgColor(30, 30, 30, 180);
-                    g_pRenderText->SetTextColor(255, 128, 255, 255);
+                    setBg(30, 30, 30, 180);
+                    setText(255, 128, 255, 255);
                 }
 
                 type_string strLine = std::wstring( pMsgText->GetID()) + L" : " + pMsgText->GetText();
