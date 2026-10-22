@@ -1168,15 +1168,24 @@ bool SEASON3B::CNewUISystemLogWindow::RenderMessages()
         if (i < 0 && i >= static_cast<int>(m_vecAllMsgs.size())) break;
 
         auto const message = m_vecAllMsgs[i];
-        const auto backgroundAlpha = static_cast<BYTE>(255.f * m_fBackAlpha);
+
+        // Like the chat window: a line fades out after its visible time, the oldest first.
+        const float opacity = MessageOpacity(*message);
+        if (opacity <= 0.0f)
+        {
+            continue;
+        }
+
+        const auto backgroundAlpha = static_cast<BYTE>(255.f * m_fBackAlpha * opacity);
+        const auto textAlpha = static_cast<BYTE>(255.f * opacity);
         g_pRenderText->SetBgColor(0, 0, 0, backgroundAlpha);
         if (message->GetType() == TYPE_SYSTEM_MESSAGE)
         {
-            g_pRenderText->SetTextColor(100, 150, 255, 255);
+            g_pRenderText->SetTextColor(100, 150, 255, textAlpha);
         }
         else
         {
-            g_pRenderText->SetTextColor(255, 30, 0, 255);
+            g_pRenderText->SetTextColor(255, 30, 0, textAlpha);
         }
 
         g_pRenderText->RenderText(fRenderPosX, fRenderPosY + rowHeight * i, message->GetText().c_str());
