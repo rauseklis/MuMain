@@ -8641,7 +8641,7 @@ void RenderWheelWeapon(OBJECT* o)
     VectorCopy(o->Angle, TempAngle);
 
     o->Direction[2] -= (30) * FPS_ANIMATION_FACTOR;
-    o->Angle[2] += o->Direction[2];
+    o->Angle[2] += o->Direction[2] * FPS_ANIMATION_FACTOR;
     o->Angle[1] = 90;
     o->Position[2] += (100.f) * FPS_ANIMATION_FACTOR;
 
