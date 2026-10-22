@@ -102,7 +102,7 @@ DWORD g_dwLatestMagicTick;
 const   float   AutoMouseLimitTime = (1.f * 60.f * 60.f);
 int   LoadingWorld = 0;
 int   ItemHelp = 0;
-int   MouseUpdateTime = 0;
+float MouseUpdateTime = 0;
 int   MouseUpdateTimeMax = 6;
 // Latched when a click opens an NPC conversation while the button is still held.
 // The world click handler ignores the held button until it is physically released, so the
@@ -3027,7 +3027,7 @@ void MoveHero()
     if (!MouseOnWindow && false == g_pNewUISystem->CheckMouseUse())
     {
         bool Success = false;
-        if (MouseUpdateTime >= MouseUpdateTimeMax && !s_bIgnoreHeldClickAfterNpcTalk)
+        if (MouseUpdateTime >= (std::max)(static_cast<float>(MouseUpdateTimeMax), 1.f) && !s_bIgnoreHeldClickAfterNpcTalk)
         {
             if (!EnableFastInput)
             {
@@ -3319,7 +3319,10 @@ void MoveHero()
                 }
             }
         }
-        MouseUpdateTime++;
+        // MouseUpdateTimeMax is counted in 25 Hz ticks. Counting frames made a held click resend its
+        // path every few milliseconds at a high frame rate, and each resend moves the grid position
+        // one tile ahead of the character, which the server's walk speed check reads as a speed hack.
+        MouseUpdateTime += FPS_ANIMATION_FACTOR;
     }
 
     Attack(Hero);

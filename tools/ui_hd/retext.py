@@ -54,6 +54,8 @@ SPECS = {
     "server_credit_b_all.OZT": {"label": "Credit", "kind": "gray"},
     # Three states, and drawn by the game at full cell size (options and message boxes), so no margin.
     "newui_button_close.OZT": {"label": "Close", "kind": "dark3", "full": True},
+    "newui_button_cancel.OZT": {"label": "Cancel", "kind": "dark3", "full": True},
+    "newui_button_ok.OZT": {"label": "OK", "kind": "dark3", "full": True},
 }
 
 

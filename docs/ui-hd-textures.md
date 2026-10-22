@@ -103,6 +103,7 @@ problems (pixel-font captions, notched corners, noisy shading):
 | Texture | What is redrawn | Module |
 |---|---|---|
 | Create, Connect, Delete, Menu, Credit buttons (login and character select) | round-cornered button with a caption set in DejaVu Sans Bold | `retext.py` |
+| Cancel, OK, Close buttons of message boxes and dialogs (the reconnect dialog too) | dark round-cornered button with a caption set in DejaVu Sans Bold, 4x art | `retext.py` |
 | Hotkey slots (Q W E R, 2 to 5), potion slot, the five bottom-right menu buttons, skill boxes | round frame; the original face and icon are kept | `reframe.py` |
 | Outer top corners of the bottom bar | rounded, steel edge line instead of gold | `reframe.py` |
 | AG and SD tubes | smooth cylinder shading | `gauges.py` |
