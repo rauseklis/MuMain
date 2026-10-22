@@ -5,7 +5,8 @@
 .DESCRIPTION
     After a client change is merged to `main`, the CI workflow builds the Windows client bundle (the program without the game's data).
     This script finds the newest bundle that matches `main`, downloads it, unpacks it and copies it over the client folder, keeping the
-    client's `config.ini`, `Data` and `fonts`. Afterwards the only thing left to do is to start `Main.exe` again.
+    client's `config.ini`. New and changed `Data` and `fonts` files are copied from the client clone this script lives in (after it is
+    brought up to date with origin/main), so nothing has to be copied by hand. It works from any current folder. Afterwards the only thing left to do is to start `Main.exe` again.
 
     - If `main` has code changes that no finished build contains yet, it waits for the running build, or starts one (workflow_dispatch).
     - A build that only differs from `main` by documentation is accepted (CI runs for documentation-only merges are often cancelled).
@@ -30,7 +31,7 @@
     Install the bundle of this CI run instead of the newest matching one (for example to go back to an older build).
 
 .PARAMETER DataSource
-    Where to copy `Data` and `fonts` from if the client folder has none (the `src/bin` folder of a client clone).
+    Where to copy `Data` and `fonts` from. Default: `src\bin` of the clone this script is in.
 
 .PARAMETER LocalBuild
     The FAST path for your own testing: install the output of a local build (the folder with Main.exe, for example
@@ -63,6 +64,38 @@ $ArtifactPattern = '^mu-client-windows-native-x64-.*-main$'
 
 function Write-Step([string]$text) { Write-Host "==> $text" }
 
+# The client clone this script lives in: its src\bin holds the game's Data and fonts. Works from any current folder.
+$RepoRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($DataSource)) { $DataSource = Join-Path $RepoRoot 'src\bin' }
+
+# Brings the clone up to date with origin/main so its Data and fonts are current. Never fails the update: it only warns
+# (a dirty or diverged clone is the usual reason, and the game data it already has is still copied).
+function Update-Clone {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return }
+    & git -C $RepoRoot rev-parse --is-inside-work-tree *> $null
+    if ($LASTEXITCODE -ne 0) { return }
+    & git -C $RepoRoot fetch origin $Ref --quiet 2>$null
+    if ($LASTEXITCODE -ne 0) { Write-Warning 'Could not fetch from GitHub; the Data and fonts of this clone may be out of date.'; return }
+    & git -C $RepoRoot merge --ff-only "origin/$Ref" --quiet 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "This clone could not be moved to origin/$Ref (local changes or a different branch). Data and fonts are copied from it as they are."
+    }
+}
+
+# Copies new and changed game data from the clone into the client folder. Nothing is deleted, nothing newer is overwritten.
+function Sync-GameData {
+    foreach ($folder in 'Data', 'fonts') {
+        $from = Join-Path $DataSource $folder
+        if (-not (Test-Path -LiteralPath $from)) {
+            if (-not (Test-Path -LiteralPath (Join-Path $Target $folder))) { Write-Warning "$folder is missing in $Target and in $DataSource." }
+            continue
+        }
+        Write-Step "Syncing $folder from $DataSource (new and changed files only)"
+        & robocopy $from (Join-Path $Target $folder) /E /XO /NFL /NDL /NJH /NJS /NP | Out-Null
+        if ($LASTEXITCODE -ge 8) { throw "Copying $folder failed (robocopy code $LASTEXITCODE)." }
+    }
+}
+
 function Invoke-Gh([string[]]$arguments) {
     $output = & gh @arguments 2>&1
     if ($LASTEXITCODE -ne 0) { throw "gh $($arguments -join ' ') failed: $output" }
@@ -72,7 +105,11 @@ function Invoke-Gh([string[]]$arguments) {
 if ([string]::IsNullOrWhiteSpace($Target)) {
     throw 'Say which client folder to update: -Target <folder> (or set the environment variable OPENMU_CLIENT_DIR).'
 }
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'The GitHub CLI (gh) is not installed.' }
+if (-not $LocalBuild) {
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'The GitHub CLI (gh) is not installed. Install it from https://cli.github.com and run: gh auth login' }
+    & gh auth status *> $null
+    if ($LASTEXITCODE -ne 0) { throw 'The GitHub CLI is not logged in. Run: gh auth login' }
+}
 if (-not (Test-Path -LiteralPath $Target)) { New-Item -ItemType Directory -Path $Target | Out-Null }
 $Target = (Resolve-Path -LiteralPath $Target).Path
 
@@ -84,19 +121,10 @@ if ($running) { throw "The game is running from $Target (Main.exe, process $($ru
 if ($LocalBuild) {
     $LocalBuild = (Resolve-Path -LiteralPath $LocalBuild).Path
     if (-not (Test-Path -LiteralPath (Join-Path $LocalBuild 'Main.exe'))) { throw "No Main.exe in $LocalBuild. Build the client first (scripts\build-client-windows.cmd)." }
-    Write-Step "Installing the local build $LocalBuild into $Target (your config.ini, Data and fonts are kept)"
+    Write-Step "Installing the local build $LocalBuild into $Target (your config.ini is kept; Data and fonts are synced, never deleted)"
     & robocopy $LocalBuild $Target /E /XD Data fonts /XF config.ini /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed with code $LASTEXITCODE." }
-    foreach ($folder in 'Data', 'fonts') {
-        if (-not (Test-Path -LiteralPath (Join-Path $Target $folder))) {
-            if ([string]::IsNullOrWhiteSpace($DataSource) -or -not (Test-Path -LiteralPath (Join-Path $DataSource $folder))) {
-                Write-Warning "$folder is missing in $Target. Pass -DataSource <client clone>\src\bin so it can be copied."
-            } else {
-                Write-Step "Copying $folder from $DataSource ..."
-                Copy-Item -LiteralPath (Join-Path $DataSource $folder) -Destination (Join-Path $Target $folder) -Recurse
-            }
-        }
-    }
+    Sync-GameData
     if (-not (Test-Path -LiteralPath (Join-Path $Target 'config.ini')) -and (Test-Path -LiteralPath (Join-Path $LocalBuild 'config.ini'))) {
         Copy-Item -LiteralPath (Join-Path $LocalBuild 'config.ini') -Destination (Join-Path $Target 'config.ini')
         Write-Warning 'There was no config.ini: the default one was copied (ServerIP=localhost). Set ServerIP and ServerPort in it.'
@@ -189,21 +217,13 @@ try {
     try { & tar -xzf $archive.Name -C 'files' } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $extract 'Main.exe'))) { throw 'Unpacking failed: no Main.exe in the bundle.' }
 
-    Write-Step "Installing into $Target (your config.ini, Data and fonts are kept)"
+    Write-Step "Installing into $Target (your config.ini is kept; Data and fonts are synced, never deleted)"
     & robocopy $extract $Target /E /XD Data fonts /XF config.ini /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed with code $LASTEXITCODE." }
 
-    # The game's data is not part of the bundle: take it from a client clone if this folder has none.
-    foreach ($folder in 'Data', 'fonts') {
-        if (-not (Test-Path -LiteralPath (Join-Path $Target $folder))) {
-            if ([string]::IsNullOrWhiteSpace($DataSource) -or -not (Test-Path -LiteralPath (Join-Path $DataSource $folder))) {
-                Write-Warning "$folder is missing in $Target. Pass -DataSource <client clone>\src\bin so it can be copied."
-            } else {
-                Write-Step "Copying $folder from $DataSource ..."
-                Copy-Item -LiteralPath (Join-Path $DataSource $folder) -Destination (Join-Path $Target $folder) -Recurse
-            }
-        }
-    }
+    # The game's data is not part of the bundle: take new and changed files from this clone (brought up to date first).
+    Update-Clone
+    Sync-GameData
 
     # A new folder has no config.ini yet: start from the bundle's own (it points at localhost; set the server yourself).
     if (-not (Test-Path -LiteralPath (Join-Path $Target 'config.ini'))) {

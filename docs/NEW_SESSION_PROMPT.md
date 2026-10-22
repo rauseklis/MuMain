@@ -36,7 +36,7 @@ AFTER MY ANSWER
    For a CLIENT change the FAST way is: build locally in the dev worktree (scripts\build-client-windows.cmd x64, about a minute) and install it with
    scripts\update-live-client.ps1 -Target <my client folder> -LocalBuild out\build\windows-x64\src\Release (GitHub CI takes 20-40 minutes; use its bundle only for other people).
    For a CLIENT change also update my game folder yourself: run scripts/update-live-client.ps1 from the client repository with -Target <my client folder>
-   (it downloads the new bundle from GitHub, unpacks it and keeps my config.ini, Data and fonts; it refuses while the game is running, then ask me to close it).
+   (it downloads the new bundle from GitHub, unpacks it, keeps my config.ini and syncs new Data and fonts files from the clone, so nothing is copied by hand; it works from any folder; it refuses while the game is running, then ask me to close it).
    Then tell me to restart Main.exe. I never download or unpack anything by hand.
 4. Finish with a short report: what changed, what you tested, what you did not test, and what I should check myself.
 If something in the docs is wrong or missing, tell me and fix the document in the same pull request.
