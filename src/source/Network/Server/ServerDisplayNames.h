@@ -10,4 +10,7 @@ namespace Network::ServerNames
     // Writes the label of the server ("Emberion 50x") for the 1-based number of the server in its group and returns
     // true. Returns false for a number which has no label, so that the caller keeps the classic name.
     bool ServerLabel(const wchar_t* groupName, int serverNumberInGroup, wchar_t* label, size_t labelSize);
+
+    // Writes "[Emberion 50x]" into title when the server has a label; otherwise leaves title as it is.
+    void FormatServerTitle(wchar_t* title, size_t titleSize, const wchar_t* groupName, int serverNumberInGroup);
 }

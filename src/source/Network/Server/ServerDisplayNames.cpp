@@ -31,4 +31,13 @@ bool ServerLabel(const wchar_t* groupName, int serverNumberInGroup, wchar_t* lab
     swprintf(label, labelSize, L"%ls %ls", groupName, RATE_LABELS[serverNumberInGroup - 1]);
     return true;
 }
+
+void FormatServerTitle(wchar_t* title, size_t titleSize, const wchar_t* groupName, int serverNumberInGroup)
+{
+    wchar_t label[64];
+    if (ServerLabel(groupName, serverNumberInGroup, label, std::size(label)))
+    {
+        swprintf(title, titleSize, L"[%ls]", label);
+    }
+}
 }
