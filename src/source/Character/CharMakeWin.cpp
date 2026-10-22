@@ -257,8 +257,16 @@ void CCharMakeWin::Show(bool bShow)
         InputTextMax[0] = MAX_USERNAME_SIZE;
         if (g_iChatInputType == 1)
         {
+            // White letters (the control defaults to black, almost invisible on the dark name field), with a
+            // dark blue selection so selected letters stay readable.
             g_pSingleTextInputBox->Configure({
                 .textLimit = 10,
+                .textR = 255,
+                .textG = 255,
+                .textB = 255,
+                .selectR = 60,
+                .selectG = 80,
+                .selectB = 140,
             });
             g_pSingleTextInputBox->GiveFocus();
         }
