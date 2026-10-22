@@ -6,6 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Render/Effects/WeaponTrailTiming.h"
 #include "Render/Items/RoyalMaceFlames.h"
 #include "Core/Time/FrameTiming.h"
 #include <execution>
@@ -4001,16 +4002,16 @@ void CreateWeaponBlur(CHARACTER* c, OBJECT* o, BMD* b)
             }
             else
             {
-                constexpr float inter = 10.f;
-                // The trail spans backward over one animation slice and lays its points along it.
-                // Scaling that slice by FPS_ANIMATION_FACTOR (REFERENCE_FPS / FPS) collapses it at
-                // high frame rates - the points pile onto a single weapon position and the streak
-                // disappears. Span a fixed PlaySpeed slice so the trail renders the same at any FPS.
+                constexpr int inter = 10;
+                // The trail covers exactly what the animation advanced in this frame, so that the points of
+                // the next frame continue where these end (see WeaponTrailTiming.h). A full PlaySpeed slice
+                // every frame overlapped itself at a high frame rate and drew a thick mass instead of a streak.
                 const float playSpeed = b->Actions[b->CurrentAction].PlaySpeed;
-                float animationFrame = o->AnimationFrame - playSpeed;
+                const auto slice = Render::Effects::WeaponTrail::SliceForFrame(playSpeed, FPS_ANIMATION_FACTOR, inter);
+                float animationFrame = o->AnimationFrame + slice.firstOffset;
                 const float priorAnimationFrame = o->PriorAnimationFrame;
-                const float animationSpeed = playSpeed / inter;
-                for (int i = 0; i < (int)(inter); ++i)
+                const float animationSpeed = slice.step;
+                for (int i = 0; i < slice.count; ++i)
                 {
                     b->Animation(BoneTransform, animationFrame, priorAnimationFrame, o->PriorAction, o->Angle, o->HeadAngle);
 
