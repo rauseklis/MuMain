@@ -296,6 +296,8 @@ namespace SEASON3B
         static CNewUIPickedItem* GetPickedItem();
         static bool CreatePickedItem(CNewUIInventoryCtrl* pSrc, ITEM* pItem, bool preservePickupAnchor = false);
         static void DeletePickedItem();
+        // Called when the item manager frees an item: no control may keep a pointer to it.
+        static void ForgetFreedItem(const ITEM* pItem);
         static void BackupPickedItem();
 
         //protected:

@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "UI/NewUI/Inventory/NewUIItemMng.h"
+#include "UI/NewUI/Inventory/NewUIInventoryCtrl.h"
 #include "GameLogic/Items/CSItemOption.h"
 #include "GameLogic/Pets/GIPetManager.h"
 #include "Engine/Object/ZzzInfomation.h"
@@ -259,6 +260,7 @@ void SEASON3B::CNewUIItemMng::DeleteItem(ITEM* pItem)
         {
             if ((*li) == pItem)
             {
+                CNewUIInventoryCtrl::ForgetFreedItem(pItem);
                 SAFE_DELETE(*li);
                 m_listItem.erase(li);
                 break;
