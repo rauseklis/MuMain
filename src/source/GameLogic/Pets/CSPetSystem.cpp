@@ -447,13 +447,13 @@ void CSPetDarkSpirit::MovePet(void)
         if (Distance >= FlyRange * FlyRange)
         {
             float Angle = CreateAngle2D(o->Position, TargetPosition);
-            o->Angle[2] = TurnAngle2(o->Angle[2], Angle, Random::RangeFloat(0, 14) + 5.f);
+            o->Angle[2] = TurnAngle2(o->Angle[2], Angle, (Random::RangeFloat(0, 14) + 5.f) * FPS_ANIMATION_FACTOR);
         }
         AngleMatrix(o->Angle, o->Matrix);
 
         vec3_t Direction;
         VectorRotate(o->Direction, o->Matrix, Direction);
-        VectorAdd(o->Position, Direction, o->Position);
+        VectorAddScaled(o->Position, Direction, o->Position, FPS_ANIMATION_FACTOR);
 
         int speedRandom = 28;
         int CharacterHeight = 250;
@@ -467,14 +467,14 @@ void CSPetDarkSpirit::MovePet(void)
         if (o->Position[2] < Height)
         {
             speedRandom = 10;
-            o->Angle[0] -= 2.f;
+            o->Angle[0] -= 2.f * FPS_ANIMATION_FACTOR;
             if (o->Angle[0] < -15.f)
                 o->Angle[0] = -15.f;
         }
         else if (o->Position[2] > Height + 100)
         {
             speedRandom = 20;
-            o->Angle[0] += 2.f;
+            o->Angle[0] += 2.f * FPS_ANIMATION_FACTOR;
             if (o->Angle[0] > 15.f)
                 o->Angle[0] = 15.f;
         }
@@ -557,7 +557,7 @@ void CSPetDarkSpirit::MovePet(void)
             OBJECT* to = &tc->Object;
 
             float Angle = CreateAngle2D(o->Position, to->Position);
-            o->Angle[2] = TurnAngle2(o->Angle[2], Angle, 40.f);
+            o->Angle[2] = TurnAngle2(o->Angle[2], Angle, 40.f * FPS_ANIMATION_FACTOR);
         }
     }
     else if (o->AI == PET_STAND)
@@ -584,7 +584,7 @@ void CSPetDarkSpirit::MovePet(void)
         b->TransformPosition(Owner->BoneTransform[42], p, Pos, true);
 
         float Distance = MoveHumming(o->Position, o->Angle, Pos, o->Velocity);
-        o->Velocity++;
+        o->Velocity += FPS_ANIMATION_FACTOR;
         if (Distance < 50)
         {
             SetAI(PET_STAND);
