@@ -3,6 +3,8 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include <algorithm>
+#include "Core/Utilities/Log/MuLogger.h"
 #include "UI/NewUI/Inventory/NewUIInventoryCtrl.h"
 #include "UI/NewUI/Inventory/NewUIItemMng.h"
 #include "UI/NewUI/NewUISystem.h"
@@ -249,15 +251,50 @@ void SEASON3B::CNewUIPickedItem::Render3D()
 
 CNewUIPickedItem* SEASON3B::CNewUIInventoryCtrl::ms_pPickedItem = nullptr;
 
+namespace
+{
+    // Every live inventory control, so that a freed item can be removed from all of them.
+    std::vector<SEASON3B::CNewUIInventoryCtrl*>& LiveInventoryCtrls()
+    {
+        static std::vector<SEASON3B::CNewUIInventoryCtrl*> controls;
+        return controls;
+    }
+}
+
 // cppcheck-suppress uninitMemberVar
 SEASON3B::CNewUIInventoryCtrl::CNewUIInventoryCtrl()
 {
     Init();
+    LiveInventoryCtrls().push_back(this);
 }
 
 SEASON3B::CNewUIInventoryCtrl::~CNewUIInventoryCtrl()
 {
+    auto& controls = LiveInventoryCtrls();
+    controls.erase(std::remove(controls.begin(), controls.end(), this), controls.end());
     Release();
+}
+
+void SEASON3B::CNewUIInventoryCtrl::ForgetFreedItem(const ITEM* pItem)
+{
+    for (CNewUIInventoryCtrl* control : LiveInventoryCtrls())
+    {
+        auto listed = std::find(control->m_vecItem.begin(), control->m_vecItem.end(), pItem);
+        if (listed == control->m_vecItem.end())
+        {
+            continue;
+        }
+
+        // An item was freed while a control still listed it. Drawing it would read freed memory (a crash), so the
+        // control forgets it. The cause is a reference count that went wrong on some move; the log names the item.
+        mu::log::Get("ui")->warn("Inventory control still listed freed item type {} (key {}); removed it.", pItem->Type, pItem->Key);
+        control->m_vecItem.erase(listed);
+        if (control->m_pdwItemCheckBox != nullptr)
+        {
+            std::replace(control->m_pdwItemCheckBox, control->m_pdwItemCheckBox + control->m_nColumn * control->m_nRow,
+                         static_cast<DWORD>(pItem->Key), static_cast<DWORD>(0));
+        }
+    }
 }
 
 void SEASON3B::CNewUIInventoryCtrl::Init()
@@ -676,14 +713,13 @@ void SEASON3B::CNewUIInventoryCtrl::RemoveAllItems()
 {
     memset(m_pdwItemCheckBox, 0, sizeof(DWORD) * m_nColumn * m_nRow);
 
-    auto li = m_vecItem.begin();
-    for (; li != m_vecItem.end(); ++li)
+    // Taken out first: freeing an item makes every control forget it (ForgetFreedItem), which edits m_vecItem.
+    const type_vec_item items = std::move(m_vecItem);
+    m_vecItem.clear();
+    for (ITEM* pItem : items)
     {
-        ITEM* pItem = (*li);
         m_pNewItemMng->DeleteItem(pItem);
     }
-
-    m_vecItem.clear();
 }
 
 size_t SEASON3B::CNewUIInventoryCtrl::GetNumberOfItems()
