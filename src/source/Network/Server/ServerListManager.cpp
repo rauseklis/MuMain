@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "ServerListManager.h"
 #include "I18N/All.h"
+#include "ServerDisplayNames.h"
 
 CServerListManager::CServerListManager()
 {
@@ -139,7 +140,7 @@ bool CServerListManager::MakeServerGroup(IN int iServerGroupIndex, OUT CServerGr
     if (NULL == pServerGroupInfo)
         return false;
 
-    ::wcscpy(pServerGroup->m_szName, pServerGroupInfo->m_szName);
+    ::wcscpy(pServerGroup->m_szName, Network::ServerNames::GroupName(pServerGroupInfo->m_szName));
     ::wcscpy(pServerGroup->m_szDescription, pServerGroupInfo->m_strDescript.c_str());
     pServerGroup->m_iSequence = (int)pServerGroupInfo->m_bySequence;
     pServerGroup->m_iWidthPos = (int)pServerGroupInfo->m_byPos;
@@ -202,6 +203,15 @@ void CServerListManager::InsertServer(CServerGroup* pServerGroup, int iConnectIn
         mu_swprintf(pServerInfo->m_bName, L"%ls-%d(Gold) %ls", pServerGroup->m_szName,
             pServerInfo->m_iIndex, I18N::Game::Lookup(iTextIndex));
         break;
+    }
+
+    // "Emberion 50x": the server is named after its experience rate. A busy or full server still says so.
+    wchar_t label[SLM_MAX_SERVER_NAME_LENGTH * 2];
+    if (Network::ServerNames::ServerLabel(pServerGroup->m_szName, pServerInfo->m_iIndex, label, std::size(label)))
+    {
+        const bool isBusyOrFull = iTextIndex != 562;
+        mu_swprintf(pServerInfo->m_bName, L"%ls%ls%ls", label, isBusyOrFull ? L" " : L"",
+            isBusyOrFull ? I18N::Game::Lookup(iTextIndex) : L"");
     }
 
     pServerGroup->InsertServerInfo(pServerInfo);
