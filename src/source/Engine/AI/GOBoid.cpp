@@ -668,7 +668,8 @@ bool MoveMount(OBJECT* o, bool bForceRender)
             vec3_t Direction;
             VectorRotate(o->Direction, o->Matrix, Direction);
             VectorAddScaled(o->Position, Direction, o->Position, FPS_ANIMATION_FACTOR);
-            o->Position[2] += (float)(rand() % 16 - 8);
+            // A random walk: scaling its step by the square root of the frame scale keeps its spread per second the same at any frame rate.
+            o->Position[2] += (float)(rand() % 16 - 8) * std::sqrt(FPS_ANIMATION_FACTOR);
             if (rand_fps_check(32))
             {
                 float Speed = 0;
@@ -683,8 +684,8 @@ bool MoveMount(OBJECT* o, bool bForceRender)
                 o->Direction[1] = Speed;
                 o->Direction[2] = (float)(rand() % 64 - 32) * 0.1f;
             }
-            if (o->Position[2] < o->Owner->Position[2] + 100.f) o->Direction[2] += 1.5f;
-            if (o->Position[2] > o->Owner->Position[2] + 200.f) o->Direction[2] -= 1.5f;
+            if (o->Position[2] < o->Owner->Position[2] + 100.f) o->Direction[2] += 1.5f * FPS_ANIMATION_FACTOR;
+            if (o->Position[2] > o->Owner->Position[2] + 200.f) o->Direction[2] -= 1.5f * FPS_ANIMATION_FACTOR;
         }
     }
     return TRUE;
