@@ -36,15 +36,24 @@ namespace SEASON3B
     template <class T>
     class TMessageText
     {
+    public:
+        // How long a message stays fully visible before it fades (see CNewUIChatLogWindow).
+        static constexpr float DEFAULT_VISIBLE_SECONDS = 60.0f;
+
+    private:
         typedef std::wstring type_string;
 
         type_string	m_strID, m_strText;
         MESSAGE_TYPE m_MsgType;
         DWORD m_dwIndentSize;
         std::chrono::steady_clock::time_point m_createdAt;
+        float m_visibleSeconds = DEFAULT_VISIBLE_SECONDS;
+        // Set by ScopedMessageLifetime for the messages created while it lives.
+        static inline float ms_nextVisibleSeconds = DEFAULT_VISIBLE_SECONDS;
 
     public:
         TMessageText() : m_MsgType(TYPE_UNKNOWN), m_dwIndentSize(0) {}
+        static void SetNextVisibleSeconds(float seconds) { ms_nextVisibleSeconds = seconds; }
         ~TMessageText() { Release(); }
 
         bool Create(const type_string& strID, const type_string& strText, MESSAGE_TYPE MsgType)
@@ -56,6 +65,7 @@ namespace SEASON3B
             m_strText = strText;
             m_MsgType = MsgType;
             m_createdAt = std::chrono::steady_clock::now();
+            m_visibleSeconds = ms_nextVisibleSeconds;
 
             return true;
         }
@@ -69,6 +79,7 @@ namespace SEASON3B
         const type_string& GetID() const { return m_strID; }
         const type_string& GetText() const { return m_strText; }
         MESSAGE_TYPE GetType() const { return m_MsgType; }
+        float GetVisibleSeconds() const { return m_visibleSeconds; }
         float GetAgeSeconds() const
         {
             return std::chrono::duration<float>(std::chrono::steady_clock::now() - m_createdAt).count();
@@ -76,6 +87,16 @@ namespace SEASON3B
     };
 
     typedef TMessageText<wchar_t> CMessageText;
+
+    // Messages added while this object lives stay fully visible for a shorter or longer time than the default.
+    class ScopedMessageLifetime
+    {
+    public:
+        explicit ScopedMessageLifetime(float visibleSeconds) { CMessageText::SetNextVisibleSeconds(visibleSeconds); }
+        ~ScopedMessageLifetime() { CMessageText::SetNextVisibleSeconds(CMessageText::DEFAULT_VISIBLE_SECONDS); }
+        ScopedMessageLifetime(const ScopedMessageLifetime&) = delete;
+        ScopedMessageLifetime& operator=(const ScopedMessageLifetime&) = delete;
+    };
 
     class CNewUIChatLogWindow : public CNewUIObj
     {

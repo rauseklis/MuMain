@@ -26,12 +26,11 @@ namespace
 
     // A message stays fully visible for this long, then fades out over the fade time. Each message has its own
     // clock, so the oldest one always fades first. Fading only hides a message while the chat frame is closed.
-    constexpr float MESSAGE_VISIBLE_SECONDS = 60.0f;
     constexpr float MESSAGE_FADE_SECONDS = 3.0f;
 
     float MessageOpacity(const CMessageText& message)
     {
-        const float fadedFor = message.GetAgeSeconds() - MESSAGE_VISIBLE_SECONDS;
+        const float fadedFor = message.GetAgeSeconds() - message.GetVisibleSeconds();
         return std::clamp(1.0f - fadedFor / MESSAGE_FADE_SECONDS, 0.0f, 1.0f);
     }
 
