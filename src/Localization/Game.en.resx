@@ -1611,6 +1611,10 @@
     <value>If you want to leave your guild,</value>
     <comment>legacy_id=427</comment>
   </data>
+  <data name="Enter your account password to delete this character." xml:space="preserve">
+    <value>Enter your account password to delete this character.</value>
+    <comment>The password of the game account (the one used to log in), asked before a character is deleted.</comment>
+  </data>
   <data name="Please enter your WEBZEN.COM password." xml:space="preserve">
     <value>Please enter your WEBZEN.COM password.</value>
     <comment>legacy_id=428,444,1713</comment>
