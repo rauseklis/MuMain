@@ -2,6 +2,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Network/Server/ServerDisplayNames.h"
 #include "UI/Chat/Chat.h"
 #include "UI/NewUI/Character/NewUICharacterInfoWindow.h"
 #include "UI/NewUI/NewUISystem.h"
@@ -359,6 +360,8 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderSubjectTexts()
         = { I18N::Game::SDServer, I18N::Game::SDNonPvPServer, I18N::Game::SDGoldPvPServer, I18N::Game::SDGoldServer };
     mu_swprintf(strServerName, apszGlobalText[g_ServerListManager->GetNonPVPInfo()],
         g_ServerListManager->GetSelectServerName(), g_ServerListManager->GetSelectServerIndex());
+    Network::ServerNames::FormatServerTitle(strServerName, MAX_TEXT_LENGTH, g_ServerListManager->GetSelectServerName(),
+        g_ServerListManager->GetSelectServerIndex());
 
     float fAlpha = sinf(WorldTime * 0.001f) + 1.f;
     g_pRenderText->SetTextColor(255, 255, 255, 127 * (2.f - fAlpha));
@@ -524,7 +527,7 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     mu_swprintf(strStrength, L"%d", wStrength);
 
     g_pRenderText->SetBgColor(0);
-    g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_STRENGTH + 6, I18N::Game::STR, 74, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_STRENGTH + 6, I18N::Game::Strength, 74, 0, RT3_SORT_CENTER);
     g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_STRENGTH + 6, strStrength, 86, 0, RT3_SORT_CENTER);
 
     wchar_t strAttakMamage[256];
@@ -868,7 +871,7 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     wchar_t strDexterity[32];
     WORD wDexterity = CharacterAttribute->Dexterity + CharacterAttribute->AddDexterity;
     mu_swprintf(strDexterity, L"%d", wDexterity);
-    g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_DEXTERITY + 6, I18N::Game::AGI, 74, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_DEXTERITY + 6, I18N::Game::Agility, 74, 0, RT3_SORT_CENTER);
     g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_DEXTERITY + 6, strDexterity, 86, 0, RT3_SORT_CENTER);
 
     bool bDexSuccess = true;
@@ -1155,7 +1158,7 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     wchar_t strVitality[256];
     mu_swprintf(strVitality, L"%d", wVitality);
     g_pRenderText->SetBgColor(0);
-    g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_VITALITY + 6, I18N::Game::STA, 74, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_VITALITY + 6, I18N::Game::Vitality, 74, 0, RT3_SORT_CENTER);
     g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_VITALITY + 6, strVitality, 86, 0, RT3_SORT_CENTER);
 
     g_pRenderText->SetFont(g_hFont);
@@ -1229,7 +1232,7 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     mu_swprintf(strEnergy, L"%d", wEnergy);
 
     g_pRenderText->SetBgColor(0);
-    g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_ENERGY + 6, I18N::Game::ENG, 74, 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_ENERGY + 6, I18N::Game::Energy, 74, 0, RT3_SORT_CENTER);
     g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_ENERGY + 6, strEnergy, 86, 0, RT3_SORT_CENTER);
 
     g_pRenderText->SetFont(g_hFont);
