@@ -7,7 +7,9 @@ namespace Engine::AI
 template <typename DrawBody, typename DrawExtras>
 void RenderBoidPass(DrawBody&& drawBody, DrawExtras&& drawExtras)
 {
-    drawBody();
+    if (!drawBody())
+        return;
+
     drawExtras();
 }
 } // namespace Engine::AI

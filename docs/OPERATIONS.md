@@ -142,3 +142,11 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 - Packets folder: `nuget-feed/README.md`
 - Live server setup (server repository): `deploy/live/README.md`
 - HD interface textures: `docs/ui-hd-textures.md`
+
+## Atlans town exit client crash
+
+Leaving the safe zone near Atlans (20, 28–29) can expose a newly spawned ambient object. Its alpha may still be below the body renderer's visibility threshold. A rejected `RenderObject` call has not prepared the model's bone palette: effects and projected shadows must be skipped for that object in that pass. `Engine::AI::RenderBoidPass` keeps these operations together.
+
+A Windows crash captured on client commit `d96579a` followed `RenderBoids -> RenderBodyShadow -> EnsureCpuVertices -> SkinVertices -> VectorRotate` and read address `0x60`. This is a client rendering fault; changing gates or swimming requirements does not fix it. The regression tests cover both rejected and successful body draws, including a previously prepared palette belonging to another object.
+
+After updating the client, manually check leaving Atlans town without wings, first with gloves below +5 (slow swimming), then with gloves +5 or higher (fast swimming). Check visible ambient objects and shadows in other maps too. Automated checks do not replace this in-game validation.
