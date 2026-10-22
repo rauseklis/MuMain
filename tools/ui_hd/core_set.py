@@ -104,6 +104,10 @@ CHAT_AND_GEMS = [
     "newui_statusicon.OZJ",
 ]
 
+MESSAGE_BOX_BUTTONS = [
+    "newui_button_cancel.OZT", "newui_button_ok.OZT", "newui_button_close.OZT",
+]
+
 GROUPS = {
     "frame_kit": FRAME_KIT,
     "bottom_bar": BOTTOM_BAR,
@@ -111,6 +115,7 @@ GROUPS = {
     "inventory": INVENTORY,
     "login_scene": LOGIN_SCENE,
     "chat": CHAT_AND_GEMS,
+    "message_box_buttons": MESSAGE_BOX_BUTTONS,
 }
 
 CORE_SET = [path for group in GROUPS.values() for path in group]
