@@ -21,6 +21,6 @@ namespace Diag::YellowShape
 
     // Ctrl+Shift+B: steps through the models drawn with GPU skinning and switches the GPU skinning off for one model at
     // a time (the system log names it), to find the model which is drawn wrong.
-    void NoteGpuSkinnedModel(const void* model, const char* name);
+    void NoteGpuSkinnedModel(const void* model, const char* name, int modelIndex);
     bool GpuSkinningOffForModel(const void* model);
 }

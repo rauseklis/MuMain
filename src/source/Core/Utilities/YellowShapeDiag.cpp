@@ -113,9 +113,9 @@ void Update()
     }
 }
 
-void NoteGpuSkinnedModel(const void* model, const char* name)
+void NoteGpuSkinnedModel(const void* model, const char* name, int modelIndex)
 {
-    g_seenNow.try_emplace(model, name);
+    g_seenNow.try_emplace(model, std::string("#") + std::to_string(modelIndex) + " " + name);
 }
 
 bool GpuSkinningOffForModel(const void* model) { return model != nullptr && model == g_modelOff; }
