@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "UI/NewUI/HUD/KillNotice.h"
 #include "App/Control/ControlTaps.h"
 #include "Core/Utilities/Log/MuLogger.h"
 #include "UI/Chat/Chat.h"
@@ -91,6 +92,9 @@
 
 #include "MUHelper/MuHelper.h"
 #include "GameLogic/Items/ItemCategories.h"
+
+// "Welcome to <map>" is only interesting for a moment: it fades much sooner than other system messages.
+static constexpr float WELCOME_MESSAGE_VISIBLE_SECONDS = 12.0f;
 
 #define MAX_DEBUG_MAX 10
 
@@ -1239,6 +1243,7 @@ BOOL ReceiveJoinMapServer(std::span<const BYTE> ReceiveBuffer)
         wchar_t Text[256];
         mu_swprintf(Text, I18N::Game::WelcomeTo, gMapManager.GetMapName(gMapManager.WorldActive));
 
+        SEASON3B::ScopedMessageLifetime shortLived(WELCOME_MESSAGE_VISIBLE_SECONDS);
         g_pSystemLogBox->AddText(Text, SEASON3B::TYPE_SYSTEM_MESSAGE);
     }
 
@@ -2303,6 +2308,7 @@ BOOL ReceiveTeleport(const BYTE* ReceiveBuffer, BOOL bEncrypted)
                 wchar_t Text[256];
                 mu_swprintf(Text, I18N::Game::WelcomeTo, gMapManager.GetMapName(gMapManager.WorldActive));
 
+                SEASON3B::ScopedMessageLifetime shortLived(WELCOME_MESSAGE_VISIBLE_SECONDS);
                 g_pSystemLogBox->AddText(Text, SEASON3B::TYPE_SYSTEM_MESSAGE);
             }
         }
@@ -5995,6 +6001,11 @@ void ReceiveDie(const BYTE* ReceiveBuffer, int Size)
     OBJECT* o = &c->Object;
     c->Dead = 1;
     c->Movement = false;
+
+    if (c == Hero)
+    {
+        UI::KillNotice::OnHeroDied(((int)(Data->TKeyH) << 8) + Data->TKeyL);
+    }
 
     WORD SkillType = ((int)(Data->MagicH) << 8) + Data->MagicL;
 

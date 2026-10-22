@@ -41,6 +41,7 @@ FrameTimingState g_frameTiming;
 #include "Network/Server/WSclient.h"
 #include "Network/Reconnect/ReconnectManager.h"
 #include "UI/NewUI/Dialogs/ReconnectDialog.h"
+#include "UI/NewUI/HUD/KillNotice.h"
 #include "GameLogic/Events/w_CursedTemple.h"
 #include "Network/Server/ServerListManager.h"
 #include "UI/NewUI/NewUISystem.h"
@@ -1419,6 +1420,7 @@ void MainScene(HDC hDC)
             RenderDebugInfo();
             RenderGLStats();
             RenderFpsCounter();
+            UI::KillNotice::Render();
             UI::Reconnect::RenderDialog();
         }
         FrameProfiler::ResetFrame();
