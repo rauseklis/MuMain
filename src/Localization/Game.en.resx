@@ -12968,6 +12968,15 @@
   <data name="JToggleChatCommands" xml:space="preserve">
     <value>J : Chat Commands On/Off</value>
   </data>
+  <data name="AAuctionHouseHotkey" xml:space="preserve">
+    <value>A : Auction House</value>
+  </data>
+  <data name="CtrlJJewelBankHotkey" xml:space="preserve">
+    <value>Ctrl+J : Jewel Bank</value>
+  </data>
+  <data name="SSkillTreeHotkey" xml:space="preserve">
+    <value>S : Skill Tree</value>
+  </data>
   <data name="SpecialCommands" xml:space="preserve">
     <value>Special</value>
   </data>
