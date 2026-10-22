@@ -401,7 +401,7 @@ void CMsgWin::PopUp(int nMsgCode, wchar_t* pszMsg)
         eType = MWT_BTN_BOTH;
         break;
     case MESSAGE_DELETE_CHARACTER_RESIDENT:
-        lpszMsg = I18N::Game::PleaseEnterYourWEBZENCOMPassword;
+        lpszMsg = I18N::Game::EnterYourAccountPasswordToDeleteThisCharacter;
         eType = MWT_STR_INPUT;
         InitResidentNumInput();
         break;
