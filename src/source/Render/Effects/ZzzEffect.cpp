@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Utilities/YellowShapeDiag.h"
 #include <algorithm>
 #include "Core/Time/FrameTiming.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
@@ -8716,6 +8717,11 @@ void RenderSkillSpear(OBJECT* o)
 
 void RenderEffects(bool bRenderBlendMesh)
 {
+    if (Diag::YellowShape::EffectsOff())
+    {
+        return;
+    }
+
     int iEffectSize = MAX_EFFECTS + g_SkillEffects.GetSize();
 
     for (int i = 0; i < iEffectSize; ++i)

@@ -7,6 +7,7 @@
 
 #include "stdafx.h"
 #include "Render/Effects/WeaponTrailTiming.h"
+#include "Core/Utilities/YellowShapeDiag.h"
 #include "Render/Items/RoyalMaceFlames.h"
 #include "Core/Time/FrameTiming.h"
 #include <execution>
@@ -5341,7 +5342,10 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
     }
     battleCastle::SetBuildTimeLocation(o);
 
-    CreateWeaponBlur(c, o, b);
+    if (!Diag::YellowShape::WeaponBlurCreationOff())
+    {
+        CreateWeaponBlur(c, o, b);
+    }
 
     switch (o->Type)
     {
