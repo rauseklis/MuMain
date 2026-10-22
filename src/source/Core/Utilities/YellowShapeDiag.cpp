@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Core/Input/KeyState.h"
+#include "Core/Utilities/Log/MuLogger.h"
 #include "UI/NewUI/HUD/NewUIChatLogWindow.h"
 #include "UI/NewUI/NewUISystem.h"
 
@@ -61,6 +62,11 @@ void Update()
 
         SEASON3B::ScopedMessageLifetime visible(ANNOUNCE_SECONDS);
         g_pSystemLogBox->AddText(text, SEASON3B::TYPE_SYSTEM_MESSAGE);
+        if (g_modelOff != nullptr)
+        {
+            mu::log::Get("render")->warn("[diag] GPU skinning off for model {} ({} of {})", next->second,
+                                         std::distance(g_seenBefore.begin(), next) + 1, g_seenBefore.size());
+        }
     }
 
     g_modelKeyWasDown = modelKeyDown;
