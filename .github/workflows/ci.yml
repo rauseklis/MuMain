@@ -37,6 +37,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Test ambient object render lifecycle
+        run: |
+          g++ -std=c++20 -Itests/third_party/doctest -Isrc/source \
+            tests/main.cpp tests/render/test_boid_render_pass.cpp \
+            -o /tmp/boid-render-pass-tests
+          /tmp/boid-render-pass-tests
+
       - name: Cache quality tools
         uses: actions/cache@v4
         with:

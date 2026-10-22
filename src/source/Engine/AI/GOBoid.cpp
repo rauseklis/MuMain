@@ -4,6 +4,7 @@
 //
 //////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
+#include "Engine/AI/BoidRenderPass.h"
 #include "Core/Time/FrameTiming.h"
 #include "Engine/Object/ZzzInfomation.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
@@ -1579,6 +1580,79 @@ void MoveBoids()
     }
 }
 
+namespace
+{
+void RenderBoidExtras(OBJECT* o)
+{
+    BMD* b = &Models[o->Type];
+    vec3_t p, Position, Light;
+    switch (o->Type)
+    {
+    case MODEL_DRAGON_:
+        if (o->SubType == 1)
+        {
+            float Bright = 1.0f;
+            RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_METAL | RENDER_BRIGHT, Bright);
+            RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_CHROME | RENDER_BRIGHT, Bright);
+        }
+        if (EnableEvent != 0)
+        {
+            Vector(0.f, -50.f, 0.f, p);
+            b->TransformPosition(BoneTransform[11], p, Position);
+            Vector(1.f, 0.f, 0.f, Light);
+            CreateSprite(BITMAP_LIGHTNING + 1, Position, 1.f, Light, o);
+            Vector(1.f, 1.f, 1.f, Light);
+            CreateParticleFpsChecked(BITMAP_FIRE, Position, o->Angle, Light);
+        }
+        break;
+
+    case MODEL_BUTTERFLY01:
+    {
+        float  Luminosity = (float)(rand() % 32 + 64) * 0.01f;
+
+        Vector(Luminosity * 0.2f, Luminosity * 0.4f, Luminosity * 0.4f, Light);
+        CreateSprite(BITMAP_LIGHT, o->Position, 1.f, Light, o);
+    }
+    break;
+
+    case MODEL_MAP_TORNADO:
+    {
+        CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, o->Light, 18, o->Scale, o);
+    }
+    break;
+
+    case MODEL_CROW:
+        Vector(-5.f, 0.f, 0.f, p);
+        b->TransformPosition(BoneTransform[1], p, Position, true);
+
+        float Luminosity = (float)(rand() % 32 + 128) * 0.01f;
+        Vector(Luminosity * 1.f, Luminosity * 0.2f, 0.f, Light);
+        CreateSprite(BITMAP_LIGHT, Position, 0.1f, Light, o);
+
+        Vector(5.f, 0.f, 0.f, p);
+        b->TransformPosition(BoneTransform[1], p, Position, true);
+        CreateSprite(BITMAP_LIGHT, Position, 0.1f, Light, o);
+        break;
+    }
+    if (gMapManager.WorldActive != WD_10HEAVEN)
+    {
+        EnableAlphaTest();
+        if (gMapManager.WorldActive == WD_51HOME_6TH_CHAR && o->Type == MODEL_MAP_TORNADO);
+        else
+        {
+            const float shadowAlpha = o->Type == MODEL_EAGLE
+                ? (o->ShadowScale == 0 ? 0.f : 1.f)
+                : 0.2f;
+            VectorCopy(o->Position, Position);
+            Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
+            VectorCopy(Position, b->BodyOrigin);
+
+            b->RenderBodyShadow(-1, -1, -1, -1, nullptr, 0, shadowAlpha);
+        }
+    }
+}
+} // namespace
+
 void RenderBoids(bool bAfterCharacter)
 {
     if (!g_pOption->GetRenderAllEffects())
@@ -1603,74 +1677,9 @@ void RenderBoids(bool bAfterCharacter)
                 {
                     continue;
                 }
-                RenderObject(o, true);
-
-                BMD* b = &Models[o->Type];
-                vec3_t p, Position, Light;
-                switch (o->Type)
-                {
-                case MODEL_DRAGON_:
-                    if (o->SubType == 1)
-                    {
-                        float Bright = 1.0f;
-                        RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_METAL | RENDER_BRIGHT, Bright);
-                        RenderPartObjectBodyColor(&Models[o->Type], o, o->Type, o->Alpha, RENDER_CHROME | RENDER_BRIGHT, Bright);
-                    }
-                    if (EnableEvent != 0)
-                    {
-                        Vector(0.f, -50.f, 0.f, p);
-                        b->TransformPosition(BoneTransform[11], p, Position);
-                        Vector(1.f, 0.f, 0.f, Light);
-                        CreateSprite(BITMAP_LIGHTNING + 1, Position, 1.f, Light, o);
-                        Vector(1.f, 1.f, 1.f, Light);
-                        CreateParticleFpsChecked(BITMAP_FIRE, Position, o->Angle, Light);
-                    }
-                    break;
-
-                case MODEL_BUTTERFLY01:
-                {
-                    float  Luminosity = (float)(rand() % 32 + 64) * 0.01f;
-
-                    Vector(Luminosity * 0.2f, Luminosity * 0.4f, Luminosity * 0.4f, Light);
-                    CreateSprite(BITMAP_LIGHT, o->Position, 1.f, Light, o);
-                }
-                break;
-
-                case MODEL_MAP_TORNADO:
-                {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, o->Light, 18, o->Scale, o);
-                }
-                break;
-
-                case MODEL_CROW:
-                    Vector(-5.f, 0.f, 0.f, p);
-                    b->TransformPosition(BoneTransform[1], p, Position, true);
-
-                    float Luminosity = (float)(rand() % 32 + 128) * 0.01f;
-                    Vector(Luminosity * 1.f, Luminosity * 0.2f, 0.f, Light);
-                    CreateSprite(BITMAP_LIGHT, Position, 0.1f, Light, o);
-
-                    Vector(5.f, 0.f, 0.f, p);
-                    b->TransformPosition(BoneTransform[1], p, Position, true);
-                    CreateSprite(BITMAP_LIGHT, Position, 0.1f, Light, o);
-                    break;
-                }
-                if (gMapManager.WorldActive != WD_10HEAVEN)
-                {
-                    EnableAlphaTest();
-                    if (gMapManager.WorldActive == WD_51HOME_6TH_CHAR && o->Type == MODEL_MAP_TORNADO);
-                    else
-                    {
-                        const float shadowAlpha = o->Type == MODEL_EAGLE
-                            ? (o->ShadowScale == 0 ? 0.f : 1.f)
-                            : 0.2f;
-                        VectorCopy(o->Position, Position);
-                        Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
-                        VectorCopy(Position, b->BodyOrigin);
-
-                        b->RenderBodyShadow(-1, -1, -1, -1, nullptr, 0, shadowAlpha);
-                    }
-                }
+                Engine::AI::RenderBoidPass(
+                    [o] { return RenderObject(o, true); },
+                    [o] { RenderBoidExtras(o); });
             }
         }
         if (MODEL_SPEARSKILL != o->Type)
