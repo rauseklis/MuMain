@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Utilities/YellowShapeDiag.h"
 #include <cstdint>
 #include <cmath>
 #include <cassert>
@@ -118,7 +119,7 @@ bool CanGpuSkinMesh(int finalRenderFlags, int renderFlags, const float (*boneMat
     const bool supportedMaterial = finalRenderFlags == RENDER_TEXTURE || finalRenderFlags == RENDER_COLOR ||
                                    finalRenderFlags == RENDER_BRIGHT ||
                                    GetSkinningTextureCoordinates(renderFlags) != mu::SkinningTextureCoordinates::Mesh;
-    return boneMatrices && supportedMaterial && !(renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE));
+    return !Diag::YellowShape::GpuSkinningOff() && boneMatrices && supportedMaterial && !(renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE));
 }
 
 std::pair<int, int> ResolveMeshRange(int meshCount, int requestedStart, int requestedEnd)

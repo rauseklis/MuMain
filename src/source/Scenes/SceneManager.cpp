@@ -3,6 +3,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Utilities/YellowShapeDiag.h"
 #include "Core/Input/KeyState.h"
 #include "Core/Input/SyntheticInput.h"
 #include <vector>
@@ -1420,6 +1421,7 @@ void MainScene(HDC hDC)
             RenderDebugInfo();
             RenderGLStats();
             RenderFpsCounter();
+            Diag::YellowShape::Update();
             UI::KillNotice::Render();
             UI::Reconnect::RenderDialog();
         }

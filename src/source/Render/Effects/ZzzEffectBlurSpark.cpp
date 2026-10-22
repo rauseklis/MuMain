@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Utilities/YellowShapeDiag.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Models/ZzzBMD.h"
 #include "Engine/Object/ZzzInfomation.h"
@@ -220,6 +221,11 @@ void MoveBlurs()
 
 void RenderBlurs()
 {
+    if (Diag::YellowShape::BlurRenderOff())
+    {
+        return;
+    }
+
     int Type;
     for (auto& blur : g_blurs)
     {

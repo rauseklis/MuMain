@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Utilities/YellowShapeDiag.h"
 #include <algorithm>
 #include <cstring>
 #include <SDL3/SDL.h>
@@ -7104,6 +7105,11 @@ void MoveJoints()
 
 void RenderJoints(BYTE bRenderOneMore)
 {
+    if (Diag::YellowShape::JointsOff())
+    {
+        return;
+    }
+
     if (IsJointsDisabledDebug()) // DXP-23 diagnostic
     {
         return;

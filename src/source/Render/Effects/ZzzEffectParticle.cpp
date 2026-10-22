@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Utilities/YellowShapeDiag.h"
 #include "Render/Models/BoneManager.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Engine/Object/ZzzInfomation.h"
@@ -8958,6 +8959,11 @@ namespace
 
 void RenderParticles(BYTE byRenderOneMore)
 {
+    if (Diag::YellowShape::SpritesAndParticlesOff())
+    {
+        return;
+    }
+
     if (!g_pOption->GetRenderAllEffects())
     {
         return;

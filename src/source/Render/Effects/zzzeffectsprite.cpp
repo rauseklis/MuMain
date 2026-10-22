@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Utilities/YellowShapeDiag.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Models/ZzzBMD.h"
 #include "Engine/Object/ZzzInfomation.h"
@@ -134,6 +135,11 @@ void RenderSprite(OBJECT* o, OBJECT* Owner)
 
 void RenderSprites(BYTE byRenderOneMore)
 {
+    if (Diag::YellowShape::SpritesAndParticlesOff())
+    {
+        return;
+    }
+
     if (!g_pOption->GetRenderAllEffects())
     {
         return;
