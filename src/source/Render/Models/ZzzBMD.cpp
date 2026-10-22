@@ -114,12 +114,20 @@ mu::SkinningTextureCoordinates GetSkinningTextureCoordinates(int renderFlags)
     return mu::SkinningTextureCoordinates::Mesh;
 }
 
-bool CanGpuSkinMesh(int finalRenderFlags, int renderFlags, const float (*boneMatrices)[3][4])
+bool CanGpuSkinMesh(int finalRenderFlags, int renderFlags, const float (*boneMatrices)[3][4], const void* model = nullptr, const char* modelName = "")
 {
+    Diag::YellowShape::NoteGpuSkinnedModel(model, modelName);
     const bool supportedMaterial = finalRenderFlags == RENDER_TEXTURE || finalRenderFlags == RENDER_COLOR ||
                                    finalRenderFlags == RENDER_BRIGHT ||
                                    GetSkinningTextureCoordinates(renderFlags) != mu::SkinningTextureCoordinates::Mesh;
-    return !Diag::YellowShape::GpuSkinningOff() && boneMatrices && supportedMaterial && !(renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE));
+    int material = 3;
+    if (GetSkinningTextureCoordinates(renderFlags) == mu::SkinningTextureCoordinates::Mesh)
+    {
+        material = finalRenderFlags == RENDER_TEXTURE ? 0 : (finalRenderFlags == RENDER_COLOR ? 1 : 2);
+    }
+
+    return !Diag::YellowShape::GpuSkinningOff() && !Diag::YellowShape::GpuSkinningOffForMaterial(material) && !Diag::YellowShape::GpuSkinningOffForModel(model) && boneMatrices &&
+           supportedMaterial && !(renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE));
 }
 
 std::pair<int, int> ResolveMeshRange(int meshCount, int requestedStart, int requestedEnd)
@@ -1684,7 +1692,7 @@ void BMD::RenderMesh(int meshIndex, int renderFlags, float alpha, int blendMeshI
     // entry points below consume triangle lists, so reserve for and explicitly split
     // every quad into (0,1,2) and (0,2,3).
     const std::size_t maxVertexCount = static_cast<std::size_t>(m->NumTriangles) * 6;
-    const bool gpuSkinningEligible = CanGpuSkinMesh(finalRenderFlags, renderFlags, m_pCurrentBoneTransform);
+    const bool gpuSkinningEligible = CanGpuSkinMesh(finalRenderFlags, renderFlags, m_pCurrentBoneTransform, this, Name);
     bool gpuSkinningSubmitted = false;
     if (gpuSkinningEligible)
     {

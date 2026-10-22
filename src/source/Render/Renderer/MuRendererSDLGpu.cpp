@@ -3665,7 +3665,21 @@ private:
         if (bones.data() == s_lastBonePalette && bones.size() == s_lastBonePaletteSize &&
             parameters.paletteVersion == s_lastBonePaletteVersion)
         {
-            return s_lastBonePaletteRowOffset;
+            // The same address and version do not prove the same bones: callers rewrite the shared bone arrays
+            // (for example to read the position of a weapon tip) without starting a new version. The recorded
+            // copy is therefore compared with the bones as they are now, and recorded again when they changed.
+            const float* recorded = s_boneRowScratch.data() + static_cast<std::size_t>(s_lastBonePaletteRowOffset) * 4;
+            if (std::memcmp(recorded, bones.data(), bones.size() * sizeof(float)) == 0)
+            {
+                return s_lastBonePaletteRowOffset;
+            }
+
+            static int s_changedPaletteLogCount = 0;
+            if (s_changedPaletteLogCount < 20)
+            {
+                ++s_changedPaletteLogCount;
+                mu::log::Get("render")->warn("Bone palette changed behind an unchanged version (version {}): recorded again", parameters.paletteVersion);
+            }
         }
 
         const std::size_t rowOffset = s_boneRowScratch.size() / 4;
