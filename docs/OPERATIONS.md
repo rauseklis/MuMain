@@ -57,6 +57,8 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 
 ## The client
 
+- **Is this computer set up properly?** `powershell -ExecutionPolicy Bypass -File scripts\check-setup.ps1 -Target <client folder>` is a read-only check (git, GitHub login,
+  Visual Studio, clone, dev worktree and its build, game folder and `config.ini`, live server, `ssh openmu`). It prints OK / WARN / FAIL with what to do. Run it at the start of a session.
 - **The fast path for your own testing: build locally, install locally.** GitHub's build takes 20 to 40 minutes (its machines start empty and recompile
   the whole client; builds also queue one after another). A local incremental build in the warm dev worktree takes about a minute. So after a client
   change: in the dev worktree run `scripts\build-client-windows.cmd x64` (finds Visual Studio, activates it, configures and builds), then

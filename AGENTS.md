@@ -22,8 +22,9 @@ This is a private MU Online project of two brothers: this client repository (`ra
 8. **Install the client only with `scripts/update-live-client.ps1`; never copy game files by hand.** If the finished GitHub build is not there yet,
    wait for it (the script does) or ask. Build locally only for your own code changes, as described in `docs/OPERATIONS.md`, never as a workaround
    for a slow install.
-9. **At the start of a session:** `git fetch origin`, read `docs/OPERATIONS.md` (short) from `origin/main`, do not change anything, then ask the user
-   "What are we working on today?" and wait. The full guide is `docs/CODEX_GUIDE.md`.
+9. **At the start of a session:** `git fetch origin`, read `docs/OPERATIONS.md` (short) from `origin/main`, run the read-only setup check
+   `powershell -ExecutionPolicy Bypass -File scripts\check-setup.ps1 -Target <the user's game folder>` and report its FAILs in one line, do not change
+   anything, then ask the user "What are we working on today?" and wait. Do not fix setup problems on your own: tell the user what the check says. The full guide is `docs/CODEX_GUIDE.md`.
 10. **At the end of every task** report in a few lines: what changed, what you tested, what you did not test, what the user should check.
 
 ## Coding rules — read first
