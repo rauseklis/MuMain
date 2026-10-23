@@ -757,6 +757,12 @@ enum
     MODEL_TREE01 = 0,
     MODEL_GRASS01 = 20,
     MODEL_STONE01 = 30,
+    // Loren Market fountain parts shown in Lorencia (models from Data\Object80)
+    MODEL_MARKET_FOUNTAIN_BASE = 36,
+    MODEL_MARKET_FOUNTAIN_TOP = 47,
+    MODEL_MARKET_FOUNTAIN_DRAGON = 48,
+    MODEL_MARKET_FOUNTAIN_WATER01 = 49,
+    MODEL_MARKET_FOUNTAIN_WATER02 = 53,
     // outside
     MODEL_STONE_STATUE01 = 40,
     MODEL_STONE_STATUE02,
