@@ -39,8 +39,6 @@ TEST_CASE("A faded boid cannot reuse another object's model palette [render][boi
 {
     int paletteOwner = 1;
     int shadowOwner = -1;
-    Engine::AI::RenderBoidPass(
-        [] { return false; },
-        [&] { shadowOwner = paletteOwner; });
+    Engine::AI::RenderBoidPass([] { return false; }, [&] { shadowOwner = paletteOwner; });
     CHECK(shadowOwner == -1);
 }

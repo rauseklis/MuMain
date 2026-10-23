@@ -588,7 +588,7 @@ static void UpdateLegacyInputMethod(WPARAM notification)
 
     if (notification == IMN_SETCONVERSIONMODE || notification == IMN_SETSENTENCEMODE)
     {
-        CheckTextInputBoxIME(IME_CONVERSIONMODE);
+        CheckTextInputBoxIME(notification == IMN_SETCONVERSIONMODE ? IME_CONVERSIONMODE : IME_SENTENCEMODE);
     }
 }
 

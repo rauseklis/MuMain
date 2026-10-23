@@ -3,6 +3,8 @@
 #include "MUHelper/MuHelper.h"
 #include "Engine/Object/ZzzInterface.h"
 #include "Engine/Object/ZzzCharacter.h"
+#include "Engine/Object/w_ObjectInfo.h"
+#include "Engine/Object/w_CharacterInfo.h"
 #include "Core/Utilities/Log/MuLogger.h"
 #include "Scenes/SceneCore.h"
 #include "Network/Server/WSclient.h"
@@ -15,8 +17,9 @@ namespace
 class HelperScope
 {
 public:
-    HelperScope() : previousHero(Hero), previousAttacking(Attacking), previousScene(SceneFlag), previousSocket(SocketClient),
-                    previousActionTarget(ActionTarget), previousMovementSkill(g_MovementSkill)
+    HelperScope()
+        : previousHero(Hero), previousAttacking(Attacking), previousScene(SceneFlag), previousSocket(SocketClient),
+          previousActionTarget(ActionTarget), previousMovementSkill(g_MovementSkill)
     {
         mu::log::Init();
         Hero = &character;

@@ -11,7 +11,8 @@ constexpr float PLAY_SPEED = 0.55f;
 constexpr int REFERENCE_POINTS = 10;
 constexpr float REFERENCE_FPS = 25.0f;
 
-// Runs one swing at the given frame rate and returns the animation frame of every trail point, in the order they are added.
+// Runs one swing at the given frame rate and returns the animation frame of every trail point, in the order they are
+// added.
 std::vector<float> SimulateSwing(float fps, float seconds)
 {
     const float factor = std::min(REFERENCE_FPS / fps, 1.0f);
@@ -28,7 +29,7 @@ std::vector<float> SimulateSwing(float fps, float seconds)
     }
     return points;
 }
-}
+} // namespace
 
 TEST_CASE("a weapon swing never runs backwards along its path, at any frame rate")
 {

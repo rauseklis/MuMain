@@ -9,7 +9,7 @@ namespace App::Platform
 // by the game; forwarding every message calls DefWindowProc before SDL does.
 inline bool ShouldForwardLegacyWindowMessage(UINT message, UINT protectionExitMessage)
 {
-    return message == WM_SYSKEYDOWN || message == WM_SETCURSOR || message == WM_IME_NOTIFY ||
-           message == WM_CHAR || message == protectionExitMessage;
+    return message == WM_SYSKEYDOWN || message == WM_SETCURSOR || message == WM_IME_NOTIFY || message == WM_CHAR ||
+           message == protectionExitMessage;
 }
 } // namespace App::Platform

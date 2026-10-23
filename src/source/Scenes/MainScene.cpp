@@ -205,9 +205,7 @@ static void InitializeSceneFrame()
 
 static void DismissPanelsOnWorldClick()
 {
-    if (MouseLButton == true &&
-        false == g_pNewUISystem->CheckMouseUse() &&
-        g_dwMouseUseUIID == 0 &&
+    if (MouseLButton == true && false == g_pNewUISystem->CheckMouseUse() && g_dwMouseUseUIID == 0 &&
         g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_CHATINPUTBOX) == false)
     {
         g_pWindowMgr->SetWindowsEnable(FALSE);

@@ -1077,7 +1077,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 Vector(0.f, -60.f, 0.f, p1);
                 VectorRotate(p1, Matrix, p2);
-                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR)
+                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
                 o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
                 break;
             case BITMAP_FLAME:

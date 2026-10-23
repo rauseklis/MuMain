@@ -203,19 +203,13 @@ int GetFenrirType(CHARACTER* c)
 
 void FallingMonster(CHARACTER* c, OBJECT* o)
 {
-    float AngleY;
     o->Gravity += 2.5f * FPS_ANIMATION_FACTOR;
     o->Angle[0] -= 4.f * FPS_ANIMATION_FACTOR;
     o->m_bActionStart = true;
     o->Direction[1] += o->Direction[0] * FPS_ANIMATION_FACTOR;
 
-    if (o->Gravity >= 1.f)
-        AngleY = o->Angle[2];
-
     if (o->Angle[0] <= -90.0f)
         o->Angle[0] = -90.0f;
-
-    o->Angle[2] = AngleY;
 
     if (o->Gravity >= 150.0f)
         o->Gravity = 150.0f;
@@ -12384,11 +12378,11 @@ DWORD GetGuildRelationShipTextColor(BYTE GuildRelationShip)
     DWORD dwColor = 0;
 
     if (GuildRelationShip == GR_NONE)
-        dwColor = (255 << 24) + (255 << 16) + (230 << 8) + (230);
+        dwColor = (255u << 24) + (255u << 16) + (230u << 8) + (230);
     else if (GuildRelationShip == GR_RIVAL || GuildRelationShip == GR_RIVALUNION)
-        dwColor = (255 << 24) + (0 << 16) + (30 << 8) + (255);
+        dwColor = (255u << 24) + (0u << 16) + (30u << 8) + (255);
     else
-        dwColor = (255 << 24) + (0 << 16) + (255 << 8) + (200);
+        dwColor = (255u << 24) + (0u << 16) + (255u << 8) + (200);
 
     return dwColor;
 }
@@ -12398,11 +12392,11 @@ DWORD GetGuildRelationShipBGColor(BYTE GuildRelationShip)
     DWORD dwColor = 0;
 
     if (GuildRelationShip == GR_NONE)
-        dwColor = (150 << 24) + (50 << 16) + (30 << 8) + (10);
+        dwColor = (150u << 24) + (50u << 16) + (30u << 8) + (10);
     else if (GuildRelationShip == GR_RIVAL || GuildRelationShip == GR_RIVALUNION)
-        dwColor = (150 << 24) + (0 << 16) + (0 << 8) + (0);
+        dwColor = (150u << 24) + (0u << 16) + (0u << 8) + (0);
     else
-        dwColor = (150 << 24) + (80 << 16) + (50 << 8) + (20);
+        dwColor = (150u << 24) + (80u << 16) + (50u << 8) + (20);
 
     return dwColor;
 }

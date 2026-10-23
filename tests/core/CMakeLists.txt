@@ -176,3 +176,11 @@ mu_add_test(
     NAME test_legacy_window_message
     SOURCES test_legacy_window_message.cpp
 )
+
+mu_add_test(
+    NAME test_falling_monster_timing
+    SOURCES
+        test_falling_monster_timing.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/App/Platform/Windows/Winmain.cpp
+    LINK_LIBS MuClient
+)
