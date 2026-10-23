@@ -35,7 +35,7 @@ CMapManager::~CMapManager() // OK
 
 namespace
 {
-    // Lorencia shows the Loren Market fountain: its models live in the market's object folder, so
+    // Lorencia shows the Loren Market fountain and lamp planters: their models live in the market's object folder, so
     // they are loaded from there instead of Object1 (the file number is the market's model index + 1).
     struct MarketFountainModel
     {
@@ -51,6 +51,10 @@ namespace
         { MODEL_MARKET_FOUNTAIN_DRAGON, 13 },
         { MODEL_MARKET_FOUNTAIN_WATER01, 55 },
         { MODEL_MARKET_FOUNTAIN_WATER02, 56 },
+        { MODEL_MARKET_LAMP_PLANTER, 10 },
+        { MODEL_MARKET_LAMP_SHRUB, 11 },
+        { MODEL_MARKET_LAMP_BUSH, 48 },
+        { MODEL_MARKET_LAMP, 31 },
     };
 
     void LoadLorenciaMarketFountainModels()
