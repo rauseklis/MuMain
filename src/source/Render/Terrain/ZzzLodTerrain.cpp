@@ -797,7 +797,7 @@ bool SaveTerrainHeight(wchar_t* name)
 bool OpenTerrainHeightNew(const wchar_t* strFilename)
 {
     wchar_t FileName[256];
-    wchar_t NewFileName[256];
+    wchar_t NewFileName[256] = {};
 
     for (int i = 0; i < (int)wcslen(strFilename); ++i)
     {
@@ -1195,17 +1195,14 @@ void PrefixTerrainHeight()
                     InterpolationHeight(lod, x * 4, y * 4, 2, BackTerrainHeight);
                     InterpolationWidth(lod, x * 4, y * 4, 2, BackTerrainHeight);
                 }
-                if (lod >= 2)
-                {
-                    InterpolationHeight(lod, x * 4, y * 4, 1, BackTerrainHeight);
-                    InterpolationWidth(lod, x * 4, y * 4, 1, BackTerrainHeight);
-                    InterpolationHeight(lod, x * 4, y * 4, 3, BackTerrainHeight);
-                    InterpolationWidth(lod, x * 4, y * 4, 3, BackTerrainHeight);
-                    /*InterpolationCross(1,x*4+1,y*4+1);
-                    InterpolationCross(1,x*4+1,y*4+3);
-                    InterpolationCross(1,x*4+3,y*4+1);
-                    InterpolationCross(1,x*4+3,y*4+3);*/
-                }
+                InterpolationHeight(lod, x * 4, y * 4, 1, BackTerrainHeight);
+                InterpolationWidth(lod, x * 4, y * 4, 1, BackTerrainHeight);
+                InterpolationHeight(lod, x * 4, y * 4, 3, BackTerrainHeight);
+                InterpolationWidth(lod, x * 4, y * 4, 3, BackTerrainHeight);
+                /*InterpolationCross(1,x*4+1,y*4+1);
+                InterpolationCross(1,x*4+1,y*4+3);
+                InterpolationCross(1,x*4+3,y*4+1);
+                InterpolationCross(1,x*4+3,y*4+3);*/
             }
         }
     }
