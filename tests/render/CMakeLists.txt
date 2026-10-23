@@ -212,3 +212,8 @@ add_test(
     NAME royal_flame_render_path
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_royal_flame_render_path.py" "${CMAKE_SOURCE_DIR}"
 )
+
+mu_add_test(
+    NAME boid_render_pass_tests
+    SOURCES test_boid_render_pass.cpp
+)
