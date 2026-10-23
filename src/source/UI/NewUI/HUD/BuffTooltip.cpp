@@ -20,18 +20,23 @@ namespace UI::Buffs::Tooltip
         constexpr float DividerHeight = 1.f;
         constexpr float HalfLineFactor = 0.55f;
         constexpr float LineFactor = 1.1f;
-        constexpr float CornerSize = 3.f;
+        constexpr float CornerSize = 18.f;
+        constexpr float AtlasWidth = 128.f;
+        constexpr float AtlasHeight = 32.f;
+        constexpr float AtlasCornerSize = 24.f;
+        constexpr float AtlasRuleX = 28.f;
+        constexpr float AtlasRuleWidth = 96.f;
+        constexpr float AtlasRuleHeight = 4.f;
+        constexpr float RuleHeight = 4.f;
         constexpr float HighlightBands = 6.f;
 
         constexpr unsigned int ShadowOuter = 0x30000000;
         constexpr unsigned int ShadowInner = 0x50000000;
         constexpr unsigned int BodyColor = 0xF2100D16;
         constexpr unsigned int HighlightColor = 0x0CFFE2A0;
-        constexpr unsigned int BorderOuter = 0xFF6B5326;
-        constexpr unsigned int BorderInner = 0x55E6C477;
-        constexpr unsigned int CornerColor = 0xFFE6C477;
-        constexpr unsigned int DividerEdge = 0x22E6C477;
-        constexpr unsigned int DividerCentre = 0xA0E6C477;
+        constexpr unsigned int BorderOuter = 0xFF1A1208;
+        constexpr unsigned int BorderGold = 0xFFB38B35;
+        constexpr unsigned int BorderInner = 0x40E6C477;
 
         bool IsDivider(int line)
         {
@@ -53,31 +58,55 @@ namespace UI::Buffs::Tooltip
             RenderColorQuadARGB(x + 2, y + 3, width, height, ShadowOuter);
             RenderColorQuadARGB(x + 1, y + 2, width, height, ShadowInner);
             RenderColorQuadARGB(x, y, width, height, BorderOuter);
-            RenderColorQuadARGB(x + 1, y + 1, width - 2, height - 2, BodyColor);
-            const float bandHeight = (height - 2) / HighlightBands / 2.f;
+            RenderColorQuadARGB(x + 1, y + 1, width - 2, height - 2, BorderGold);
+            RenderColorQuadARGB(x + 2, y + 2, width - 4, height - 4, BodyColor);
+            const float bandHeight = (height - 4) / HighlightBands / 2.f;
             for (int band = 0; band < static_cast<int>(HighlightBands); ++band)
             {
                 const unsigned int alpha = (HighlightColor >> 24) * (HighlightBands - band) / HighlightBands;
-                RenderColorQuadARGB(x + 1, y + 1 + band * bandHeight, width - 2, bandHeight,
+                RenderColorQuadARGB(x + 2, y + 2 + band * bandHeight, width - 4, bandHeight,
                     (alpha << 24) | (HighlightColor & 0x00FFFFFF));
             }
-            RenderColorQuadARGB(x + 2, y + 2, width - 4, 1, BorderInner);
-            RenderColorQuadARGB(x + 2, y + height - 3, width - 4, 1, BorderInner);
-            RenderColorQuadARGB(x + 2, y + 2, 1, height - 4, BorderInner);
-            RenderColorQuadARGB(x + width - 3, y + 2, 1, height - 4, BorderInner);
-            RenderColorQuadARGB(x, y, CornerSize, CornerSize, CornerColor);
-            RenderColorQuadARGB(x + width - CornerSize, y, CornerSize, CornerSize, CornerColor);
-            RenderColorQuadARGB(x, y + height - CornerSize, CornerSize, CornerSize, CornerColor);
-            RenderColorQuadARGB(x + width - CornerSize, y + height - CornerSize, CornerSize, CornerSize, CornerColor);
+            RenderColorQuadARGB(x + 3, y + 3, width - 6, 1, BorderInner);
+            RenderColorQuadARGB(x + 3, y + height - 4, width - 6, 1, BorderInner);
         }
 
-        void RenderDivider(float x, float y, float width)
+        // Draws the atlas rectangle (in atlas pixels) mirrored horizontally and/or vertically.
+        void RenderAtlas(int texture, float x, float y, float width, float height,
+            float sourceX, float sourceY, float sourceWidth, float sourceHeight, bool flipX, bool flipY)
+        {
+            float u = sourceX / AtlasWidth;
+            float v = sourceY / AtlasHeight;
+            float uWidth = sourceWidth / AtlasWidth;
+            float vHeight = sourceHeight / AtlasHeight;
+            if (flipX)
+            {
+                u += uWidth;
+                uWidth = -uWidth;
+            }
+            if (flipY)
+            {
+                v += vHeight;
+                vHeight = -vHeight;
+            }
+            RenderBitmap(texture, x, y, width, height, u, v, uWidth, vHeight);
+        }
+
+        void RenderCorners(int texture, float x, float y, float width, float height)
+        {
+            const float right = x + width - CornerSize;
+            const float bottom = y + height - CornerSize;
+            RenderAtlas(texture, x, y, CornerSize, CornerSize, 0, 0, AtlasCornerSize, AtlasCornerSize, false, false);
+            RenderAtlas(texture, right, y, CornerSize, CornerSize, 0, 0, AtlasCornerSize, AtlasCornerSize, true, false);
+            RenderAtlas(texture, x, bottom, CornerSize, CornerSize, 0, 0, AtlasCornerSize, AtlasCornerSize, false, true);
+            RenderAtlas(texture, right, bottom, CornerSize, CornerSize, 0, 0, AtlasCornerSize, AtlasCornerSize, true, true);
+        }
+
+        void RenderRule(int texture, float x, float y, float width)
         {
             const float inset = PaddingX - 2.f;
-            const float third = (width - inset * 2) / 3.f;
-            RenderColorQuadARGB(x + inset, y, third, DividerHeight, DividerEdge);
-            RenderColorQuadARGB(x + inset + third, y, third, DividerHeight, DividerCentre);
-            RenderColorQuadARGB(x + inset + third * 2, y, third, DividerHeight, DividerEdge);
+            RenderAtlas(texture, x + inset, y - RuleHeight / 2.f, width - inset * 2, RuleHeight,
+                AtlasRuleX, 0, AtlasRuleWidth, AtlasRuleHeight, false, false);
         }
     }
 
@@ -120,7 +149,7 @@ namespace UI::Buffs::Tooltip
         ++count;
     }
 
-    void Render(int anchorX, int anchorY, int count)
+    void Render(int anchorX, int anchorY, int count, int ornamentTexture)
     {
         if (count <= 0)
         {
@@ -143,16 +172,17 @@ namespace UI::Buffs::Tooltip
         const float y = std::clamp(static_cast<float>(anchorY), 0.f, std::max(0.f, REFERENCE_HEIGHT - height));
         EnableAlphaTest();
         RenderBox(x, y, width, height);
+        EndRenderColor();
+        RenderCorners(ornamentTexture, x, y, width, height);
         float lineY = y + PaddingY;
         for (int line = 0; line < count; ++line)
         {
             if (IsDivider(line))
             {
-                RenderDivider(x, lineY + LineHeight(line) / 2.f, width);
+                RenderRule(ornamentTexture, x, lineY + LineHeight(line) / 2.f, width);
             }
             lineY += LineHeight(line);
         }
-        EndRenderColor();
         RenderTipTextList(static_cast<int>(x + width / 2), static_cast<int>(y + PaddingY),
             count, 0, RT3_SORT_CENTER, STRP_NONE, FALSE);
         g_pRenderText->SetFont(g_hFont);

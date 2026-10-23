@@ -443,7 +443,7 @@ void SEASON3B::CNewUIBuffWindow::RenderTwoHandedBonus(BUFF_RENDER renderstate, i
         }
     }
     UI::Buffs::Tooltip::Render(position.x + BUFF_IMG_WIDTH / 2,
-        position.y + BUFF_IMG_HEIGHT + BUFF_IMG_SPACE, count);
+        position.y + BUFF_IMG_HEIGHT + BUFF_IMG_SPACE, count, IMAGE_BUFF_TOOLTIP_ORNAMENTS);
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, float y, float width, float height)
@@ -519,7 +519,7 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffTooltip(eBuffClass& eBuffClassType, e
         g_BuffStringTime(eBuffType, bufftime);
         UI::Buffs::Tooltip::Append(bufftime, TEXT_COLOR_PURPLE, false, count);
     }
-    UI::Buffs::Tooltip::Render(x, y, count);
+    UI::Buffs::Tooltip::Render(x, y, count, IMAGE_BUFF_TOOLTIP_ORNAMENTS);
 }
 
 float SEASON3B::CNewUIBuffWindow::GetLayerDepth()	//. 5.3f
@@ -540,10 +540,12 @@ void SEASON3B::CNewUIBuffWindow::LoadImages()
     LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon.jpg", IMAGE_BUFF_STATUS, GL_LINEAR);
     LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon2.jpg", IMAGE_BUFF_STATUS2, GL_LINEAR);
     LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon3.jpg", IMAGE_BUFF_STATUS3, GL_LINEAR);
+    LoadBitmap(L"Interface\\BuffDetails\\tooltip_ornaments.tga", IMAGE_BUFF_TOOLTIP_ORNAMENTS, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIBuffWindow::UnloadImages()
 {
+    DeleteBitmap(IMAGE_BUFF_TOOLTIP_ORNAMENTS);
     DeleteBitmap(IMAGE_BUFF_STATUS3);
     DeleteBitmap(IMAGE_BUFF_STATUS2);
     DeleteBitmap(IMAGE_BUFF_STATUS);
