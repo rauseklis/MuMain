@@ -33,6 +33,40 @@ CMapManager::~CMapManager() // OK
 {
 }
 
+namespace
+{
+    // Lorencia shows the Loren Market fountain and lamp planters: their models live in the market's object folder, so
+    // they are loaded from there instead of Object1 (the file number is the market's model index + 1).
+    struct MarketFountainModel
+    {
+        int lorenciaModel;
+        int marketFileNumber;
+    };
+
+    constexpr const wchar_t* MARKET_OBJECT_MODEL_DIR = L"Data\\Object80\\";
+    constexpr const wchar_t* MARKET_OBJECT_TEXTURE_DIR = L"Object80\\";
+    constexpr MarketFountainModel MARKET_FOUNTAIN_MODELS[] = {
+        { MODEL_MARKET_FOUNTAIN_BASE, 9 },
+        { MODEL_MARKET_FOUNTAIN_TOP, 12 },
+        { MODEL_MARKET_FOUNTAIN_DRAGON, 13 },
+        { MODEL_MARKET_FOUNTAIN_WATER01, 55 },
+        { MODEL_MARKET_FOUNTAIN_WATER02, 56 },
+        { MODEL_MARKET_LAMP_PLANTER, 10 },
+        { MODEL_MARKET_LAMP_SHRUB, 11 },
+        { MODEL_MARKET_LAMP_BUSH, 48 },
+        { MODEL_MARKET_LAMP, 31 },
+    };
+
+    void LoadLorenciaMarketFountainModels()
+    {
+        for (const MarketFountainModel& model : MARKET_FOUNTAIN_MODELS)
+        {
+            gLoadData.AccessModel(model.lorenciaModel, MARKET_OBJECT_MODEL_DIR, L"Object", model.marketFileNumber);
+            gLoadData.OpenTexture(model.lorenciaModel, MARKET_OBJECT_TEXTURE_DIR);
+        }
+    }
+}
+
 void CMapManager::Load() // OK
 {
     int i;
@@ -1101,6 +1135,8 @@ void CMapManager::Load() // OK
 
         for (i = MODEL_WORLD_OBJECT; i < MAX_WORLD_OBJECTS; i++)
             gLoadData.OpenTexture(i, L"Object1\\");
+
+        LoadLorenciaMarketFountainModels();
     }
     else
     {
