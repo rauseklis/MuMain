@@ -4,7 +4,9 @@
 
 Writes src/bin/Data/Interface/BuffDetails/tooltip_ornaments.OZT (1x, the original the loader looks for) and the
 Interface@4x and Interface@2x tiers. Layout in logical pixels (128 x 32): the corner ornament (24 x 24) at 0,0 and the
-gold rule (96 x 4) at 28,0. The corner is the top-left one; the game mirrors it for the other three.
+gold rule (96 x 4) at 28,0, and two border strips cut from the straight part of the corner art so the edges match the
+corners exactly: the top one (4 x 2.75) at 28,6 and the left one (2.75 x 4) at 28,10. The corner is the top-left one; the
+game mirrors it for the other three and stretches the strips along the edges.
 """
 import os
 
@@ -23,6 +25,11 @@ CORNER_SIZE = 24
 CORNER_ORIGIN = (0, 0)
 RULE_SIZE = (96, 4)
 RULE_ORIGIN = (28, 0)
+STRIP_SOURCE_BAND = 22
+STRIP_SOURCE_RUN = (156, 188)
+STRIP_SIZE = (16, 11)
+TOP_STRIP_ORIGIN = (112, 24)
+LEFT_STRIP_ORIGIN = (112, 40)
 RULE_SOURCE_ROWS = (148, 157)
 RULE_SOURCE_WIDTH = 390
 
@@ -54,6 +61,12 @@ def build_master():
     rule = load("icon_Rank_table").crop((0, RULE_SOURCE_ROWS[0], RULE_SOURCE_WIDTH, RULE_SOURCE_ROWS[1]))
     rule = resize_premultiplied(rule, (RULE_SIZE[0] * scale, RULE_SIZE[1] * scale))
     atlas.alpha_composite(rule, (RULE_ORIGIN[0] * scale, RULE_ORIGIN[1] * scale))
+    corner_source = load("newui_auction_frame_corner")
+    run = STRIP_SOURCE_RUN
+    top = corner_source.crop((run[0], 0, run[1], STRIP_SOURCE_BAND))
+    left = corner_source.crop((0, run[0], STRIP_SOURCE_BAND, run[1]))
+    atlas.alpha_composite(resize_premultiplied(top, STRIP_SIZE), TOP_STRIP_ORIGIN)
+    atlas.alpha_composite(resize_premultiplied(left, STRIP_SIZE[::-1]), LEFT_STRIP_ORIGIN)
     return np.asarray(atlas)
 
 

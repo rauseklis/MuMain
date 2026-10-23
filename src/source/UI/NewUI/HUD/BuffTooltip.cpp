@@ -28,15 +28,20 @@ namespace UI::Buffs::Tooltip
         constexpr float AtlasRuleWidth = 96.f;
         constexpr float AtlasRuleHeight = 4.f;
         constexpr float RuleHeight = 4.f;
+        // Border strips, in atlas pixels (see tools/ui_hd/tooltip_ornaments.py), and their thickness on screen.
+        constexpr float AtlasStripX = 28.f;
+        constexpr float AtlasTopStripY = 6.f;
+        constexpr float AtlasLeftStripY = 10.f;
+        constexpr float AtlasStripLong = 4.f;
+        constexpr float AtlasStripThin = 2.75f;
+        constexpr float AtlasInset = 0.125f;
+        constexpr float BorderThickness = AtlasStripThin * CornerSize / AtlasCornerSize;
         constexpr float HighlightBands = 6.f;
 
         constexpr unsigned int ShadowOuter = 0x30000000;
         constexpr unsigned int ShadowInner = 0x50000000;
         constexpr unsigned int BodyColor = 0xF2100D16;
         constexpr unsigned int HighlightColor = 0x0CFFE2A0;
-        constexpr unsigned int BorderOuter = 0xFF1A1208;
-        constexpr unsigned int BorderGold = 0xFFB38B35;
-        constexpr unsigned int BorderInner = 0x40E6C477;
 
         bool IsDivider(int line)
         {
@@ -57,18 +62,14 @@ namespace UI::Buffs::Tooltip
         {
             RenderColorQuadARGB(x + 2, y + 3, width, height, ShadowOuter);
             RenderColorQuadARGB(x + 1, y + 2, width, height, ShadowInner);
-            RenderColorQuadARGB(x, y, width, height, BorderOuter);
-            RenderColorQuadARGB(x + 1, y + 1, width - 2, height - 2, BorderGold);
-            RenderColorQuadARGB(x + 2, y + 2, width - 4, height - 4, BodyColor);
-            const float bandHeight = (height - 4) / HighlightBands / 2.f;
+            RenderColorQuadARGB(x, y, width, height, BodyColor);
+            const float bandHeight = height / HighlightBands / 2.f;
             for (int band = 0; band < static_cast<int>(HighlightBands); ++band)
             {
                 const unsigned int alpha = (HighlightColor >> 24) * (HighlightBands - band) / HighlightBands;
-                RenderColorQuadARGB(x + 2, y + 2 + band * bandHeight, width - 4, bandHeight,
+                RenderColorQuadARGB(x, y + band * bandHeight, width, bandHeight,
                     (alpha << 24) | (HighlightColor & 0x00FFFFFF));
             }
-            RenderColorQuadARGB(x + 3, y + 3, width - 6, 1, BorderInner);
-            RenderColorQuadARGB(x + 3, y + height - 4, width - 6, 1, BorderInner);
         }
 
         // Draws the atlas rectangle (in atlas pixels) mirrored horizontally and/or vertically.
@@ -90,6 +91,23 @@ namespace UI::Buffs::Tooltip
                 vHeight = -vHeight;
             }
             RenderBitmap(texture, x, y, width, height, u, v, uWidth, vHeight);
+        }
+
+        void RenderBorder(int texture, float x, float y, float width, float height)
+        {
+            const float runWidth = width - CornerSize * 2;
+            const float runHeight = height - CornerSize * 2;
+            const float topX = AtlasStripX + AtlasInset;
+            const float longRun = AtlasStripLong - AtlasInset * 2;
+            const float thin = AtlasStripThin - AtlasInset;
+            RenderAtlas(texture, x + CornerSize, y, runWidth, BorderThickness,
+                topX, AtlasTopStripY + AtlasInset, longRun, thin, false, false);
+            RenderAtlas(texture, x + CornerSize, y + height - BorderThickness, runWidth, BorderThickness,
+                topX, AtlasTopStripY + AtlasInset, longRun, thin, false, true);
+            RenderAtlas(texture, x, y + CornerSize, BorderThickness, runHeight,
+                topX, AtlasLeftStripY + AtlasInset, thin, longRun, false, false);
+            RenderAtlas(texture, x + width - BorderThickness, y + CornerSize, BorderThickness, runHeight,
+                topX, AtlasLeftStripY + AtlasInset, thin, longRun, true, false);
         }
 
         void RenderCorners(int texture, float x, float y, float width, float height)
@@ -173,6 +191,7 @@ namespace UI::Buffs::Tooltip
         EnableAlphaTest();
         RenderBox(x, y, width, height);
         EndRenderColor();
+        RenderBorder(ornamentTexture, x, y, width, height);
         RenderCorners(ornamentTexture, x, y, width, height);
         float lineY = y + PaddingY;
         for (int line = 0; line < count; ++line)
