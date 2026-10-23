@@ -2,6 +2,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Core/Time/FrameTiming.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 #include "Render/Models/ZzzBMD.h"
 #include "Engine/Object/ZzzInfomation.h"
@@ -188,7 +189,7 @@ void CreateBlur(CHARACTER* Owner, vec3_t p1, vec3_t p2, vec3_t Light, int Type, 
     }
 }
 
-void MoveBlurs()
+void AgeBlurs()
 {
     for (auto& blur : g_blurs)
     {
@@ -215,6 +216,21 @@ void MoveBlurs()
             }
         }
     }
+}
+
+void MoveBlurs()
+{
+    // The life time and the fading of a trail are counted in steps of the original 25 Hz game loop. Counting rendered
+    // frames made a trail die after 15 frames, which is a fraction of a swing at a high frame rate.
+    static float s_stepAccumulator = 0.0f;
+    s_stepAccumulator += FPS_ANIMATION_FACTOR;
+    const int steps = static_cast<int>(s_stepAccumulator);
+    s_stepAccumulator -= static_cast<float>(steps);
+    for (int step = 0; step < steps; ++step)
+    {
+        AgeBlurs();
+    }
+
     MoveObjectBlurs();
 }
 
