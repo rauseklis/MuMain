@@ -1608,7 +1608,7 @@ void RenderBoidExtras(OBJECT* o)
 
     case MODEL_BUTTERFLY01:
     {
-        float  Luminosity = (float)(rand() % 32 + 64) * 0.01f;
+        float Luminosity = (float)(rand() % 32 + 64) * 0.01f;
 
         Vector(Luminosity * 0.2f, Luminosity * 0.4f, Luminosity * 0.4f, Light);
         CreateSprite(BITMAP_LIGHT, o->Position, 1.f, Light, o);
@@ -1634,22 +1634,19 @@ void RenderBoidExtras(OBJECT* o)
         CreateSprite(BITMAP_LIGHT, Position, 0.1f, Light, o);
         break;
     }
-    if (gMapManager.WorldActive != WD_10HEAVEN)
-    {
-        EnableAlphaTest();
-        if (gMapManager.WorldActive == WD_51HOME_6TH_CHAR && o->Type == MODEL_MAP_TORNADO);
-        else
-        {
-            const float shadowAlpha = o->Type == MODEL_EAGLE
-                ? (o->ShadowScale == 0 ? 0.f : 1.f)
-                : 0.2f;
-            VectorCopy(o->Position, Position);
-            Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
-            VectorCopy(Position, b->BodyOrigin);
+    if (gMapManager.WorldActive == WD_10HEAVEN)
+        return;
 
-            b->RenderBodyShadow(-1, -1, -1, -1, nullptr, 0, shadowAlpha);
-        }
-    }
+    EnableAlphaTest();
+    if (gMapManager.WorldActive == WD_51HOME_6TH_CHAR && o->Type == MODEL_MAP_TORNADO)
+        return;
+
+    const float shadowAlpha = o->Type == MODEL_EAGLE ? (o->ShadowScale == 0 ? 0.f : 1.f) : 0.2f;
+    VectorCopy(o->Position, Position);
+    Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
+    VectorCopy(Position, b->BodyOrigin);
+
+    b->RenderBodyShadow(-1, -1, -1, -1, nullptr, 0, shadowAlpha);
 }
 } // namespace
 
@@ -1677,9 +1674,7 @@ void RenderBoids(bool bAfterCharacter)
                 {
                     continue;
                 }
-                Engine::AI::RenderBoidPass(
-                    [o] { return RenderObject(o, true); },
-                    [o] { RenderBoidExtras(o); });
+                Engine::AI::RenderBoidPass([o] { return RenderObject(o, true); }, [o] { RenderBoidExtras(o); });
             }
         }
         if (MODEL_SPEARSKILL != o->Type)
