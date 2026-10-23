@@ -27,6 +27,7 @@
 #include "Network/Server/WSclient.h"
 #include "Network/Reconnect/ReconnectManager.h"
 #include "Engine/AI/GOBoid.h"
+#include "MUHelper/MuHelper.h"
 #include "GameLogic/Items/PersonalShopTitleImp.h"
 #include "UI/Legacy/UIManager.h"
 #include "Engine/Object/ZzzInventory.h"
@@ -202,6 +203,24 @@ static void InitializeSceneFrame()
     MouseOnWindow = false;
 }
 
+static void DismissPanelsOnWorldClick()
+{
+    if (MouseLButton == true &&
+        false == g_pNewUISystem->CheckMouseUse() &&
+        g_dwMouseUseUIID == 0 &&
+        g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_CHATINPUTBOX) == false)
+    {
+        g_pWindowMgr->SetWindowsEnable(FALSE);
+        g_pFriendMenu->HideMenu();
+        g_dwKeyFocusUIID = 0;
+        if (GetFocus() != g_hWnd)
+        {
+            SaveIMEStatus();
+            SetFocus(g_hWnd);
+        }
+    }
+}
+
 /**
  * @brief Updates user interface and processes player input.
  *
@@ -217,6 +236,8 @@ static void InitializeSceneFrame()
  */
 static void UpdateUIAndInput()
 {
+    MUHelper::g_MuHelper.HandleCancelInput(SEASON3B::IsPress(VK_ESCAPE));
+
     if (g_Camera.TopViewEnable || LoadingWorld >= 30)
         return;
 
@@ -227,20 +248,7 @@ static void UpdateUIAndInput()
     g_pPartyManager->Update();
     g_pNewUISystem->Update();
 
-    if (MouseLButton == true &&
-        false == g_pNewUISystem->CheckMouseUse() &&
-        g_dwMouseUseUIID == 0 &&
-        g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_CHATINPUTBOX) == false)
-    {
-        g_pWindowMgr->SetWindowsEnable(FALSE);
-        g_pFriendMenu->HideMenu();
-        g_dwKeyFocusUIID = 0;
-        if (GetFocus() != g_hWnd)
-        {
-            SaveIMEStatus();
-            SetFocus(g_hWnd);
-        }
-    }
+    DismissPanelsOnWorldClick();
 
     MoveInterface();
     MoveTournamentInterface();

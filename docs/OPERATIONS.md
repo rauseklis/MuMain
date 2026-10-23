@@ -142,3 +142,29 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 - Packets folder: `nuget-feed/README.md`
 - Live server setup (server repository): `deploy/live/README.md`
 - HD interface textures: `docs/ui-hd-textures.md`
+
+## MU Helper lifecycle and minimized-window regression
+
+- The official MU Helper (the Z settings/helper button, not held right-click)
+  must stop locally on Escape, death, safe-zone entry, teleport and logout.
+  Stopping does not depend on receiving a server acknowledgement. A delayed
+  start acknowledgement must not restart a helper explicitly stopped by the player.
+- Inactive helper stops leave manual attacks and movement alone. An active stop
+  cancels the queued repeating attack, spell target and walking path.
+- Windows messages already owned by SDL must not also pass through the legacy
+  default window procedure. Keep legacy Enter/IME, F10 and protection handling;
+  SDL handles minimize/restore, resize, paint and close.
+- Reproduction on the installed Windows client: minimizing left the helper
+  active while WorldTime, animation and helper ticks froze until restoration.
+  Two in-memory snapshots showed the main thread in NtUserMessageCall through
+  SDL WIN_WindowProc/WIN_PumpEvents. Removing duplicate native default handling
+  is a candidate correction; Windows build/tests and the same minimize/restore
+  gameplay check are still required before calling it verified.
+- Actions is intentionally disabled by the owner. The prepared changes are
+  unmerged; do not enable Actions or substitute a local build without permission.
+  When Actions is allowed again, first run the test-only helper baseline
+  982bf419973fa83a4ee1e5a5b30de88a2bac3099, then the fix. The earlier Windows
+  test run had a fixture include error and is not a valid failing regression run.
+- Verify after installation: Escape with a UI open, death and respawn, stop with
+  no server reply, reconnect resume, minimize for at least 20 seconds, then
+  restore. Also check ordinary movement, F10, chat/IME, resize and titlebar close.

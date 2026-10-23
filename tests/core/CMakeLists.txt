@@ -171,3 +171,8 @@ mu_add_test(
         ${CMAKE_SOURCE_DIR}/src/source/App/Platform/Windows/Winmain.cpp
     LINK_LIBS MuClient
 )
+
+mu_add_test(
+    NAME test_legacy_window_message
+    SOURCES test_legacy_window_message.cpp
+)

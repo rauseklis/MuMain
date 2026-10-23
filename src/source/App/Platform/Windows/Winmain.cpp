@@ -29,6 +29,7 @@
 #include "Render/Renderer/MuRenderer.h"
 #include "Engine/Object/ZzzOpenData.h"
 #include "Scenes/SceneCore.h"
+#include "App/Platform/Windows/LegacyWindowMessage.h"
 #include "Scenes/SceneManager.h"
 #include "Network/Reconnect/ReconnectManager.h"
 #include "Network/IncomingPacketQueue.h"
@@ -578,7 +579,20 @@ extern bool EnableFastInput;
 // The legacy Win32 message handler. SDL owns the event loop on Linux and only
 // bridges to this via the Windows-only message hook, so guard it off there.
 #ifdef _WIN32
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static void UpdateLegacyInputMethod(WPARAM notification)
+{
+    if (g_iChatInputType != 1 || GetFocus() != g_hWnd)
+    {
+        return;
+    }
+
+    if (notification == IMN_SETCONVERSIONMODE || notification == IMN_SETSENTENCEMODE)
+    {
+        CheckTextInputBoxIME(IME_CONVERSIONMODE);
+    }
+}
+
+LRESULT CALLBACK WndProc(HWND /*hwnd*/, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     // F10 zoom-lock toggle. Handled before the ImGui forwarder so editor-open
     // sessions still get the toggle (ImGui captures keyboard messages while a
@@ -599,7 +613,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_SYSKEYDOWN:
     {
         // F10 is handled above (intercepted before ImGui). Other system keys
-        // are silenced here — returning 0 prevents the OS menu activation.
+        // have no additional game handling; SDL owns native processing.
         return 0;
     }
     break;
@@ -612,31 +626,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         MessageBox(nullptr, I18N::Game::Error9AHackingToolHasBeen, L"Error", MB_OK);
         PostMessage(g_hWnd, WM_CLOSE, 0, 0);
         break;
-    case WM_ERASEBKGND:
-        return TRUE;
-        break;
-    // WM_SIZE is handled via SDL window resize events (issue #442).
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hDC = BeginPaint(hwnd, &ps);
-        EndPaint(hwnd, &ps);
-    }
-        return 0;
-        break;
-    case WM_DESTROY:
-    {
-        // Just request shutdown; the main loop exits on Destroy and the teardown
-        // (sound, GL, window) runs after it. SDL owns the window now, so the GL
-        // context and window must not be torn down from inside a message.
-        Destroy = true;
-        if (SocketClient != nullptr)
-        {
-            SocketClient->Close();
-            g_bGameServerConnected = false;
-        }
-    }
-    break;
     case WM_SETCURSOR:
 #ifdef _EDITOR
         // When hovering UI (including Open Editor button), let Windows show cursor
@@ -644,7 +633,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if (g_MuEditorCore.IsHoveringUI())
         {
             // Let Windows cursor show - don't hide it
-            return DefWindowProc(hwnd, msg, wParam, lParam);
+            return 0;
         }
         else
 #endif
@@ -661,29 +650,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch (msg)
     {
     case WM_IME_NOTIFY:
-    {
-        if (g_iChatInputType == 1)
-        {
-            switch (wParam)
-            {
-            case IMN_SETCONVERSIONMODE:
-                if (GetFocus() == g_hWnd)
-                {
-                    CheckTextInputBoxIME(IME_CONVERSIONMODE);
-                }
-                break;
-            case IMN_SETSENTENCEMODE:
-                if (GetFocus() == g_hWnd)
-                {
-                    CheckTextInputBoxIME(IME_SENTENCEMODE);
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
-    break;
+        UpdateLegacyInputMethod(wParam);
+        break;
     case WM_CHAR:
     {
         switch (wParam)
@@ -698,7 +666,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     break;
     }
 
-    return DefWindowProc(hwnd, msg, wParam, lParam);
+    return 0;
 }
 #endif // _WIN32 (WndProc)
 
@@ -874,13 +842,10 @@ void SetMaxMessagePerCycle(int messages)
 // SDL-native and the legacy text boxes are replaced (issue #447).
 static bool SDLCALL Win32MessageHook(void* /*userdata*/, MSG* msg)
 {
-    // Let SDL own window close. Forwarding WM_CLOSE to WndProc would reach
-    // DefWindowProc, which destroys the window synchronously and out from under
-    // SDL. SDL turns the close into SDL_EVENT_QUIT, which the main loop handles.
-    if (msg->message == WM_CLOSE)
-        return true;
-
-    WndProc(msg->hwnd, msg->message, msg->wParam, msg->lParam);
+    if (App::Platform::ShouldForwardLegacyWindowMessage(msg->message, WM_NPROTECT_EXIT_TWO))
+    {
+        WndProc(msg->hwnd, msg->message, msg->wParam, msg->lParam);
+    }
     return true;
 }
 #endif
