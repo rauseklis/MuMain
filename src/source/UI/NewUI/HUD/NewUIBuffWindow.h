@@ -15,7 +15,6 @@ namespace SEASON3B
             IMAGE_BUFF_STATUS = BITMAP_BUFFWINDOW_BEGIN,
             IMAGE_BUFF_STATUS2,
             IMAGE_BUFF_STATUS3,
-            IMAGE_BUFF_TOOLTIP_FRAME,
         };
 
         enum BUFF_RENDER
