@@ -190,7 +190,8 @@ int OpenTerrainAttribute(wchar_t* FileName)
     switch (gMapManager.WorldActive)
     {
     case WD_0LORENCIA:
-        if (TerrainWall[121 * TERRAIN_SIZE + 124] != 5) Error = true; // a house wall of the town
+        if (TerrainWall[121 * TERRAIN_SIZE + 124] != 5)
+            Error = true; // a house wall of the town
         break;
     case WD_1DUNGEON:
         if (TerrainWall[120 * TERRAIN_SIZE + 227] != 4) Error = true;
