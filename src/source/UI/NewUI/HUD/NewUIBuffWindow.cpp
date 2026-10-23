@@ -22,10 +22,17 @@ using namespace SEASON3B;
 
 namespace
 {
-    const float BUFF_IMG_WIDTH = 20.0f;
-    const float BUFF_IMG_HEIGHT = 28.0f;
+    // One cell of the icon sheets, in texels of the original art.
+    const float BUFF_SOURCE_WIDTH = 20.0f;
+    const float BUFF_SOURCE_HEIGHT = 28.0f;
+    const float BUFF_SHEET_SIZE = 256.0f;
+    // Size on the 640 x 480 canvas: three quarters of the artwork, so the row stays small.
+    const float BUFF_IMG_WIDTH = 15.0f;
+    const float BUFF_IMG_HEIGHT = 21.0f;
     const int BUFF_MAX_LINE_COUNT = 8;
-    const int BUFF_IMG_SPACE = 5;
+    const int BUFF_IMG_SPACE = 3;
+    const int BUFF_ROW_WIDTH = BUFF_MAX_LINE_COUNT * static_cast<int>(BUFF_IMG_WIDTH) + (BUFF_MAX_LINE_COUNT - 1) * BUFF_IMG_SPACE;
+    const int BUFF_TOP = 15;
     constexpr wchar_t TwoHandedBonusTitle[] = L"Two-handed weapon bonus";
     constexpr wchar_t PhysicalBonusText[] = L"Physical damage +15%";
     constexpr wchar_t WizardryBonusText[] = L"Wizardry damage +15%";
@@ -79,23 +86,11 @@ void SEASON3B::CNewUIBuffWindow::SetPos(int x, int y)
     m_Pos.y = y;
 }
 
-void SEASON3B::CNewUIBuffWindow::SetPos(int iScreenWidth)
+void SEASON3B::CNewUIBuffWindow::SetPos(int /*iScreenWidth*/)
 {
-    if (iScreenWidth == REFERENCE_WIDTH) {
-        SetPos(220, 15);
-    }
-    else if (iScreenWidth == 450) {
-        SetPos(125, 15);
-    }
-    else if (iScreenWidth == 373) {
-        SetPos(86, 15);
-    }
-    else if (iScreenWidth == 260) {
-        SetPos(30, 15);
-    }
-    else {
-        SetPos(220, 15);
-    }
+    // The row stays centred on the screen. It is narrower than the gap between two open panels, so it never has to
+    // move aside when the inventory, character or another window opens.
+    SetPos((REFERENCE_WIDTH - BUFF_ROW_WIDTH) / 2, BUFF_TOP);
 }
 
 static eBuffState NormalizeBuffState(eBuffState raw)
@@ -442,9 +437,13 @@ void SEASON3B::CNewUIBuffWindow::RenderTwoHandedBonus(BUFF_RENDER renderstate, i
     for (int line = 0; line < TwoHandedTooltipLines; ++line)
     {
         UI::Buffs::Tooltip::Append(lines[line], line == 0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE, line == 0, count);
+        if (line == 0)
+        {
+            UI::Buffs::Tooltip::AppendDivider(count);
+        }
     }
     UI::Buffs::Tooltip::Render(position.x + BUFF_IMG_WIDTH / 2,
-        position.y + BUFF_IMG_HEIGHT + BUFF_IMG_SPACE, count, IMAGE_BUFF_TOOLTIP_FRAME);
+        position.y + BUFF_IMG_HEIGHT + BUFF_IMG_SPACE, count);
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, float y, float width, float height)
@@ -457,10 +456,10 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, 
         iWidthIndex = (eBuffType - 1) % 10;
         iHeightIndex = (eBuffType - 1) / 10;
 
-        u = iWidthIndex * width / 256.f;
-        v = iHeightIndex * height / 256.f;
+        u = iWidthIndex * BUFF_SOURCE_WIDTH / BUFF_SHEET_SIZE;
+        v = iHeightIndex * BUFF_SOURCE_HEIGHT / BUFF_SHEET_SIZE;
 
-        RenderBitmap(IMAGE_BUFF_STATUS, x, y, width, height, u, v, width / 256.f, height / 256.f);
+        RenderBitmap(IMAGE_BUFF_STATUS, x, y, width, height, u, v, BUFF_SOURCE_WIDTH / BUFF_SHEET_SIZE, BUFF_SOURCE_HEIGHT / BUFF_SHEET_SIZE);
     }
     else if (eBuffType < 161)
     {
@@ -468,17 +467,17 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, 
         iWidthIndex = (eBuffType - 81) % 10; // eBuff_Berserker
         iHeightIndex = (eBuffType - 81) / 10; // eBuff_Berserker
 
-        u = iWidthIndex * width / 256.f;
-        v = iHeightIndex * height / 256.f;
+        u = iWidthIndex * BUFF_SOURCE_WIDTH / BUFF_SHEET_SIZE;
+        v = iHeightIndex * BUFF_SOURCE_HEIGHT / BUFF_SHEET_SIZE;
 
-        RenderBitmap(IMAGE_BUFF_STATUS2, x, y, width, height, u, v, width / 256.f, height / 256.f);
+        RenderBitmap(IMAGE_BUFF_STATUS2, x, y, width, height, u, v, BUFF_SOURCE_WIDTH / BUFF_SHEET_SIZE, BUFF_SOURCE_HEIGHT / BUFF_SHEET_SIZE);
     }
     else
     {
         const int index = eBuffType - 161;
-        u = (index % 10) * width / 256.f;
-        v = (index / 10) * height / 256.f;
-        RenderBitmap(IMAGE_BUFF_STATUS3, x, y, width, height, u, v, width / 256.f, height / 256.f);
+        u = (index % 10) * BUFF_SOURCE_WIDTH / BUFF_SHEET_SIZE;
+        v = (index / 10) * BUFF_SOURCE_HEIGHT / BUFF_SHEET_SIZE;
+        RenderBitmap(IMAGE_BUFF_STATUS3, x, y, width, height, u, v, BUFF_SOURCE_WIDTH / BUFF_SHEET_SIZE, BUFF_SOURCE_HEIGHT / BUFF_SHEET_SIZE);
     }
 }
 
@@ -491,6 +490,7 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffTooltip(eBuffClass& eBuffClassType, e
         info = g_BuffInfo(NormalizeBuffState(eBuffType));
     }
     UI::Buffs::Tooltip::Append(info.s_BuffName, TEXT_COLOR_BLUE, true, count);
+    UI::Buffs::Tooltip::AppendDivider(count);
     const auto* details = GameLogic::Buffs::ActiveBuffDetails().Find(eBuffType);
     if (details)
     {
@@ -519,7 +519,7 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffTooltip(eBuffClass& eBuffClassType, e
         g_BuffStringTime(eBuffType, bufftime);
         UI::Buffs::Tooltip::Append(bufftime, TEXT_COLOR_PURPLE, false, count);
     }
-    UI::Buffs::Tooltip::Render(x, y, count, IMAGE_BUFF_TOOLTIP_FRAME);
+    UI::Buffs::Tooltip::Render(x, y, count);
 }
 
 float SEASON3B::CNewUIBuffWindow::GetLayerDepth()	//. 5.3f
@@ -540,12 +540,10 @@ void SEASON3B::CNewUIBuffWindow::LoadImages()
     LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon.jpg", IMAGE_BUFF_STATUS, GL_LINEAR);
     LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon2.jpg", IMAGE_BUFF_STATUS2, GL_LINEAR);
     LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon3.jpg", IMAGE_BUFF_STATUS3, GL_LINEAR);
-    LoadBitmap(L"Interface\\BuffDetails\\message_back.tga", IMAGE_BUFF_TOOLTIP_FRAME, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIBuffWindow::UnloadImages()
 {
-    DeleteBitmap(IMAGE_BUFF_TOOLTIP_FRAME);
     DeleteBitmap(IMAGE_BUFF_STATUS3);
     DeleteBitmap(IMAGE_BUFF_STATUS2);
     DeleteBitmap(IMAGE_BUFF_STATUS);
