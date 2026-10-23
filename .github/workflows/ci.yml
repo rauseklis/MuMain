@@ -595,7 +595,9 @@ jobs:
 
   build-macos:
     name: macOS Native Build (arm64, Release, editor OFF)
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    # Switched off for this private project (we only use Windows): it failed on every run and made merges look broken.
+    # To turn it back on, use: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    if: false
     runs-on: macos-latest
 
     steps:
