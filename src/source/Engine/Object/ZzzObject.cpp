@@ -4248,12 +4248,12 @@ void MoveObject(OBJECT* o)
             {
                 o->Alpha = 1.0f;
                 Vector(1.0f, 1.0f, 1.0f, o->Light);
-                o->Angle[2] -= 0.23f;
+                o->Angle[2] -= 0.23f * FPS_ANIMATION_FACTOR;
             }
             else
             {
                 o->Alpha = 0.2f;
-                o->Angle[2] -= 0.6f;
+                o->Angle[2] -= 0.6f * FPS_ANIMATION_FACTOR;
                 Vector(1.0f, 0.0f, 0.0f, o->Light);
             }
 

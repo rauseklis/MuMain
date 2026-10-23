@@ -3863,8 +3863,8 @@ void MoveJoint(JOINT* o, int iIndex)
             }
             else
             {
-                o->Direction[0] += ((float)(rand() % 32 - 16) * 0.2f);
-                o->Direction[2] += ((float)(rand() % 32 - 16) * 0.8f);
+                o->Direction[0] += ((float)(rand() % 32 - 16) * 0.2f) * FPS_ANIMATION_FACTOR;
+                o->Direction[2] += ((float)(rand() % 32 - 16) * 0.8f) * FPS_ANIMATION_FACTOR;
                 o->Angle[0] += (o->Direction[0]) * FPS_ANIMATION_FACTOR;
                 o->Angle[2] += (o->Direction[2]) * FPS_ANIMATION_FACTOR;
                 o->Direction[0] *= 0.6f;// powf(0.6f, FPS_ANIMATION_FACTOR);
