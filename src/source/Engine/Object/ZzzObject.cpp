@@ -1122,7 +1122,7 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
                     }
                 }
 
-                if (RenderHellasObjectMesh(o, b) || World::Lorencia::MarketFountain::RenderObjectMesh(o)) {}
+                if (RenderHellasObjectMesh(o, b) || World::Lorencia::MarketFountain::RenderObjectMesh(o, b)) {}
                 else
                     if (battleCastle::RenderBattleCastleObjectMesh(o, b)) {}
                     else
@@ -3538,7 +3538,6 @@ void Draw_RenderObject_AfterCharacter(OBJECT* o, bool Translate, int Select, int
         SEASON3B::GMNewTown::RenderObjectAfterCharacter(o, b);
         SEASON3C::GMSwampOfQuiet::RenderObjectAfterCharacter(o, b);
 
-        World::Lorencia::MarketFountain::RenderAfterObjectMesh(o, b);
         TheMapProcess().RenderAfterObjectMesh(o, b);
     }
 }

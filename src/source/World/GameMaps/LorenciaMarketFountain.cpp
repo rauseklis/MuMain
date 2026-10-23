@@ -51,31 +51,25 @@ void Move(OBJECT* o)
         o->HiddenMesh = HIDDEN_MESH_ALL;
 }
 
-bool RenderObjectMesh(OBJECT* o)
+bool RenderObjectMesh(OBJECT* o, BMD* b)
 {
     if (!IsInLorencia() || o->Type != MODEL_MARKET_FOUNTAIN_BASE)
         return false;
 
-    o->m_bRenderAfterCharacter = true;
-    return true;
-}
-
-void RenderAfterObjectMesh(OBJECT* o, BMD* b)
-{
-    if (!IsInLorencia() || o->Type != MODEL_MARKET_FOUNTAIN_BASE)
-        return;
-
-    constexpr int BASE_MESHES[] = { 2, 3, 4 };
-    for (const int mesh : BASE_MESHES)
-        b->RenderMesh(mesh, RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight);
-
     const float flowU = sinf(WorldTime * WATER_SURFACE_FLOW_U_SPEED) * WATER_SURFACE_FLOW_AMOUNT;
     const float flowV = sinf(WorldTime * WATER_SURFACE_FLOW_V_SPEED) * WATER_SURFACE_FLOW_AMOUNT;
     const float scrollV = -(int)WorldTime % WATER_SURFACE_SCROLL_PERIOD * WATER_SURFACE_SCROLL_SPEED;
+
+    b->BeginRender(o->Alpha);
+    constexpr int STONE_MESHES[] = { 2, 3, 4 };
+    for (const int mesh : STONE_MESHES)
+        b->RenderMesh(mesh, RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight);
     b->RenderMesh(MESH_FALLING_WATER, RENDER_TEXTURE | RENDER_BRIGHT, o->Alpha, MESH_FALLING_WATER,
                   WATER_SURFACE_LIGHT, o->BlendMeshTexCoordU, scrollV);
     b->RenderMesh(MESH_SPRAY, RENDER_TEXTURE | RENDER_BRIGHT, o->Alpha, MESH_SPRAY, WATER_SURFACE_LIGHT, flowU,
                   flowV);
+    b->EndRender();
+    return true;
 }
 
 void RenderVisual(OBJECT* o)

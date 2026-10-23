@@ -12,11 +12,8 @@ namespace World::Lorencia::MarketFountain
 // Hides the invisible water emitters and slows the water surface.
 void Move(OBJECT* o);
 
-// Draws the base after the characters, together with its water surfaces. Returns true for the base.
-bool RenderObjectMesh(OBJECT* o);
-
-// Draws the water surfaces of the base.
-void RenderAfterObjectMesh(OBJECT* o, BMD* b);
+// Draws the base: its stone, its water surfaces and the spray. Returns true for the base.
+bool RenderObjectMesh(OBJECT* o, BMD* b);
 
 // Spawns the falling-water particles of the two emitter types.
 void RenderVisual(OBJECT* o);
