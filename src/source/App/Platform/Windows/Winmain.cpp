@@ -592,6 +592,12 @@ static void UpdateLegacyInputMethod(WPARAM notification)
     }
 }
 
+static void RequestLegacyShutdown()
+{
+    ReconnectManager::Instance().ClearSession();
+    Destroy = true;
+}
+
 LRESULT CALLBACK WndProc(HWND /*hwnd*/, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     // F10 zoom-lock toggle. Handled before the ImGui forwarder so editor-open
@@ -610,6 +616,9 @@ LRESULT CALLBACK WndProc(HWND /*hwnd*/, UINT msg, WPARAM wParam, LPARAM lParam)
 
     switch (msg)
     {
+    case WM_DESTROY:
+        RequestLegacyShutdown();
+        return 0;
     case WM_SYSKEYDOWN:
     {
         // F10 is handled above (intercepted before ImGui). Other system keys
@@ -1457,6 +1466,11 @@ MSG MainLoop()
         // Process server packets handed over from the network thread. Replaces
         // the old WM_RECEIVE_BUFFER message round-trip; runs on the main thread.
         Network::IncomingPacketQueue::Instance().DrainTo(ProcessPacketCallback);
+
+        if (Destroy)
+        {
+            break;
+        }
 
         // Run a pending reconnect teardown between frames (self-guards on its
         // pending flag). Replaces the old WM_START_RECONNECT round-trip.

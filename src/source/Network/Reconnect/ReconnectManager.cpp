@@ -80,6 +80,13 @@ void ReconnectManager::CacheCharacter(const wchar_t* characterName)
 
 void ReconnectManager::ClearSession()
 {
+    CloseProbe();
+    m_active = false;
+    m_beginPending = false;
+    m_cancelRequested = false;
+    m_abortAfterTeardown = false;
+    m_muHelperWasActive = false;
+    m_phase = Phase::Idle;
     m_hasSession = false;
     m_serverIp[0] = L'\0';
     m_username[0] = L'\0';

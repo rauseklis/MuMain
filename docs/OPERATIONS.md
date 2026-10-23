@@ -194,3 +194,14 @@ Both players install the merged client with `scripts/update-live-client.ps1
 -Target <game folder>` from their own client clone. Close Main.exe first. The
 updater downloads the matching GitHub Windows bundle and keeps config.ini;
 neither player needs to send EXE or DLL files manually.
+
+## Offline leveling and client exit
+
+Start MU Helper, then type /offlevel. On a successful handover the client
+closes; the character continues leveling on the server. Logging in manually
+stops offline leveling. A server-requested close must cancel automatic
+reconnection, including a reconnect already waiting to start.
+
+After updating, verify /offlevel closes Main.exe and leaves the character
+offline leveling until the next manual login. Also verify that an ordinary
+connection loss still reconnects and minimizing/restoring still works.
