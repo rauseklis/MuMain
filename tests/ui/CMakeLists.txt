@@ -106,3 +106,8 @@ mu_add_test(
         test_jewel_bank_model.cpp
         ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/JewelBank/JewelBankModel.cpp
 )
+
+mu_add_test(
+    NAME master_skill_tree_layout_tests
+    SOURCES test_master_skill_tree_layout.cpp
+)

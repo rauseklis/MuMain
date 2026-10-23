@@ -26,6 +26,10 @@ DWORD GetAuctionItemSlotTint(const ITEM* item, bool hovered);
 // A rounded item slot drawn from one native-size texture, tinted.
 void RenderAuctionItemSlot(int x, int y, int size, DWORD tint);
 
+// The Auction House window frame (stone background, ornate top, side and bottom bands) at any size, for windows that
+// share its look. width and height are in UI logical pixels; the top and bottom caps keep their authored size.
+void RenderWindowFrame(float x, float y, float width, float height);
+
 // Short name of a price kind, for places with no icon to carry its identity.
 const wchar_t* PriceKindName(AuctionHouse::PriceKind kind);
 

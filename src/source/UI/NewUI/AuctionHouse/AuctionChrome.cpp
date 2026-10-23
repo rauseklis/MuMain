@@ -145,6 +145,39 @@ const UI::NineSlice::ButtonSkin& AuctionRowSkin()
     return skin;
 }
 
+// The frame art: a stone background, a top band with ornate corner caps, side bands and a bottom band. The band
+// textures are 190 wide, so only their 64 pixel caps keep their size; the plain strip between them stretches.
+constexpr float FRAME_TOP_BAND_HEIGHT = 64.f;
+constexpr float FRAME_BOTTOM_BAND_HEIGHT = 45.f;
+constexpr float FRAME_SIDE_BAND_WIDTH = 21.f;
+constexpr float FRAME_TEXTURE_WIDTH = 190.f;
+constexpr float FRAME_CAP_WIDTH = 64.f;
+
+void RenderWindowFrame(float x, float y, float width, float height)
+{
+    using Auction = SEASON3B::CNewUIAuctionWindow;
+    const float centreSource = FRAME_TEXTURE_WIDTH - 2 * FRAME_CAP_WIDTH;
+    const float centreWidth = width - 2 * FRAME_CAP_WIDTH;
+    RenderImageStretch(Auction::IMAGE_AUCTION_BACK, x, y, width, height, 0.f, 0.f,
+        static_cast<float>(Auction::WINDOW_WIDTH), static_cast<float>(Auction::WINDOW_HEIGHT));
+
+    const auto band = [&](int image, float bandY, float bandHeight)
+    {
+        SEASON3B::RenderImageStretch(image, x, bandY, FRAME_CAP_WIDTH, bandHeight, 0.f, 0.f, FRAME_CAP_WIDTH, bandHeight);
+        SEASON3B::RenderImageStretch(image, x + FRAME_CAP_WIDTH, bandY, centreWidth, bandHeight, FRAME_CAP_WIDTH, 0.f, centreSource, bandHeight);
+        SEASON3B::RenderImageStretch(image, x + width - FRAME_CAP_WIDTH, bandY, FRAME_CAP_WIDTH, bandHeight,
+            FRAME_TEXTURE_WIDTH - FRAME_CAP_WIDTH, 0.f, FRAME_CAP_WIDTH, bandHeight);
+    };
+    band(Auction::IMAGE_AUCTION_TOP, y, FRAME_TOP_BAND_HEIGHT);
+    band(Auction::IMAGE_AUCTION_BOTTOM, y + height - FRAME_BOTTOM_BAND_HEIGHT, FRAME_BOTTOM_BAND_HEIGHT);
+
+    const float sideHeight = height - FRAME_TOP_BAND_HEIGHT - FRAME_BOTTOM_BAND_HEIGHT;
+    RenderImageStretch(Auction::IMAGE_AUCTION_LEFT, x, y + FRAME_TOP_BAND_HEIGHT, FRAME_SIDE_BAND_WIDTH, sideHeight,
+        0.f, 0.f, FRAME_SIDE_BAND_WIDTH, sideHeight);
+    RenderImageStretch(Auction::IMAGE_AUCTION_RIGHT, x + width - FRAME_SIDE_BAND_WIDTH, y + FRAME_TOP_BAND_HEIGHT,
+        FRAME_SIDE_BAND_WIDTH, sideHeight, 0.f, 0.f, FRAME_SIDE_BAND_WIDTH, sideHeight);
+}
+
 // Short names used when a price component has no icon to carry its identity.
 const wchar_t* PriceKindName(AuctionHouse::PriceKind kind)
 {
