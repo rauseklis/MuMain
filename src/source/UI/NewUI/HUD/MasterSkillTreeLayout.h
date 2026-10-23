@@ -17,9 +17,10 @@ namespace UI::MasterTree
     constexpr int ColumnTop = 66;
     constexpr int ColumnBottom = 380;
 
-    constexpr int HeaderTop = 70;
-    constexpr int HeaderHeight = 20;
-    constexpr int HeaderInset = 8;
+    constexpr int HeaderTop = 72;
+    constexpr int HeaderHeight = 18;
+    constexpr int HeaderWidth = 112;
+    constexpr int HeaderInset = (ColumnWidth - HeaderWidth) / 2;
 
     // Where the first slot of a column starts and the lowest a slot may end.
     constexpr int CellsTop = 98;

@@ -54,9 +54,13 @@ namespace
     constexpr unsigned int ConnectorDim = 0xFF5C6270u;
     constexpr unsigned int ConnectorShadow = 0x90000000u;
 
-    const DWORD ColumnTint = RGBA(104, 110, 122, 255);
-    const DWORD HeaderTintActive = RGBA(255, 214, 118, 255);
-    const DWORD HeaderTintIdle = RGBA(150, 156, 168, 255);
+    // Each tree has its own hue: Peace green, Wisdom blue, Overcome red. The tints multiply the steel chrome, so
+    // they are muted tones of the hue; the header is brighter once points are spent in the tree.
+    const DWORD ColumnTint[Tree::ColumnCount] = { RGBA(88, 124, 98, 255), RGBA(86, 108, 146, 255), RGBA(146, 90, 90, 255) };
+    const DWORD HeaderTintActive[Tree::ColumnCount] = { RGBA(124, 224, 140, 255), RGBA(126, 178, 255, 255), RGBA(255, 126, 116, 255) };
+    const DWORD HeaderTintIdle[Tree::ColumnCount] = { RGBA(86, 134, 98, 255), RGBA(88, 118, 168, 255), RGBA(158, 92, 88, 255) };
+    const DWORD HeaderTextActive[Tree::ColumnCount] = { RGBA(204, 255, 212, 255), RGBA(206, 228, 255, 255), RGBA(255, 214, 208, 255) };
+    const DWORD HeaderTextIdle[Tree::ColumnCount] = { RGBA(176, 214, 184, 255), RGBA(180, 202, 236, 255), RGBA(226, 184, 180, 255) };
     const DWORD SlotTintLearned = RGBA(232, 198, 112, 255);
     const DWORD SlotTintAvailable = RGBA(172, 178, 190, 255);
     const DWORD SlotTintLocked = RGBA(84, 88, 98, 255);
@@ -680,10 +684,10 @@ void SEASON3B::CNewUIMasterLevel::RenderColumns()
     {
         const float x = static_cast<float>(this->PosX + Tree::ColumnX(column));
         UI::NineSlice::Render(UI::AuctionChrome::AuctionRowSkin().texture, x, static_cast<float>(this->PosY + Tree::ColumnTop),
-            static_cast<float>(Tree::ColumnWidth), static_cast<float>(Tree::ColumnBottom - Tree::ColumnTop), ColumnTint);
+            static_cast<float>(Tree::ColumnWidth), static_cast<float>(Tree::ColumnBottom - Tree::ColumnTop), ColumnTint[column]);
         UI::NineSlice::Render(UI::AuctionChrome::AuctionButtonSkin().texture, x + Tree::HeaderInset,
             static_cast<float>(this->PosY + Tree::HeaderTop), static_cast<float>(Tree::ColumnWidth - 2 * Tree::HeaderInset),
-            static_cast<float>(Tree::HeaderHeight), this->CategoryPoint[column] > 0 ? HeaderTintActive : HeaderTintIdle);
+            static_cast<float>(Tree::HeaderHeight), this->CategoryPoint[column] > 0 ? HeaderTintActive[column] : HeaderTintIdle[column]);
     }
 }
 
@@ -779,14 +783,8 @@ void SEASON3B::CNewUIMasterLevel::RenderText() const
         wchar_t label[128] = {};
         mu_swprintf(label, I18N::Game::Lookup(this->CategoryTextIndex + column), this->CategoryPoint[column]);
         const SIZE size = g_pRenderText->MeasureText(label, lstrlen(label));
-        if (this->CategoryPoint[column] > 0)
-        {
-            g_pRenderText->SetTextColor(255, 214, 118, 255);
-        }
-        else
-        {
-            g_pRenderText->SetTextColor(205, 205, 205, 255);
-        }
+        const DWORD textColor = this->CategoryPoint[column] > 0 ? HeaderTextActive[column] : HeaderTextIdle[column];
+        g_pRenderText->SetTextColor(GetRValue(textColor), GetGValue(textColor), GetBValue(textColor), 255);
         g_pRenderText->RenderText(static_cast<float>(this->PosX + Tree::ColumnX(column) + Tree::HeaderInset),
             static_cast<float>(this->PosY + Tree::HeaderTop) + (Tree::HeaderHeight - size.cy) / 2.f, label,
             static_cast<float>(Tree::ColumnWidth - 2 * Tree::HeaderInset), 0, RT3_SORT_CENTER);
