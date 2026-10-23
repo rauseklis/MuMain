@@ -190,7 +190,8 @@ int OpenTerrainAttribute(wchar_t* FileName)
     switch (gMapManager.WorldActive)
     {
     case WD_0LORENCIA:
-        if (TerrainWall[121 * TERRAIN_SIZE + 124] != 5) Error = true; // a house wall of the town
+        if (TerrainWall[121 * TERRAIN_SIZE + 124] != 5)
+            Error = true; // a house wall of the town
         break;
     case WD_1DUNGEON:
         if (TerrainWall[120 * TERRAIN_SIZE + 227] != 4) Error = true;
@@ -796,7 +797,7 @@ bool SaveTerrainHeight(wchar_t* name)
 bool OpenTerrainHeightNew(const wchar_t* strFilename)
 {
     wchar_t FileName[256];
-    wchar_t NewFileName[256];
+    wchar_t NewFileName[256] = {};
 
     for (int i = 0; i < (int)wcslen(strFilename); ++i)
     {
@@ -1194,17 +1195,14 @@ void PrefixTerrainHeight()
                     InterpolationHeight(lod, x * 4, y * 4, 2, BackTerrainHeight);
                     InterpolationWidth(lod, x * 4, y * 4, 2, BackTerrainHeight);
                 }
-                if (lod >= 2)
-                {
-                    InterpolationHeight(lod, x * 4, y * 4, 1, BackTerrainHeight);
-                    InterpolationWidth(lod, x * 4, y * 4, 1, BackTerrainHeight);
-                    InterpolationHeight(lod, x * 4, y * 4, 3, BackTerrainHeight);
-                    InterpolationWidth(lod, x * 4, y * 4, 3, BackTerrainHeight);
-                    /*InterpolationCross(1,x*4+1,y*4+1);
-                    InterpolationCross(1,x*4+1,y*4+3);
-                    InterpolationCross(1,x*4+3,y*4+1);
-                    InterpolationCross(1,x*4+3,y*4+3);*/
-                }
+                InterpolationHeight(lod, x * 4, y * 4, 1, BackTerrainHeight);
+                InterpolationWidth(lod, x * 4, y * 4, 1, BackTerrainHeight);
+                InterpolationHeight(lod, x * 4, y * 4, 3, BackTerrainHeight);
+                InterpolationWidth(lod, x * 4, y * 4, 3, BackTerrainHeight);
+                /*InterpolationCross(1,x*4+1,y*4+1);
+                InterpolationCross(1,x*4+1,y*4+3);
+                InterpolationCross(1,x*4+3,y*4+1);
+                InterpolationCross(1,x*4+3,y*4+3);*/
             }
         }
     }
@@ -1867,7 +1865,7 @@ void RenderTerrainAlphaBitmap(int Texture, float xf, float yf, float SizeX, floa
     float TexU = (((float)mxi - mxf) + 0.5f * Size);
     float TexV = (((float)myi - myf) + 0.5f * Size);
     float TexScaleU = 1.f / Size;
-    float TexScaleV = 1.f / Size;
+    float TexScaleV = TexScaleU;
     Size = (float)((int)Size + 1);
     float Aspect = SizeX / SizeY;
     for (float y = -Size; y <= Size; y += 1.f)

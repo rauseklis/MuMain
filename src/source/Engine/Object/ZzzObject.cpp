@@ -1122,7 +1122,9 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
                     }
                 }
 
-                if (RenderHellasObjectMesh(o, b) || World::Lorencia::MarketFountain::RenderObjectMesh(o, b)) {}
+                if (RenderHellasObjectMesh(o, b) || World::Lorencia::MarketFountain::RenderObjectMesh(o, b))
+                {
+                }
                 else
                     if (battleCastle::RenderBattleCastleObjectMesh(o, b)) {}
                     else
