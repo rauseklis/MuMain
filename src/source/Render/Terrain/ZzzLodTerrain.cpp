@@ -1865,7 +1865,7 @@ void RenderTerrainAlphaBitmap(int Texture, float xf, float yf, float SizeX, floa
     float TexU = (((float)mxi - mxf) + 0.5f * Size);
     float TexV = (((float)myi - myf) + 0.5f * Size);
     float TexScaleU = 1.f / Size;
-    float TexScaleV = 1.f / Size;
+    float TexScaleV = TexScaleU;
     Size = (float)((int)Size + 1);
     float Aspect = SizeX / SizeY;
     for (float y = -Size; y <= Size; y += 1.f)
