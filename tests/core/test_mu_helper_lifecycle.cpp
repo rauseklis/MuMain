@@ -2,6 +2,7 @@
 #include "doctest.h"
 #include "MUHelper/MuHelper.h"
 #include "Engine/Object/ZzzInterface.h"
+#include "Engine/Object/ZzzCharacter.h"
 #include "Core/Utilities/Log/MuLogger.h"
 
 extern int Attacking;
