@@ -396,7 +396,10 @@ for (
     for required in (
         f"name: {display_name}",
         f"runs-on: {runner}",
-        "if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'",
+        # macOS is switched off for this private project (we only use Windows); see the comment in ci.yml.
+        "if: false"
+        if job_name == "build-macos"
+        else "if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'",
     ):
         check(required in platform_job, f"{display_name} missing {required}")
     platform_archive = step(platform_job, job_name, "Archive runtime")
