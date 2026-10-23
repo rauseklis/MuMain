@@ -107,7 +107,6 @@ namespace SEASON3B
         int width;
         int height;
 
-        CNewUIButton m_CloseBT;
         int CategoryPoint[MAX_MASTER_SKILL_CATEGORY];
         int skillPoint[MAX_MASTER_SKILL_CATEGORY][MAX_MASTER_TREE_RANK];
         BYTE ConsumePoint;

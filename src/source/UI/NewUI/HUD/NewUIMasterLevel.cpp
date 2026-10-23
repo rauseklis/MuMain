@@ -175,13 +175,6 @@ bool SEASON3B::CNewUIMasterLevel::Create(CNewUIManager* pNewUIMng)
 
     this->LoadImages();
 
-    this->m_CloseBT.ChangeButtonImgState(true, Auction::IMAGE_AUCTION_CLOSE_BTN, false);
-
-    this->m_CloseBT.ChangeButtonInfo(this->PosX + UI::MasterTree::WindowWidth - CloseWidth - CloseMargin,
-        this->PosY + CloseMargin, CloseWidth, CloseHeight);
-
-    this->m_CloseBT.ChangeToolTipText(&I18N::Game::Close388);
-
     return true;
 }
 
@@ -558,7 +551,6 @@ bool SEASON3B::CNewUIMasterLevel::Render()
     this->RenderColumns();
     this->RenderConnectors();
     this->RenderSkillSlots();
-    this->m_CloseBT.Render();
     DisableAlphaBlend();
     this->RenderText();
     this->RenderToolTip();
@@ -573,9 +565,12 @@ bool SEASON3B::CNewUIMasterLevel::Update()
 
 bool SEASON3B::CNewUIMasterLevel::UpdateMouseEvent()
 {
-    if (this->m_CloseBT.UpdateMouseEvent() == true)
+    // The close button is part of the frame art, as in the Auction House; only its area needs handling.
+    const int closeX = this->PosX + UI::MasterTree::WindowWidth - CloseWidth - CloseMargin;
+    if (SEASON3B::CheckMouseIn(closeX, this->PosY + CloseMargin, CloseWidth, CloseHeight) && SEASON3B::IsRelease(VK_LBUTTON))
     {
         g_pNewUISystem->Hide(SEASON3B::INTERFACE_MASTER_LEVEL);
+        PlayBuffer(SOUND_CLICK01);
 
         return true;
     }
