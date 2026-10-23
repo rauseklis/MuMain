@@ -16,3 +16,9 @@ mu_add_test(
     SOURCES
         test_tail_scaling.cpp
 )
+
+mu_add_test(
+    NAME test_weapon_trail_timing
+    SOURCES
+        test_weapon_trail_timing.cpp
+)

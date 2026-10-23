@@ -163,3 +163,24 @@ add_test(
         "-DMU_CMAKE_SOURCE=${CMAKE_SOURCE_DIR}/src/CMakeLists.txt"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/test_msvc_runtime_dll_staging.cmake"
 )
+
+mu_add_test(
+    NAME test_mu_helper_lifecycle
+    SOURCES
+        test_mu_helper_lifecycle.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/App/Platform/Windows/Winmain.cpp
+    LINK_LIBS MuClient
+)
+
+mu_add_test(
+    NAME test_legacy_window_message
+    SOURCES test_legacy_window_message.cpp
+)
+
+mu_add_test(
+    NAME test_falling_monster_timing
+    SOURCES
+        test_falling_monster_timing.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/App/Platform/Windows/Winmain.cpp
+    LINK_LIBS MuClient
+)

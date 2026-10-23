@@ -6,6 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Render/Effects/WeaponTrailTiming.h"
 #include "Render/Items/RoyalMaceFlames.h"
 #include "Core/Time/FrameTiming.h"
 #include <execution>
@@ -202,24 +203,18 @@ int GetFenrirType(CHARACTER* c)
 
 void FallingMonster(CHARACTER* c, OBJECT* o)
 {
-    float AngleY;
-    o->Gravity += 2.5f;
-    o->Angle[0] -= 4.f;
+    o->Gravity += 2.5f * FPS_ANIMATION_FACTOR;
+    o->Angle[0] -= 4.f * FPS_ANIMATION_FACTOR;
     o->m_bActionStart = true;
-    o->Direction[1] += o->Direction[0];
-
-    if (o->Gravity >= 1.f)
-        AngleY = o->Angle[2];
+    o->Direction[1] += o->Direction[0] * FPS_ANIMATION_FACTOR;
 
     if (o->Angle[0] <= -90.0f)
         o->Angle[0] = -90.0f;
 
-    o->Angle[2] = AngleY;
-
     if (o->Gravity >= 150.0f)
         o->Gravity = 150.0f;
 
-    o->Position[2] -= o->Gravity;
+    o->Position[2] -= o->Gravity * FPS_ANIMATION_FACTOR;
 }
 
 BOOL PlayMonsterSoundGlobal(OBJECT* pObject);
@@ -3132,10 +3127,10 @@ void FallingCharacter(CHARACTER* c, OBJECT* o)
     AngleMatrix(o->m_vDownAngle, Matrix);
     VectorRotate(p, Matrix, Position);
 
-    o->Direction[1] += o->Direction[0];
-    o->Gravity += o->Velocity;
-    o->Velocity -= o->Direction[2];
-    o->Angle[0] -= 5.f;
+    o->Direction[1] += o->Direction[0] * FPS_ANIMATION_FACTOR;
+    o->Gravity += o->Velocity * FPS_ANIMATION_FACTOR;
+    o->Velocity -= o->Direction[2] * FPS_ANIMATION_FACTOR;
+    o->Angle[0] -= 5.f * FPS_ANIMATION_FACTOR;
 
     o->Position[0] = o->m_vDeadPosition[0] + Position[0];
     o->Position[1] = o->m_vDeadPosition[1] + Position[1];
@@ -3199,16 +3194,16 @@ void  PushingCharacter(CHARACTER* c, OBJECT* o)
     }
     if (o->Type == MODEL_BALL)
     {
-        o->Position[2] += o->Gravity;
-        o->Gravity -= 6.f;
+        o->Position[2] += o->Gravity * FPS_ANIMATION_FACTOR;
+        o->Gravity -= 6.f * FPS_ANIMATION_FACTOR;
         float Height = RequestTerrainHeight(o->Position[0], o->Position[1]) + 30.f;
         if (o->Position[2] < Height)
         {
             o->Position[2] = Height;
             o->Gravity = -o->Gravity * 0.4f;
         }
-        VectorAdd(o->Angle, o->Direction, o->Angle);
-        VectorScale(o->Direction, 0.8f, o->Direction);
+        VectorAddScaled(o->Angle, o->Direction, o->Angle, FPS_ANIMATION_FACTOR);
+        VectorScale(o->Direction, mu::FrameDecay(0.8f), o->Direction);
     }
 }
 
@@ -3246,7 +3241,7 @@ void DeadCharacter(CHARACTER* c, OBJECT* o, BMD* b)
         }
 
         if (o->Alpha >= 0.01f)
-            o->Position[2] -= 0.4f;
+            o->Position[2] -= 0.4f * FPS_ANIMATION_FACTOR;
         else if (c != Hero)
         {
             o->Live = false;
@@ -3291,8 +3286,8 @@ void DeadCharacter(CHARACTER* c, OBJECT* o, BMD* b)
         case AT_SKILL_COMBO:
             if (c->Dead < 15)
             {
-                o->Direction[1] -= o->Velocity;
-                o->Velocity += 1.f;
+                o->Direction[1] -= o->Velocity * FPS_ANIMATION_FACTOR;
+                o->Velocity += 1.f * FPS_ANIMATION_FACTOR;
 
                 if (o->Direction[1] < 0)
                 {
@@ -4001,16 +3996,16 @@ void CreateWeaponBlur(CHARACTER* c, OBJECT* o, BMD* b)
             }
             else
             {
-                constexpr float inter = 10.f;
-                // The trail spans backward over one animation slice and lays its points along it.
-                // Scaling that slice by FPS_ANIMATION_FACTOR (REFERENCE_FPS / FPS) collapses it at
-                // high frame rates - the points pile onto a single weapon position and the streak
-                // disappears. Span a fixed PlaySpeed slice so the trail renders the same at any FPS.
+                constexpr int inter = 10;
+                // The trail covers exactly what the animation advanced in this frame, so that the points of
+                // the next frame continue where these end (see WeaponTrailTiming.h). A full PlaySpeed slice
+                // every frame overlapped itself at a high frame rate and drew a thick mass instead of a streak.
                 const float playSpeed = b->Actions[b->CurrentAction].PlaySpeed;
-                float animationFrame = o->AnimationFrame - playSpeed;
+                const auto slice = Render::Effects::WeaponTrail::SliceForFrame(playSpeed, FPS_ANIMATION_FACTOR, inter);
+                float animationFrame = o->AnimationFrame + slice.firstOffset;
                 const float priorAnimationFrame = o->PriorAnimationFrame;
-                const float animationSpeed = playSpeed / inter;
-                for (int i = 0; i < (int)(inter); ++i)
+                const float animationSpeed = slice.step;
+                for (int i = 0; i < slice.count; ++i)
                 {
                     b->Animation(BoneTransform, animationFrame, priorAnimationFrame, o->PriorAction, o->Angle, o->HeadAngle);
 
@@ -12383,11 +12378,11 @@ DWORD GetGuildRelationShipTextColor(BYTE GuildRelationShip)
     DWORD dwColor = 0;
 
     if (GuildRelationShip == GR_NONE)
-        dwColor = (255 << 24) + (255 << 16) + (230 << 8) + (230);
+        dwColor = (255u << 24) + (255u << 16) + (230u << 8) + (230);
     else if (GuildRelationShip == GR_RIVAL || GuildRelationShip == GR_RIVALUNION)
-        dwColor = (255 << 24) + (0 << 16) + (30 << 8) + (255);
+        dwColor = (255u << 24) + (0u << 16) + (30u << 8) + (255);
     else
-        dwColor = (255 << 24) + (0 << 16) + (255 << 8) + (200);
+        dwColor = (255u << 24) + (0u << 16) + (255u << 8) + (200);
 
     return dwColor;
 }
@@ -12397,11 +12392,11 @@ DWORD GetGuildRelationShipBGColor(BYTE GuildRelationShip)
     DWORD dwColor = 0;
 
     if (GuildRelationShip == GR_NONE)
-        dwColor = (150 << 24) + (50 << 16) + (30 << 8) + (10);
+        dwColor = (150u << 24) + (50u << 16) + (30u << 8) + (10);
     else if (GuildRelationShip == GR_RIVAL || GuildRelationShip == GR_RIVALUNION)
-        dwColor = (150 << 24) + (0 << 16) + (0 << 8) + (0);
+        dwColor = (150u << 24) + (0u << 16) + (0u << 8) + (0);
     else
-        dwColor = (150 << 24) + (80 << 16) + (50 << 8) + (20);
+        dwColor = (150u << 24) + (80u << 16) + (50u << 8) + (20);
 
     return dwColor;
 }

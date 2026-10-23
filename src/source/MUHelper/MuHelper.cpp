@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <mutex>
 
 #include "Engine/AI/ZzzAI.h"
 #include "Engine/Object/ZzzCharacter.h"
@@ -24,6 +25,7 @@
 #include "GameLogic/Items/ItemCategories.h"
 
 #include "MuHelper.h"
+#include "Scenes/SceneCore.h"
 
 constexpr int MAX_ACTIONABLE_DISTANCE = 10;
 constexpr int DEFAULT_DURABILITY_THRESHOLD = 50;
@@ -72,40 +74,63 @@ namespace MUHelper
 
     void CMuHelper::Toggle()
     {
-        if (m_bActive)
+        if (m_bActive || m_bStartPending)
         {
             TriggerStop();
+            return;
+        }
 
-            // Stop the client-driven bot immediately instead of waiting for the
-            // server's status reply. After an auto-reconnect the server's new
-            // session doesn't have the helper marked active, so it never replies
-            // and the bot would otherwise keep running with no way to stop it.
-            Stop();
-        }
-        else
-        {
-            TriggerStart();
-        }
+        TriggerStart();
     }
 
     void CMuHelper::TriggerStart()
     {
-        if (!Hero->SafeZone)
-            SocketClient->ToGameServer()->SendMuHelperStatusChangeRequest(0);
-    }
-
-    void CMuHelper::TriggerStop()
-    {
-        SocketClient->ToGameServer()->SendMuHelperStatusChangeRequest(1);
-    }
-
-    void CMuHelper::Start()
-    {
-        if (m_bActive)
+        if (Hero == nullptr || Hero->Dead > 0 || Hero->SafeZone || SocketClient == nullptr ||
+            SocketClient->ToGameServer() == nullptr)
         {
             return;
         }
 
+        m_bStopRequested = false;
+        m_bStartPending = true;
+        SocketClient->ToGameServer()->SendMuHelperStatusChangeRequest(0);
+    }
+
+    void CMuHelper::TriggerStop()
+    {
+        // Death, Escape, teleport and logout must cancel locally even when the
+        // server has no active helper session or the connection has already died.
+        m_bStopRequested = true;
+        Stop();
+        if (SocketClient != nullptr && SocketClient->ToGameServer() != nullptr)
+        {
+            SocketClient->ToGameServer()->SendMuHelperStatusChangeRequest(1);
+        }
+    }
+
+    void CMuHelper::HandleCancelInput(bool cancelPressed)
+    {
+        if (cancelPressed && (m_bActive || m_bStartPending))
+        {
+            TriggerStop();
+        }
+    }
+
+    void CMuHelper::Start()
+    {
+        m_bStartPending = false;
+        if (m_bActive || m_bStopRequested || Hero == nullptr || Hero->Dead > 0 || Hero->SafeZone)
+        {
+            return;
+        }
+
+        ResetRunState();
+        m_bActive = true;
+        g_ConsoleDebug->Write(MCD_NORMAL, L"[MU Helper] Started");
+    }
+
+    void CMuHelper::ResetRunState()
+    {
         m_iTotalCost = 0;
         m_iComboState = 0;
         m_iCurrentBuffIndex = 0;
@@ -114,7 +139,7 @@ namespace MUHelper
         m_iCurrentTarget = -1;
         m_iCurrentSkill = (ActionSkillType)m_config.aiSkill[0];
         m_iCurrentItem = MAX_ITEMS;
-        m_posOriginal = { Hero->PositionX, Hero->PositionY };
+        m_posOriginal = {Hero->PositionX, Hero->PositionY};
 
         m_iHuntingDistance = ComputeDistanceByRange(m_config.iHuntingRange);
         m_iObtainingDistance = ComputeDistanceByRange(m_config.iObtainingRange);
@@ -126,21 +151,55 @@ namespace MUHelper
         m_bPetActivated = false;
 
         m_iLoopCounter = 0;
-
-        m_bActive = true;
-        g_ConsoleDebug->Write(MCD_NORMAL, L"[MU Helper] Started");
     }
 
     void CMuHelper::Stop()
     {
-        m_bActive = false;
+        m_bStartPending = false;
+        if (!m_bActive.exchange(false))
+        {
+            return;
+        }
+
+        CancelActions();
         g_ConsoleDebug->Write(MCD_NORMAL, L"[MU Helper] Stopped");
+    }
+
+    void CMuHelper::CancelActions()
+    {
+        Attacking = -1;
+        ActionTarget = -1;
+        g_MovementSkill.m_bMagic = false;
+        g_MovementSkill.m_iTarget = -1;
+        m_iCurrentTarget = -1;
+        m_iCurrentItem = MAX_ITEMS;
+        DeleteAllTargets();
+
+        if (Hero != nullptr && SceneFlag == MAIN_SCENE)
+        {
+            Hero->Movement = false;
+            std::lock_guard<SpinLock> lock(Hero->Path.Lock);
+            Hero->Path.PathNum = 0;
+            Hero->Path.CurrentPath = 0;
+        }
     }
 
     void CMuHelper::WorkLoop(HWND hWnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
     {
         if (!m_bActive)
         {
+            return;
+        }
+
+        if (SceneFlag != MAIN_SCENE || Hero == nullptr)
+        {
+            Stop();
+            return;
+        }
+
+        if (Hero->Dead > 0)
+        {
+            TriggerStop();
             return;
         }
 
@@ -157,7 +216,7 @@ namespace MUHelper
         {
             m_iSecondsElapsed++;
 
-            if (ComputeDistanceBetween({ Hero->PositionX, Hero->PositionY }, m_posOriginal) > 1)
+            if (ComputeDistanceBetween({Hero->PositionX, Hero->PositionY}, m_posOriginal) > 1)
             {
                 m_iSecondsAway++;
             }

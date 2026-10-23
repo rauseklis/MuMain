@@ -144,3 +144,53 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 - Packets folder: `nuget-feed/README.md`
 - Live server setup (server repository): `deploy/live/README.md`
 - HD interface textures: `docs/ui-hd-textures.md`
+
+<<<<<<< HEAD
+## MU Helper lifecycle and minimized-window regression
+
+- The official MU Helper (the Z settings/helper button, not held right-click)
+  must stop locally on Escape, death, safe-zone entry, teleport and logout.
+  Stopping does not depend on receiving a server acknowledgement. A delayed
+  start acknowledgement must not restart a helper explicitly stopped by the player.
+- Inactive helper stops leave manual attacks and movement alone. An active stop
+  cancels the queued repeating attack, spell target and walking path.
+- Windows messages already owned by SDL must not also pass through the legacy
+  default window procedure. Keep legacy Enter/IME, F10 and protection handling;
+  SDL handles minimize/restore, resize, paint and close.
+- Reproduction on the installed Windows client: minimizing left the helper
+  active while WorldTime, animation and helper ticks froze until restoration.
+  Two in-memory snapshots showed the main thread in NtUserMessageCall through
+  SDL WIN_WindowProc/WIN_PumpEvents. Removing duplicate native default handling
+  is a candidate correction; Windows build/tests and the same minimize/restore
+  gameplay check are still required before calling it verified.
+- Verify after installation: Escape with a UI open, death and respawn, stop with
+  no server reply, reconnect resume, minimize for at least 20 seconds, then
+  restore. Also check ordinary movement, F10, chat/IME, resize and titlebar close.
+=======
+## Atlans town exit client crash
+
+Leaving the safe zone near Atlans (20, 28–29) can expose a newly spawned ambient object. Its alpha may still be below the body renderer's visibility threshold. A rejected `RenderObject` call has not prepared the model's bone palette: effects and projected shadows must be skipped for that object in that pass. `Engine::AI::RenderBoidPass` keeps these operations together.
+
+A Windows crash captured on client commit `d96579a` followed `RenderBoids -> RenderBodyShadow -> EnsureCpuVertices -> SkinVertices -> VectorRotate` and read address `0x60`. This is a client rendering fault; changing gates or swimming requirements does not fix it. The regression tests cover both rejected and successful body draws, including a previously prepared palette belonging to another object.
+
+After updating the client, manually check leaving Atlans town without wings, first with gloves below +5 (slow swimming), then with gloves +5 or higher (fast swimming). Check visible ambient objects and shadows in other maps too. Automated checks do not replace this in-game validation.
+>>>>>>> origin/codex/atlans-boid-shadow-crash
+
+## High-FPS weapon trails and falling motion
+
+Weapon trails cover only the animation distance advanced during each rendered
+frame. The distance is `PlaySpeed * min(25 / FPS, 1)`, with proportionally fewer
+sample points at high FPS; trail lifetime advances in original 25 Hz steps.
+This prevents overlapping orange/yellow trails without shortening their lifetime.
+
+Falling, knockback, corpse sinking and rotating effects scale their movement by
+the same reference-frame factor. Ball spin damping uses `pow(0.8, frameFactor)`
+instead of applying 0.8 once per rendered frame. The original 25 FPS behavior is
+preserved; discrete acceleration can differ by one reference step at higher FPS.
+Check combat trails, monster deaths, event falls and bouncing balls at both
+25 FPS and 60 FPS or higher after updating.
+
+Both players install the merged client with `scripts/update-live-client.ps1
+-Target <game folder>` from their own client clone. Close Main.exe first. The
+updater downloads the matching GitHub Windows bundle and keeps config.ini;
+neither player needs to send EXE or DLL files manually.
