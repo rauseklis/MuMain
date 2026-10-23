@@ -167,7 +167,7 @@ namespace UI::Buffs::Tooltip
         ++count;
     }
 
-    void Render(int anchorX, int anchorY, int count, int ornamentTexture)
+    void Render(int anchorX, int anchorY, int count, int ornamentTexture, bool above)
     {
         if (count <= 0)
         {
@@ -187,7 +187,8 @@ namespace UI::Buffs::Tooltip
         const float width = std::max(static_cast<float>(MinimumWidth), textWidth + PaddingX * 2);
         const float height = textHeight + PaddingY * 2;
         const float x = std::clamp(anchorX - width / 2, 0.f, std::max(0.f, REFERENCE_WIDTH - width));
-        const float y = std::clamp(static_cast<float>(anchorY), 0.f, std::max(0.f, REFERENCE_HEIGHT - height));
+        const float top = above ? anchorY - height : static_cast<float>(anchorY);
+        const float y = std::clamp(top, 0.f, std::max(0.f, REFERENCE_HEIGHT - height));
         EnableAlphaTest();
         RenderBox(x, y, width, height);
         EndRenderColor();

@@ -8,5 +8,6 @@ namespace UI::Buffs::Tooltip
     // A thin rule between the title and the body.
     void AppendDivider(int& count);
     // ornamentTexture is the atlas built by tools/ui_hd/tooltip_ornaments.py (corner and gold rule).
-    void Render(int anchorX, int anchorY, int count, int ornamentTexture);
+    // With above set the tooltip ends at anchorY instead of starting there.
+    void Render(int anchorX, int anchorY, int count, int ornamentTexture, bool above = false);
 }

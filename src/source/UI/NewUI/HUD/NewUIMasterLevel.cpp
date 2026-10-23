@@ -5,6 +5,10 @@
 #include "UI/Legacy/UIControls.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "UI/NewUI/HUD/NewUIMasterLevel.h"
+#include "UI/NewUI/HUD/BuffTooltip.h"
+#include "UI/NewUI/HUD/NewUIBuffWindow.h"
+#include "UI/NewUI/AuctionHouse/AuctionChrome.h"
+#include "UI/NewUI/AuctionHouse/NewUIAuctionWindow.h"
 #include "I18N/All.h"
 
 #include "Audio/DSPlaySound.h"
@@ -18,6 +22,124 @@ namespace
 }
 
 
+namespace
+{
+    using Auction = SEASON3B::CNewUIAuctionWindow;
+    namespace Tree = UI::MasterTree;
+
+    constexpr int TitleY = 13;
+    constexpr int InfoY = 40;
+    constexpr int InfoHeight = 22;
+    constexpr int InfoGap = 6;
+    constexpr int InfoPadding = 14;
+    constexpr int InfoMinimumWidth = 96;
+    constexpr int CloseWidth = 36;
+    constexpr int CloseHeight = 29;
+    constexpr int CloseMargin = 8;
+    constexpr int TooltipGap = 4;
+    constexpr int TooltipFlipY = 240;
+    constexpr int ExpTooltipLines = 1;
+    constexpr int TooltipLineCapacity = 30;
+
+    constexpr float LineThickness = 2.f;
+    constexpr float ShadowOffset = 1.f;
+    constexpr float HeadLength = 4.f;
+    constexpr float HeadSpread = 3.f;
+    constexpr float ConnectorInset = 1.f;
+    constexpr float BadgeWidth = 17.f;
+    constexpr float BadgeHeight = 13.f;
+    constexpr float BadgeOverlap = 5.f;
+
+    constexpr unsigned int ConnectorLit = 0xFFE8BE5Au;
+    constexpr unsigned int ConnectorDim = 0xFF5C6270u;
+    constexpr unsigned int ConnectorShadow = 0x90000000u;
+
+    // Each tree has its own hue: Peace green, Wisdom blue, Overcome red. The tints multiply the steel chrome, so
+    // they are muted tones of the hue; the header is brighter once points are spent in the tree.
+    const DWORD ColumnTint[Tree::ColumnCount] = { RGBA(88, 124, 98, 255), RGBA(86, 108, 146, 255), RGBA(146, 90, 90, 255) };
+    const DWORD HeaderTintActive[Tree::ColumnCount] = { RGBA(124, 224, 140, 255), RGBA(126, 178, 255, 255), RGBA(255, 126, 116, 255) };
+    const DWORD HeaderTintIdle[Tree::ColumnCount] = { RGBA(86, 134, 98, 255), RGBA(88, 118, 168, 255), RGBA(158, 92, 88, 255) };
+    const DWORD HeaderTextActive[Tree::ColumnCount] = { RGBA(204, 255, 212, 255), RGBA(206, 228, 255, 255), RGBA(255, 214, 208, 255) };
+    const DWORD HeaderTextIdle[Tree::ColumnCount] = { RGBA(176, 214, 184, 255), RGBA(180, 202, 236, 255), RGBA(226, 184, 180, 255) };
+    const DWORD SlotTintLearned = RGBA(232, 198, 112, 255);
+    const DWORD SlotTintAvailable = RGBA(172, 178, 190, 255);
+    const DWORD SlotTintLocked = RGBA(84, 88, 98, 255);
+    const DWORD SlotTintHover = RGBA(236, 241, 250, 255);
+    const DWORD BadgeTint = RGBA(70, 74, 84, 255);
+
+    void DrawLine(float x1, float y1, float x2, float y2, unsigned int color)
+    {
+        RenderColorLineARGB(x1 + ShadowOffset, y1 + ShadowOffset, x2 + ShadowOffset, y2 + ShadowOffset, LineThickness, ConnectorShadow);
+        RenderColorLineARGB(x1, y1, x2, y2, LineThickness, color);
+    }
+
+    // A chevron that points along (dx, dy), a unit axis direction, with its tip at (x, y).
+    void DrawHead(float x, float y, float dx, float dy, unsigned int color)
+    {
+        const float backX = x - dx * HeadLength;
+        const float backY = y - dy * HeadLength;
+        DrawLine(backX - dy * HeadSpread, backY + dx * HeadSpread, x, y, color);
+        DrawLine(backX + dy * HeadSpread, backY - dx * HeadSpread, x, y, color);
+    }
+
+    // The connector a skill draws towards the ones that depend on it (the arrow codes of the skill tree data):
+    // 1 and 2 run to the neighbour on the right (the head at its end, or at this skill), 3 and 4 run down one or two
+    // rows, 7 and 8 run down one row and across to the next column to the right or left.
+    void RenderConnector(int direction, const Tree::Slot& slot, const Tree::RowMetrics& rows, unsigned int color)
+    {
+        const float cellStep = static_cast<float>(Tree::CellWidth);
+        const float mx = slot.centreX();
+        const float my = slot.centreY();
+        switch (direction)
+        {
+        case 1:
+        case 2:
+        {
+            const float from = slot.right() + ConnectorInset;
+            const float to = slot.x + cellStep - ConnectorInset;
+            DrawLine(from, my, to, my, color);
+            if (direction == 1)
+            {
+                DrawHead(to, my, 1.f, 0.f, color);
+            }
+            else
+            {
+                DrawHead(from, my, -1.f, 0.f, color);
+            }
+            break;
+        }
+        case 3:
+        case 4:
+        {
+            const float to = slot.y + rows.pitch * (direction == 3 ? 1.f : 2.f) - ConnectorInset;
+            DrawLine(mx, slot.bottom() + ConnectorInset, mx, to, color);
+            DrawHead(mx, to, 0.f, 1.f, color);
+            break;
+        }
+        case 7:
+        case 8:
+        {
+            const float side = direction == 7 ? 1.f : -1.f;
+            const float bendY = slot.y + rows.pitch + slot.height / 2.f;
+            const float landing = (direction == 7 ? slot.x + cellStep : slot.right() - cellStep) - side * ConnectorInset;
+            DrawLine(mx, slot.bottom() + ConnectorInset, mx, bendY, color);
+            DrawLine(mx, bendY, landing, bendY, color);
+            DrawHead(landing, bendY, side, 0.f, color);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    // Skills in a row are listed left to right, four to a row.
+    int CellOf(const _MASTER_SKILLTREE_DATA& data)
+    {
+        return (data.Index - 1) % Tree::CellsPerRow;
+    }
+}
+
+
 SEASON3B::CNewUIMasterLevel::CNewUIMasterLevel()
 {
     m_pNewUIMng = nullptr;
@@ -25,9 +147,6 @@ SEASON3B::CNewUIMasterLevel::CNewUIMasterLevel()
     this->CurSkillID = 0;
     this->classCode = MASTER_SKILL_TREE_CLASS_NONE;
     this->CategoryTextIndex = 0;
-    this->categoryPos[0] = { 11,55 };
-    this->categoryPos[1] = { 221,55 };
-    this->categoryPos[2] = { 431,55 };
     this->InitMasterSkillPoint();
     this->ClearSkillTreeData();
     this->ClearSkillTooltipData();
@@ -60,19 +179,6 @@ bool SEASON3B::CNewUIMasterLevel::Create(CNewUIManager* pNewUIMng)
 
     this->LoadImages();
 
-    this->m_CloseBT.ChangeButtonImgState(true, IMAGE_MASTER_INTERFACE + 5, false, false, false);
-
-    this->m_CloseBT.ChangeButtonInfo(611, 9, 13, 14);
-
-    this->m_CloseBT.ChangeToolTipText(&I18N::Game::Close388);
-
-    for (int i = 0; i < MAX_MASTER_SKILL_CATEGORY; i++)
-    {
-        this->ButtonX[i] = 0;
-
-        this->ButtonY[i] = 0;
-    }
-
     return true;
 }
 
@@ -91,8 +197,8 @@ void SEASON3B::CNewUIMasterLevel::SetPos()
 {
     this->PosX = 0;
     this->PosY = 0;
-    this->width = REFERENCE_WIDTH;
-    this->height = 428;
+    this->width = UI::MasterTree::WindowWidth;
+    this->height = UI::MasterTree::WindowHeight;
 }
 
 void SEASON3B::CNewUIMasterLevel::OpenMasterSkillTreeData(const wchar_t* path)
@@ -251,6 +357,8 @@ void SEASON3B::CNewUIMasterLevel::SetMasterType(CLASS_TYPE Class)
 
     this->SetMasterSkillToolTipData();
 
+    this->RecalculateRows();
+
     switch (Class)
     {
     case CLASS_WIZARD:
@@ -404,15 +512,52 @@ int SEASON3B::CNewUIMasterLevel::SetDivideString(wchar_t* text, int isItemTollTi
     return TextNum;
 }
 
+int SEASON3B::CNewUIMasterLevel::HighestRank() const
+{
+    int highest = 1;
+    for (const auto& entry : this->map_masterData)
+    {
+        highest = std::max<int>(highest, SkillAttribute[entry.second.Skill].SkillRank);
+    }
+    return highest;
+}
+
+void SEASON3B::CNewUIMasterLevel::RecalculateRows()
+{
+    this->m_rows = UI::MasterTree::ComputeRows(this->HighestRank(),
+        static_cast<float>(UI::MasterTree::CellsBottom - UI::MasterTree::CellsTop));
+}
+
+UI::MasterTree::Slot SEASON3B::CNewUIMasterLevel::SlotOf(const _MASTER_SKILLTREE_DATA& data) const
+{
+    auto slot = UI::MasterTree::SlotOf(data.Group, CellOf(data), SkillAttribute[data.Skill].SkillRank, this->m_rows);
+    slot.x += this->PosX;
+    slot.y += this->PosY;
+    return slot;
+}
+
+bool SEASON3B::CNewUIMasterLevel::IsSkillAvailable(const _MASTER_SKILLTREE_DATA& data)
+{
+    const auto skillLevel = CharacterAttribute->MasterSkillInfo[data.Skill].GetSkillLevel();
+    const BYTE rank = SkillAttribute[data.Skill].SkillRank;
+    return this->CheckParentSkill(data)
+        && this->CheckRankPoint(data.Group, rank, skillLevel)
+        && this->CheckBeforeSkill(data.Skill, skillLevel)
+        && g_csItemOption.IsNonWeaponSkillOrIsSkillEquipped(data.Skill);
+}
+
 bool SEASON3B::CNewUIMasterLevel::Render()
 {
     EnableAlphaTest();
-    RenderImage(IMAGE_MASTER_INTERFACE, this->PosX, this->PosY, Bitmaps[IMAGE_MASTER_INTERFACE].Width, Bitmaps[IMAGE_MASTER_INTERFACE].Height);
-    RenderImage(IMAGE_MASTER_INTERFACE + 1, this->PosX + Bitmaps[IMAGE_MASTER_INTERFACE].Width, this->PosY, Bitmaps[IMAGE_MASTER_INTERFACE + 1].Width, Bitmaps[IMAGE_MASTER_INTERFACE + 1].Height);
-    this->RenderIcon();
-    this->m_CloseBT.Render();
+    this->RecalculateRows();
+    UI::AuctionChrome::RenderWindowFrame(static_cast<float>(this->PosX), static_cast<float>(this->PosY),
+        static_cast<float>(Tree::WindowWidth), static_cast<float>(Tree::WindowHeight));
+    this->RenderColumns();
+    this->RenderConnectors();
+    this->RenderSkillSlots();
     DisableAlphaBlend();
     this->RenderText();
+    this->RenderToolTip();
 
     return true;
 }
@@ -424,33 +569,14 @@ bool SEASON3B::CNewUIMasterLevel::Update()
 
 bool SEASON3B::CNewUIMasterLevel::UpdateMouseEvent()
 {
-    if (this->m_CloseBT.UpdateMouseEvent() == true)
+    // The close button is part of the frame art, as in the Auction House; only its area needs handling.
+    const int closeX = this->PosX + UI::MasterTree::WindowWidth - CloseWidth - CloseMargin;
+    if (SEASON3B::CheckMouseIn(closeX, this->PosY + CloseMargin, CloseWidth, CloseHeight) && SEASON3B::IsRelease(VK_LBUTTON))
     {
         g_pNewUISystem->Hide(SEASON3B::INTERFACE_MASTER_LEVEL);
+        PlayBuffer(SOUND_CLICK01);
 
         return true;
-    }
-
-    bool result = true;
-
-    if (SEASON3B::IsPress(VK_LBUTTON) == true)
-    {
-        result = this->CheckMouse(MouseX, MouseY);
-
-        if (result == false)
-        {
-            PlayBuffer(SOUND_CLICK01);
-        }
-    }
-
-    for (int i = 0; i < MAX_MASTER_SKILL_CATEGORY; i++)
-    {
-        if (this->ButtonX[i] == 1 && SEASON3B::IsPress(VK_LBUTTON) == true)
-        {
-            this->ButtonX[i] = 0;
-
-            return true;
-        }
     }
 
     this->CheckBtn();
@@ -460,7 +586,7 @@ bool SEASON3B::CNewUIMasterLevel::UpdateMouseEvent()
         return false;
     }
 
-    return result;
+    return true;
 }
 
 bool SEASON3B::CNewUIMasterLevel::UpdateKeyEvent()
@@ -488,175 +614,194 @@ float SEASON3B::CNewUIMasterLevel::GetLayerDepth()
 
 void SEASON3B::CNewUIMasterLevel::LoadImages()
 {
-    LoadBitmap(L"Interface\\new_Master_back01.jpg", IMAGE_MASTER_INTERFACE, GL_LINEAR, GL_REPEAT, true, false);
-    LoadBitmap(L"Interface\\new_Master_back02.jpg", IMAGE_MASTER_INTERFACE + 1, GL_LINEAR, GL_REPEAT, true, false);
-    LoadBitmap(L"Interface\\new_Master_Icon.jpg", IMAGE_MASTER_INTERFACE + 2, GL_LINEAR, GL_CLAMP, true, false);
-    LoadBitmap(L"Interface\\new_Master_Non_Icon.jpg", IMAGE_MASTER_INTERFACE + 3, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_box.tga", IMAGE_MASTER_INTERFACE + 4, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_exit.jpg", IMAGE_MASTER_INTERFACE + 5, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_arrow01.tga", IMAGE_MASTER_INTERFACE + 6, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_arrow02.tga", IMAGE_MASTER_INTERFACE + 7, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_arrow03.tga", IMAGE_MASTER_INTERFACE + 8, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_arrow04.tga", IMAGE_MASTER_INTERFACE + 9, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_arrow05.tga", IMAGE_MASTER_INTERFACE + 10, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_arrow06.tga", IMAGE_MASTER_INTERFACE + 11, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_arrow07.tga", IMAGE_MASTER_INTERFACE + 12, GL_LINEAR);
-    LoadBitmap(L"Interface\\new_Master_arrow08.tga", IMAGE_MASTER_INTERFACE + 13, GL_LINEAR);
+    // Only the skill icon sheets are the tree's own. The frame, slots, tabs and close button are the Auction House
+    // chrome (loaded by that window) and the tooltip ornaments belong to the buff window.
+    LoadBitmap(L"Interface\\new_Master_Icon.jpg", IMAGE_MASTER_INTERFACE, GL_LINEAR, GL_CLAMP, true, false);
+    LoadBitmap(L"Interface\\new_Master_Non_Icon.jpg", IMAGE_MASTER_INTERFACE + 1, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIMasterLevel::UnloadImages()
 {
-    for (int i = 0; i < 14; i++)
+    for (int i = 0; i < 2; i++)
     {
         DeleteBitmap(i + IMAGE_MASTER_INTERFACE, false);
     }
 }
 
-void SEASON3B::CNewUIMasterLevel::RenderText() const
+void SEASON3B::CNewUIMasterLevel::BuildInfoChips(InfoChip (&chips)[3]) const
 {
     g_pRenderText->SetFont(g_hFont);
 
-    if (SEASON3B::IsPress(VK_LBUTTON) == false && SEASON3B::CheckMouseIn(458, 11, 81, 10) == true)
-    {
-        TextList[0][0] = 0;
-        TextBold[0] = 0;
-        TextListColor[0] = 0;
-        mu_swprintf(TextList[0], L"%I64d / %I64d", Master_Level_Data.lMasterLevel_Experince, Master_Level_Data.lNext_MasterLevel_Experince);
-        RenderTipTextList(466, 26, 1, 0, 3, 0, 1);
-    }
-
-    g_pRenderText->SetTextColor(255, 255, 255, 0xFFu);
-
-    g_pRenderText->SetBgColor(0, 0, 0, 1u);
-
-    wchar_t Buffer[256] = {};
-
-    mu_swprintf(Buffer, I18N::Game::MasterLevelD, Master_Level_Data.nMLevel);
-
-    g_pRenderText->RenderText(275, 11, Buffer, 0, 0, 1, 0);
-
-    mu_swprintf(Buffer, I18N::Game::LevelPointD, Master_Level_Data.nMLevelUpMPoint);
-
-    g_pRenderText->RenderText(372, 11, Buffer, 0, 0, 1, 0);
+    mu_swprintf(chips[0].text, I18N::Game::MasterLevelD, Master_Level_Data.nMLevel);
+    mu_swprintf(chips[1].text, I18N::Game::LevelPointD, Master_Level_Data.nMLevelUpMPoint);
+    chips[1].highlighted = Master_Level_Data.nMLevelUpMPoint > 0;
 
     if (Master_Level_Data.lNext_MasterLevel_Experince != 0)
     {
-        const __int64 iTotalLevel = Master_Level_Data.nMLevel + 400;				// 종합레벨 - 400렙이 만렙이기 때문에 더해준다.
-        const __int64 iTOverLevel = iTotalLevel - 255;		// 255레벨 이상 기준 레벨
-        __int64 iBaseExperience = 0;					// 레벨 초기 경험치
-
-        const __int64 iData_Master =	// A
-            (
-                (
-                    (__int64)9 + (__int64)iTotalLevel
-                    )
-                * (__int64)iTotalLevel
-                * (__int64)iTotalLevel
-                * (__int64)10
-                )
-            +
-            (
-                (
-                    (__int64)9 + (__int64)iTOverLevel
-                    )
-                * (__int64)iTOverLevel
-                * (__int64)iTOverLevel
-                * (__int64)1000
-                );
-
-        iBaseExperience = (iData_Master - (__int64)3892250000) / (__int64)2;	// B
-
-        // 레벨업 경험치
+        // The experience of a level is counted from the total of all levels (400 normal levels and the master levels
+        // on top), so the percentage is taken over this level's own stretch of experience.
+        const __int64 iTotalLevel = Master_Level_Data.nMLevel + 400;
+        const __int64 iTOverLevel = iTotalLevel - 255;
+        const __int64 iData_Master =
+            (((__int64)9 + iTotalLevel) * iTotalLevel * iTotalLevel * (__int64)10)
+            + (((__int64)9 + iTOverLevel) * iTOverLevel * iTOverLevel * (__int64)1000);
+        const __int64 iBaseExperience = (iData_Master - (__int64)3892250000) / (__int64)2;
         const double fNeedExp = (double)Master_Level_Data.lNext_MasterLevel_Experince - (double)iBaseExperience;
-
-        // 현재 획득한 경험치
         const double fExp = (double)Master_Level_Data.lMasterLevel_Experince - (double)iBaseExperience;
-
-        mu_swprintf(Buffer, I18N::Game::EXP62f, fExp / fNeedExp * 100.0);
-
-        g_pRenderText->RenderText(466, 11, Buffer, 0, 0, 1, 0);
+        mu_swprintf(chips[2].text, I18N::Game::EXP62f, fExp / fNeedExp * 100.0);
+    }
+    else
+    {
+        mu_swprintf(chips[2].text, L"%ls", L"EXP: -");
     }
 
-    g_pRenderText->RenderText(154, 11, I18N::Game::Lookup(this->ClassNameTextIndex), 0, 0, 1, nullptr);
-
-    g_pRenderText->SetTextColor(255, 155, 0, 0xFFu);
-
-    mu_swprintf(Buffer, I18N::Game::Lookup(this->CategoryTextIndex), this->CategoryPoint[0]);
-
-    g_pRenderText->RenderText(92, 40, Buffer, 0, 0, RT3_SORT_CENTER, 0);
-
-    mu_swprintf(Buffer, I18N::Game::Lookup(this->CategoryTextIndex + 1), this->CategoryPoint[1]);
-
-    g_pRenderText->RenderText(302, 40, Buffer, 0, 0, RT3_SORT_CENTER, 0);
-
-    mu_swprintf(Buffer, I18N::Game::Lookup(this->CategoryTextIndex + 2), this->CategoryPoint[2]);
-
-    g_pRenderText->RenderText(513, 40, Buffer, 0, 0, RT3_SORT_CENTER, 0);
+    int total = InfoGap * 2;
+    for (auto& chip : chips)
+    {
+        chip.width = std::max<int>(InfoMinimumWidth, g_pRenderText->MeasureText(chip.text, lstrlen(chip.text)).cx + InfoPadding * 2);
+        total += chip.width;
+    }
+    int x = this->PosX + (Tree::WindowWidth - total) / 2;
+    for (auto& chip : chips)
+    {
+        chip.x = x;
+        x += chip.width + InfoGap;
+    }
 }
 
-void SEASON3B::CNewUIMasterLevel::RenderIcon()
+void SEASON3B::CNewUIMasterLevel::RenderColumns()
 {
-    constexpr int SKILL_ICON_WIDTH = 20;
-    constexpr int SKILL_ICON_HEIGHT = 28;
-
-    for (auto it = this->map_masterData.begin(); it != this->map_masterData.end(); it++)
+    InfoChip chips[3];
+    this->BuildInfoChips(chips);
+    const auto& field = UI::AuctionChrome::AuctionFieldSkin();
+    for (const auto& chip : chips)
     {
-        const auto group = it->second.Group;
-        const auto skill = it->second.Skill;
-        const auto skillAttribute = &SkillAttribute[skill];
-        const auto skillLevel = CharacterAttribute->MasterSkillInfo[skill].GetSkillLevel();
+        UI::NineSlice::Render(field.texture, static_cast<float>(chip.x), static_cast<float>(this->PosY + InfoY),
+            static_cast<float>(chip.width), static_cast<float>(InfoHeight), field.tints.normal);
+    }
 
-        const int index = (it->second.Index - 1) % 4;
-        const BYTE rank = skillAttribute->SkillRank;
+    for (int column = 0; column < Tree::ColumnCount; ++column)
+    {
+        const float x = static_cast<float>(this->PosX + Tree::ColumnX(column));
+        UI::NineSlice::Render(UI::AuctionChrome::AuctionRowSkin().texture, x, static_cast<float>(this->PosY + Tree::ColumnTop),
+            static_cast<float>(Tree::ColumnWidth), static_cast<float>(Tree::ColumnBottom - Tree::ColumnTop), ColumnTint[column]);
+        UI::NineSlice::Render(UI::AuctionChrome::AuctionButtonSkin().texture, x + Tree::HeaderInset,
+            static_cast<float>(this->PosY + Tree::HeaderTop), static_cast<float>(Tree::ColumnWidth - 2 * Tree::HeaderInset),
+            static_cast<float>(Tree::HeaderHeight), this->CategoryPoint[column] > 0 ? HeaderTintActive[column] : HeaderTintIdle[column]);
+    }
+}
 
-        const int CalcX = (int)(index * 49.0f + this->categoryPos[group].x);
-        const int CalcY = (int)(this->categoryPos[group].y + (skillAttribute->SkillRank - 1) * 41.0f);
+void SEASON3B::CNewUIMasterLevel::RenderConnectors()
+{
+    for (const auto& entry : this->map_masterData)
+    {
+        const auto& data = entry.second;
+        const bool lit = CharacterAttribute->MasterSkillInfo[data.Skill].GetSkillLevel() > 0 || this->IsSkillAvailable(data);
+        RenderConnector(data.ArrowDirection, this->SlotOf(data), this->m_rows, lit ? ConnectorLit : ConnectorDim);
+    }
+    EndRenderColor();
+}
 
-        DWORD textColor;
+void SEASON3B::CNewUIMasterLevel::RenderSkillSlots()
+{
+    const auto& field = UI::AuctionChrome::AuctionFieldSkin();
+    const bool pressed = SEASON3B::IsPress(VK_LBUTTON);
+    for (const auto& entry : this->map_masterData)
+    {
+        const auto& data = entry.second;
+        const auto skillAttribute = &SkillAttribute[data.Skill];
+        const auto skillLevel = CharacterAttribute->MasterSkillInfo[data.Skill].GetSkillLevel();
+        const bool available = this->IsSkillAvailable(data);
+        const auto slot = this->SlotOf(data);
+        const bool hovered = SEASON3B::CheckMouseIn(slot.x, slot.y, slot.width, slot.height);
 
-        RenderImage(IMAGE_MASTER_INTERFACE + 4, CalcX, CalcY, 50, 38, 0, 0, 50.f / 64.f, 38.f / 64.f);
-
-        if (!this->CheckParentSkill(it->second)
-            || !this->CheckRankPoint(group, rank, skillLevel)
-            || !this->CheckBeforeSkill(skill, skillLevel)
-            || !g_csItemOption.IsNonWeaponSkillOrIsSkillEquipped(skill)
-            )
+        DWORD tint = skillLevel > 0 ? SlotTintLearned : (available ? SlotTintAvailable : SlotTintLocked);
+        if (hovered && !pressed && skillLevel == 0)
         {
-            textColor = RGBA(120, 120, 120, 255);
+            tint = SlotTintHover;
+        }
+        UI::NineSlice::Render(field.texture, slot.x, slot.y, slot.width, slot.height, tint);
 
-            g_pRenderText->SetTextColor(textColor);
-            RenderImage(IMAGE_MASTER_INTERFACE + 3, CalcX + 8, CalcY + 5, SKILL_ICON_WIDTH, SKILL_ICON_HEIGHT, (20.f / 512.f) * (skillAttribute->Magic_Icon % 25), ((28.f / 512.f) * ((skillAttribute->Magic_Icon / 25))), 20.f / 512, 28.f / 512.f);
+        const float iconWidth = Tree::IconWidth * this->m_rows.scale;
+        const float iconHeight = Tree::IconHeight * this->m_rows.scale;
+        const int atlas = available ? IMAGE_MASTER_INTERFACE : IMAGE_MASTER_INTERFACE + 1;
+        RenderImage(atlas, slot.centreX() - iconWidth / 2.f, slot.centreY() - iconHeight / 2.f, iconWidth, iconHeight,
+            (20.f / 512.f) * (skillAttribute->Magic_Icon % 25), (28.f / 512.f) * (skillAttribute->Magic_Icon / 25), 20.f / 512.f, 28.f / 512.f);
+
+        const float badgeX = slot.right() - BadgeWidth + BadgeOverlap;
+        const float badgeY = slot.bottom() - BadgeHeight + BadgeOverlap / 2.f;
+        UI::NineSlice::Render(field.texture, badgeX, badgeY, BadgeWidth, BadgeHeight, BadgeTint);
+        const std::wstring digits = std::to_wstring(skillLevel);
+        g_pRenderText->SetFont(g_hFontBold);
+        g_pRenderText->SetBgColor(0, 0, 0, 0);
+        if (skillLevel >= data.MaxLevel)
+        {
+            g_pRenderText->SetTextColor(255, 214, 118, 255);
+        }
+        else if (skillLevel > 0)
+        {
+            g_pRenderText->SetTextColor(255, 255, 255, 255);
         }
         else
         {
-            textColor = RGBA(255, 255, 255, 255);
-
-            g_pRenderText->SetTextColor(textColor);
-
-            RenderImage(IMAGE_MASTER_INTERFACE + 2, CalcX + 8, CalcY + 5, SKILL_ICON_WIDTH, SKILL_ICON_HEIGHT, (20.f / 512.f) * (skillAttribute->Magic_Icon % 25), ((28.f / 512.f) * ((skillAttribute->Magic_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
+            g_pRenderText->SetTextColor(160, 160, 160, 255);
         }
+        const SIZE size = g_pRenderText->MeasureText(digits.c_str(), static_cast<int>(digits.size()));
+        g_pRenderText->RenderText(badgeX, badgeY + (BadgeHeight - size.cy) / 2.f, digits.c_str(), BadgeWidth, 0, RT3_SORT_CENTER);
+    }
+}
 
-        if (it->second.ArrowDirection == 1)
-            RenderImage(IMAGE_MASTER_INTERFACE + 6, CalcX + 8 + (SKILL_ICON_WIDTH)+2, CalcY + (SKILL_ICON_HEIGHT / 2), 28, 7, 0, 0, 28 / 32.f, 7 / 8.f);
-        if (it->second.ArrowDirection == 2)
-            RenderImage(IMAGE_MASTER_INTERFACE + 7, CalcX + 8 + (SKILL_ICON_WIDTH)+2, CalcY + (SKILL_ICON_HEIGHT / 2), 28, 7, 0, 0, 28 / 32.f, 7 / 8.f);
-        if (it->second.ArrowDirection == 3)
-            RenderImage(IMAGE_MASTER_INTERFACE + 8, CalcX + 8 + (SKILL_ICON_WIDTH / 2) - 3.5, CalcY + SKILL_ICON_HEIGHT + 7, 7, 12, 0, 0, 7 / 8.f, 12 / 16.f);
-        if (it->second.ArrowDirection == 4)
-            RenderImage(IMAGE_MASTER_INTERFACE + 9, CalcX + 8 + (SKILL_ICON_WIDTH / 2) - 3.5, CalcY + SKILL_ICON_HEIGHT + 7, 7, 52, 0, 0, 7 / 8.f, 12 / 16.f);
-        if (it->second.ArrowDirection == 5)
-            RenderImage(IMAGE_MASTER_INTERFACE + 10, CalcX, CalcY, 42, 31, 0, 0, 42 / 64.f, 31 / 32.f);
-        if (it->second.ArrowDirection == 6)
-            RenderImage(IMAGE_MASTER_INTERFACE + 11, CalcX, CalcY, 42, 31, 0, 0, 42 / 64.f, 31 / 32.f);
-        if (it->second.ArrowDirection == 7)
-            RenderImage(IMAGE_MASTER_INTERFACE + 12, CalcX + 8 + (SKILL_ICON_WIDTH / 2) - 1.5, CalcY + SKILL_ICON_HEIGHT + 8, 40, 28, 0, 0, 40 / 64.f, 28 / 32.f);
-        if (it->second.ArrowDirection == 8)
-            RenderImage(IMAGE_MASTER_INTERFACE + 13, CalcX, CalcY, 40, 28, 0, 0, 40 / 64.f, 28 / 32.f);
+void SEASON3B::CNewUIMasterLevel::RenderText() const
+{
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    g_pRenderText->SetTextColor(220, 220, 220, 255);
+    g_pRenderText->RenderText(static_cast<float>(this->PosX + 15), static_cast<float>(this->PosY + TitleY),
+        I18N::Game::Lookup(this->ClassNameTextIndex), static_cast<float>(Tree::WindowWidth - 30), 0, RT3_SORT_CENTER);
 
-        g_pRenderText->RenderText(CalcX + 8 + 30, CalcY + 28 - 5, std::to_wstring(skillLevel).c_str());
+    InfoChip chips[3];
+    this->BuildInfoChips(chips);
+    g_pRenderText->SetFont(g_hFont);
+    for (const auto& chip : chips)
+    {
+        const SIZE size = g_pRenderText->MeasureText(chip.text, lstrlen(chip.text));
+        if (chip.highlighted)
+        {
+            g_pRenderText->SetTextColor(255, 214, 118, 255);
+        }
+        else
+        {
+            g_pRenderText->SetTextColor(235, 235, 235, 255);
+        }
+        g_pRenderText->RenderText(static_cast<float>(chip.x), static_cast<float>(this->PosY + InfoY) + (InfoHeight - size.cy) / 2.f,
+            chip.text, static_cast<float>(chip.width), 0, RT3_SORT_CENTER);
     }
 
-    this->RenderToolTip();
+    g_pRenderText->SetFont(g_hFontBold);
+    for (int column = 0; column < Tree::ColumnCount; ++column)
+    {
+        wchar_t label[128] = {};
+        mu_swprintf(label, I18N::Game::Lookup(this->CategoryTextIndex + column), this->CategoryPoint[column]);
+        const SIZE size = g_pRenderText->MeasureText(label, lstrlen(label));
+        const DWORD textColor = this->CategoryPoint[column] > 0 ? HeaderTextActive[column] : HeaderTextIdle[column];
+        g_pRenderText->SetTextColor(GetRValue(textColor), GetGValue(textColor), GetBValue(textColor), 255);
+        g_pRenderText->RenderText(static_cast<float>(this->PosX + Tree::ColumnX(column) + Tree::HeaderInset),
+            static_cast<float>(this->PosY + Tree::HeaderTop) + (Tree::HeaderHeight - size.cy) / 2.f, label,
+            static_cast<float>(Tree::ColumnWidth - 2 * Tree::HeaderInset), 0, RT3_SORT_CENTER);
+    }
+    g_pRenderText->SetFont(g_hFont);
+
+    // Hovering the experience readout shows the exact numbers.
+    const InfoChip& experience = chips[2];
+    if (SEASON3B::IsPress(VK_LBUTTON) == false && SEASON3B::CheckMouseIn(experience.x, this->PosY + InfoY, experience.width, InfoHeight) == true)
+    {
+        TextList[0][0] = 0;
+        TextBold[0] = 0;
+        TextListColor[0] = TEXT_COLOR_WHITE;
+        mu_swprintf(TextList[0], L"%I64d / %I64d", Master_Level_Data.lMasterLevel_Experince, Master_Level_Data.lNext_MasterLevel_Experince);
+        UI::Buffs::Tooltip::Render(experience.x + experience.width / 2, this->PosY + InfoY + InfoHeight + TooltipGap,
+            ExpTooltipLines, SEASON3B::CNewUIBuffWindow::IMAGE_BUFF_TOOLTIP_ORNAMENTS);
+    }
 }
 
 void SEASON3B::CNewUIMasterLevel::RenderToolTip()
@@ -674,13 +819,9 @@ void SEASON3B::CNewUIMasterLevel::RenderToolTip()
             break;
         }
 
-        const int index = (it->second.Index - 1) % 4;
+        const auto slot = this->SlotOf(it->second);
 
-        const int CalcX = (int)(index * 49.0f + this->categoryPos[group].x);
-
-        const int CalcY = (int)(this->categoryPos[group].y + (p->SkillRank - 1) * 41.0f);
-
-        if (SEASON3B::IsPress(VK_LBUTTON) == true || SEASON3B::CheckMouseIn(CalcX + 8, CalcY + 5, 20, 28) == false)
+        if (SEASON3B::IsPress(VK_LBUTTON) == true || SEASON3B::CheckMouseIn(slot.x, slot.y, slot.width, slot.height) == false)
         {
             continue;
         }
@@ -795,75 +936,39 @@ void SEASON3B::CNewUIMasterLevel::RenderToolTip()
             }
         }
 
-        if (CalcY > 300)
+        // A rule between the skill's name and its description.
+        if (lineCount > 1 && lineCount < TooltipLineCapacity)
         {
+            for (int line = lineCount; line > 1; --line)
+            {
+                wcscpy_s(TextList[line], TextList[line - 1]);
+                TextListColor[line] = TextListColor[line - 1];
+                TextBold[line] = TextBold[line - 1];
+            }
+            wcscpy_s(TextList[1], L"\n");
+            TextListColor[1] = TEXT_COLOR_WHITE;
+            TextBold[1] = 0;
+            ++lineCount;
+        }
 
-            RenderTipTextList(CalcX + 8, CalcY + 33, lineCount, 0, 3, STRP_BOTTOMCENTER, 1);
+        const int ornaments = SEASON3B::CNewUIBuffWindow::IMAGE_BUFF_TOOLTIP_ORNAMENTS;
+        if (slot.y > TooltipFlipY)
+        {
+            UI::Buffs::Tooltip::Render(static_cast<int>(slot.centreX()), static_cast<int>(slot.y) - TooltipGap, lineCount, ornaments, true);
         }
         else
         {
-            RenderTipTextList(CalcX + 8, CalcY + 33, lineCount, 0, 3, 0, 1);
+            UI::Buffs::Tooltip::Render(static_cast<int>(slot.centreX()), static_cast<int>(slot.bottom()) + TooltipGap, lineCount, ornaments);
         }
 
     }
-}
-
-bool SEASON3B::CNewUIMasterLevel::CheckMouse(int posx, int posy)
-{
-    constexpr POINT position[3] = { {185,65},{385,65},{585,65} };
-
-    for (int i = 0; i < MAX_MASTER_SKILL_CATEGORY; i++)
-    {
-        if (SEASON3B::CheckMouseIn(position[i].x + this->PosX, this->ButtonY[i] + position[i].y + this->PosY, 15, 30) == true && this->ButtonX[i] == 0)
-        {
-            this->ButtonY[i] = 1;
-
-            return false;
-        }
-    }
-
-    return true;
 }
 
 bool SEASON3B::CNewUIMasterLevel::CheckBtn()
 {
-    constexpr int posX = 220;
-
-    for (int i = 0; i < MAX_MASTER_SKILL_CATEGORY; i++)
+    for (const auto& entry : this->map_masterData)
     {
-        if (this->ButtonX[i] == 1 && SEASON3B::IsRelease(VK_LBUTTON))
-        {
-            this->ButtonX[i] = 0;
-            return false;
-        }
-
-        if (this->ButtonX[i] == 1)
-        {
-            this->ButtonY[i] = MouseY - 65;
-
-            if (this->ButtonY[i] > posX)
-            {
-                this->ButtonY[i] = posX;
-            }
-            else if (this->ButtonY[i] <= 0)
-            {
-                this->ButtonY[i] = 0;
-            }
-        }
-    }
-
-    for (auto it = this->map_masterData.begin(); it != this->map_masterData.end(); it++)
-    {
-        auto selectedSkill = it->second;
-        
-        switch (selectedSkill.Group)
-        {
-        case 0:
-        case 1:
-        case 2:
-            this->CheckAttributeArea(selectedSkill);
-            break;
-        }
+        this->CheckAttributeArea(entry.second);
     }
 
     return true;
@@ -883,13 +988,9 @@ bool SEASON3B::CNewUIMasterLevel::CheckAttributeArea(const _MASTER_SKILLTREE_DAT
         return false;
     }
 
-    const int tindex = (skillData.Index - 1) % 4;
+    const auto slot = this->SlotOf(skillData);
 
-    const int posX = (int)((double)this->categoryPos[skillData.Group].x + tindex * 49.0);
-
-    const int posY = (int)((double)this->categoryPos[skillData.Group].y + (lpskill->SkillRank - 1) * 41.0);
-
-    if (!SEASON3B::IsPress(VK_LBUTTON) || SEASON3B::CheckMouseIn(posX + 8, posY + 5, 20, 28) == false)
+    if (!SEASON3B::IsPress(VK_LBUTTON) || SEASON3B::CheckMouseIn(slot.x, slot.y, slot.width, slot.height) == false)
     {
         return true;
     }

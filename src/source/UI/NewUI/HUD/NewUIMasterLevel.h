@@ -5,6 +5,7 @@
 
 #include "UI/NewUI/NewUIBase.h"
 #include "UI/NewUI/Widgets/NewUIButton.h"
+#include "UI/NewUI/HUD/MasterSkillTreeLayout.h"
 
 constexpr auto MAX_MASTER_SKILL_DATA = 512;
 
@@ -106,15 +107,12 @@ namespace SEASON3B
         int width;
         int height;
 
-        DWORD ButtonX[MAX_MASTER_SKILL_CATEGORY];
-        DWORD ButtonY[MAX_MASTER_SKILL_CATEGORY];
-        CNewUIButton m_CloseBT;
         int CategoryPoint[MAX_MASTER_SKILL_CATEGORY];
         int skillPoint[MAX_MASTER_SKILL_CATEGORY][MAX_MASTER_TREE_RANK];
         BYTE ConsumePoint;
         int CurSkillID;
         MASTER_SKILL_TREE_CLASS classCode;
-        POINT categoryPos[MAX_MASTER_SKILL_CATEGORY];
+        UI::MasterTree::RowMetrics m_rows;
         DWORD CategoryTextIndex;
         DWORD ClassNameTextIndex;
 
@@ -142,10 +140,26 @@ namespace SEASON3B
         void ClearSkillTreeData();
         void ClearSkillTooltipData();
 
+        // One of the readouts in the title band: master level, level points, experience.
+        struct InfoChip
+        {
+            wchar_t text[64] = {};
+            int x = 0;
+            int width = 0;
+            bool highlighted = false;
+        };
+
+        int HighestRank() const;
+        void RecalculateRows();
+        UI::MasterTree::Slot SlotOf(const _MASTER_SKILLTREE_DATA& data) const;
+        bool IsSkillAvailable(const _MASTER_SKILLTREE_DATA& data);
+        void BuildInfoChips(InfoChip (&chips)[3]) const;
+
+        void RenderColumns();
+        void RenderConnectors();
+        void RenderSkillSlots();
         void RenderText() const;
-        void RenderIcon();
         void RenderToolTip();
-        bool CheckMouse(int posx, int posy);
         bool CheckBtn();
     };
 }
