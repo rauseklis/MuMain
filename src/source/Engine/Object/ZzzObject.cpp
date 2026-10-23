@@ -11,6 +11,7 @@
 #endif
 #include "Engine/Object/ZzzInfomation.h"
 #include "Engine/Object/ZzzObject.h"
+#include "World/GameMaps/LorenciaMarketFountain.h"
 #include "Engine/Object/ZzzCharacter.h"
 #include "Render/Terrain/ZzzLodTerrain.h"
 #include "Render/Textures/ZzzTexture.h"
@@ -1121,7 +1122,7 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
                     }
                 }
 
-                if (RenderHellasObjectMesh(o, b)) {}
+                if (RenderHellasObjectMesh(o, b) || World::Lorencia::MarketFountain::RenderObjectMesh(o)) {}
                 else
                     if (battleCastle::RenderBattleCastleObjectMesh(o, b)) {}
                     else
@@ -2760,6 +2761,7 @@ void RenderObjectVisual(OBJECT* o)
     switch (gMapManager.WorldActive)
     {
     case WD_0LORENCIA:
+        World::Lorencia::MarketFountain::RenderVisual(o);
         switch (o->Type)
         {
         case MODEL_WATERSPOUT:
@@ -3536,6 +3538,7 @@ void Draw_RenderObject_AfterCharacter(OBJECT* o, bool Translate, int Select, int
         SEASON3B::GMNewTown::RenderObjectAfterCharacter(o, b);
         SEASON3C::GMSwampOfQuiet::RenderObjectAfterCharacter(o, b);
 
+        World::Lorencia::MarketFountain::RenderAfterObjectMesh(o, b);
         TheMapProcess().RenderAfterObjectMesh(o, b);
     }
 }
@@ -3818,6 +3821,7 @@ void MoveObject(OBJECT* o)
     switch (gMapManager.WorldActive)
     {
     case WD_0LORENCIA:
+        World::Lorencia::MarketFountain::Move(o);
         switch (o->Type)
         {
         case MODEL_HOUSE01 + 3:
