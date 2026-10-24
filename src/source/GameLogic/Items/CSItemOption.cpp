@@ -63,11 +63,49 @@ struct ITEM_SET_OPTION_FILE
     std::array<std::uint8_t, MAX_ITEM_SET_EXT_OPTION_COUNT> byExtOption{};
     std::array<std::uint8_t, MAX_ITEM_SET_EXT_OPTION_COUNT> byExtOptionValue{};
     std::uint8_t byOptionCount;
-    std::array<std::uint8_t, MAX_ITEM_SET_FULL_OPTION_COUNT> byFullOption{};
-    std::array<std::uint8_t, MAX_ITEM_SET_FULL_OPTION_COUNT> byFullOptionValue{};
+    std::array<std::uint8_t, GameLogic::Items::Sets::SerializedFullOptionCount> byFullOption{};
+    std::array<std::uint8_t, GameLogic::Items::Sets::SerializedFullOptionCount> byFullOptionValue{};
     std::array<std::uint8_t, MAX_CLASS> byRequireClass{};
 };
 
+namespace
+{
+void CopySetOptions(ITEM_SET_OPTION& target, const ITEM_SET_OPTION_FILE& source, std::uint8_t setNumber)
+{
+    CMultiLanguage::ConvertFromUtf8(target.strSetName, source.strSetName);
+    target.byOptionCount = source.byOptionCount;
+    target.bySetItemCount = 0;
+    target.byStandardOption = source.byStandardOption;
+    target.byStandardOptionValue = source.byStandardOptionValue;
+    target.byExtOption = source.byExtOption;
+    target.byExtOptionValue = source.byExtOptionValue;
+    target.byFullOption.fill(EMPTY_OPTION);
+    target.byFullOptionValue.fill(EMPTY_OPTION);
+    std::copy(source.byFullOption.begin(), source.byFullOption.end(), target.byFullOption.begin());
+    std::copy(source.byFullOptionValue.begin(), source.byFullOptionValue.end(), target.byFullOptionValue.begin());
+    target.byRequireClass = source.byRequireClass;
+    GameLogic::Items::Sets::AddTierOneFullStatOptions(setNumber, target.byFullOption, target.byFullOptionValue);
+}
+
+SET_SEARCH_RESULT_OPT CreateInactiveSetPreview(const ITEM_SET_OPTION& options)
+{
+    SET_SEARCH_RESULT_OPT preview{};
+    const auto append = [&](std::uint8_t option, std::uint8_t value, bool full, bool extended)
+    {
+        if (option == EMPTY_OPTION || value == 0 || preview.SetOptionCount >= MAX_OPTIONS_PER_ITEM_SET)
+            return;
+        preview.SetOption[preview.SetOptionCount++] = {false, full, extended, true, option, value};
+    };
+    for (int row = 0; row < MAX_ITEM_SET_STANDARD_OPTION_COUNT; ++row)
+        for (int column = 0; column < MAX_ITEM_SET_STANDARD_OPTION_PER_ITEM_COUNT; ++column)
+            append(options.byStandardOption[row][column], options.byStandardOptionValue[row][column], false, false);
+    for (int i = 0; i < MAX_ITEM_SET_EXT_OPTION_COUNT; ++i)
+        append(options.byExtOption[i], options.byExtOptionValue[i], false, true);
+    for (std::size_t i = 0; i < MAX_ITEM_SET_FULL_OPTION_COUNT; ++i)
+        append(options.byFullOption[i], options.byFullOptionValue[i], true, false);
+    return preview;
+}
+} // namespace
 
 bool CSItemOption::OpenItemSetScript()
 {
@@ -160,18 +198,7 @@ bool CSItemOption::OpenItemSetOption(const wchar_t* filename)
 
         ITEM_SET_OPTION_FILE current{};
         std::memcpy(&current, pSeek, entrySize);
-        auto* target = &m_ItemSetOption[i];
-
-        CMultiLanguage::ConvertFromUtf8(target->strSetName, current.strSetName);
-        target->byOptionCount = current.byOptionCount;
-        target->bySetItemCount = 0; // Is calculated below
-        target->byStandardOption = current.byStandardOption;
-        target->byStandardOptionValue = current.byStandardOptionValue;
-        target->byExtOption = current.byExtOption;
-        target->byExtOptionValue = current.byExtOptionValue;
-        target->byFullOption = current.byFullOption;
-        target->byFullOptionValue = current.byFullOptionValue;
-        target->byRequireClass = current.byRequireClass;
+        CopySetOptions(m_ItemSetOption[i], current, static_cast<std::uint8_t>(i));
 
         pSeek += entrySize;
     }
@@ -1029,7 +1056,7 @@ void CSItemOption::RenderOptionHelper(void)
 
     for (int o = 0; o < MAX_ITEM_SET_EXT_OPTION_COUNT; ++o)
     {
-        if (getExplainText(TextList[TextNum], setOption.byExtOption[o], setOption.byExtOption[o]))
+        if (getExplainText(TextList[TextNum], setOption.byExtOption[o], setOption.byExtOptionValue[o]))
         {
             TextListColor[TextNum] = TEXT_COLOR_GREEN;
             TextBold[TextNum] = false;
@@ -1037,9 +1064,9 @@ void CSItemOption::RenderOptionHelper(void)
         }
     }
 
-    for (int o = 0; o < MAX_ITEM_SET_FULL_OPTION_COUNT; ++o)
+    for (std::size_t o = 0; o < MAX_ITEM_SET_FULL_OPTION_COUNT; ++o)
     {
-        if (getExplainText(TextList[TextNum], setOption.byFullOption[o], setOption.byFullOption[o]))
+        if (getExplainText(TextList[TextNum], setOption.byFullOption[o], setOption.byFullOptionValue[o]))
         {
             TextListColor[TextNum] = TEXT_COLOR_YELLOW;
             TextBold[TextNum] = false;
@@ -1084,26 +1111,32 @@ int CSItemOption::RenderSetOptionListInItem(const ITEM* ip, int TextNum, bool bI
     mu_swprintf(TextList[TNum], L"\n"); TNum++;
     mu_swprintf(TextList[TNum], L"\n"); TNum++;
 
+    TNum = RenderSetOptionsForItem(setOption, TNum, bIsEquippedItem);
 
+    mu_swprintf(TextList[TNum], L"\n");
+    TNum++;
+    mu_swprintf(TextList[TNum], L"\n");
+    TNum++;
+
+    return TNum;
+}
+
+int CSItemOption::RenderSetOptionsForItem(const ITEM_SET_OPTION& setOption, int textIndex, bool equipped)
+{
     for (int i = 0; i < m_SetSearchResultCount; i++)
     {
         const auto& set = m_SetSearchResult[i];
         if (wcscmp(set.SetName, setOption.strSetName) == 0)
         {
-            // Set Found.
-            TNum = RenderSetOptionList(set, TNum, bIsEquippedItem, true);
-            break;
+            return RenderSetOptionList(set, textIndex, equipped, true);
         }
     }
-
-    mu_swprintf(TextList[TNum], L"\n"); TNum++;
-    mu_swprintf(TextList[TNum], L"\n"); TNum++;
-
-    return TNum;
+    return RenderSetOptionList(CreateInactiveSetPreview(setOption), textIndex, false, true);
 }
 
 std::uint8_t  CSItemOption::RenderSetOptionList(const SET_SEARCH_RESULT_OPT& set, std::uint8_t textIndex, bool bIsEquippedItem, bool bShowInactive)
 {
+    bool fullHeadingShown = false;
     for (int j = 0; j < set.SetOptionCount; j++)
     {
         const auto option = set.SetOption[j];
@@ -1114,6 +1147,15 @@ std::uint8_t  CSItemOption::RenderSetOptionList(const SET_SEARCH_RESULT_OPT& set
 
         if (getExplainText(TextList[textIndex], option.OptionNumber, option.Value))
         {
+            if (option.IsFullOption && !fullHeadingShown)
+            {
+                mu_swprintf(TextList[textIndex], L"%ls", I18N::Game::FullSetOptions);
+                TextListColor[textIndex] = TEXT_COLOR_YELLOW;
+                TextBold[textIndex++] = true;
+                fullHeadingShown = true;
+                getExplainText(TextList[textIndex], option.OptionNumber, option.Value);
+            }
+
             if (!bIsEquippedItem || !option.IsActive)
             {
                 TextListColor[textIndex] = TEXT_COLOR_GRAY;
