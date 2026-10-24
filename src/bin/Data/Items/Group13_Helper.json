@@ -14,6 +14,7 @@
       "slot": "pet",
       "level": 23,
       "durability": 255,
+      "droppable": false,
       "repairable": false,
       "requirements": {
         "level": 23
@@ -40,6 +41,7 @@
       "slot": "pet",
       "level": 28,
       "durability": 255,
+      "droppable": false,
       "repairable": false,
       "requirements": {
         "level": 28
@@ -67,6 +69,7 @@
       "slot": "pet",
       "level": 25,
       "durability": 255,
+      "droppable": false,
       "repairable": false,
       "requirements": {
         "level": 25
@@ -95,6 +98,7 @@
       "skill": 49,
       "level": 110,
       "durability": 255,
+      "droppable": false,
       "repairable": false,
       "requirements": {
         "level": 110
@@ -123,6 +127,7 @@
       "skill": 62,
       "level": 218,
       "durability": 255,
+      "droppable": false,
       "repairable": false,
       "requirements": {
         "level": 218
@@ -143,6 +148,7 @@
       "height": 1,
       "slot": "offHand",
       "durability": 255,
+      "droppable": false,
       "repairable": false,
       "classRequirements": {
         "darkWizard": 1,
@@ -896,6 +902,7 @@
       "slot": "pet",
       "level": 300,
       "durability": 255,
+      "droppable": false,
       "repairable": false,
       "requirements": {
         "level": 300
@@ -1580,6 +1587,7 @@
       "level": 1,
       "durability": 255,
       "tradable": false,
+      "droppable": false,
       "sellable": false,
       "repairable": false,
       "droppableWhileRented": false,
@@ -1612,6 +1620,7 @@
       "level": 1,
       "durability": 255,
       "tradable": false,
+      "droppable": false,
       "sellable": false,
       "repairable": false,
       "droppableWhileRented": false,
@@ -1663,6 +1672,7 @@
       "slot": "pet",
       "level": 28,
       "durability": 255,
+      "droppable": false,
       "repairable": false,
       "requirements": {
         "level": 28
@@ -1915,6 +1925,7 @@
       "level": 1,
       "durability": 255,
       "tradable": false,
+      "droppable": false,
       "sellable": false,
       "repairable": false,
       "droppableWhileRented": false,
@@ -2823,6 +2834,7 @@
       "level": 1,
       "durability": 255,
       "tradable": false,
+      "droppable": false,
       "sellable": false,
       "repairable": false,
       "droppableWhileRented": false,
