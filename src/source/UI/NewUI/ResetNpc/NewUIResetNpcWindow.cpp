@@ -33,7 +33,7 @@ namespace
     constexpr int WindowTop = 50;
     constexpr int HelpSize = 15;
     // The close button is part of the frame art; the question mark is its mirror image in the left corner.
-    constexpr int HelpX = 8;
+    constexpr int HelpX = 3;
     constexpr int HelpY = 5;
     constexpr int TooltipGap = 6;
     constexpr float IconSize = 20.f;
