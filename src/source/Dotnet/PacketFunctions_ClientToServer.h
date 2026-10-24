@@ -2314,4 +2314,22 @@ public:
     /// Causes reaction on server side: Jewel Bank service, see docs/superpowers/specs/2026-10-20-jewel-bank-design.md.
     /// </remarks>
     void SendJewelBankSetAutoDepositRequest(BYTE enabled);
+
+    /// <summary>
+    /// Sends a ResetNpcResetRequest to this connection.
+    /// </summary>
+    /// <remarks>
+    /// Is sent by the client when: The player presses the Reset button in the window of the reset NPC (Raymond the Reset Master).
+    /// Causes reaction on server side: The server checks the costs again and, when they are met, takes them and resets the character; the answer is a ResetNpcStateResponse.
+    /// </remarks>
+    void SendResetNpcResetRequest();
+
+    /// <summary>
+    /// Sends a ResetNpcInfoRequest to this connection.
+    /// </summary>
+    /// <remarks>
+    /// Is sent by the client when: The window of the reset NPC asks for the current requirements and the character's current values again.
+    /// Causes reaction on server side: The server answers with a ResetNpcStateResponse.
+    /// </remarks>
+    void SendResetNpcInfoRequest();
 };

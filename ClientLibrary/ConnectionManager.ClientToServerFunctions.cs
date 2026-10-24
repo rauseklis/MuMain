@@ -7416,4 +7416,66 @@ public unsafe partial class ConnectionManager
         {
             Debug.WriteLine(ex);
         }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="ResetNpcResetRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player presses the Reset button in the window of the reset NPC (Raymond the Reset Master).
+    /// Causes reaction on server side: The server checks the costs again and, when they are met, takes them and resets the character; the answer is a ResetNpcStateResponse.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendResetNpcResetRequest")]
+    public static void SendResetNpcResetRequest(int handle)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = ResetNpcResetRequestRef.Length;
+                var packet = new ResetNpcResetRequestRef(pipeWriter.GetSpan(length)[..length]);
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="ResetNpcInfoRequest" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <remarks>
+    /// Is sent by the client when: The window of the reset NPC asks for the current requirements and the character's current values again.
+    /// Causes reaction on server side: The server answers with a ResetNpcStateResponse.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendResetNpcInfoRequest")]
+    public static void SendResetNpcInfoRequest(int handle)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = ResetNpcInfoRequestRef.Length;
+                var packet = new ResetNpcInfoRequestRef(pipeWriter.GetSpan(length)[..length]);
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
     }}
