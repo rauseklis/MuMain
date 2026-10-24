@@ -202,11 +202,11 @@ void CNewUIAuctionSellPanel::Create(int windowX, int windowY, bool buyNowSupport
     m_KindLabels[5] = L"Jewel of Creation";
     m_KindLabels[6] = L"Jewel of Guardian";
     m_KindLabels[7] = L"Jewel of Harmony";
-    m_KindLabels[8] = L"Fruit of Strength";
-    m_KindLabels[9] = L"Fruit of Agility";
-    m_KindLabels[10] = L"Fruit of Vitality";
-    m_KindLabels[11] = L"Fruit of Energy";
-    m_KindLabels[12] = L"Fruit of Command";
+    m_KindLabels[8] = L"Strength Fruit";
+    m_KindLabels[9] = L"Agility Fruit";
+    m_KindLabels[10] = L"Vitality Fruit";
+    m_KindLabels[11] = L"Energy Fruit";
+    m_KindLabels[12] = L"Command Fruit";
 
     constexpr int MaxVisibleKinds = 6;
     for (int row = 0; row < MaxRows; ++row)

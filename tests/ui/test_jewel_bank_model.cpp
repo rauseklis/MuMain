@@ -33,7 +33,7 @@ TEST_CASE("the kinds are the server's forty-five codes in order")
     CHECK(FindKind(0) == nullptr);
     CHECK(FindKind(46) == nullptr);
     CHECK(std::wstring(KindAt(1).Name) == L"Jewel of Bless");
-    CHECK(std::wstring(KindAt(13).Name) == L"Fruit of Strength");
+    CHECK(std::wstring(KindAt(13).Name) == L"Strength Fruit");
     CHECK(std::wstring(KindAt(15).Name) == L"Chaos Bundle x10");
     CHECK(std::wstring(KindAt(25).Name) == L"Chaos Bundle x20");
     CHECK(std::wstring(KindAt(44).Name) == L"Higher Refining Bundle x30");
