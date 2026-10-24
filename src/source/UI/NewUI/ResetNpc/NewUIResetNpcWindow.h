@@ -21,10 +21,11 @@ namespace SEASON3B
         enum IMAGE_LIST
         {
             IMAGE_RESET_FRUIT = BITMAP_INTERFACE_RESET_NPC_BEGIN, // newui_reset_fruit.tga (32 x 32)
+            IMAGE_RESET_GLYPHS,                                  // newui_reset_glyphs.tga: level, check, cross, help (4 cells of 32 x 32)
         };
 
-        static constexpr int WINDOW_WIDTH = 360;
-        static constexpr int WINDOW_HEIGHT = 330;
+        static constexpr int WINDOW_WIDTH = 330;
+        static constexpr int WINDOW_HEIGHT = 292;
 
         CNewUIResetNpcWindow();
         ~CNewUIResetNpcWindow() override;
@@ -65,15 +66,8 @@ namespace SEASON3B
 
         [[nodiscard]] Rect ButtonRect() const;
         [[nodiscard]] Rect CloseRect() const;
-        // The heading line: the number of the reset with the question mark behind it, centred together.
-        struct HeadingLayout
-        {
-            float textX;
-            float textWidth;
-            Rect help;
-        };
-        [[nodiscard]] HeadingLayout LayoutHeading() const;
-        [[nodiscard]] Rect HelpRect() const { return LayoutHeading().help; }
+        // The question mark sits on the title line, left of the close button.
+        [[nodiscard]] Rect HelpRect() const;
         void RenderRequirementRow(int row, RowIcon icon, const wchar_t* label, const std::wstring& value, bool met) const;
         void RenderHelpButton() const;
         void RenderHelpTooltip() const;

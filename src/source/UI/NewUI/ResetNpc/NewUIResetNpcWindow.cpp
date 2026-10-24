@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include "UI/NewUI/ResetNpc/NewUIResetNpcWindow.h"
 
-#include <cmath>
-
 #include "Audio/DSPlaySound.h"
 #include "Network/Server/SocketSystem.h"
 #include "UI/Legacy/UIControls.h"
@@ -15,35 +13,32 @@
 namespace
 {
     constexpr int TitleY = 13;
-    constexpr int HeadingY = 40;
+    constexpr int HeadingY = 38;
     constexpr int HeadingHeight = 22;
-    constexpr int RowsTop = 70;
-    constexpr int RowHeight = 34;
+    constexpr int RowsTop = 64;
+    constexpr int RowHeight = 32;
     constexpr int RowGap = 4;
-    constexpr int RowInset = 22;
-    constexpr int IconCentreX = 28;
+    constexpr int RowInset = 20;
     constexpr int LabelInset = 50;
     constexpr int MarkInset = 26;
     constexpr int ValueGapToMark = 12;
-    constexpr int MessageY = 226;
-    constexpr int HintY = 242;
-    constexpr int ButtonY = 256;
+    constexpr int MessageY = 204;
+    constexpr int HintY = 220;
+    constexpr int ButtonY = 240;
     constexpr int ButtonWidth = 170;
     constexpr int ButtonHeight = 24;
     constexpr int CloseWidth = 36;
     constexpr int CloseHeight = 29;
     constexpr int CloseMargin = 8;
     constexpr int WindowTop = 50;
-    constexpr int HelpRadius = 9;
-    constexpr int HelpGapToHeading = 8;
+    constexpr int HelpSize = 22;
     constexpr int TooltipGap = 6;
-    constexpr float SlotSize = 28.f;
+    constexpr float IconSize = 28.f;
+    constexpr float MarkSize = 22.f;
     constexpr std::chrono::seconds ConfirmTime{5};
 
     constexpr unsigned int MetColor = 0xFF7EE28Cu;
     constexpr unsigned int UnmetColor = 0xFFFF7E74u;
-    constexpr unsigned int RimDark = 0xFF1A1208u;
-    constexpr unsigned int RimGold = 0xFFB38B35u;
     const DWORD RowTint = RGBA(104, 110, 122, 255);
     const DWORD ButtonTintReady = RGBA(255, 214, 118, 255);
     const DWORD ButtonTintConfirm = RGBA(255, 150, 110, 255);
@@ -55,62 +50,31 @@ namespace
         g_pRenderText->SetTextColor((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, argb >> 24);
     }
 
-    unsigned int Blend(unsigned int from, unsigned int to, float share)
+    DWORD ArgbToRgba(unsigned int argb)
     {
-        const auto mix = [share](unsigned int a, unsigned int b)
-        {
-            return static_cast<unsigned int>(static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * share);
-        };
-        return 0xFF000000u | (mix((from >> 16) & 0xFF, (to >> 16) & 0xFF) << 16) | (mix((from >> 8) & 0xFF, (to >> 8) & 0xFF) << 8)
-            | mix(from & 0xFF, to & 0xFF);
+        return RGBA((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, argb >> 24);
     }
 
-    // A disc drawn as one-pixel strips, shaded from the top colour to the bottom colour.
-    void DrawDisc(float centreX, float centreY, float radius, unsigned int top, unsigned int bottom)
+    // The glyph sheet holds four cells side by side: level, check, cross, help.
+    enum GlyphCell
     {
-        const int rows = static_cast<int>(std::ceil(radius * 2.f));
-        for (int row = 0; row < rows; ++row)
-        {
-            const float offset = (static_cast<float>(row) + 0.5f) - radius;
-            const float half = std::sqrt(std::max(0.f, radius * radius - offset * offset));
-            const float shade = static_cast<float>(row) / static_cast<float>(std::max(1, rows - 1));
-            RenderColorQuadARGB(centreX - half, centreY - radius + static_cast<float>(row), half * 2.f, 1.f, Blend(top, bottom, shade));
-        }
-    }
+        GlyphLevel = 0,
+        GlyphCheck = 1,
+        GlyphCross = 2,
+        GlyphHelp = 3,
+    };
 
-    void DrawLine(float x1, float y1, float x2, float y2, float thickness, unsigned int color)
+    void DrawGlyph(GlyphCell cell, float x, float y, float size, DWORD color = RGBA(255, 255, 255, 255))
     {
-        RenderColorLineARGB(x1, y1, x2, y2, thickness, color);
-    }
-
-    // The dark slot with a gold rim every icon sits in, so the four icons read as one set.
-    void DrawSlot(float centreX, float centreY)
-    {
-        const float half = SlotSize / 2.f;
-        RenderColorQuadARGB(centreX - half, centreY - half, SlotSize, SlotSize, RimDark);
-        RenderColorQuadARGB(centreX - half + 1.f, centreY - half + 1.f, SlotSize - 2.f, SlotSize - 2.f, RimGold);
-        RenderColorQuadARGB(centreX - half + 2.f, centreY - half + 2.f, SlotSize - 4.f, SlotSize - 4.f, 0xFF0F0C08u);
-        EndRenderColor();
-    }
-
-    // Two chevrons pointing up: the level.
-    void DrawLevelIcon(float x, float y)
-    {
-        DrawSlot(x, y);
-        for (int step = 0; step < 2; ++step)
-        {
-            const float lift = static_cast<float>(step) * 4.5f;
-            DrawLine(x - 5.f, y + 4.f - lift, x, y - 1.f - lift, 2.f, 0xFFFFE9A8u);
-            DrawLine(x, y - 1.f - lift, x + 5.f, y + 4.f - lift, 2.f, 0xFFFFE9A8u);
-        }
-        EndRenderColor();
+        constexpr float cells = 4.f;
+        SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_GLYPHS, x - size / 2.f, y - size / 2.f, size, size,
+            static_cast<float>(cell) / cells, 0.f, 1.f / cells, 1.f, color);
     }
 
     // The coin pile of the inventory's Zen counter (the left 33 x 26 pixels of its texture).
     void DrawZenIcon(float x, float y)
     {
-        DrawSlot(x, y);
-        constexpr float width = 24.f;
+        constexpr float width = IconSize;
         constexpr float height = width * 26.f / 33.f;
         SEASON3B::RenderImage(SEASON3B::CNewUIMyInventory::IMAGE_INVENTORY_MONEY, x - width / 2.f, y - height / 2.f, width, height,
             0.f, 0.f, 33.f / 256.f, 26.f / 32.f);
@@ -119,32 +83,17 @@ namespace
     // The fruit picture of the Jewel Bank.
     void DrawFruitIcon(float x, float y)
     {
-        DrawSlot(x, y);
-        constexpr float size = 24.f;
-        SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_FRUIT, x - size / 2.f, y - size / 2.f, size, size,
+        SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_FRUIT, x - IconSize / 2.f, y - IconSize / 2.f, IconSize, IconSize,
             0.f, 0.f, 1.f, 1.f);
     }
 
     // The armour slot of the inventory's worn gear (the top-left 46 x 66 pixels of its texture).
     void DrawEquipmentIcon(float x, float y)
     {
-        DrawSlot(x, y);
-        constexpr float height = 26.f;
+        constexpr float height = IconSize;
         constexpr float width = height * 46.f / 66.f;
         SEASON3B::RenderImage(SEASON3B::CNewUIMyInventory::IMAGE_INVENTORY_ITEM_ARMOR, x - width / 2.f, y - height / 2.f, width, height,
             0.f, 0.f, 46.f / 64.f, 66.f / 128.f);
-    }
-
-    void DrawCheck(float x, float y, unsigned int color)
-    {
-        DrawLine(x - 5.f, y, x - 1.5f, y + 3.5f, 2.f, color);
-        DrawLine(x - 1.5f, y + 3.5f, x + 5.f, y - 4.f, 2.f, color);
-    }
-
-    void DrawCross(float x, float y, unsigned int color)
-    {
-        DrawLine(x - 4.f, y - 4.f, x + 4.f, y + 4.f, 2.f, color);
-        DrawLine(x - 4.f, y + 4.f, x + 4.f, y - 4.f, 2.f, color);
     }
 }
 
@@ -167,6 +116,7 @@ bool SEASON3B::CNewUIResetNpcWindow::Create(CNewUIManager* pNewUIMng)
     m_posX = (REFERENCE_WIDTH - WINDOW_WIDTH) / 2;
     m_posY = WindowTop;
     LoadBitmap(L"Interface\\newui_reset_fruit.tga", IMAGE_RESET_FRUIT, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_reset_glyphs.tga", IMAGE_RESET_GLYPHS, GL_LINEAR);
     return true;
 }
 
@@ -174,6 +124,7 @@ void SEASON3B::CNewUIResetNpcWindow::Release()
 {
     if (m_pNewUIMng != nullptr)
     {
+        DeleteBitmap(IMAGE_RESET_GLYPHS);
         DeleteBitmap(IMAGE_RESET_FRUIT);
         m_pNewUIMng->RemoveUIObj(this);
         m_pNewUIMng = nullptr;
@@ -233,16 +184,10 @@ SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::CloseRect()
     return { m_posX + WINDOW_WIDTH - CloseWidth - CloseMargin, m_posY + CloseMargin, CloseWidth, CloseHeight };
 }
 
-SEASON3B::CNewUIResetNpcWindow::HeadingLayout SEASON3B::CNewUIResetNpcWindow::LayoutHeading() const
+SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::HelpRect() const
 {
-    g_pRenderText->SetFont(g_hFontBold);
-    const std::wstring heading = ResetNpc::HeadingText(m_state);
-    const float textWidth = static_cast<float>(g_pRenderText->MeasureText(heading.c_str(), static_cast<int>(heading.size())).cx);
-    const float total = textWidth + HelpGapToHeading + HelpRadius * 2;
-    const float left = m_posX + (WINDOW_WIDTH - total) / 2.f;
-    const int centreY = m_posY + HeadingY + HeadingHeight / 2;
-    const int helpX = static_cast<int>(left + textWidth + HelpGapToHeading);
-    return { left, textWidth, { helpX, centreY - HelpRadius, HelpRadius * 2, HelpRadius * 2 } };
+    const Rect close = CloseRect();
+    return { close.x - HelpSize - 4, close.y + (close.height - HelpSize) / 2, HelpSize, HelpSize };
 }
 
 void SEASON3B::CNewUIResetNpcWindow::PressResetButton()
@@ -325,7 +270,7 @@ void SEASON3B::CNewUIResetNpcWindow::RenderRequirementRow(int row, RowIcon icon,
     const float iconY = y + RowHeight / 2.f;
     switch (icon)
     {
-    case RowIcon::Level: DrawLevelIcon(iconX, iconY); break;
+    case RowIcon::Level: DrawGlyph(GlyphLevel, iconX, iconY, IconSize); break;
     case RowIcon::Zen: DrawZenIcon(iconX, iconY); break;
     case RowIcon::Fruit: DrawFruitIcon(iconX, iconY); break;
     case RowIcon::Equipment: DrawEquipmentIcon(iconX, iconY); break;
@@ -333,14 +278,7 @@ void SEASON3B::CNewUIResetNpcWindow::RenderRequirementRow(int row, RowIcon icon,
 
     const unsigned int color = met ? MetColor : UnmetColor;
     const float markX = x + width - MarkInset + 4.f;
-    if (met)
-    {
-        DrawCheck(markX, iconY, color);
-    }
-    else
-    {
-        DrawCross(markX, iconY, color);
-    }
+    DrawGlyph(met ? GlyphCheck : GlyphCross, markX, iconY, MarkSize, ArgbToRgba(color));
     EndRenderColor();
 
     g_pRenderText->SetFont(g_hFontBold);
@@ -359,18 +297,9 @@ void SEASON3B::CNewUIResetNpcWindow::RenderHelpButton() const
 {
     const Rect help = HelpRect();
     const bool hovered = SEASON3B::CheckMouseIn(help.x, help.y, help.width, help.height);
-    const float centreX = help.x + help.width / 2.f;
-    const float centreY = help.y + help.height / 2.f;
-    DrawDisc(centreX, centreY, static_cast<float>(HelpRadius), RimDark, RimDark);
-    DrawDisc(centreX, centreY, HelpRadius - 0.8f, 0xFFE6C477u, RimGold);
-    DrawDisc(centreX, centreY, HelpRadius - 2.f, hovered ? 0xFF5A4A28u : 0xFF2E2614u, hovered ? 0xFF3A2E14u : 0xFF16120Au);
+    DrawGlyph(GlyphHelp, help.x + help.width / 2.f, help.y + help.height / 2.f, static_cast<float>(help.width),
+        hovered ? RGBA(255, 255, 255, 255) : RGBA(205, 205, 205, 255));
     EndRenderColor();
-
-    g_pRenderText->SetFont(g_hFontBold);
-    g_pRenderText->SetBgColor(0, 0, 0, 0);
-    g_pRenderText->SetTextColor(255, 226, 150, 255);
-    const SIZE size = g_pRenderText->MeasureText(L"?", 1);
-    g_pRenderText->RenderText(static_cast<float>(help.x), centreY - size.cy / 2.f, L"?", static_cast<float>(help.width), 0, RT3_SORT_CENTER);
 }
 
 void SEASON3B::CNewUIResetNpcWindow::RenderHelpTooltip() const
@@ -412,13 +341,12 @@ bool SEASON3B::CNewUIResetNpcWindow::Render()
         return true;
     }
 
-    const HeadingLayout layout = LayoutHeading();
     g_pRenderText->SetFont(g_hFontBold);
     g_pRenderText->SetTextColor(255, 214, 118, 255);
     const std::wstring heading = ResetNpc::HeadingText(m_state);
     const SIZE headingSize = g_pRenderText->MeasureText(heading.c_str(), static_cast<int>(heading.size()));
-    g_pRenderText->RenderText(layout.textX, static_cast<float>(m_posY + HeadingY) + (HeadingHeight - headingSize.cy) / 2.f,
-        heading.c_str(), layout.textWidth + 2.f, 0, RT3_SORT_LEFT);
+    g_pRenderText->RenderText(static_cast<float>(m_posX + 15), static_cast<float>(m_posY + HeadingY) + (HeadingHeight - headingSize.cy) / 2.f,
+        heading.c_str(), static_cast<float>(WINDOW_WIDTH - 30), 0, RT3_SORT_CENTER);
     RenderHelpButton();
 
     if (m_state.LimitReached())
