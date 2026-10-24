@@ -111,3 +111,10 @@ mu_add_test(
     NAME master_skill_tree_layout_tests
     SOURCES test_master_skill_tree_layout.cpp
 )
+
+mu_add_test(
+    NAME reset_npc_model_tests
+    SOURCES
+        test_reset_npc_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/ResetNpc/ResetNpcModel.cpp
+)

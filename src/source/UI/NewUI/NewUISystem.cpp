@@ -97,6 +97,7 @@ CNewUISystem::CNewUISystem()
     m_pNewMaster_Level_Interface = nullptr;
     m_pNewAuctionWindow = nullptr;
     m_pNewJewelBankWindow = nullptr;
+    m_pNewResetNpcWindow = nullptr;
     m_pNewCursedTempleResultWindow = nullptr;
     m_pNewCursedTempleWindow = nullptr;
     m_pNewCursedTempleEnterWindow = nullptr;
@@ -473,6 +474,10 @@ bool CNewUISystem::LoadMainSceneInterface()
     if (m_pNewJewelBankWindow->Create(m_pNewUIMng, m_pNewUI3DRenderMng, 20, 8) == false)
         return false;
 
+    m_pNewResetNpcWindow = new CNewUIResetNpcWindow;
+    if (m_pNewResetNpcWindow->Create(m_pNewUIMng) == false)
+        return false;
+
     m_pNewMiniMap = new CNewUIMiniMap;
     if (m_pNewMiniMap->Create(m_pNewUIMng, 0, 0) == false)
         return false;
@@ -631,6 +636,7 @@ void CNewUISystem::UnloadMainSceneInterface()
     SAFE_DELETE(m_pNewMaster_Level_Interface);
     SAFE_DELETE(m_pNewAuctionWindow);
     SAFE_DELETE(m_pNewJewelBankWindow);
+    SAFE_DELETE(m_pNewResetNpcWindow);
     SAFE_DELETE(m_pNewGoldBowman);
     SAFE_DELETE(m_pNewGoldBowmanLena);
     SAFE_DELETE(m_pNewLuckyCoinRegistration);
@@ -1006,6 +1012,11 @@ void CNewUISystem::Show(DWORD dwKey)
     {
         HideAllGroupA();
         m_pNewJewelBankWindow->OpeningProcess();
+    }
+    else if (dwKey == INTERFACE_RESET_NPC)
+    {
+        HideAllGroupA();
+        m_pNewResetNpcWindow->OpeningProcess();
     }
     else if (dwKey == INTERFACE_KANTURU2ND_ENTERNPC)
     {
@@ -1412,6 +1423,10 @@ void CNewUISystem::Hide(DWORD dwKey)
     else if (dwKey == INTERFACE_JEWEL_BANK)
     {
         m_pNewJewelBankWindow->ClosingProcess();
+    }
+    else if (dwKey == INTERFACE_RESET_NPC)
+    {
+        m_pNewResetNpcWindow->ClosingProcess();
     }
     else if (dwKey == INTERFACE_GATEKEEPER)
     {
@@ -2319,6 +2334,11 @@ CNewUIAuctionWindow* CNewUISystem::GetUI_NewAuctionWindow() const
 CNewUIJewelBankWindow* CNewUISystem::GetUI_NewJewelBankWindow() const
 {
     return m_pNewJewelBankWindow;
+}
+
+CNewUIResetNpcWindow* CNewUISystem::GetUI_NewResetNpcWindow() const
+{
+    return m_pNewResetNpcWindow;
 }
 
 CNewUIMyShopInventory* CNewUISystem::GetUI_NewMyShopInventory() const

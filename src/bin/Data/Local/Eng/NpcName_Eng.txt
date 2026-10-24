@@ -401,7 +401,7 @@
 370	1	"Jerridon"	
 			
 //È­ÀÌÆ®¿£Á© ÀÌº¥Æ® ¾ÆÀÌÅÛ Áö±Þ NPC Ãß°¡ - 2006.8.23 ÀÌ¹ÎÁ¤			
-371	1	"Raymond the Helper"	
+371	1	"Raymond the Reset Master"	
 			
 //¿¤¸®Æ®ÇØ°ñÀü»çº¯½Å¹ÝÁö NPC Ãß°¡ - 2006.9.5 ÀÌ¹ÎÁ¤			
 372	1	"Elite Skull Soldier"	

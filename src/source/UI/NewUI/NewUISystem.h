@@ -10,6 +10,7 @@
 #include "UI/NewUI/HUD/NewUIExpHuntWindow.h"
 #include "UI/NewUI/AuctionHouse/NewUIAuctionWindow.h"
 #include "UI/NewUI/JewelBank/NewUIJewelBankWindow.h"
+#include "UI/NewUI/ResetNpc/NewUIResetNpcWindow.h"
 #include "UI/NewUI/Widgets/NewUISlideWindow.h"
 #include "Guild/NewUIGuildMakeWindow.h"
 #include "UI/NewUI/Party/NewUIFriendWindow.h"
@@ -213,6 +214,7 @@ namespace SEASON3B
         CNewUIMasterLevel* m_pNewMaster_Level_Interface;
         CNewUIAuctionWindow* m_pNewAuctionWindow;
         CNewUIJewelBankWindow* m_pNewJewelBankWindow;
+        CNewUIResetNpcWindow* m_pNewResetNpcWindow;
         CNewUIGoldBowmanWindow* m_pNewGoldBowman;
         CNewUIGoldBowmanLena* m_pNewGoldBowmanLena;
         CNewUIRegistrationLuckyCoin* m_pNewLuckyCoinRegistration;
@@ -299,6 +301,7 @@ namespace SEASON3B
         CNewUIMasterLevel* GetUI_NewMasterLevelInterface() const;
         CNewUIAuctionWindow* GetUI_NewAuctionWindow() const;
         CNewUIJewelBankWindow* GetUI_NewJewelBankWindow() const;
+        CNewUIResetNpcWindow* GetUI_NewResetNpcWindow() const;
         CNewUIGoldBowmanWindow* GetUI_pNewGoldBowman() const;
         CNewUIGoldBowmanLena* GetUI_pNewGoldBowmanLena() const;
         CNewUIRegistrationLuckyCoin* GetUI_pNewLuckyCoinRegistration() const;
@@ -389,6 +392,7 @@ namespace SEASON3B
 #define g_pMasterLevelInterface SEASON3B::CNewUISystem::GetInstance()->GetUI_NewMasterLevelInterface()
 #define g_pAuctionWindow SEASON3B::CNewUISystem::GetInstance()->GetUI_NewAuctionWindow()
 #define g_pJewelBankWindow SEASON3B::CNewUISystem::GetInstance()->GetUI_NewJewelBankWindow()
+#define g_pResetNpcWindow SEASON3B::CNewUISystem::GetInstance()->GetUI_NewResetNpcWindow()
 #define g_pGoldBowmanInterface SEASON3B::CNewUISystem::GetInstance()->GetUI_pNewGoldBowman()
 #define g_pGoldBowmanLenaInterface SEASON3B::CNewUISystem::GetInstance()->GetUI_pNewGoldBowmanLena()
 #define g_pLuckyCoinRegistration SEASON3B::CNewUISystem::GetInstance()->GetUI_pNewLuckyCoinRegistration()

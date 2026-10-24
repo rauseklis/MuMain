@@ -57,6 +57,7 @@
 #include "UI/Legacy/UIGuardsMan.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "UI/NewUI/JewelBank/JewelBankModel.h"
+#include "UI/NewUI/ResetNpc/ResetNpcModel.h"
 #include "UI/NewUI/AuctionHouse/AuctionWireResponses.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "UI/NewUI/Dialogs/NewUICustomMessageBox.h"
@@ -15215,6 +15216,21 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
             break;
         default:
             break;
+        }
+    }
+    break;
+    case 0xDC:
+    {
+        // Reset NPC (0xDC, Raymond the Reset Master): the sub-code is at offset 3 of this C1 packet.
+        if (bIsC1C3 && ReceiveBuffer[3] == 0x80) // ResetNpcStateResponse
+        {
+            if (auto state = ResetNpc::State::Parse(received_span))
+            {
+                if (g_pResetNpcWindow)
+                {
+                    g_pResetNpcWindow->SetState(*state);
+                }
+            }
         }
     }
     break;
