@@ -130,3 +130,10 @@ mu_add_test(
 target_compile_definitions(ancient_full_stats_tooltip_tests PRIVATE
     MU_ANCIENT_TEST_ASSETS="${CMAKE_SOURCE_DIR}/src/bin"
 )
+
+mu_add_test(
+    NAME reset_npc_model_tests
+    SOURCES
+        test_reset_npc_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/ResetNpc/ResetNpcModel.cpp
+)

@@ -2294,3 +2294,25 @@ void PacketFunctions_ClientToServer::SendJewelBankSetAutoDepositRequest(BYTE ena
 
     dotnet_SendJewelBankSetAutoDepositRequest(this->GetHandle(), enabled);
 }
+
+void PacketFunctions_ClientToServer::SendResetNpcResetRequest()
+{
+    static const auto dotnet_SendResetNpcResetRequest = LoadManagedSymbol<::SendResetNpcResetRequest>("SendResetNpcResetRequest");
+    if (!dotnet_SendResetNpcResetRequest)
+    {
+        return;
+    }
+
+    dotnet_SendResetNpcResetRequest(this->GetHandle());
+}
+
+void PacketFunctions_ClientToServer::SendResetNpcInfoRequest()
+{
+    static const auto dotnet_SendResetNpcInfoRequest = LoadManagedSymbol<::SendResetNpcInfoRequest>("SendResetNpcInfoRequest");
+    if (!dotnet_SendResetNpcInfoRequest)
+    {
+        return;
+    }
+
+    dotnet_SendResetNpcInfoRequest(this->GetHandle());
+}
