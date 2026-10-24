@@ -26,6 +26,8 @@
 #include <string>
 #include <vector>
 
+#include "Data/DataHandler/ModelLoadTimer.h"
+
 namespace mu
 {
 void RegisterTexture(std::uint32_t id, void* pTex);
@@ -370,6 +372,25 @@ bool UploadCompressedTextureSDLGpu(BITMAP_t* bitmap, const std::vector<std::uint
     bitmap->sdlTexture = gpuTexture;
     bitmap->sdlSampler = sampler;
     return true;
+}
+
+// Reads the rest of an open file in one go. Iterating over the stream byte by byte was a slow part of loading a
+// texture.
+std::vector<unsigned char> ReadRemainingBytes(std::ifstream& input)
+{
+    const std::streampos start = input.tellg();
+    input.seekg(0, std::ios::end);
+    const std::streamoff size = input.tellg() - start;
+    input.seekg(start);
+    if (size <= 0)
+    {
+        return {};
+    }
+
+    std::vector<unsigned char> bytes(static_cast<std::size_t>(size));
+    input.read(reinterpret_cast<char*>(bytes.data()), size);
+    bytes.resize(static_cast<std::size_t>(input.gcount()));
+    return bytes;
 }
 } // namespace
 
@@ -932,8 +953,7 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
         return false;
     }
 
-    std::vector<unsigned char> jpegBuf((std::istreambuf_iterator<char>(compressedFile)),
-                                       std::istreambuf_iterator<char>());
+    std::vector<unsigned char> jpegBuf = ReadRemainingBytes(compressedFile);
     compressedFile.close();
 
     if (jpegBuf.size() <= 24)
@@ -1049,6 +1069,7 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
 
 bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiFilter, GLuint uiWrapMode)
 {
+    const ModelLoadTimer totalTimer(L"OpenTga total", static_cast<int>(uiBitmapIndex));
     std::wstring filename_ozt;
     ExchangeExt(filename, L"OZT", filename_ozt);
 
@@ -1059,7 +1080,11 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
         return false;
     }
 
-    std::vector<unsigned char> pakBuffer((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    std::vector<unsigned char> pakBuffer;
+    {
+        const ModelLoadTimer readTimer(L"OpenTga read file", static_cast<int>(uiBitmapIndex));
+        pakBuffer = ReadRemainingBytes(input);
+    }
     input.close();
 
     if (pakBuffer.size() < 18) // minimal TGA header length check for OZT payload
@@ -1131,8 +1156,14 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
     if (interfaceTexture)
         Render::UiTextureQuality::BleedTransparentRgb(pNewBitmap->BufferStorage, Width, Height);
     const SDL_GPUFilter filter = interfaceTexture ? SDL_GPU_FILTER_LINEAR : MapGLFilterToSDL(uiFilter);
-    if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, Width, Height, filter,
-                             MapGLWrapToSDL(uiWrapMode), Render::GraphicsQuality::IsEnhancedTexturePath(filename)))
+    bool uploaded = false;
+    {
+        const ModelLoadTimer uploadTimer(L"OpenTga GPU upload", static_cast<int>(uiBitmapIndex));
+        uploaded =
+            UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, Width, Height, filter, MapGLWrapToSDL(uiWrapMode),
+                                Render::GraphicsQuality::IsEnhancedTexturePath(filename));
+    }
+    if (!uploaded)
     {
         g_ErrorReport.Write(L"SDL texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
         return false;
