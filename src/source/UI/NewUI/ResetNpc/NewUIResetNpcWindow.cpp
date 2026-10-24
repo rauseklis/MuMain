@@ -324,7 +324,7 @@ void SEASON3B::CNewUIResetNpcWindow::RenderHelpTooltip() const
 
 bool SEASON3B::CNewUIResetNpcWindow::IsVisible() const
 {
-    return g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_RESET_NPC);
+    return CNewUIObj::IsVisible();
 }
 
 void SEASON3B::CNewUIResetNpcWindow::Render3D()
