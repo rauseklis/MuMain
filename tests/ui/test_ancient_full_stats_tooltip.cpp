@@ -57,7 +57,7 @@ void CheckEquippedFaseStats()
     Hero = previousHero;
     ItemAttribute = previousItems;
 }
-void CheckEquippedGaiaStats()
+void CheckEquippedArgoStats()
 {
     constexpr int itemGroupSize = 512;
     // Exercise the same equipment recalculation that feeds the character window.
@@ -75,28 +75,24 @@ void CheckEquippedGaiaStats()
     Hero->Class = CLASS_ELF;
     for (auto& item : machine->Equipment)
         item.Type = -1;
-    for (const auto slot : {EQUIPMENT_PANTS, EQUIPMENT_GLOVES, EQUIPMENT_ARMOR, EQUIPMENT_HELM, EQUIPMENT_WEAPON_RIGHT})
+    for (const auto slot : {EQUIPMENT_PANTS, EQUIPMENT_GLOVES, EQUIPMENT_ARMOR})
     {
         auto& item = machine->Equipment[slot];
-        const int group = slot == EQUIPMENT_PANTS    ? 9
-                          : slot == EQUIPMENT_GLOVES ? 10
-                          : slot == EQUIPMENT_ARMOR  ? 8
-                          : slot == EQUIPMENT_HELM   ? 7
-                                                     : 4;
-        item.Type = group * itemGroupSize + (slot == EQUIPMENT_WEAPON_RIGHT ? 9 : 11);
+        const int group = slot == EQUIPMENT_PANTS ? 9 : slot == EQUIPMENT_GLOVES ? 10 : 8;
+        item.Type = group * itemGroupSize + 13;
         item.AncientDiscriminator = 1;
         item.Durability = 1;
         ItemAttribute[item.Type].RequireClass[CLASS_ELF] = 1;
     }
     g_csItemOption.CheckItemSetOptions();
-    CHECK(CharacterAttribute->AddStrength == 60);
-    CHECK(CharacterAttribute->AddDexterity == 80);
+    CHECK(CharacterAttribute->AddStrength == 50);
+    CHECK(CharacterAttribute->AddDexterity == 50);
     CHECK(CharacterAttribute->AddEnergy == 50);
     CHECK(CharacterAttribute->AddCharisma == 0);
     const auto fullVitality = CharacterAttribute->AddVitality;
-    machine->Equipment[EQUIPMENT_WEAPON_RIGHT].Durability = 0;
+    machine->Equipment[EQUIPMENT_GLOVES].Durability = 0;
     g_csItemOption.CheckItemSetOptions();
-    CHECK(CharacterAttribute->AddStrength == 10);
+    CHECK(CharacterAttribute->AddStrength == 0);
     CHECK(CharacterAttribute->AddDexterity == 0);
     CHECK(CharacterAttribute->AddEnergy == 0);
     CHECK(fullVitality >= CharacterAttribute->AddVitality + 50);
@@ -131,7 +127,7 @@ TEST_CASE("Tier 1 and Tier 2 Ancient tooltip previews and equipped character sta
                                              {8 * itemGroupSize + 6, 1, 50},
                                              {8 * itemGroupSize + 8, 1, 50},
                                              {8 * itemGroupSize + 7, 1, 50},
-                                             {8 * itemGroupSize + 11, 1, 50},
+                                             {8 * itemGroupSize + 13, 1, 50},
                                              {8 * itemGroupSize + 40, 2, 50},
                                              {8 * itemGroupSize + 59, 2, 50}}};
     for (const auto sample : samples)
@@ -157,5 +153,5 @@ TEST_CASE("Tier 1 and Tier 2 Ancient tooltip previews and equipped character sta
     }
     CHECK_FALSE(g_csItemOption.IsAncientSetEquipped());
     CheckEquippedFaseStats();
-    CheckEquippedGaiaStats();
+    CheckEquippedArgoStats();
 }

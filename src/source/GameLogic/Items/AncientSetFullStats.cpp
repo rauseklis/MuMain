@@ -13,7 +13,7 @@ constexpr std::uint8_t CloudSet = 8;
 constexpr std::uint8_t BarnakeSet = 14;
 constexpr std::uint8_t FaseSet = 24;
 constexpr std::array<std::uint8_t, 6> TierTwoSets = {5,  7,  17,
-                                                     23, 36, 38}; // Eplete, Garuda, Heras, Gaia, Semeden, Chamer.
+                                                     27, 36, 38}; // Eplete, Garuda, Heras, Argo, Semeden, Chamer.
 constexpr std::uint8_t TierTwoBonus = 50;
 constexpr std::uint8_t StandardBonus = 100;
 constexpr std::uint8_t BrassBonus = 75;
