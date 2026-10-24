@@ -21,8 +21,7 @@ namespace SEASON3B
         enum IMAGE_LIST
         {
             IMAGE_RESET_FRUIT = BITMAP_INTERFACE_RESET_NPC_BEGIN, // newui_reset_fruit.tga (32 x 32)
-            IMAGE_RESET_GLYPHS,                                  // newui_reset_glyphs.tga: level, check, cross, help (4 cells of 32 x 32)
-            IMAGE_RESET_ARMOUR,                                  // newui_reset_armour.tga: the armour of the worn-gear slot, cut out (40 x 40)
+            IMAGE_RESET_GLYPHS,                                  // newui_reset_glyphs.tga: level, check, cross, help, shield (8 cells of 32 x 32)
         };
 
         static constexpr int WINDOW_WIDTH = 330;

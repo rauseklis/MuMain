@@ -31,12 +31,13 @@ namespace
     constexpr int CloseHeight = 29;
     constexpr int CloseMargin = 8;
     constexpr int WindowTop = 50;
-    constexpr int HelpSize = 18;
+    constexpr int HelpSize = 15;
     // The close button is part of the frame art; the question mark is its mirror image in the left corner.
-    constexpr int HelpX = 10;
-    constexpr int HelpY = 2;
+    constexpr int HelpX = 8;
+    constexpr int HelpY = 5;
     constexpr int TooltipGap = 6;
     constexpr float IconSize = 20.f;
+    constexpr float FruitSize = 16.f;
     constexpr float MarkSize = 11.f;
     constexpr std::chrono::seconds ConfirmTime{5};
 
@@ -65,11 +66,12 @@ namespace
         GlyphCheck = 1,
         GlyphCross = 2,
         GlyphHelp = 3,
+        GlyphShield = 4,
     };
 
     void DrawGlyph(GlyphCell cell, float x, float y, float size, DWORD color = RGBA(255, 255, 255, 255))
     {
-        constexpr float cells = 4.f;
+        constexpr float cells = 8.f;
         SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_GLYPHS, x - size / 2.f, y - size / 2.f, size, size,
             static_cast<float>(cell) / cells, 0.f, 1.f / cells, 1.f, color);
     }
@@ -86,16 +88,10 @@ namespace
     // The fruit picture of the Jewel Bank.
     void DrawFruitIcon(float x, float y)
     {
-        SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_FRUIT, x - IconSize / 2.f, y - IconSize / 2.f, IconSize, IconSize,
+        SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_FRUIT, x - FruitSize / 2.f, y - FruitSize / 2.f, FruitSize, FruitSize,
             0.f, 0.f, 1.f, 1.f);
     }
 
-    // The armour of the inventory's worn-gear slot, cut out of its frame.
-    void DrawEquipmentIcon(float x, float y)
-    {
-        SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_ARMOUR, x - IconSize / 2.f, y - IconSize / 2.f, IconSize, IconSize,
-            0.f, 0.f, 1.f, 1.f);
-    }
 }
 
 SEASON3B::CNewUIResetNpcWindow::CNewUIResetNpcWindow() = default;
@@ -118,7 +114,6 @@ bool SEASON3B::CNewUIResetNpcWindow::Create(CNewUIManager* pNewUIMng)
     m_posY = WindowTop;
     LoadBitmap(L"Interface\\newui_reset_fruit.tga", IMAGE_RESET_FRUIT, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_reset_glyphs.tga", IMAGE_RESET_GLYPHS, GL_LINEAR);
-    LoadBitmap(L"Interface\\newui_reset_armour.tga", IMAGE_RESET_ARMOUR, GL_LINEAR);
     return true;
 }
 
@@ -126,7 +121,6 @@ void SEASON3B::CNewUIResetNpcWindow::Release()
 {
     if (m_pNewUIMng != nullptr)
     {
-        DeleteBitmap(IMAGE_RESET_ARMOUR);
         DeleteBitmap(IMAGE_RESET_GLYPHS);
         DeleteBitmap(IMAGE_RESET_FRUIT);
         m_pNewUIMng->RemoveUIObj(this);
@@ -272,10 +266,10 @@ void SEASON3B::CNewUIResetNpcWindow::RenderRequirementRow(int row, RowIcon icon,
     const float iconY = y + RowHeight / 2.f;
     switch (icon)
     {
-    case RowIcon::Level: DrawGlyph(GlyphLevel, iconX, iconY, IconSize + 4.f); break;
+    case RowIcon::Level: DrawGlyph(GlyphLevel, iconX, iconY, 18.f); break;
     case RowIcon::Zen: DrawZenIcon(iconX, iconY); break;
     case RowIcon::Fruit: DrawFruitIcon(iconX, iconY); break;
-    case RowIcon::Equipment: DrawEquipmentIcon(iconX, iconY); break;
+    case RowIcon::Equipment: DrawGlyph(GlyphShield, iconX, iconY, 20.f); break;
     }
 
     const unsigned int color = met ? MetColor : UnmetColor;
