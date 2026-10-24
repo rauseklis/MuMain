@@ -9,6 +9,12 @@ database; `Item_<lang>.bmd` is no longer read by the game.
 The data matches OpenMU's `ItemDefinition` where both sides have the same
 fields, so it can later be exchanged with the server.
 
+Storm Jahad Helm, Armor, Pants and Boots at item number 72 are permanent
+equipment for the Trite Ancient set. They allow normal trading, dropping,
+vault storage, personal-shop selling and repair. Their base stats and level
+150 requirement are unchanged. Install the matching server update for the
+Trite definitions and Golden Box rewards.
+
 ---
 
 ## Files
