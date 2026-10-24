@@ -9,13 +9,13 @@
 #include "UI/NewUI/AuctionHouse/AuctionChrome.h"
 #include "UI/NewUI/HUD/BuffTooltip.h"
 #include "UI/NewUI/HUD/NewUIBuffWindow.h"
+#include "UI/NewUI/Inventory/NewUIMyInventory.h"
 #include "UI/NewUI/NewUISystem.h"
 
 namespace
 {
     constexpr int TitleY = 13;
     constexpr int HeadingY = 40;
-    constexpr int HeadingWidth = 170;
     constexpr int HeadingHeight = 22;
     constexpr int RowsTop = 70;
     constexpr int RowHeight = 34;
@@ -35,16 +35,15 @@ namespace
     constexpr int CloseMargin = 8;
     constexpr int WindowTop = 50;
     constexpr int HelpRadius = 9;
-    constexpr int HelpGapToHeading = 22;
+    constexpr int HelpGapToHeading = 8;
     constexpr int TooltipGap = 6;
-    constexpr float IconRadius = 10.f;
+    constexpr float SlotSize = 28.f;
     constexpr std::chrono::seconds ConfirmTime{5};
 
     constexpr unsigned int MetColor = 0xFF7EE28Cu;
     constexpr unsigned int UnmetColor = 0xFFFF7E74u;
     constexpr unsigned int RimDark = 0xFF1A1208u;
     constexpr unsigned int RimGold = 0xFFB38B35u;
-    const DWORD HeadingTint = RGBA(255, 214, 118, 255);
     const DWORD RowTint = RGBA(104, 110, 122, 255);
     const DWORD ButtonTintReady = RGBA(255, 214, 118, 255);
     const DWORD ButtonTintConfirm = RGBA(255, 150, 110, 255);
@@ -84,55 +83,56 @@ namespace
         RenderColorLineARGB(x1, y1, x2, y2, thickness, color);
     }
 
-    // The round frame of an icon: a dark edge, a gold rim and the shaded inside.
-    void DrawMedallion(float centreX, float centreY, unsigned int insideTop, unsigned int insideBottom)
+    // The dark slot with a gold rim every icon sits in, so the four icons read as one set.
+    void DrawSlot(float centreX, float centreY)
     {
-        DrawDisc(centreX, centreY, IconRadius, RimDark, RimDark);
-        DrawDisc(centreX, centreY, IconRadius - 0.8f, 0xFFE6C477u, RimGold);
-        DrawDisc(centreX, centreY, IconRadius - 2.f, insideTop, insideBottom);
+        const float half = SlotSize / 2.f;
+        RenderColorQuadARGB(centreX - half, centreY - half, SlotSize, SlotSize, RimDark);
+        RenderColorQuadARGB(centreX - half + 1.f, centreY - half + 1.f, SlotSize - 2.f, SlotSize - 2.f, RimGold);
+        RenderColorQuadARGB(centreX - half + 2.f, centreY - half + 2.f, SlotSize - 4.f, SlotSize - 4.f, 0xFF0F0C08u);
+        EndRenderColor();
     }
 
     // Two chevrons pointing up: the level.
     void DrawLevelIcon(float x, float y)
     {
-        DrawMedallion(x, y, 0xFF3A5A9Au, 0xFF18284Cu);
+        DrawSlot(x, y);
         for (int step = 0; step < 2; ++step)
         {
             const float lift = static_cast<float>(step) * 4.5f;
-            DrawLine(x - 4.5f, y + 3.f - lift, x, y - 1.5f - lift, 2.f, 0xFFFFE9A8u);
-            DrawLine(x, y - 1.5f - lift, x + 4.5f, y + 3.f - lift, 2.f, 0xFFFFE9A8u);
+            DrawLine(x - 5.f, y + 4.f - lift, x, y - 1.f - lift, 2.f, 0xFFFFE9A8u);
+            DrawLine(x, y - 1.f - lift, x + 5.f, y + 4.f - lift, 2.f, 0xFFFFE9A8u);
         }
+        EndRenderColor();
     }
 
-    // A gold coin with a Z: the Zen.
+    // The coin pile of the inventory's Zen counter (the left 33 x 26 pixels of its texture).
     void DrawZenIcon(float x, float y)
     {
-        DrawMedallion(x, y, 0xFFF6D77Au, 0xFFC08A22u);
-        const unsigned int ink = 0xFF5A3A08u;
-        DrawLine(x - 3.2f, y - 3.2f, x + 3.2f, y - 3.2f, 1.6f, ink);
-        DrawLine(x + 3.2f, y - 3.2f, x - 3.2f, y + 3.2f, 1.6f, ink);
-        DrawLine(x - 3.2f, y + 3.2f, x + 3.2f, y + 3.2f, 1.6f, ink);
+        DrawSlot(x, y);
+        constexpr float width = 24.f;
+        constexpr float height = width * 26.f / 33.f;
+        SEASON3B::RenderImage(SEASON3B::CNewUIMyInventory::IMAGE_INVENTORY_MONEY, x - width / 2.f, y - height / 2.f, width, height,
+            0.f, 0.f, 33.f / 256.f, 26.f / 32.f);
     }
 
-    // A fruit with a stem and a leaf.
+    // The fruit picture of the Jewel Bank.
     void DrawFruitIcon(float x, float y)
     {
-        DrawMedallion(x, y, 0xFF3C7A3Cu, 0xFF163A1Cu);
-        DrawDisc(x, y + 1.5f, 4.6f, 0xFFFF8A5Cu, 0xFFC02A1Cu);
-        DrawLine(x, y - 3.f, x + 0.5f, y - 6.f, 1.4f, 0xFF7A4A1Au);
-        DrawDisc(x + 3.2f, y - 4.4f, 2.2f, 0xFF9CE06Au, 0xFF3F9A2Au);
+        DrawSlot(x, y);
+        constexpr float size = 24.f;
+        SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_FRUIT, x - size / 2.f, y - size / 2.f, size, size,
+            0.f, 0.f, 1.f, 1.f);
     }
 
-    // A shield: the equipment.
+    // The armour slot of the inventory's worn gear (the top-left 46 x 66 pixels of its texture).
     void DrawEquipmentIcon(float x, float y)
     {
-        DrawMedallion(x, y, 0xFF4A4F5Cu, 0xFF1C1F28u);
-        for (int row = 0; row < 11; ++row)
-        {
-            const float yy = y - 5.5f + static_cast<float>(row);
-            const float half = row < 6 ? 4.6f : std::max(0.6f, 4.6f - static_cast<float>(row - 5) * 0.85f);
-            RenderColorQuadARGB(x - half, yy, half * 2.f, 1.f, Blend(0xFFE4E8F2u, 0xFF8C93A6u, static_cast<float>(row) / 10.f));
-        }
+        DrawSlot(x, y);
+        constexpr float height = 26.f;
+        constexpr float width = height * 46.f / 66.f;
+        SEASON3B::RenderImage(SEASON3B::CNewUIMyInventory::IMAGE_INVENTORY_ITEM_ARMOR, x - width / 2.f, y - height / 2.f, width, height,
+            0.f, 0.f, 46.f / 64.f, 66.f / 128.f);
     }
 
     void DrawCheck(float x, float y, unsigned int color)
@@ -166,6 +166,7 @@ bool SEASON3B::CNewUIResetNpcWindow::Create(CNewUIManager* pNewUIMng)
     m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_RESET_NPC, this);
     m_posX = (REFERENCE_WIDTH - WINDOW_WIDTH) / 2;
     m_posY = WindowTop;
+    LoadBitmap(L"Interface\newui_reset_fruit.tga", IMAGE_RESET_FRUIT, GL_LINEAR);
     return true;
 }
 
@@ -173,6 +174,7 @@ void SEASON3B::CNewUIResetNpcWindow::Release()
 {
     if (m_pNewUIMng != nullptr)
     {
+        DeleteBitmap(IMAGE_RESET_FRUIT);
         m_pNewUIMng->RemoveUIObj(this);
         m_pNewUIMng = nullptr;
     }
@@ -231,11 +233,16 @@ SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::CloseRect()
     return { m_posX + WINDOW_WIDTH - CloseWidth - CloseMargin, m_posY + CloseMargin, CloseWidth, CloseHeight };
 }
 
-SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::HelpRect() const
+SEASON3B::CNewUIResetNpcWindow::HeadingLayout SEASON3B::CNewUIResetNpcWindow::LayoutHeading() const
 {
-    const int centreX = m_posX + (WINDOW_WIDTH - HeadingWidth) / 2 - HelpGapToHeading;
+    g_pRenderText->SetFont(g_hFontBold);
+    const std::wstring heading = ResetNpc::HeadingText(m_state);
+    const float textWidth = static_cast<float>(g_pRenderText->MeasureText(heading.c_str(), static_cast<int>(heading.size())).cx);
+    const float total = textWidth + HelpGapToHeading + HelpRadius * 2;
+    const float left = m_posX + (WINDOW_WIDTH - total) / 2.f;
     const int centreY = m_posY + HeadingY + HeadingHeight / 2;
-    return { centreX - HelpRadius, centreY - HelpRadius, HelpRadius * 2, HelpRadius * 2 };
+    const int helpX = static_cast<int>(left + textWidth + HelpGapToHeading);
+    return { left, textWidth, { helpX, centreY - HelpRadius, HelpRadius * 2, HelpRadius * 2 } };
 }
 
 void SEASON3B::CNewUIResetNpcWindow::PressResetButton()
@@ -314,7 +321,7 @@ void SEASON3B::CNewUIResetNpcWindow::RenderRequirementRow(int row, RowIcon icon,
     const float width = static_cast<float>(WINDOW_WIDTH - 2 * RowInset);
     UI::NineSlice::Render(UI::AuctionChrome::AuctionRowSkin().texture, x, y, width, static_cast<float>(RowHeight), RowTint);
 
-    const float iconX = x + IconCentreX - RowInset + 8.f;
+    const float iconX = x + 20.f;
     const float iconY = y + RowHeight / 2.f;
     switch (icon)
     {
@@ -405,14 +412,13 @@ bool SEASON3B::CNewUIResetNpcWindow::Render()
         return true;
     }
 
-    const float headingX = static_cast<float>(m_posX + (WINDOW_WIDTH - HeadingWidth) / 2);
-    UI::NineSlice::Render(UI::AuctionChrome::AuctionButtonSkin().texture, headingX, static_cast<float>(m_posY + HeadingY),
-        static_cast<float>(HeadingWidth), static_cast<float>(HeadingHeight), HeadingTint);
-    g_pRenderText->SetTextColor(255, 236, 170, 255);
+    const HeadingLayout layout = LayoutHeading();
+    g_pRenderText->SetFont(g_hFontBold);
+    g_pRenderText->SetTextColor(255, 214, 118, 255);
     const std::wstring heading = ResetNpc::HeadingText(m_state);
     const SIZE headingSize = g_pRenderText->MeasureText(heading.c_str(), static_cast<int>(heading.size()));
-    g_pRenderText->RenderText(headingX, static_cast<float>(m_posY + HeadingY) + (HeadingHeight - headingSize.cy) / 2.f,
-        heading.c_str(), static_cast<float>(HeadingWidth), 0, RT3_SORT_CENTER);
+    g_pRenderText->RenderText(layout.textX, static_cast<float>(m_posY + HeadingY) + (HeadingHeight - headingSize.cy) / 2.f,
+        heading.c_str(), layout.textWidth + 2.f, 0, RT3_SORT_LEFT);
     RenderHelpButton();
 
     if (m_state.LimitReached())
@@ -442,7 +448,8 @@ bool SEASON3B::CNewUIResetNpcWindow::Render()
     }
     if (m_state.GearRuleActive())
     {
-        const std::wstring worn = m_state.WornItems == 0 ? std::wstring(L"nothing worn") : std::to_wstring(m_state.WornItems) + L" worn";
+        const std::wstring worn = m_state.GearOk() ? std::wstring(L"nothing worn")
+            : L"Remove " + std::to_wstring(m_state.WornItems) + (m_state.WornItems == 1 ? L" worn item" : L" worn items");
         RenderRequirementRow(row++, RowIcon::Equipment, L"Equipment", worn, m_state.GearOk());
     }
 
