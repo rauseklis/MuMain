@@ -1,16 +1,65 @@
 #include "App/stdafx.h"
+#include "Engine/Object/ZzzCharacter.h"
 #include "GameLogic/Items/CSItemOption.h"
 #include "I18N/All.h"
 
 #include <doctest.h>
 #include <array>
 #include <filesystem>
+#include <memory>
 #include <string>
 
 extern wchar_t TextList[50][100];
 extern int TextListColor[50];
 
-TEST_CASE("An unworn Tier 1 Ancient item displays four inactive full-set stat options")
+namespace
+{
+void CheckEquippedFaseStats()
+{
+    constexpr int itemGroupSize = 512;
+    // Exercise the same equipment recalculation that feeds the character window.
+    auto machine = std::make_unique<CHARACTER_MACHINE>();
+    auto hero = std::make_unique<CHARACTER>();
+    auto itemAttributes = std::make_unique<ITEM_ATTRIBUTE[]>(MAX_ITEM);
+    auto* previousMachine = CharacterMachine;
+    auto* previousAttribute = CharacterAttribute;
+    auto* previousHero = Hero;
+    auto* previousItems = ItemAttribute;
+    CharacterMachine = machine.get();
+    CharacterAttribute = &machine->Character;
+    Hero = hero.get();
+    ItemAttribute = itemAttributes.get();
+    Hero->Class = CLASS_ELF;
+    for (auto& item : machine->Equipment)
+        item.Type = -1;
+    for (const auto slot : {EQUIPMENT_PANTS, EQUIPMENT_GLOVES, EQUIPMENT_BOOTS})
+    {
+        auto& item = machine->Equipment[slot];
+        const int group = slot == EQUIPMENT_PANTS ? 9 : slot == EQUIPMENT_GLOVES ? 10 : 11;
+        item.Type = group * itemGroupSize + 11;
+        item.AncientDiscriminator = slot == EQUIPMENT_BOOTS ? 1 : 2;
+        item.Durability = 1;
+        ItemAttribute[item.Type].RequireClass[CLASS_ELF] = 1;
+    }
+    g_csItemOption.CheckItemSetOptions();
+    CHECK(CharacterAttribute->AddStrength == 100);
+    CHECK(CharacterAttribute->AddDexterity == 100);
+    CHECK(CharacterAttribute->AddEnergy == 100);
+    const auto fullVitality = CharacterAttribute->AddVitality;
+    machine->Equipment[EQUIPMENT_BOOTS].Durability = 0;
+    g_csItemOption.CheckItemSetOptions();
+    CHECK(CharacterAttribute->AddStrength == 0);
+    CHECK(CharacterAttribute->AddDexterity == 0);
+    CHECK(CharacterAttribute->AddEnergy == 0);
+    CHECK(fullVitality >= CharacterAttribute->AddVitality + 100);
+    CharacterMachine = previousMachine;
+    CharacterAttribute = previousAttribute;
+    Hero = previousHero;
+    ItemAttribute = previousItems;
+}
+} // namespace
+
+TEST_CASE("Tier 1 Ancient tooltip previews and equipped character stats agree")
 {
     const auto original = std::filesystem::current_path();
     std::filesystem::current_path(MU_ANCIENT_TEST_ASSETS);
@@ -53,4 +102,5 @@ TEST_CASE("An unworn Tier 1 Ancient item displays four inactive full-set stat op
         }
     }
     CHECK_FALSE(g_csItemOption.IsAncientSetEquipped());
+    CheckEquippedFaseStats();
 }

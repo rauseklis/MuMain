@@ -1,4 +1,4 @@
-﻿/*+++++++++++++++++++++++++++++++++++++
+/*+++++++++++++++++++++++++++++++++++++
     INCLUDE.
 +++++++++++++++++++++++++++++++++++++*/
 #include "stdafx.h"
@@ -725,48 +725,48 @@ void CSItemOption::getAllAddState(std::uint16_t* Strength, std::uint16_t* Dexter
     AddStatsBySetOptions(Strength, Dexterity, Energy, Vitality, Charisma);
 }
 
-void    CSItemOption::AddStatsBySetOptions(std::uint16_t* Strength, std::uint16_t* Dexterity, std::uint16_t* Energy, std::uint16_t* Vitality, std::uint16_t* Charisma) const
+namespace
 {
-    for (int i = 0; i < m_SetSearchResultCount; i++)
+void AddAncientStatOption(const SET_OPTION& option, std::uint16_t* strength, std::uint16_t* agility,
+                          std::uint16_t* energy, std::uint16_t* vitality, std::uint16_t* command)
+{
+    if (!option.IsActive)
+        return;
+
+    // Stored BMD option IDs start at zero; AT_* identifiers include an offset.
+    switch (option.OptionNumber + AT_SET_OPTION_IMPROVE_STRENGTH)
     {
-        auto& set = m_SetSearchResult[i];
-        for (int j = 0; j < set.SetOptionCount; j++)
-        {
-            auto& option = set.SetOption[j];
-            if (!option.IsActive)
-            {
-                continue;
-            }
-
-            switch (option.OptionNumber)
-            {
-            case AT_SET_OPTION_IMPROVE_STRENGTH:
-                *Strength += option.Value;
-                break;
-
-            case AT_SET_OPTION_IMPROVE_DEXTERITY:
-                *Dexterity += option.Value;
-                break;
-
-            case AT_SET_OPTION_IMPROVE_ENERGY:
-                *Energy += option.Value;
-                break;
-
-            case AT_SET_OPTION_IMPROVE_VITALITY:
-                *Vitality += option.Value;
-                break;
-
-            case AT_SET_OPTION_IMPROVE_CHARISMA:
-                *Charisma += option.Value;
-                break;
-            default:
-                // other options are not handled here.
-                break;
-            }
-        }
+    case AT_SET_OPTION_IMPROVE_STRENGTH:
+        *strength += option.Value;
+        break;
+    case AT_SET_OPTION_IMPROVE_DEXTERITY:
+        *agility += option.Value;
+        break;
+    case AT_SET_OPTION_IMPROVE_ENERGY:
+        *energy += option.Value;
+        break;
+    case AT_SET_OPTION_IMPROVE_VITALITY:
+        *vitality += option.Value;
+        break;
+    case AT_SET_OPTION_IMPROVE_CHARISMA:
+        *command += option.Value;
+        break;
+    default:
+        break;
     }
 }
+} // namespace
 
+void CSItemOption::AddStatsBySetOptions(std::uint16_t* strength, std::uint16_t* agility, std::uint16_t* energy,
+                                        std::uint16_t* vitality, std::uint16_t* command) const
+{
+    for (int i = 0; i < m_SetSearchResultCount; ++i)
+    {
+        const auto& set = m_SetSearchResult[i];
+        for (int j = 0; j < set.SetOptionCount; ++j)
+            AddAncientStatOption(set.SetOption[j], strength, agility, energy, vitality, command);
+    }
+}
 void CSItemOption::getAllAddStateOnlyAddValue(std::uint16_t* AddStrength, std::uint16_t* AddDexterity, std::uint16_t* AddEnergy, std::uint16_t* AddVitality, std::uint16_t* AddCharisma) const
 {
     *AddStrength = *AddDexterity = *AddEnergy = *AddVitality = *AddCharisma = 0;
