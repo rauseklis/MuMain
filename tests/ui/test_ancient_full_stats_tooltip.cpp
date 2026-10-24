@@ -57,9 +57,57 @@ void CheckEquippedFaseStats()
     Hero = previousHero;
     ItemAttribute = previousItems;
 }
+void CheckEquippedGaiaStats()
+{
+    constexpr int itemGroupSize = 512;
+    // Exercise the same equipment recalculation that feeds the character window.
+    auto machine = std::make_unique<CHARACTER_MACHINE>();
+    auto hero = std::make_unique<CHARACTER>();
+    auto itemAttributes = std::make_unique<ITEM_ATTRIBUTE[]>(MAX_ITEM);
+    auto* previousMachine = CharacterMachine;
+    auto* previousAttribute = CharacterAttribute;
+    auto* previousHero = Hero;
+    auto* previousItems = ItemAttribute;
+    CharacterMachine = machine.get();
+    CharacterAttribute = &machine->Character;
+    Hero = hero.get();
+    ItemAttribute = itemAttributes.get();
+    Hero->Class = CLASS_ELF;
+    for (auto& item : machine->Equipment)
+        item.Type = -1;
+    for (const auto slot : {EQUIPMENT_PANTS, EQUIPMENT_GLOVES, EQUIPMENT_ARMOR, EQUIPMENT_HELM, EQUIPMENT_WEAPON_RIGHT})
+    {
+        auto& item = machine->Equipment[slot];
+        const int group = slot == EQUIPMENT_PANTS    ? 9
+                          : slot == EQUIPMENT_GLOVES ? 10
+                          : slot == EQUIPMENT_ARMOR  ? 8
+                          : slot == EQUIPMENT_HELM   ? 7
+                                                     : 4;
+        item.Type = group * itemGroupSize + (slot == EQUIPMENT_WEAPON_RIGHT ? 9 : 11);
+        item.AncientDiscriminator = 1;
+        item.Durability = 1;
+        ItemAttribute[item.Type].RequireClass[CLASS_ELF] = 1;
+    }
+    g_csItemOption.CheckItemSetOptions();
+    CHECK(CharacterAttribute->AddStrength == 60);
+    CHECK(CharacterAttribute->AddDexterity == 80);
+    CHECK(CharacterAttribute->AddEnergy == 50);
+    CHECK(CharacterAttribute->AddCharisma == 0);
+    const auto fullVitality = CharacterAttribute->AddVitality;
+    machine->Equipment[EQUIPMENT_WEAPON_RIGHT].Durability = 0;
+    g_csItemOption.CheckItemSetOptions();
+    CHECK(CharacterAttribute->AddStrength == 10);
+    CHECK(CharacterAttribute->AddDexterity == 0);
+    CHECK(CharacterAttribute->AddEnergy == 0);
+    CHECK(fullVitality >= CharacterAttribute->AddVitality + 50);
+    CharacterMachine = previousMachine;
+    CharacterAttribute = previousAttribute;
+    Hero = previousHero;
+    ItemAttribute = previousItems;
+}
 } // namespace
 
-TEST_CASE("Tier 1 Ancient tooltip previews and equipped character stats agree")
+TEST_CASE("Tier 1 and Tier 2 Ancient tooltip previews and equipped character stats agree")
 {
     const auto original = std::filesystem::current_path();
     std::filesystem::current_path(MU_ANCIENT_TEST_ASSETS);
@@ -76,10 +124,16 @@ TEST_CASE("Tier 1 Ancient tooltip previews and equipped character stats agree")
         int bonus;
     };
     constexpr int itemGroupSize = 512;
-    const std::array<Sample, 4> samples = {{{8 * itemGroupSize, 1, 100},
-                                            {7 * itemGroupSize + 2, 2, 100},
-                                            {9 * itemGroupSize + 11, 2, 100},
-                                            {7 * itemGroupSize + 8, 1, 75}}};
+    const std::array<Sample, 10> samples = {{{8 * itemGroupSize, 1, 100},
+                                             {7 * itemGroupSize + 2, 2, 100},
+                                             {9 * itemGroupSize + 11, 2, 100},
+                                             {7 * itemGroupSize + 8, 1, 75},
+                                             {8 * itemGroupSize + 6, 1, 50},
+                                             {8 * itemGroupSize + 8, 1, 50},
+                                             {8 * itemGroupSize + 7, 1, 50},
+                                             {8 * itemGroupSize + 11, 1, 50},
+                                             {8 * itemGroupSize + 40, 2, 50},
+                                             {8 * itemGroupSize + 59, 2, 50}}};
     for (const auto sample : samples)
     {
         CAPTURE(sample.type);
@@ -103,4 +157,5 @@ TEST_CASE("Tier 1 Ancient tooltip previews and equipped character stats agree")
     }
     CHECK_FALSE(g_csItemOption.IsAncientSetEquipped());
     CheckEquippedFaseStats();
+    CheckEquippedGaiaStats();
 }

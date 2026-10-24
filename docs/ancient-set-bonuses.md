@@ -1,4 +1,4 @@
-# Tier 1 Ancient full-set bonuses
+# Ancient full-set bonuses
 
 The four Tier 1 Ancient sets from Box of Luck keep all their original bonuses
 and gain the following additional bonuses when the complete set is equipped:
@@ -18,5 +18,4 @@ Hover over an Ancient item to see its options, even with no matching items
 equipped. The four new lines appear under **Full set options**, gray while
 inactive. Complete, equipped sets show active full-set options in yellow.
 
-Both the server and client must contain this update. These bonuses do not apply
-to the Silver Box or Golden Box Ancient tiers.
+Both the server and client must contain this update. Tier 2 Silver Box sets (Garuda, Heras, Gaia, Eplete, Semeden and Chamer) additionally grant +50 Strength, Agility, Vitality and Energy once per complete set, with Command unchanged and original options retained. Golden Box Tier 3 sets receive no new four-stat bonus.

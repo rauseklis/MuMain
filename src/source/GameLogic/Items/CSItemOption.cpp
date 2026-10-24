@@ -84,7 +84,7 @@ void CopySetOptions(ITEM_SET_OPTION& target, const ITEM_SET_OPTION_FILE& source,
     std::copy(source.byFullOption.begin(), source.byFullOption.end(), target.byFullOption.begin());
     std::copy(source.byFullOptionValue.begin(), source.byFullOptionValue.end(), target.byFullOptionValue.begin());
     target.byRequireClass = source.byRequireClass;
-    GameLogic::Items::Sets::AddTierOneFullStatOptions(setNumber, target.byFullOption, target.byFullOptionValue);
+    GameLogic::Items::Sets::AddAncientFullStatOptions(setNumber, target.byFullOption, target.byFullOptionValue);
 }
 
 SET_SEARCH_RESULT_OPT CreateInactiveSetPreview(const ITEM_SET_OPTION& options)
