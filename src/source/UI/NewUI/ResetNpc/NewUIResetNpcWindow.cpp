@@ -33,8 +33,8 @@ namespace
     constexpr int WindowTop = 50;
     constexpr int HelpSize = 15;
     // The question mark sits in the bottom right corner of the frame.
-    constexpr int HelpX = 304;
-    constexpr int HelpY = 256;
+    constexpr int HelpX = 306;
+    constexpr int HelpY = 267;
     constexpr int TooltipGap = 6;
     constexpr float IconSize = 20.f;
     constexpr float FruitSize = 16.f;
