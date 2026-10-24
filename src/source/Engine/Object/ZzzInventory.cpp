@@ -1462,10 +1462,18 @@ void GetItemName(int iType, int iLevel, wchar_t* Text)
     {
         switch (iLevel)
         {
-        case 0:mu_swprintf(Text, L"%ls %ls", I18N::Game::ENG, p->Name); break;
-        case 1:mu_swprintf(Text, L"%ls %ls", I18N::Game::STA, p->Name); break;
-        case 2:mu_swprintf(Text, L"%ls %ls", I18N::Game::AGI, p->Name); break;
-        case 3:mu_swprintf(Text, L"%ls %ls", I18N::Game::STR, p->Name); break;
+        case 0:
+            mu_swprintf(Text, L"%ls %ls", I18N::Game::Energy, p->Name);
+            break;
+        case 1:
+            mu_swprintf(Text, L"%ls %ls", I18N::Game::Vitality, p->Name);
+            break;
+        case 2:
+            mu_swprintf(Text, L"%ls %ls", I18N::Game::Agility, p->Name);
+            break;
+        case 3:
+            mu_swprintf(Text, L"%ls %ls", I18N::Game::Strength, p->Name);
+            break;
         case 4:mu_swprintf(Text, L"%ls %ls", I18N::Game::Command, p->Name); break;
         }
     }
@@ -2148,10 +2156,18 @@ void RenderItemInfo(int sx, int sy, ITEM* ip, bool Sell, int Inventype, bool bIt
         Color = TEXT_COLOR_YELLOW;
         switch (Level)
         {
-        case 0:mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::ENG, p->Name); break;
-        case 1:mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::STA, p->Name); break;
-        case 2:mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::AGI, p->Name); break;
-        case 3:mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::STR, p->Name); break;
+        case 0:
+            mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::Energy, p->Name);
+            break;
+        case 1:
+            mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::Vitality, p->Name);
+            break;
+        case 2:
+            mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::Agility, p->Name);
+            break;
+        case 3:
+            mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::Strength, p->Name);
+            break;
         case 4:mu_swprintf(TextList[TextNum], L"%ls %ls", I18N::Game::Command, p->Name); break;
         }
     }
@@ -6070,10 +6086,22 @@ void BuildGroundItemLabelDescriptor(OBJECT* o, ITEM* ip, GroundItemLabelDescript
     {
         switch (ItemLevel)
         {
-        case 0: FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::ENG, ItemAttribute[o->Type - MODEL_ITEM].Name); break;
-        case 1: FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::STA, ItemAttribute[o->Type - MODEL_ITEM].Name); break;
-        case 2: FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::AGI, ItemAttribute[o->Type - MODEL_ITEM].Name); break;
-        case 3: FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::STR, ItemAttribute[o->Type - MODEL_ITEM].Name); break;
+        case 0:
+            FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::Energy,
+                                      ItemAttribute[o->Type - MODEL_ITEM].Name);
+            break;
+        case 1:
+            FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::Vitality,
+                                      ItemAttribute[o->Type - MODEL_ITEM].Name);
+            break;
+        case 2:
+            FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::Agility,
+                                      ItemAttribute[o->Type - MODEL_ITEM].Name);
+            break;
+        case 3:
+            FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::Strength,
+                                      ItemAttribute[o->Type - MODEL_ITEM].Name);
+            break;
         case 4: FormatGroundItemLabelText(descriptor.Name, L"%ls %ls", I18N::Game::Command, ItemAttribute[o->Type - MODEL_ITEM].Name); break;
         }
     }

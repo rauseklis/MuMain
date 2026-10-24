@@ -6,59 +6,64 @@ namespace JewelBank
 {
     namespace
     {
-        constexpr KindInfo KINDS[KIND_COUNT] = {
-            { 1, L"Jewel of Chaos", 0xFFE8B84Au },
-            { 2, L"Jewel of Bless", 0xFF7FD6FFu },
-            { 3, L"Jewel of Soul", 0xFFFFA64Du },
-            { 4, L"Jewel of Life", 0xFFFF7A7Au },
-            { 5, L"Jewel of Creation", 0xFFB9F27Cu },
-            { 6, L"Jewel of Guardian", 0xFFC9C9D6u },
-            { 7, L"Jewel of Harmony", 0xFFE79BFFu },
-            { 8, L"Gemstone", 0xFF8CE0B0u },
-            { 9, L"Lower Refining Stone", 0xFFA6A6A6u },
-            { 10, L"Higher Refining Stone", 0xFFD9D9D9u },
-            { 11, L"Fruit of Energy", 0xFF5AA0FFu },
-            { 12, L"Fruit of Vitality", 0xFFFF6B6Bu },
-            { 13, L"Fruit of Agility", 0xFF6BE08Cu },
-            { 14, L"Fruit of Strength", 0xFFFFC04Du },
-            { 15, L"Fruit of Command", 0xFFC58BFFu },
-            { 16, L"Chaos Bundle x10", 0xFFE8B84Au },
-            { 17, L"Bless Bundle x10", 0xFF7FD6FFu },
-            { 18, L"Soul Bundle x10", 0xFFFFA64Du },
-            { 19, L"Life Bundle x10", 0xFFFF7A7Au },
-            { 20, L"Creation Bundle x10", 0xFFB9F27Cu },
-            { 21, L"Guardian Bundle x10", 0xFFC9C9D6u },
-            { 22, L"Harmony Bundle x10", 0xFFE79BFFu },
-            { 23, L"Gemstone Bundle x10", 0xFF8CE0B0u },
-            { 24, L"Lower Refining Bundle x10", 0xFFA6A6A6u },
-            { 25, L"Higher Refining Bundle x10", 0xFFD9D9D9u },
-            { 26, L"Chaos Bundle x20", 0xFFE8B84Au },
-            { 27, L"Bless Bundle x20", 0xFF7FD6FFu },
-            { 28, L"Soul Bundle x20", 0xFFFFA64Du },
-            { 29, L"Life Bundle x20", 0xFFFF7A7Au },
-            { 30, L"Creation Bundle x20", 0xFFB9F27Cu },
-            { 31, L"Guardian Bundle x20", 0xFFC9C9D6u },
-            { 32, L"Harmony Bundle x20", 0xFFE79BFFu },
-            { 33, L"Gemstone Bundle x20", 0xFF8CE0B0u },
-            { 34, L"Lower Refining Bundle x20", 0xFFA6A6A6u },
-            { 35, L"Higher Refining Bundle x20", 0xFFD9D9D9u },
-            { 36, L"Chaos Bundle x30", 0xFFE8B84Au },
-            { 37, L"Bless Bundle x30", 0xFF7FD6FFu },
-            { 38, L"Soul Bundle x30", 0xFFFFA64Du },
-            { 39, L"Life Bundle x30", 0xFFFF7A7Au },
-            { 40, L"Creation Bundle x30", 0xFFB9F27Cu },
-            { 41, L"Guardian Bundle x30", 0xFFC9C9D6u },
-            { 42, L"Harmony Bundle x30", 0xFFE79BFFu },
-            { 43, L"Gemstone Bundle x30", 0xFF8CE0B0u },
-            { 44, L"Lower Refining Bundle x30", 0xFFA6A6A6u },
-            { 45, L"Higher Refining Bundle x30", 0xFFD9D9D9u },
-        };
+    constexpr KindInfo KINDS[KIND_COUNT] = {
+        {1, L"Jewel of Chaos", 0xFFE8B84Au},
+        {2, L"Jewel of Bless", 0xFF7FD6FFu},
+        {3, L"Jewel of Soul", 0xFFFFA64Du},
+        {4, L"Jewel of Life", 0xFFFF7A7Au},
+        {5, L"Jewel of Creation", 0xFFB9F27Cu},
+        {6, L"Jewel of Guardian", 0xFFC9C9D6u},
+        {7, L"Jewel of Harmony", 0xFFE79BFFu},
+        {8, L"Gemstone", 0xFF8CE0B0u},
+        {9, L"Lower Refining Stone", 0xFFA6A6A6u},
+        {10, L"Higher Refining Stone", 0xFFD9D9D9u},
+        {11, L"Energy Fruit", 0xFF5AA0FFu},
+        {12, L"Vitality Fruit", 0xFFFF6B6Bu},
+        {13, L"Agility Fruit", 0xFF6BE08Cu},
+        {14, L"Strength Fruit", 0xFFFFC04Du},
+        {15, L"Command Fruit", 0xFFC58BFFu},
+        {16, L"Chaos Bundle x10", 0xFFE8B84Au},
+        {17, L"Bless Bundle x10", 0xFF7FD6FFu},
+        {18, L"Soul Bundle x10", 0xFFFFA64Du},
+        {19, L"Life Bundle x10", 0xFFFF7A7Au},
+        {20, L"Creation Bundle x10", 0xFFB9F27Cu},
+        {21, L"Guardian Bundle x10", 0xFFC9C9D6u},
+        {22, L"Harmony Bundle x10", 0xFFE79BFFu},
+        {23, L"Gemstone Bundle x10", 0xFF8CE0B0u},
+        {24, L"Lower Refining Bundle x10", 0xFFA6A6A6u},
+        {25, L"Higher Refining Bundle x10", 0xFFD9D9D9u},
+        {26, L"Chaos Bundle x20", 0xFFE8B84Au},
+        {27, L"Bless Bundle x20", 0xFF7FD6FFu},
+        {28, L"Soul Bundle x20", 0xFFFFA64Du},
+        {29, L"Life Bundle x20", 0xFFFF7A7Au},
+        {30, L"Creation Bundle x20", 0xFFB9F27Cu},
+        {31, L"Guardian Bundle x20", 0xFFC9C9D6u},
+        {32, L"Harmony Bundle x20", 0xFFE79BFFu},
+        {33, L"Gemstone Bundle x20", 0xFF8CE0B0u},
+        {34, L"Lower Refining Bundle x20", 0xFFA6A6A6u},
+        {35, L"Higher Refining Bundle x20", 0xFFD9D9D9u},
+        {36, L"Chaos Bundle x30", 0xFFE8B84Au},
+        {37, L"Bless Bundle x30", 0xFF7FD6FFu},
+        {38, L"Soul Bundle x30", 0xFFFFA64Du},
+        {39, L"Life Bundle x30", 0xFFFF7A7Au},
+        {40, L"Creation Bundle x30", 0xFFB9F27Cu},
+        {41, L"Guardian Bundle x30", 0xFFC9C9D6u},
+        {42, L"Harmony Bundle x30", 0xFFE79BFFu},
+        {43, L"Gemstone Bundle x30", 0xFF8CE0B0u},
+        {44, L"Lower Refining Bundle x30", 0xFFA6A6A6u},
+        {45, L"Higher Refining Bundle x30", 0xFFD9D9D9u},
+    };
 
-        uint32_t ReadU32(std::span<const uint8_t> data, size_t offset)
-        {
-            return static_cast<uint32_t>(data[offset]) | (static_cast<uint32_t>(data[offset + 1]) << 8)
-                | (static_cast<uint32_t>(data[offset + 2]) << 16) | (static_cast<uint32_t>(data[offset + 3]) << 24);
-        }
+    // The window lists the five fruits as Strength, Agility, Vitality, Energy, Command. The kinds keep the server's
+    // order (and their codes); only the rows on screen are in this order, as list positions.
+    constexpr int FIRST_FRUIT_INDEX = 10;
+    constexpr std::array<int, 5> FRUIT_ROW_ORDER = {13, 12, 11, 10, 14};
+
+    uint32_t ReadU32(std::span<const uint8_t> data, size_t offset)
+    {
+        return static_cast<uint32_t>(data[offset]) | (static_cast<uint32_t>(data[offset + 1]) << 8) |
+               (static_cast<uint32_t>(data[offset + 2]) << 16) | (static_cast<uint32_t>(data[offset + 3]) << 24);
+    }
 
         uint64_t ReadU64(std::span<const uint8_t> data, size_t offset)
         {
@@ -91,7 +96,9 @@ namespace JewelBank
         row = std::clamp(row, 0, ROW_COUNT - 1);
         if (page <= 0)
         {
-            return row;
+            const int fruitRow = row - FIRST_FRUIT_INDEX;
+            return fruitRow >= 0 && fruitRow < static_cast<int>(FRUIT_ROW_ORDER.size()) ? FRUIT_ROW_ORDER[fruitRow]
+                                                                                        : row;
         }
 
         // Five jewels a page, three rows each: the bundle of 10, of 20, of 30. The bundles are listed by size in the kind list.
@@ -112,7 +119,10 @@ namespace JewelBank
     {
         if (index < FIRST_BUNDLE_INDEX)
         {
-            return std::max(index, 0);
+            const auto fruit = std::find(FRUIT_ROW_ORDER.begin(), FRUIT_ROW_ORDER.end(), index);
+            return fruit != FRUIT_ROW_ORDER.end()
+                       ? FIRST_FRUIT_INDEX + static_cast<int>(fruit - FRUIT_ROW_ORDER.begin())
+                       : std::max(index, 0);
         }
         const int bundle = index - FIRST_BUNDLE_INDEX;
         return ((bundle % BUNDLES_PER_SIZE) % (ROW_COUNT / 3)) * 3 + bundle / BUNDLES_PER_SIZE;

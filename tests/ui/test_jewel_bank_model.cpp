@@ -33,7 +33,7 @@ TEST_CASE("the kinds are the server's forty-five codes in order")
     CHECK(FindKind(0) == nullptr);
     CHECK(FindKind(46) == nullptr);
     CHECK(std::wstring(KindAt(1).Name) == L"Jewel of Bless");
-    CHECK(std::wstring(KindAt(13).Name) == L"Fruit of Strength");
+    CHECK(std::wstring(KindAt(13).Name) == L"Strength Fruit");
     CHECK(std::wstring(KindAt(15).Name) == L"Chaos Bundle x10");
     CHECK(std::wstring(KindAt(25).Name) == L"Chaos Bundle x20");
     CHECK(std::wstring(KindAt(44).Name) == L"Higher Refining Bundle x30");
@@ -57,6 +57,19 @@ TEST_CASE("every page has fifteen rows and together the pages show every kind on
     for (const int count : seen)
     {
         CHECK(count == 1);
+    }
+}
+
+TEST_CASE("the fruits are listed Strength, Agility, Vitality, Energy, Command and keep their server codes")
+{
+    constexpr std::array<const wchar_t*, 5> names = {L"Strength Fruit", L"Agility Fruit", L"Vitality Fruit",
+                                                     L"Energy Fruit", L"Command Fruit"};
+    constexpr std::array<uint8_t, 5> codes = {14, 13, 12, 11, 15};
+    for (int i = 0; i < 5; ++i)
+    {
+        const JewelBank::KindInfo& kind = KindAt(KindOnPage(0, 10 + i));
+        CHECK(std::wstring(kind.Name) == names[i]);
+        CHECK(kind.Code == codes[i]);
     }
 }
 
