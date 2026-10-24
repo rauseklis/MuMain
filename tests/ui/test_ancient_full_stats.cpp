@@ -57,7 +57,7 @@ TEST_CASE("Tier 3 Ancient options and serialized BMD record size are unchanged")
 
 TEST_CASE("Tier 2 full sets add fifty to four stats and never Command")
 {
-    for (const std::uint8_t set : {5, 7, 17, 23, 36, 38})
+    for (const std::uint8_t set : {5, 7, 17, 27, 36, 38})
     {
         CAPTURE(set);
         std::array<std::uint8_t, OptionCount> options;
@@ -80,4 +80,14 @@ TEST_CASE("Tier 2 full sets add fifty to four stats and never Command")
         GameLogic::Items::Sets::AddAncientFullStatOptions(set, options, values);
         CHECK(options == expected);
     }
+}
+
+TEST_CASE("Gaia no longer receives the additional Tier 2 stat bonus")
+{
+    std::array<std::uint8_t, OptionCount> options;
+    std::array<std::uint8_t, OptionCount> values;
+    options.fill(EmptyOption);
+    values.fill(EmptyOption);
+    GameLogic::Items::Sets::AddAncientFullStatOptions(23, options, values);
+    CHECK(std::all_of(options.begin(), options.end(), [](auto option) { return option == EmptyOption; }));
 }

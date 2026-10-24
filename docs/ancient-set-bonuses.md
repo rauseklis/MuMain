@@ -18,4 +18,6 @@ Hover over an Ancient item to see its options, even with no matching items
 equipped. The four new lines appear under **Full set options**, gray while
 inactive. Complete, equipped sets show active full-set options in yellow.
 
-Both the server and client must contain this update. Tier 2 Silver Box sets (Garuda, Heras, Gaia, Eplete, Semeden and Chamer) additionally grant +50 Strength, Agility, Vitality and Energy once per complete set, with Command unchanged and original options retained. Golden Box Tier 3 sets receive no new four-stat bonus.
+Both the server and client must contain this update. Tier 2 Silver Box sets (Garuda, Heras, Argo Spirit, Eplete, Semeden and Chamer) additionally grant +50 Strength, Agility, Vitality and Energy once per complete set, with Command unchanged and original options retained. Golden Box Tier 3 sets receive no new four-stat bonus.
+
+Argo Spirit replaces Gaia Silk in the Elf Silver Box tier. Its complete set requires Spirit Armor, Pants and Gloves. Existing Gaia items retain their original options but no longer receive the additional Tier 2 +50 stats.
