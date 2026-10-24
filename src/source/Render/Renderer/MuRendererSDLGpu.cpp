@@ -3991,18 +3991,12 @@ private:
         depthState.enable_depth_test = description.depthTestEnabled;
         depthState.enable_depth_write = description.depthWriteEnabled;
         depthState.enable_stencil_test = false;
-        // Depth compare selection:
-        //   LESS for opaque 3D (depth write ON): strict layering, normal opaque z-sort.
-        //   LESS_OR_EQUAL for depth-read-only 3D (write OFF) and all 2D: these are additive/
-        //   glow overlays drawn on top of geometry at the same depth (forge-level sprites,
-        //   weapon chrome/bright mesh passes, terrain texture layering). LESS would reject
-        //   every equal-depth fragment before the blend stage — the classic MU OpenGL client
-        //   ran these passes with GL_LEQUAL effectively by calling SetDepthFunc(GL_LEQUAL)
-        //   before them, which the SDL3 backend doesn't propagate. Using LESS_OR_EQUAL on
-        //   read-only variants recovers the intended behavior uniformly.
+        // Depth compare: LESS_OR_EQUAL everywhere, as the classic MU OpenGL client (glDepthFunc defaults to
+        // GL_LEQUAL). Many models are drawn twice at the same depth with depth writes on: a base layer and the
+        // textured layer on top (the Crusts draw a scrolling energy texture first and their armour over it).
+        // With a strict LESS the second pass is rejected at equal depth and the first layer stays visible.
+        depthState.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
         const bool usesWorldDepth = description.vertexLayout != VertexLayout::TwoDimensional;
-        const bool strictLayering = usesWorldDepth && description.depthWriteEnabled;
-        depthState.compare_op = strictLayering ? SDL_GPU_COMPAREOP_LESS : SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
 
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
         targetInfo.color_target_descriptions = &colorTargetDesc;
