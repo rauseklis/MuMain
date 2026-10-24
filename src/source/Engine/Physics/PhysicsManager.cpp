@@ -610,6 +610,13 @@ BOOL CPhysicsCloth::Move2(float fTime, int iCount)
         return (FALSE);
     }
 
+    if (m_bHasOwnerPosition && Physics::ClothSimulationTiming::OwnerJumped(m_vLastOwnerPosition, m_oOwner->Position))
+    {
+        return (FALSE);
+    }
+    memcpy(m_vLastOwnerPosition, m_oOwner->Position, sizeof(m_vLastOwnerPosition));
+    m_bHasOwnerPosition = true;
+
     const int frameCount = Physics::ClothSimulationTiming::ConsumeLegacyFrames(
         FPS_ANIMATION_FACTOR,
         m_fSimulationAccumulator,

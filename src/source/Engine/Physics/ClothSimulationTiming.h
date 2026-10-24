@@ -36,6 +36,19 @@ inline float InterpolationAlpha(float accumulator)
     return std::clamp(accumulator / LegacyFrame, 0.0f, 1.0f);
 }
 
+// The most an owner may move between two frames before the cloth no longer follows it but is thrown away (and made
+// again where the owner is). A teleport, a respawn at another spot or a long dash would otherwise leave the free
+// vertices behind and stretch the cloth across the map.
+constexpr float OwnerJumpDistance = 600.0f;
+
+inline bool OwnerJumped(const float previous[3], const float current[3], float maximumDistance = OwnerJumpDistance)
+{
+    const float dx = current[0] - previous[0];
+    const float dy = current[1] - previous[1];
+    const float dz = current[2] - previous[2];
+    return dx * dx + dy * dy + dz * dz > maximumDistance * maximumDistance;
+}
+
 inline float Lerp(float previous, float current, float alpha)
 {
     return previous + (current - previous) * alpha;
