@@ -2,6 +2,7 @@
 #include "Core/Globals/_define.h"
 #include "Core/Globals/_enum.h"
 #include "Core/Utilities/Singleton.h"
+#include "GameLogic/Items/AncientSetFullStats.h"
 
 #include <array>
 #include <cstdint>
@@ -28,7 +29,8 @@ constexpr auto MAX_ITEM_SET_STANDARD_OPTION_COUNT = 6;
 constexpr auto MAX_ITEM_SET_STANDARD_OPTION_PER_ITEM_COUNT = 2;
 constexpr auto MAX_ITEM_SET_EXT_OPTION_COUNT = 2;
 constexpr auto MAX_ITEM_SETS_PER_ITEM = 2;
-constexpr auto MAX_ITEM_SET_FULL_OPTION_COUNT = 5;
+constexpr auto MAX_ITEM_SET_FULL_OPTION_COUNT =
+    GameLogic::Items::Sets::SerializedFullOptionCount + GameLogic::Items::Sets::ExtraStatOptionCount;
 
 constexpr auto MAX_OPTIONS_PER_ITEM_SET = MAX_ITEM_SET_STANDARD_OPTION_COUNT * MAX_ITEM_SET_STANDARD_OPTION_PER_ITEM_COUNT
                                                 + MAX_ITEM_SET_FULL_OPTION_COUNT
@@ -114,6 +116,7 @@ private:
 
     static bool getExplainText(wchar_t* text, std::uint8_t option, int value);
     static std::uint8_t RenderSetOptionList(const SET_SEARCH_RESULT_OPT& set, std::uint8_t textIndex, bool bIsEquippedItem, bool bShowInactive);
+    int RenderSetOptionsForItem(const ITEM_SET_OPTION& options, int textIndex, bool equipped);
 
     bool	OpenItemSetType(const wchar_t* filename);
     bool	OpenItemSetOption(const wchar_t* filename);
