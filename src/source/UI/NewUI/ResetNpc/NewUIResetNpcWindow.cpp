@@ -2,6 +2,7 @@
 #include "UI/NewUI/ResetNpc/NewUIResetNpcWindow.h"
 
 #include "Audio/DSPlaySound.h"
+#include "Engine/Object/ZzzInventory.h"
 #include "Network/Server/SocketSystem.h"
 #include "UI/Legacy/UIControls.h"
 #include "UI/NewUI/AuctionHouse/AuctionChrome.h"
@@ -19,9 +20,10 @@ namespace
     constexpr int RowHeight = 32;
     constexpr int RowGap = 4;
     constexpr int RowInset = 20;
-    constexpr int LabelInset = 50;
-    constexpr int MarkInset = 26;
-    constexpr int ValueGapToMark = 12;
+    constexpr int IconCentreInset = 24;
+    constexpr int LabelInset = 52;
+    constexpr int MarkInset = 22;
+    constexpr int ValueGapToMark = 10;
     constexpr int MessageY = 204;
     constexpr int HintY = 220;
     constexpr int ButtonY = 240;
@@ -31,10 +33,10 @@ namespace
     constexpr int CloseHeight = 29;
     constexpr int CloseMargin = 8;
     constexpr int WindowTop = 50;
-    constexpr int HelpSize = 22;
+    constexpr int HelpSize = 16;
     constexpr int TooltipGap = 6;
-    constexpr float IconSize = 28.f;
-    constexpr float MarkSize = 22.f;
+    constexpr float IconSize = 30.f;
+    constexpr float MarkSize = 16.f;
     constexpr std::chrono::seconds ConfirmTime{5};
 
     constexpr unsigned int MetColor = 0xFF7EE28Cu;
@@ -80,13 +82,6 @@ namespace
             0.f, 0.f, 33.f / 256.f, 26.f / 32.f);
     }
 
-    // The fruit picture of the Jewel Bank.
-    void DrawFruitIcon(float x, float y)
-    {
-        SEASON3B::RenderImage(SEASON3B::CNewUIResetNpcWindow::IMAGE_RESET_FRUIT, x - IconSize / 2.f, y - IconSize / 2.f, IconSize, IconSize,
-            0.f, 0.f, 1.f, 1.f);
-    }
-
     // The armour slot of the inventory's worn gear (the top-left 46 x 66 pixels of its texture).
     void DrawEquipmentIcon(float x, float y)
     {
@@ -104,18 +99,19 @@ SEASON3B::CNewUIResetNpcWindow::~CNewUIResetNpcWindow()
     Release();
 }
 
-bool SEASON3B::CNewUIResetNpcWindow::Create(CNewUIManager* pNewUIMng)
+bool SEASON3B::CNewUIResetNpcWindow::Create(CNewUIManager* pNewUIMng, CNewUI3DRenderMng* pNewUI3DRenderMng)
 {
-    if (pNewUIMng == nullptr)
+    if (pNewUIMng == nullptr || pNewUI3DRenderMng == nullptr)
     {
         return false;
     }
 
     m_pNewUIMng = pNewUIMng;
+    m_pNewUI3DRenderMng = pNewUI3DRenderMng;
+    m_pNewUI3DRenderMng->Add3DRenderObj(this, INFORMATION_CAMERA_Z_ORDER);
     m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_RESET_NPC, this);
     m_posX = (REFERENCE_WIDTH - WINDOW_WIDTH) / 2;
     m_posY = WindowTop;
-    LoadBitmap(L"Interface\\newui_reset_fruit.tga", IMAGE_RESET_FRUIT, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_reset_glyphs.tga", IMAGE_RESET_GLYPHS, GL_LINEAR);
     return true;
 }
@@ -125,7 +121,11 @@ void SEASON3B::CNewUIResetNpcWindow::Release()
     if (m_pNewUIMng != nullptr)
     {
         DeleteBitmap(IMAGE_RESET_GLYPHS);
-        DeleteBitmap(IMAGE_RESET_FRUIT);
+        if (m_pNewUI3DRenderMng != nullptr)
+        {
+            m_pNewUI3DRenderMng->Remove3DRenderObj(this);
+            m_pNewUI3DRenderMng = nullptr;
+        }
         m_pNewUIMng->RemoveUIObj(this);
         m_pNewUIMng = nullptr;
     }
@@ -186,8 +186,7 @@ SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::CloseRect()
 
 SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::HelpRect() const
 {
-    const Rect close = CloseRect();
-    return { close.x - HelpSize - 4, close.y + (close.height - HelpSize) / 2, HelpSize, HelpSize };
+    return { m_posX + WINDOW_WIDTH - RowInset - HelpSize, m_posY + HeadingY + (HeadingHeight - HelpSize) / 2, HelpSize, HelpSize };
 }
 
 void SEASON3B::CNewUIResetNpcWindow::PressResetButton()
@@ -266,13 +265,13 @@ void SEASON3B::CNewUIResetNpcWindow::RenderRequirementRow(int row, RowIcon icon,
     const float width = static_cast<float>(WINDOW_WIDTH - 2 * RowInset);
     UI::NineSlice::Render(UI::AuctionChrome::AuctionRowSkin().texture, x, y, width, static_cast<float>(RowHeight), RowTint);
 
-    const float iconX = x + 20.f;
+    const float iconX = x + IconCentreInset;
     const float iconY = y + RowHeight / 2.f;
     switch (icon)
     {
-    case RowIcon::Level: DrawGlyph(GlyphLevel, iconX, iconY, IconSize); break;
+    case RowIcon::Level: DrawGlyph(GlyphLevel, iconX, iconY, IconSize + 4.f); break;
     case RowIcon::Zen: DrawZenIcon(iconX, iconY); break;
-    case RowIcon::Fruit: DrawFruitIcon(iconX, iconY); break;
+    case RowIcon::Fruit: break; // an item model, drawn by Render3D
     case RowIcon::Equipment: DrawEquipmentIcon(iconX, iconY); break;
     }
 
@@ -285,7 +284,7 @@ void SEASON3B::CNewUIResetNpcWindow::RenderRequirementRow(int row, RowIcon icon,
     g_pRenderText->SetBgColor(0, 0, 0, 0);
     g_pRenderText->SetTextColor(235, 235, 235, 255);
     const SIZE labelSize = g_pRenderText->MeasureText(label, static_cast<int>(wcslen(label)));
-    g_pRenderText->RenderText(x + LabelInset - 12.f, y + (RowHeight - labelSize.cy) / 2.f, label, 0, 0, RT3_SORT_LEFT);
+    g_pRenderText->RenderText(x + LabelInset, y + (RowHeight - labelSize.cy) / 2.f, label, 0, 0, RT3_SORT_LEFT);
 
     g_pRenderText->SetFont(g_hFont);
     SetTextColorArgb(color);
@@ -321,6 +320,25 @@ void SEASON3B::CNewUIResetNpcWindow::RenderHelpTooltip() const
     UI::Buffs::Tooltip::Append(L"A reset sets your level back and takes you to the character selection.", TEXT_COLOR_GRAY, false, count);
     UI::Buffs::Tooltip::Render(help.x + help.width / 2, help.y + help.height + TooltipGap, count,
         SEASON3B::CNewUIBuffWindow::IMAGE_BUFF_TOOLTIP_ORNAMENTS);
+}
+
+bool SEASON3B::CNewUIResetNpcWindow::IsVisible() const
+{
+    return g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_RESET_NPC);
+}
+
+void SEASON3B::CNewUIResetNpcWindow::Render3D()
+{
+    if (!IsVisible() || !m_hasState || m_state.LimitReached())
+    {
+        return;
+    }
+
+    constexpr int fruitRow = 2;
+    constexpr float fill = 0.96f;
+    const float x = static_cast<float>(m_posX + RowInset + IconCentreInset) - IconSize / 2.f;
+    const float y = static_cast<float>(m_posY + RowsTop + fruitRow * (RowHeight + RowGap)) + (RowHeight - IconSize) / 2.f;
+    RenderItem3DFittedToSlot(x, y, IconSize, IconSize, ITEM_FRUITS, 0, 0, 0, fill, false);
 }
 
 bool SEASON3B::CNewUIResetNpcWindow::Render()

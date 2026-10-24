@@ -6,6 +6,7 @@
 #include <chrono>
 
 #include "UI/NewUI/NewUIBase.h"
+#include "UI/NewUI/NewUI3DRenderMng.h"
 #include "UI/NewUI/NewUIManager.h"
 #include "UI/NewUI/ResetNpc/ResetNpcModel.h"
 
@@ -15,13 +16,12 @@ namespace SEASON3B
     // character has, and a button which asks for the reset. The server decides: the window only shows what the server answers
     // (0xDC sub 0x80) and sends the request of the button. Pressing the button twice (the second press within a few seconds)
     // avoids resetting by accident. A question mark explains all requirements in a tooltip.
-    class CNewUIResetNpcWindow : public CNewUIObj
+    class CNewUIResetNpcWindow : public CNewUIObj, public INewUI3DRenderObj
     {
     public:
         enum IMAGE_LIST
         {
-            IMAGE_RESET_FRUIT = BITMAP_INTERFACE_RESET_NPC_BEGIN, // newui_reset_fruit.tga (32 x 32)
-            IMAGE_RESET_GLYPHS,                                  // newui_reset_glyphs.tga: level, check, cross, help (4 cells of 32 x 32)
+            IMAGE_RESET_GLYPHS = BITMAP_INTERFACE_RESET_NPC_BEGIN, // newui_reset_glyphs.tga: level, check, cross, help (4 cells of 32 x 32)
         };
 
         static constexpr int WINDOW_WIDTH = 330;
@@ -30,7 +30,7 @@ namespace SEASON3B
         CNewUIResetNpcWindow();
         ~CNewUIResetNpcWindow() override;
 
-        bool Create(CNewUIManager* pNewUIMng);
+        bool Create(CNewUIManager* pNewUIMng, CNewUI3DRenderMng* pNewUI3DRenderMng);
         void Release();
 
         // Called once when the window becomes visible.
@@ -42,6 +42,9 @@ namespace SEASON3B
         void SetState(const ResetNpc::State& state);
 
         bool Render() override;
+        // The fruit of the fruits row is the item model, as in the Jewel Bank.
+        void Render3D() override;
+        bool IsVisible() const override;
         bool Update() override;
         bool UpdateMouseEvent() override;
         bool UpdateKeyEvent() override;
@@ -74,6 +77,7 @@ namespace SEASON3B
         void PressResetButton();
 
         CNewUIManager* m_pNewUIMng = nullptr;
+        CNewUI3DRenderMng* m_pNewUI3DRenderMng = nullptr;
         int m_posX = 0;
         int m_posY = 0;
         ResetNpc::State m_state;

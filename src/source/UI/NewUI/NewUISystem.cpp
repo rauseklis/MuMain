@@ -475,7 +475,7 @@ bool CNewUISystem::LoadMainSceneInterface()
         return false;
 
     m_pNewResetNpcWindow = new CNewUIResetNpcWindow;
-    if (m_pNewResetNpcWindow->Create(m_pNewUIMng) == false)
+    if (m_pNewResetNpcWindow->Create(m_pNewUIMng, m_pNewUI3DRenderMng) == false)
         return false;
 
     m_pNewMiniMap = new CNewUIMiniMap;
