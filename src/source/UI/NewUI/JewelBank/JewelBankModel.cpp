@@ -54,11 +54,16 @@ namespace JewelBank
         {45, L"Higher Refining Bundle x30", 0xFFD9D9D9u},
     };
 
+    // The window lists the five fruits as Strength, Agility, Vitality, Energy, Command. The kinds keep the server's
+    // order (and their codes); only the rows on screen are in this order, as list positions.
+    constexpr int FIRST_FRUIT_INDEX = 10;
+    constexpr std::array<int, 5> FRUIT_ROW_ORDER = {13, 12, 11, 10, 14};
+
     uint32_t ReadU32(std::span<const uint8_t> data, size_t offset)
     {
         return static_cast<uint32_t>(data[offset]) | (static_cast<uint32_t>(data[offset + 1]) << 8) |
                (static_cast<uint32_t>(data[offset + 2]) << 16) | (static_cast<uint32_t>(data[offset + 3]) << 24);
-        }
+    }
 
         uint64_t ReadU64(std::span<const uint8_t> data, size_t offset)
         {
@@ -91,7 +96,9 @@ namespace JewelBank
         row = std::clamp(row, 0, ROW_COUNT - 1);
         if (page <= 0)
         {
-            return row;
+            const int fruitRow = row - FIRST_FRUIT_INDEX;
+            return fruitRow >= 0 && fruitRow < static_cast<int>(FRUIT_ROW_ORDER.size()) ? FRUIT_ROW_ORDER[fruitRow]
+                                                                                        : row;
         }
 
         // Five jewels a page, three rows each: the bundle of 10, of 20, of 30. The bundles are listed by size in the kind list.
@@ -112,7 +119,10 @@ namespace JewelBank
     {
         if (index < FIRST_BUNDLE_INDEX)
         {
-            return std::max(index, 0);
+            const auto fruit = std::find(FRUIT_ROW_ORDER.begin(), FRUIT_ROW_ORDER.end(), index);
+            return fruit != FRUIT_ROW_ORDER.end()
+                       ? FIRST_FRUIT_INDEX + static_cast<int>(fruit - FRUIT_ROW_ORDER.begin())
+                       : std::max(index, 0);
         }
         const int bundle = index - FIRST_BUNDLE_INDEX;
         return ((bundle % BUNDLES_PER_SIZE) % (ROW_COUNT / 3)) * 3 + bundle / BUNDLES_PER_SIZE;
