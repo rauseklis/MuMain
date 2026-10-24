@@ -18,8 +18,11 @@ from mu_image import write_ozt
 HERE = os.path.dirname(os.path.abspath(__file__))
 SOURCE = os.path.join(HERE, "..", "..", "src", "bin", "Data", "Interface@4x", "newui_item_upper.png")
 RELATIVE = "newui_reset_armour.OZT"
-INSET = 22
-BACKGROUND_LUMA = 46
+INSET = 28
+BACKGROUND_LUMA = 62
+LIT_LUMA = 80
+CLOSE = 25
+OPEN = 17
 SIDE = 160
 MIN_PIECE = 400
 
@@ -85,12 +88,16 @@ def main():
     luma = rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
     outside = background_mask(luma)
 
-    # Small pieces are leftovers of the frame.
-    keep = largest_piece(~outside)
-    alpha = Image.fromarray(np.where(keep, 255, 0).astype(np.uint8), "L")
-    alpha = alpha.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(1.2))
-    # The armour is dark on a dark row: lift it so the shapes read.
-    lifted = (255.0 * np.power(np.array(inner)[:, :, :3] / 255.0, 0.62)).astype(np.uint8)
+    # The silhouette of the armour: its lit edges, closed up into one shape and filled.
+    rgb = np.array(inner)[:, :, :3].astype(np.float32)
+    luma = rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    lit = Image.fromarray(np.where(luma > LIT_LUMA, 255, 0).astype(np.uint8), "L")
+    closed = lit.filter(ImageFilter.MaxFilter(CLOSE)).filter(ImageFilter.MinFilter(CLOSE))
+    closed = closed.filter(ImageFilter.MinFilter(OPEN)).filter(ImageFilter.MaxFilter(OPEN))
+    outside = background_mask(np.where(np.array(closed) > 0, 255.0, 0.0))
+    alpha = Image.fromarray(np.where(outside, 0, 255).astype(np.uint8), "L")
+    alpha = alpha.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(2.0))
+    lifted = (255.0 * np.power(rgb / 255.0, 0.62)).astype(np.uint8)
     inner = Image.fromarray(lifted, "RGB").convert("RGBA")
     inner.putalpha(alpha)
 

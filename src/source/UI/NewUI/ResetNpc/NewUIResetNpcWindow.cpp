@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "UI/NewUI/ResetNpc/NewUIResetNpcWindow.h"
 
 #include "Audio/DSPlaySound.h"
@@ -31,10 +31,13 @@ namespace
     constexpr int CloseHeight = 29;
     constexpr int CloseMargin = 8;
     constexpr int WindowTop = 50;
-    constexpr int HelpSize = 20;
+    constexpr int HelpSize = 18;
+    // The close button is part of the frame art; the question mark is its mirror image in the left corner.
+    constexpr int HelpX = 10;
+    constexpr int HelpY = 2;
     constexpr int TooltipGap = 6;
-    constexpr float IconSize = 26.f;
-    constexpr float MarkSize = 14.f;
+    constexpr float IconSize = 20.f;
+    constexpr float MarkSize = 11.f;
     constexpr std::chrono::seconds ConfirmTime{5};
 
     constexpr unsigned int MetColor = 0xFF7EE28Cu;
@@ -186,8 +189,7 @@ SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::CloseRect()
 
 SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::HelpRect() const
 {
-    // The mirror image of the close button, in the top left corner.
-    return { m_posX + CloseMargin + (CloseWidth - HelpSize) / 2, m_posY + CloseMargin + (CloseHeight - HelpSize) / 2, HelpSize, HelpSize };
+    return { m_posX + HelpX, m_posY + HelpY, HelpSize, HelpSize };
 }
 
 void SEASON3B::CNewUIResetNpcWindow::PressResetButton()
