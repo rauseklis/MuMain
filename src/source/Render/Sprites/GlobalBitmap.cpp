@@ -26,8 +26,6 @@
 #include <string>
 #include <vector>
 
-#include "Data/DataHandler/ModelLoadTimer.h"
-
 namespace mu
 {
 void RegisterTexture(std::uint32_t id, void* pTex);
@@ -942,7 +940,6 @@ GLuint CGlobalBitmap::FindAvailableTextureIndex(GLuint uiSeed)
 bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiFilter,
                                   GLuint uiWrapMode)
 {
-    const ModelLoadTimer totalTimer(L"OpenJpeg total", static_cast<int>(uiBitmapIndex));
     std::wstring filename_ozj;
     ExchangeExt(filename, L"OZJ", filename_ozj);
 
@@ -996,12 +993,8 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
 
     std::vector<unsigned char> decompressedBuffer(static_cast<std::size_t>(jpegWidth) *
                                                   static_cast<std::size_t>(jpegHeight) * 3u);
-    int decompressResult = 0;
-    {
-        const ModelLoadTimer decodeTimer(L"OpenJpeg decode", static_cast<int>(uiBitmapIndex));
-        decompressResult = tjDecompress2(tjHandle.get(), jpegData, jpegSize, decompressedBuffer.data(), jpegWidth, 0,
-                                         jpegHeight, TJPF_RGB, TJFLAG_FASTDCT);
-    }
+    auto decompressResult = tjDecompress2(tjHandle.get(), jpegData, jpegSize, decompressedBuffer.data(), jpegWidth, 0,
+                                          jpegHeight, TJPF_RGB, TJFLAG_FASTDCT);
     if (decompressResult != 0)
     {
         ReportTurboError(L"tjDecompress2");
@@ -1056,13 +1049,8 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
                                      ? SDL_GPU_FILTER_LINEAR
                                      : MapGLFilterToSDL(uiFilter);
     const bool enhancedTexture = Render::GraphicsQuality::IsEnhancedTexturePath(filename); // DXP temp diagnostic
-    bool jpegUploaded = false;
-    {
-        const ModelLoadTimer uploadTimer(L"OpenJpeg GPU upload", static_cast<int>(uiBitmapIndex));
-        jpegUploaded = UploadTextureSDLGpu(pNewBitmap.get(), rgbaData.data(), textureWidth, textureHeight, filter,
-                                           MapGLWrapToSDL(uiWrapMode), enhancedTexture);
-    }
-    if (!jpegUploaded)
+    if (!UploadTextureSDLGpu(pNewBitmap.get(), rgbaData.data(), textureWidth, textureHeight, filter,
+                             MapGLWrapToSDL(uiWrapMode), enhancedTexture))
     {
         g_ErrorReport.Write(L"SDL texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
         return false;
@@ -1079,7 +1067,6 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
 
 bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, GLuint uiFilter, GLuint uiWrapMode)
 {
-    const ModelLoadTimer totalTimer(L"OpenTga total", static_cast<int>(uiBitmapIndex));
     std::wstring filename_ozt;
     ExchangeExt(filename, L"OZT", filename_ozt);
 
@@ -1090,11 +1077,7 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
         return false;
     }
 
-    std::vector<unsigned char> pakBuffer;
-    {
-        const ModelLoadTimer readTimer(L"OpenTga read file", static_cast<int>(uiBitmapIndex));
-        pakBuffer = ReadRemainingBytes(input);
-    }
+    std::vector<unsigned char> pakBuffer = ReadRemainingBytes(input);
     input.close();
 
     if (pakBuffer.size() < 18) // minimal TGA header length check for OZT payload
@@ -1166,14 +1149,8 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
     if (interfaceTexture)
         Render::UiTextureQuality::BleedTransparentRgb(pNewBitmap->BufferStorage, Width, Height);
     const SDL_GPUFilter filter = interfaceTexture ? SDL_GPU_FILTER_LINEAR : MapGLFilterToSDL(uiFilter);
-    bool uploaded = false;
-    {
-        const ModelLoadTimer uploadTimer(L"OpenTga GPU upload", static_cast<int>(uiBitmapIndex));
-        uploaded =
-            UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, Width, Height, filter, MapGLWrapToSDL(uiWrapMode),
-                                Render::GraphicsQuality::IsEnhancedTexturePath(filename));
-    }
-    if (!uploaded)
+    if (!UploadTextureSDLGpu(pNewBitmap.get(), pNewBitmap->Buffer, Width, Height, filter,
+                             MapGLWrapToSDL(uiWrapMode), Render::GraphicsQuality::IsEnhancedTexturePath(filename)))
     {
         g_ErrorReport.Write(L"SDL texture upload failed %ls (%d)\r\n", filename.c_str(), uiBitmapIndex);
         return false;

@@ -20,7 +20,6 @@
 #include "Network/MoveCommandData.h"
 #include "UI/Legacy/UIMng.h"
 #include "Data/DataHandler/LoadData.h"
-#include "Data/DataHandler/ModelLoadTimer.h"
 #include "Data/DataHandler/ModelPreloadStore.h"
 #include "World/MapInfra/MapManager.h"
 #include "GameLogic/Events/Event.h"
@@ -572,7 +571,6 @@ void OpenNpc(int Type)
     BMD* b = &Models[Type];
     if (b->NumActions > 0) return;
 
-    const ModelLoadTimer loadTimer(L"OpenNpc (total)", Type);
     Data::Models::RememberModelForMap(gMapManager.WorldActive, {Data::Models::PreloadKind::Npc, Type});
     switch (Type)
     {
@@ -1315,7 +1313,6 @@ void OpenMonsterModel(EMonsterModelType Type)
     BMD* b = &Models[Index];
     if (b->NumActions > 0 || b->NumMeshs > 0) return;
 
-    const ModelLoadTimer loadTimer(L"OpenMonsterModel (total)", Index);
     Data::Models::RememberModelForMap(gMapManager.WorldActive,
                                       {Data::Models::PreloadKind::Monster, static_cast<int>(Type)});
     gLoadData.AccessModel(Index, L"Data\\Monster\\", L"Monster", Type + 1);

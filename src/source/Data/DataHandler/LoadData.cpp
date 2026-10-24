@@ -9,7 +9,6 @@
 #include "Render/Models/ZzzBMD.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "Core/Text/Utf8.h"
-#include "Data/DataHandler/ModelLoadTimer.h"
 #include "UI/Legacy/UIMng.h"
 #include "Data/GameData/ItemData/ItemTextureFiles.h"
 
@@ -48,7 +47,6 @@ std::wstring GetModelFileName(const wchar_t* FileName, int i)
 bool CLoadData::AccessModel(int Type, const wchar_t* Dir, const wchar_t* FileName, int i)
 {
     CUIMng::Instance().PumpTitleSceneUI();
-    const ModelLoadTimer loadTimer(L"AccessModel (file)", Type);
     const std::wstring Name = GetModelFileName(FileName, i);
 
     bool Success = false;
@@ -212,7 +210,6 @@ void CLoadData::OpenModelTextures(int Model, std::span<const std::wstring> SubFo
         return;
     }
 
-    const ModelLoadTimer loadTimer(L"OpenTexture (textures)", Model);
     BMD* pModel = &Models[Model];
     for (int i = 0; i < pModel->NumMeshs; i++)
     {
