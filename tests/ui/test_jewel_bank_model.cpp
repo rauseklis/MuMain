@@ -62,8 +62,8 @@ TEST_CASE("every page has fifteen rows and together the pages show every kind on
 
 TEST_CASE("the fruits are listed Strength, Agility, Vitality, Energy, Command and keep their server codes")
 {
-    constexpr std::array<const wchar_t*, 5> names = {
-        L"Strength Fruit", L"Agility Fruit", L"Vitality Fruit", L"Energy Fruit", L"Command Fruit"};
+    constexpr std::array<const wchar_t*, 5> names = {L"Strength Fruit", L"Agility Fruit", L"Vitality Fruit",
+                                                     L"Energy Fruit", L"Command Fruit"};
     constexpr std::array<uint8_t, 5> codes = {14, 13, 12, 11, 15};
     for (int i = 0; i < 5; ++i)
     {
