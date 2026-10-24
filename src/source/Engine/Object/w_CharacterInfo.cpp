@@ -60,6 +60,9 @@ void CHARACTER::Initialize()
     m_byDieType = 0;
     StormTime = 0;
     JumpTime = 0;
+    JumpDuration = 0;
+    JumpStartX = 0;
+    JumpStartY = 0;
     TargetX = 0;
     TargetY = 0;
     SkillX = 0;

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "UI/NewUI/HUD/KillNotice.h"
+#include "GameLogic/NPCs/MonsterDash.h"
 #include "App/Control/ControlTaps.h"
 #include "Core/Utilities/Log/MuLogger.h"
 #include "UI/Chat/Chat.h"
@@ -2144,6 +2145,10 @@ void ReceiveMoveCharacter(std::span<const BYTE> ReceiveBuffer)
         o->Angle[2] = CreateAngle(o->Position[0], o->Position[1], c->PositionX * 100.f, c->PositionY * 100.f);
         SetPlayerWalk(c);
         c->JumpTime = 1;
+        c->JumpStartX = o->Position[0];
+        c->JumpStartY = o->Position[1];
+        c->JumpDuration = GameLogic::MonsterDash::DurationTicks(GameLogic::MonsterDash::TileDistance(
+            o->Position[0] / TERRAIN_SCALE, o->Position[1] / TERRAIN_SCALE, c->PositionX + 0.5f, c->PositionY + 0.5f));
 
         return;
     }
@@ -2191,6 +2196,7 @@ void ReceiveMovePosition(const BYTE* ReceiveBuffer)
     c->TargetX = Data->PositionX;
     c->TargetY = Data->PositionY;
     c->JumpTime = 1;
+    c->JumpDuration = 0;
     c->Movement = false;
     c->Path.PathNum = 0;
     c->Path.CurrentPath = 0;
