@@ -12,7 +12,8 @@
 namespace
 {
     constexpr int MAX_NOTICE = 6;
-    constexpr int NOTICE_LIFETIME = 300;
+    // Ticks of the original 25 Hz game loop (12 seconds) until the oldest line is pushed up and off.
+    constexpr float NOTICE_LIFETIME = 300.f;
     constexpr int NOTICE_TEXT_MAX = 256;
 
     struct Notice
@@ -23,7 +24,9 @@ namespace
     };
 
     int    s_count = 0;
-    int    s_time = NOTICE_LIFETIME;
+    // A float: counting down by FPS_ANIMATION_FACTOR (below 1 at a high frame rate) into an int truncated every step
+    // to a whole 1, so the lines left the screen 2.4 times as fast at 60 fps and 6 times as fast at 144 fps.
+    float  s_time = NOTICE_LIFETIME;
     float  s_blinkPhase = 0.f;
     Notice s_notices[MAX_NOTICE];
 
