@@ -219,6 +219,9 @@ public:
     float       LastCritDamageEffect;
     float       ExtendStateTime;
     float		JumpTime;
+    float		JumpDuration;   // ticks of a dash, 0 for the default slide
+    float		JumpStartX;
+    float		JumpStartY;
     float		StormTime;
     float		AttackTime;
 

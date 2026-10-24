@@ -7,6 +7,7 @@
 
 #include "stdafx.h"
 #include "Render/Effects/WeaponTrailTiming.h"
+#include "GameLogic/NPCs/MonsterDash.h"
 #include "Render/Items/RoyalMaceFlames.h"
 #include "Core/Time/FrameTiming.h"
 #include <execution>
@@ -3146,12 +3147,28 @@ void  PushingCharacter(CHARACTER* c, OBJECT* o)
     }
     if (c->JumpTime > 0)
     {
-        float Speed = 0.2f;
-        if (o->Type == MODEL_CRUST)
+        float Speed = o->Type == MODEL_CRUST ? 0.07f : 0.2f;
+        if (o->Type == MODEL_CRUST && c->JumpDuration > 0)
         {
-            Speed = 0.07f;
+            // A dash: slide from where it started to the target in the time the server's walk takes.
+            const float progress = GameLogic::MonsterDash::Progress(c->JumpTime, c->JumpDuration);
+            o->Position[0] = c->JumpStartX + (((float)c->TargetX + 0.5f) * TERRAIN_SCALE - c->JumpStartX) * progress;
+            o->Position[1] = c->JumpStartY + (((float)c->TargetY + 0.5f) * TERRAIN_SCALE - c->JumpStartY) * progress;
+            o->Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
+            c->JumpTime += FPS_ANIMATION_FACTOR;
+            if (c->JumpTime >= c->JumpDuration)
+            {
+                c->PositionX = c->TargetX;
+                c->PositionY = c->TargetY;
+                o->Position[0] = ((float)c->TargetX + 0.5f) * TERRAIN_SCALE;
+                o->Position[1] = ((float)c->TargetY + 0.5f) * TERRAIN_SCALE;
+                o->Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
+                SetPlayerStop(c);
+                c->JumpTime = 0;
+                c->JumpDuration = 0;
+            }
         }
-        if (gMapManager.InChaosCastle() == true)
+        else if (gMapManager.InChaosCastle() == true)
         {
             o->Position[0] += (((float)c->TargetX) * TERRAIN_SCALE - o->Position[0]) * Speed * FPS_ANIMATION_FACTOR;
             o->Position[1] += (((float)c->TargetY) * TERRAIN_SCALE - o->Position[1]) * Speed * FPS_ANIMATION_FACTOR;

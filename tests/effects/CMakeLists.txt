@@ -22,3 +22,9 @@ mu_add_test(
     SOURCES
         test_weapon_trail_timing.cpp
 )
+
+mu_add_test(
+    NAME test_monster_dash
+    SOURCES
+        test_monster_dash.cpp
+)
