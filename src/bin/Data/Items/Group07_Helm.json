@@ -1325,11 +1325,6 @@
       "durability": 255,
       "defense": 32,
       "attackType": 4,
-      "tradable": false,
-      "droppable": false,
-      "storable": false,
-      "personalShopSellable": false,
-      "repairable": false,
       "requirements": {
         "level": 150
       },
