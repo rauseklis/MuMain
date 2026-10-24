@@ -166,7 +166,7 @@ bool SEASON3B::CNewUIResetNpcWindow::Create(CNewUIManager* pNewUIMng)
     m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_RESET_NPC, this);
     m_posX = (REFERENCE_WIDTH - WINDOW_WIDTH) / 2;
     m_posY = WindowTop;
-    LoadBitmap(L"Interface\newui_reset_fruit.tga", IMAGE_RESET_FRUIT, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_reset_fruit.tga", IMAGE_RESET_FRUIT, GL_LINEAR);
     return true;
 }
 
