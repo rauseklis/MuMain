@@ -3068,13 +3068,15 @@ void RenderObjectVisual(OBJECT* o)
         switch (o->Type)
         {
         case    0:
+            // The clouds of a heaven object are created once, when it comes into view (HiddenMesh marks that), so the
+            // count must not depend on the frame rate: a random per-frame roll left only a fraction of them.
             if (o->HiddenMesh != -2)
             {
                 vec3_t  Light;
                 Vector(0.1f, 0.1f, 0.1f, Light);
                 for (int i = 0; i < 20; ++i)
                 {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 0, o->Scale, o);
+                    CreateParticle(BITMAP_CLOUD, o->Position, o->Angle, Light, 0, o->Scale, o);
                 }
             }
             o->HiddenMesh = -2;
@@ -3087,7 +3089,7 @@ void RenderObjectVisual(OBJECT* o)
                 Vector(0.1f, 0.1f, 0.1f, Light);
                 for (int i = 0; i < 20; ++i)
                 {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 1, o->Scale, o);
+                    CreateParticle(BITMAP_CLOUD, o->Position, o->Angle, Light, 1, o->Scale, o);
                 }
             }
             o->HiddenMesh = -2;
@@ -3100,7 +3102,7 @@ void RenderObjectVisual(OBJECT* o)
                 Vector(0.1f, 0.1f, 0.1f, Light);
                 for (int i = 0; i < 20; ++i)
                 {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 2, o->Scale, o);
+                    CreateParticle(BITMAP_CLOUD, o->Position, o->Angle, Light, 2, o->Scale, o);
                 }
             }
             o->HiddenMesh = -2;
@@ -3113,7 +3115,7 @@ void RenderObjectVisual(OBJECT* o)
                 Vector(0.1f, 0.1f, 0.1f, Light);
                 for (int i = 0; i < 10; ++i)
                 {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 3, o->Scale, o);
+                    CreateParticle(BITMAP_CLOUD, o->Position, o->Angle, Light, 3, o->Scale, o);
                 }
             }
             o->HiddenMesh = -2;
@@ -3126,7 +3128,7 @@ void RenderObjectVisual(OBJECT* o)
                 Vector(0.1f, 0.1f, 0.1f, Light);
                 for (int i = 0; i < 10; ++i)
                 {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 4, o->Scale, o);
+                    CreateParticle(BITMAP_CLOUD, o->Position, o->Angle, Light, 4, o->Scale, o);
                 }
             }
             o->HiddenMesh = -2;
@@ -3139,7 +3141,7 @@ void RenderObjectVisual(OBJECT* o)
                 Vector(0.1f, 0.1f, 0.1f, Light);
                 for (int i = 0; i < 10; ++i)
                 {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 5, o->Scale, o);
+                    CreateParticle(BITMAP_CLOUD, o->Position, o->Angle, Light, 5, o->Scale, o);
                 }
             }
             o->HiddenMesh = -2;
