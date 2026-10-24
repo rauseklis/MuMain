@@ -24,12 +24,15 @@ namespace ResetNpc
     constexpr uint8_t FLAG_ZEN = 2;
     constexpr uint8_t FLAG_FRUITS = 4;
     constexpr uint8_t FLAG_LIMIT_REACHED = 8;
+    // Nothing is worn (or the rule does not apply), and whether the reset has the rule that nothing may be worn.
+    constexpr uint8_t FLAG_GEAR_OK = 16;
+    constexpr uint8_t FLAG_GEAR_RULE = 32;
 
     // The server's answer, a C1 packet: Outcome@4, Flags@5, NextResetNumber@6, MaximumResets@8, RequiredLevel@10, CurrentLevel@12
-    // (all u16), RequiredZen@14, CurrentZen@18, RequiredFruits@22, BankFruits@26 (all u32).
+    // (all u16), RequiredZen@14, CurrentZen@18, RequiredFruits@22, BankFruits@26 (all u32), WornItems@30 (u8).
     struct State
     {
-        static constexpr size_t FullWireLength = 30;
+        static constexpr size_t FullWireLength = 31;
 
         Outcome Result = Outcome::Refused;
         uint8_t Flags = 0;
@@ -41,6 +44,7 @@ namespace ResetNpc
         uint32_t CurrentZen = 0;
         uint32_t RequiredFruits = 0;
         uint32_t BankFruits = 0;
+        uint8_t WornItems = 0;
 
         [[nodiscard]] static std::optional<State> Parse(std::span<const uint8_t> packet);
 
@@ -48,6 +52,9 @@ namespace ResetNpc
         [[nodiscard]] bool ZenEnough() const { return (Flags & FLAG_ZEN) != 0; }
         [[nodiscard]] bool FruitsEnough() const { return (Flags & FLAG_FRUITS) != 0; }
         [[nodiscard]] bool LimitReached() const { return (Flags & FLAG_LIMIT_REACHED) != 0; }
+        [[nodiscard]] bool GearOk() const { return (Flags & FLAG_GEAR_OK) != 0; }
+        // The reset has the rule that nothing may be worn.
+        [[nodiscard]] bool GearRuleActive() const { return (Flags & FLAG_GEAR_RULE) != 0; }
         // Every requirement is met and the limit is not reached: the Reset button may be pressed.
         [[nodiscard]] bool CanReset() const;
     };

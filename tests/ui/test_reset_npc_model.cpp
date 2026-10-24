@@ -6,15 +6,15 @@
 
 namespace
 {
-std::array<uint8_t, 30> MakePacket()
+std::array<uint8_t, 31> MakePacket()
 {
-    std::array<uint8_t, 30> packet{};
+    std::array<uint8_t, 31> packet{};
     packet[0] = 0xC1;
-    packet[1] = 30;
+    packet[1] = 31;
     packet[2] = 0xD7;
     packet[3] = 0x80;
     packet[4] = 0;                       // Info
-    packet[5] = 0x03;                    // level and Zen are enough
+    packet[5] = 0x03 | ResetNpc::FLAG_GEAR_OK;  // level and Zen are enough, nothing is worn
     packet[6] = 7;                       // next reset number
     packet[8] = 50;                      // maximum resets
     packet[10] = 0x90; packet[11] = 0x01;  // required level 400
@@ -23,6 +23,7 @@ std::array<uint8_t, 30> MakePacket()
     packet[18] = 0x00; packet[19] = 0xE1; packet[20] = 0xF5; packet[21] = 0x05;  // 100,000,000
     packet[22] = 200;                    // required fruits
     packet[26] = 0xB8; packet[27] = 0x0B;  // 3000 fruits in the bank
+    packet[30] = 2;                      // two items are worn
     return packet;
 }
 }
@@ -41,6 +42,7 @@ TEST_CASE("the state is read from its fields")
     CHECK(state->CurrentZen == 100000000u);
     CHECK(state->RequiredFruits == 200u);
     CHECK(state->BankFruits == 3000u);
+    CHECK(state->WornItems == 2);
 }
 
 TEST_CASE("a short packet is not a state")
@@ -64,9 +66,15 @@ TEST_CASE("the reset button needs every requirement and no reached limit")
     auto state = *ResetNpc::State::Parse(packet);
     CHECK_FALSE(state.CanReset());  // the fruits flag is not set
 
-    packet[5] = ResetNpc::FLAG_LEVEL | ResetNpc::FLAG_ZEN | ResetNpc::FLAG_FRUITS;
+    packet[5] = ResetNpc::FLAG_LEVEL | ResetNpc::FLAG_ZEN | ResetNpc::FLAG_FRUITS | ResetNpc::FLAG_GEAR_OK;
     state = *ResetNpc::State::Parse(packet);
     CHECK(state.CanReset());
+
+    packet[5] = ResetNpc::FLAG_LEVEL | ResetNpc::FLAG_ZEN | ResetNpc::FLAG_FRUITS | ResetNpc::FLAG_GEAR_RULE;  // gear still worn
+    state = *ResetNpc::State::Parse(packet);
+    CHECK_FALSE(state.CanReset());
+    CHECK(state.GearRuleActive());
+    packet[5] = ResetNpc::FLAG_LEVEL | ResetNpc::FLAG_ZEN | ResetNpc::FLAG_FRUITS | ResetNpc::FLAG_GEAR_OK;
 
     packet[5] |= ResetNpc::FLAG_LIMIT_REACHED;
     state = *ResetNpc::State::Parse(packet);

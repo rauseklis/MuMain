@@ -11,14 +11,15 @@
 
 namespace SEASON3B
 {
-    // Shows what the next reset costs (level, Zen and fruits from the Jewel Bank) next to what the character has, and a button
-    // which asks for the reset. The server decides: the window only shows what the server answers (0xD7 sub 0x80) and sends
-    // the request of the button. Pressing the button twice (the second press within a few seconds) avoids resetting by accident.
+    // Shows what the next reset costs (level, Zen, fruits from the Jewel Bank) and that nothing may be worn, next to what the
+    // character has, and a button which asks for the reset. The server decides: the window only shows what the server answers
+    // (0xDC sub 0x80) and sends the request of the button. Pressing the button twice (the second press within a few seconds)
+    // avoids resetting by accident. A question mark explains all requirements in a tooltip.
     class CNewUIResetNpcWindow : public CNewUIObj
     {
     public:
         static constexpr int WINDOW_WIDTH = 360;
-        static constexpr int WINDOW_HEIGHT = 290;
+        static constexpr int WINDOW_HEIGHT = 330;
 
         CNewUIResetNpcWindow();
         ~CNewUIResetNpcWindow() override;
@@ -31,7 +32,7 @@ namespace SEASON3B
         // Called once when the window is hidden: lets the server know that the dialog with the NPC is over.
         void ClosingProcess();
 
-        // Called from the network dispatch (WSclient.cpp, 0xD7).
+        // Called from the network dispatch (WSclient.cpp, 0xDC).
         void SetState(const ResetNpc::State& state);
 
         bool Render() override;
@@ -49,9 +50,20 @@ namespace SEASON3B
             int height;
         };
 
+        enum class RowIcon
+        {
+            Level,
+            Zen,
+            Fruit,
+            Equipment,
+        };
+
         [[nodiscard]] Rect ButtonRect() const;
         [[nodiscard]] Rect CloseRect() const;
-        void RenderRequirementRow(int row, const wchar_t* label, const std::wstring& value, bool met) const;
+        [[nodiscard]] Rect HelpRect() const;
+        void RenderRequirementRow(int row, RowIcon icon, const wchar_t* label, const std::wstring& value, bool met) const;
+        void RenderHelpButton() const;
+        void RenderHelpTooltip() const;
         void PressResetButton();
 
         CNewUIManager* m_pNewUIMng = nullptr;

@@ -14,6 +14,7 @@ namespace ResetNpc
         constexpr size_t CurrentZenOffset = 18;
         constexpr size_t RequiredFruitsOffset = 22;
         constexpr size_t BankFruitsOffset = 26;
+        constexpr size_t WornItemsOffset = 30;
         constexpr int DigitsPerGroup = 3;
         constexpr uint8_t HighestOutcome = static_cast<uint8_t>(Outcome::Refused);
 
@@ -47,12 +48,13 @@ namespace ResetNpc
         state.CurrentZen = ReadU32(packet, CurrentZenOffset);
         state.RequiredFruits = ReadU32(packet, RequiredFruitsOffset);
         state.BankFruits = ReadU32(packet, BankFruitsOffset);
+        state.WornItems = packet[WornItemsOffset];
         return state;
     }
 
     bool State::CanReset() const
     {
-        return LevelEnough() && ZenEnough() && FruitsEnough() && !LimitReached();
+        return LevelEnough() && ZenEnough() && FruitsEnough() && GearOk() && !LimitReached();
     }
 
     std::wstring FormatNumber(uint64_t value)
