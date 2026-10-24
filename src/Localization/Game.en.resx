@@ -3584,7 +3584,7 @@
     <comment>legacy_id=952,988</comment>
   </data>
   <data name="Increase stamina +%d" xml:space="preserve">
-    <value>Increase stamina +%d</value>
+    <value>Increase vitality +%d</value>
     <comment>legacy_id=953,987</comment>
   </data>
   <data name="Increase command +%d" xml:space="preserve">
@@ -6200,7 +6200,7 @@
     <comment>legacy_id=1652</comment>
   </data>
   <data name="Increase stamina" xml:space="preserve">
-    <value>Increase stamina</value>
+    <value>Increase vitality</value>
     <comment>legacy_id=1653</comment>
   </data>
   <data name="You can't delete the character that belongs to the guild" xml:space="preserve">
