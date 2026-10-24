@@ -96,6 +96,8 @@ public:
     int GetAntiAliasing() const { return m_antiAliasing; }
     bool GetTextureMipmapsEnabled() const { return m_textureMipmaps; }
     int GetAnisotropy() const { return m_anisotropy; }
+    // [Render] GpuSkinning=0 draws every model with the CPU skinning path; for finding out whether a model looks wrong because of the GPU path.
+    bool GetGpuSkinningEnabled() const { return m_gpuSkinning; }
     void SetVSyncEnabled(bool enabled);
     // Values <= 0 are stored as the "Unlimited" sentinel (see CfgMaxFpsUnlimited);
     // positive values are clamped to [CfgMinMaxFps, CfgMaxMaxFps].
@@ -148,6 +150,7 @@ private:
     int m_maxFps;
     int m_antiAliasing;
     bool m_textureMipmaps;
+    bool m_gpuSkinning;
     int m_anisotropy;
 
     int ReadInt(const wchar_t* section, const wchar_t* key, int defaultValue);

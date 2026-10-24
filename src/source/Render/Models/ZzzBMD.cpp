@@ -20,6 +20,7 @@
 #include "Render/Effects/ZzzEffect.h"
 #include "Core/Utilities/Log/ErrorReport.h"
 #include "Camera/CameraState.h"
+#include "Data/GameConfig/GameConfig.h"
 
 #include "UI/Legacy/UIMng.h"
 #include "Camera/CameraMove.h"
@@ -115,6 +116,12 @@ mu::SkinningTextureCoordinates GetSkinningTextureCoordinates(int renderFlags)
 
 bool CanGpuSkinMesh(int finalRenderFlags, int renderFlags, const float (*boneMatrices)[3][4])
 {
+    static const bool gpuSkinningEnabled = GameConfig::GetInstance().GetGpuSkinningEnabled();
+    if (!gpuSkinningEnabled)
+    {
+        return false;
+    }
+
     const bool supportedMaterial = finalRenderFlags == RENDER_TEXTURE || finalRenderFlags == RENDER_COLOR ||
                                    finalRenderFlags == RENDER_BRIGHT ||
                                    GetSkinningTextureCoordinates(renderFlags) != mu::SkinningTextureCoordinates::Mesh;
