@@ -31,10 +31,8 @@ namespace
     constexpr int CloseHeight = 29;
     constexpr int CloseMargin = 8;
     constexpr int WindowTop = 50;
-    constexpr int HelpSize = 15;
-    // The question mark sits in the bottom right corner of the frame.
-    constexpr int HelpX = 306;
-    constexpr int HelpY = 267;
+    constexpr int HeadingHitPadding = 6;
+    constexpr float UnderlineGap = 1.f;
     constexpr int TooltipGap = 6;
     constexpr float IconSize = 20.f;
     constexpr float FruitSize = 16.f;
@@ -183,7 +181,12 @@ SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::CloseRect()
 
 SEASON3B::CNewUIResetNpcWindow::Rect SEASON3B::CNewUIResetNpcWindow::HelpRect() const
 {
-    return { m_posX + HelpX, m_posY + HelpY, HelpSize, HelpSize };
+    // The heading itself is what explains the requirements: its text, with a little room around it.
+    g_pRenderText->SetFont(g_hFontBold);
+    const std::wstring heading = ResetNpc::HeadingText(m_state);
+    const int textWidth = g_pRenderText->MeasureText(heading.c_str(), static_cast<int>(heading.size())).cx;
+    const int width = textWidth + 2 * HeadingHitPadding;
+    return { m_posX + (WINDOW_WIDTH - width) / 2, m_posY + HeadingY, width, HeadingHeight };
 }
 
 void SEASON3B::CNewUIResetNpcWindow::PressResetButton()
@@ -291,10 +294,12 @@ void SEASON3B::CNewUIResetNpcWindow::RenderRequirementRow(int row, RowIcon icon,
 
 void SEASON3B::CNewUIResetNpcWindow::RenderHelpButton() const
 {
+    // A thin gold line under the heading tells that it can be pointed at; it brightens while the tooltip is shown.
     const Rect help = HelpRect();
     const bool hovered = SEASON3B::CheckMouseIn(help.x, help.y, help.width, help.height);
-    DrawGlyph(GlyphHelp, help.x + help.width / 2.f, help.y + help.height / 2.f, static_cast<float>(help.width),
-        hovered ? RGBA(255, 255, 255, 255) : RGBA(205, 205, 205, 255));
+    const float lineY = static_cast<float>(help.y + help.height) - 4.f + UnderlineGap;
+    RenderColorQuadARGB(static_cast<float>(help.x + HeadingHitPadding), lineY, static_cast<float>(help.width - 2 * HeadingHitPadding), 1.f,
+        hovered ? 0xFFFFE9A8u : 0x99B38B35u);
     EndRenderColor();
 }
 
