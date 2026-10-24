@@ -24,6 +24,56 @@
 #include "I18N/All.h"
 #include "GameLogic/Items/ShopRestrictions.h"
 #include "GameLogic/Items/TradeRestrictions.h"
+#include "GameLogic/Items/QuickDrop.h"
+
+namespace
+{
+// Windows that treat the inventory as their own source or target (shops, trade, vaults, crafting,
+// the auction house, ...). Dropping to the ground is refused while any of them is open, as
+// it is for the drag-and-drop drop.
+constexpr int QuickDropBlockingWindows[] = {
+    SEASON3B::INTERFACE_NPCSHOP,
+    SEASON3B::INTERFACE_TRADE,
+    SEASON3B::INTERFACE_DEVILSQUARE,
+    SEASON3B::INTERFACE_BLOODCASTLE,
+    SEASON3B::INTERFACE_MIXINVENTORY,
+    SEASON3B::INTERFACE_STORAGE,
+    SEASON3B::INTERFACE_STORAGE_EXT,
+    SEASON3B::INTERFACE_MYSHOP_INVENTORY,
+    SEASON3B::INTERFACE_PURCHASESHOP_INVENTORY,
+    SEASON3B::INTERFACE_LUCKYITEMWND,
+    SEASON3B::INTERFACE_AUCTION_HOUSE,
+    SEASON3B::INTERFACE_JEWEL_BANK,
+    SEASON3B::INTERFACE_RESET_NPC,
+};
+
+GameLogic::Items::QuickDrop::Candidate DescribeQuickDropCandidate(const ITEM* pItem)
+{
+    GameLogic::Items::QuickDrop::Candidate candidate;
+    candidate.heroDead = Hero->Dead != 0;
+    candidate.highValue = GameLogic::Items::IsHighValueItem(pItem);
+    candidate.reinforced = pItem->Jewel_Of_Harmony_Option != 0;
+    candidate.dropBanned = GameLogic::Items::IsDropBan(pItem);
+    candidate.cursedTempleLostMap = pItem->Type == ITEM_LOST_MAP && gMapManager.IsCursedTemple();
+    return candidate;
+}
+
+const wchar_t* QuickDropRefusalText(GameLogic::Items::QuickDrop::Verdict verdict)
+{
+    using GameLogic::Items::QuickDrop::Verdict;
+    switch (verdict)
+    {
+    case Verdict::HighValue:
+        return I18N::Game::YouAreNotAllowedToDropThisExpensiveItem;
+    case Verdict::Reinforced:
+        return I18N::Game::ReinforcedItemCanTBeDropped;
+    case Verdict::DropBanned:
+        return I18N::Game::ThisItemCannotBeDropped;
+    default:
+        return nullptr;
+    }
+}
+} // namespace
 
 namespace SEASON3B
 {
@@ -148,6 +198,13 @@ bool CNewUIInventoryActionController::HandleRepairClick(CNewUIInventoryCtrl* tar
 bool CNewUIInventoryActionController::HandleRightClick(CNewUIInventoryCtrl* targetControl) const
 {
     m_pContext->ResetMouseRButton();
+
+    // Shift + right click drops the item at once; with a shop, vault or similar open the
+    // usual right-click behaviour (sell, move, ...) stays in charge.
+    if (IsRepeat(VK_SHIFT) && CanQuickDropHere())
+    {
+        return HandleQuickDrop(targetControl);
+    }
 
     if (g_pNewUISystem->IsVisible(INTERFACE_STORAGE))
     {
@@ -439,6 +496,63 @@ bool CNewUIInventoryActionController::TryDropItem(CNewUIInventoryCtrl* targetCon
         return true;
     }
 
+    return SendDropAtHero(targetControl, pItem);
+}
+
+bool CNewUIInventoryActionController::CanQuickDropHere() const
+{
+    if (!g_pNewUISystem->IsVisible(INTERFACE_INVENTORY))
+    {
+        return false;
+    }
+
+    for (const int window : QuickDropBlockingWindows)
+    {
+        if (g_pNewUISystem->IsVisible(window))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool CNewUIInventoryActionController::HandleQuickDrop(CNewUIInventoryCtrl* targetControl) const
+{
+    ITEM* pItem = targetControl->FindItemAtPt(MouseX, MouseY);
+    if (pItem == nullptr)
+    {
+        return true;
+    }
+
+    // The previous drop is still waiting for the server's answer; one drop at a time keeps the
+    // packet rate at the round-trip time and lets a refused drop put its item back.
+    if (CNewUIInventoryCtrl::GetPickedItem() != nullptr)
+    {
+        return true;
+    }
+
+    const int sourceIndex = targetControl->GetIndexByItem(pItem);
+    if (!GameLogic::Items::QuickDrop::IsBagSlot(sourceIndex, MAX_EQUIPMENT_INDEX, MAX_MY_INVENTORY_EX_INDEX))
+    {
+        return true;
+    }
+
+    const auto verdict = GameLogic::Items::QuickDrop::Evaluate(DescribeQuickDropCandidate(pItem));
+    if (verdict != GameLogic::Items::QuickDrop::Verdict::Allowed)
+    {
+        if (const wchar_t* text = QuickDropRefusalText(verdict))
+        {
+            g_pSystemLogBox->AddText(text, TYPE_ERROR_MESSAGE);
+        }
+        return true;
+    }
+
+    return SendDropAtHero(targetControl, pItem);
+}
+
+bool CNewUIInventoryActionController::SendDropAtHero(CNewUIInventoryCtrl* targetControl, ITEM* pItem) const
+{
     if (!CNewUIInventoryCtrl::CreatePickedItem(targetControl, pItem))
     {
         return false;

@@ -4,6 +4,13 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME quick_drop_tests
+    SOURCES
+        test_quick_drop.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/GameLogic/Items/QuickDrop.cpp
+)
+
+mu_add_test(
     NAME input_box_config_tests
     SOURCES test_input_box_config.cpp
     LINK_LIBS MuClient
