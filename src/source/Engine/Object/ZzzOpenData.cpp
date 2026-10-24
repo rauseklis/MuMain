@@ -21,6 +21,7 @@
 #include "UI/Legacy/UIMng.h"
 #include "Data/DataHandler/LoadData.h"
 #include "Data/DataHandler/ModelLoadTimer.h"
+#include "Data/DataHandler/ModelPreloadStore.h"
 #include "World/MapInfra/MapManager.h"
 #include "GameLogic/Events/Event.h"
 #include "GameLogic/Items/MixMgr.h"
@@ -572,6 +573,7 @@ void OpenNpc(int Type)
     if (b->NumActions > 0) return;
 
     const ModelLoadTimer loadTimer(L"OpenNpc (total)", Type);
+    Data::Models::RememberModelForMap(gMapManager.WorldActive, {Data::Models::PreloadKind::Npc, Type});
     switch (Type)
     {
     case MODEL_MERCHANT_FEMALE:
@@ -1314,6 +1316,8 @@ void OpenMonsterModel(EMonsterModelType Type)
     if (b->NumActions > 0 || b->NumMeshs > 0) return;
 
     const ModelLoadTimer loadTimer(L"OpenMonsterModel (total)", Index);
+    Data::Models::RememberModelForMap(gMapManager.WorldActive,
+                                      {Data::Models::PreloadKind::Monster, static_cast<int>(Type)});
     gLoadData.AccessModel(Index, L"Data\\Monster\\", L"Monster", Type + 1);
 
     if (b->NumMeshs == 0) return;
