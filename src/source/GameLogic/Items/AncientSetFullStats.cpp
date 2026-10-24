@@ -12,20 +12,33 @@ constexpr std::uint8_t HyperionSet = 3;
 constexpr std::uint8_t CloudSet = 8;
 constexpr std::uint8_t BarnakeSet = 14;
 constexpr std::uint8_t FaseSet = 24;
+constexpr std::array<std::uint8_t, 6> TierTwoSets = {5,  7,  17,
+                                                     23, 36, 38}; // Eplete, Garuda, Heras, Gaia, Semeden, Chamer.
+constexpr std::uint8_t TierTwoBonus = 50;
 constexpr std::uint8_t StandardBonus = 100;
 constexpr std::uint8_t BrassBonus = 75;
 // Season 6 set-option identifiers: Strength, Agility, Vitality, Energy.
 constexpr std::array<std::uint8_t, ExtraStatOptionCount> StatOptions = {0, 1, 3, 2};
+std::uint8_t FullSetBonus(std::uint8_t setNumber)
+{
+    if (std::find(TierTwoSets.begin(), TierTwoSets.end(), setNumber) != TierTwoSets.end())
+        return TierTwoBonus;
+    if (setNumber == CloudSet)
+        return BrassBonus;
+    if (setNumber == HyperionSet || setNumber == BarnakeSet || setNumber == FaseSet)
+        return StandardBonus;
+    return 0;
+}
 } // namespace
 
-void AddTierOneFullStatOptions(std::uint8_t setNumber, std::span<std::uint8_t> options, std::span<std::uint8_t> values)
+void AddAncientFullStatOptions(std::uint8_t setNumber, std::span<std::uint8_t> options, std::span<std::uint8_t> values)
 {
-    if (setNumber != HyperionSet && setNumber != BarnakeSet && setNumber != FaseSet && setNumber != CloudSet)
+    const auto amount = FullSetBonus(setNumber);
+    if (amount == 0)
         return;
     if (options.size() != values.size())
         return;
 
-    const std::uint8_t amount = setNumber == CloudSet ? BrassBonus : StandardBonus;
     for (const auto stat : StatOptions)
     {
         bool present = false;
