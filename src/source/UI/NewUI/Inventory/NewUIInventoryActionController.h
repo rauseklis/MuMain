@@ -38,6 +38,9 @@ private:
     bool HandleInventoryRightClickActions(CNewUIInventoryCtrl* targetControl) const;
     bool TryEquipItem(CNewUIInventoryCtrl* targetControl, ITEM* pItem, int iSrcIndex) const;
     bool TryDropItem(CNewUIInventoryCtrl* targetControl, ITEM* pItem) const;
+    bool SendDropAtHero(CNewUIInventoryCtrl* targetControl, ITEM* pItem) const;
+    bool CanQuickDropHere() const;
+    bool HandleQuickDrop(CNewUIInventoryCtrl* targetControl) const;
 
     int FindAlternateEquipSlot(int nOriginalSlot, ITEM* pItem) const;
     bool IsSlotOccupied(int nSlot) const;

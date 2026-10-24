@@ -12977,6 +12977,9 @@
   <data name="SSkillTreeHotkey" xml:space="preserve">
     <value>S : Skill Tree</value>
   </data>
+  <data name="ShiftRightClickQuickDropHotkey" xml:space="preserve">
+    <value>Shift + Right-click : Drop inventory item</value>
+  </data>
   <data name="YouWereKilledByPlayer" xml:space="preserve">
     <value>You were killed by %s</value>
   </data>
