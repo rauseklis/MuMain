@@ -219,6 +219,8 @@ private:
     // the positions before the last step are kept and the cloth is drawn between them and the current ones.
     std::vector<std::array<float, 3>> m_vPreviousPositions;
     bool m_bHasPreviousPositions = false;
+    float m_vLastOwnerPosition[3] = {0.f, 0.f, 0.f};
+    bool m_bHasOwnerPosition = false;
 
     void RememberPreviousPositions();
     void GetRenderPosition(int iVertex, vec3_t* pPos);

@@ -55,3 +55,12 @@ TEST_CASE("cloth interpolation blends between the previous and the current posit
     CHECK(Physics::ClothSimulationTiming::Lerp(10.0f, 20.0f, 1.0f) == doctest::Approx(20.0f));
     CHECK(Physics::ClothSimulationTiming::Lerp(-4.0f, 4.0f, 0.25f) == doctest::Approx(-2.0f));
 }
+
+TEST_CASE("an owner that jumps far between two frames makes the cloth start over")
+{
+    const float before[3] = {5200.f, 3000.f, 0.f};
+    const float walked[3] = {5230.f, 3010.f, 0.f};
+    const float respawned[3] = {900.f, 7000.f, 0.f};
+    CHECK_FALSE(Physics::ClothSimulationTiming::OwnerJumped(before, walked));
+    CHECK(Physics::ClothSimulationTiming::OwnerJumped(before, respawned));
+}
