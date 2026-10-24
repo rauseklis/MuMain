@@ -2976,8 +2976,9 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->LifeTime = 2;
                 o->BlendMesh = 0;
                 o->Scale = 10.f;
-                o->Position[1] += (200.f) * FPS_ANIMATION_FACTOR;
-                o->Position[2] -= (190.f) * FPS_ANIMATION_FACTOR;
+                // Where the cloud sits relative to the hero is a distance, not a speed: it must not shrink with the frame rate.
+                o->Position[1] += 200.f;
+                o->Position[2] -= 190.f;
                 o->LightEnable = false;
                 break;
             case BITMAP_BLIZZARD:
