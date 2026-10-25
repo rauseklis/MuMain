@@ -70,9 +70,31 @@ struct ITEM_SET_OPTION_FILE
 
 namespace
 {
+void CopyAncientSetName(wchar_t (&target)[MAX_ITEM_SET_NAME], const char (&source)[MAX_ITEM_SET_NAME])
+{
+    constexpr unsigned char LegacyApostropheLead = 0xA1;
+    constexpr unsigned char LegacyApostropheTrail = 0xAF;
+    std::array<char, MAX_ITEM_SET_NAME> normalized{};
+    std::size_t output = 0;
+    for (std::size_t input = 0; input < std::size(source) && source[input] != '\0' && output + 1 < normalized.size();
+         ++input)
+    {
+        if (g_strSelectedML == L"Eng" && input + 1 < std::size(source) &&
+            static_cast<unsigned char>(source[input]) == LegacyApostropheLead &&
+            static_cast<unsigned char>(source[input + 1]) == LegacyApostropheTrail)
+        {
+            normalized[output++] = '\'';
+            ++input;
+            continue;
+        }
+        normalized[output++] = source[input];
+    }
+    CMultiLanguage::ConvertFromUtf8(target, normalized.data());
+}
+
 void CopySetOptions(ITEM_SET_OPTION& target, const ITEM_SET_OPTION_FILE& source, std::uint8_t setNumber)
 {
-    CMultiLanguage::ConvertFromUtf8(target.strSetName, source.strSetName);
+    CopyAncientSetName(target.strSetName, source.strSetName);
     target.byOptionCount = source.byOptionCount;
     target.bySetItemCount = 0;
     target.byStandardOption = source.byStandardOption;
