@@ -14,6 +14,17 @@ extern int TextListColor[50];
 
 namespace
 {
+void CheckAncientSetNames()
+{
+    wchar_t name[64]{};
+    REQUIRE(g_csItemOption.GetSetItemName(name, 8 * 512 + 40, 2));
+    CHECK(std::wstring(name) == L"Semeden's ");
+    REQUIRE(g_csItemOption.GetSetItemName(name, 7 * 512 + 40, 1));
+    CHECK(std::wstring(name) == L"Chrono's ");
+    REQUIRE(g_csItemOption.GetSetItemName(name, 8 * 512, 1));
+    CHECK(std::wstring(name) == L"Hyperion's ");
+}
+
 void CheckEquippedFaseStats()
 {
     constexpr int itemGroupSize = 512;
@@ -111,6 +122,7 @@ TEST_CASE("Tier 1 and Tier 2 Ancient tooltip previews and equipped character sta
     const bool loaded = g_csItemOption.OpenItemSetScript();
     std::filesystem::current_path(original);
     REQUIRE(loaded);
+    CheckAncientSetNames();
     REQUIRE_FALSE(g_csItemOption.IsAncientSetEquipped());
 
     struct Sample
