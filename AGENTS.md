@@ -26,6 +26,9 @@ This is a private MU Online project of two brothers: this client repository (`ra
    `powershell -ExecutionPolicy Bypass -File scripts\check-setup.ps1 -Target <the user's game folder>` and report its FAILs in one line, do not change
    anything, then ask the user "What are we working on today?" and wait. Do not fix setup problems on your own: tell the user what the check says. The full guide is `docs/CODEX_GUIDE.md`.
 10. **At the end of every task** report in a few lines: what changed, what you tested, what you did not test, what the user should check.
+11. **The client is for Windows only.** Linux and macOS are NOT needed and are not released: their CI builds are switched off (`if: false` in
+    `.github/workflows/ci.yml` and `fork-ci.yml`). Do not build, fix, test, re-enable or write code or docs for them, and do not report their
+    failures as problems. Only the Windows build and the quality checks matter. (The live server runs on Linux in Docker: that is the server, not the client.)
 
 ## Coding rules — read first
 

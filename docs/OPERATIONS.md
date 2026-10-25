@@ -57,6 +57,10 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 
 ## The client
 
+- **Windows only.** Nobody here plays or releases the client on Linux or macOS. Those CI builds (inherited from the original MuMain project, where they
+  check cross-platform support) are switched off with `if: false` in `ci.yml` and `fork-ci.yml`. Do not re-enable them, fix them or write code for them.
+  What matters: the Windows build, the Windows editor-on check in `fork-ci.yml`, and Quality Gates. (The live server is Linux in Docker: unrelated.)
+
 - **Is this computer set up properly?** `powershell -ExecutionPolicy Bypass -File scripts\check-setup.ps1 -Target <client folder>` is a read-only check (git, GitHub login,
   Visual Studio, clone, dev worktree and its build, game folder and `config.ini`, live server, `ssh openmu`). It prints OK / WARN / FAIL with what to do. Run it at the start of a session.
 - **The fast path for your own testing: build locally, install locally.** GitHub's build takes 20 to 40 minutes (its machines start empty and recompile

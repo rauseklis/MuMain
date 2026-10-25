@@ -351,8 +351,10 @@ Use the Jewel Bank as the model (`docs/superpowers/specs/2026-10-20-jewel-bank-d
 - **Server repository workflows** (`.github/workflows/`): `.NET Core` builds on every push; `deploy-live.yml` **builds the Docker image and deploys it
   to the live server on every merge to `master`** (documentation-only changes — `docs/**`, `docs-website/**`, `*.md` — do not deploy); the other files
   are upstream's and mostly do not matter here (the nuget.org publish only runs on upstream).
-- **Client repository workflows:** `ci.yml` has quality gates, Linux and macOS builds, and the **Windows build that makes the downloadable
-  bundle** (runs on pushes to `main` and can be started by hand); `fork-ci.yml` runs more builds on pull requests. A test
+- **Windows is the only platform that matters.** The Linux and macOS builds in `ci.yml` and `fork-ci.yml` are switched off (`if: false`): we do not
+  release or play on them, so never build, fix or re-enable them. Their jobs stay in the files only so they can be turned back on.
+- **Client repository workflows:** `ci.yml` has quality gates and the **Windows build that makes the downloadable
+  bundle** (runs on pushes to `main` and can be started by hand); `fork-ci.yml` runs the Windows builds on pull requests. A test
   (`tests/test_windows_workflow_contract.py`) pins the text of the Windows job: if you change that job, change the test with it.
   Pushes to `main` do not always start a run by themselves: start it by hand if none appears.
 - **A deploy** = image build (~5 min) → copy `deploy/live/*` to the VPS → `deploy.sh` (database backup, pull, restart) → check the connect server. Only

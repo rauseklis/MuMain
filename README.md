@@ -63,6 +63,9 @@ What needs to be done for Season 6:
 
 ## Release downloads
 
+> **This private fork is Windows only.** The Linux and macOS builds described below are switched off in CI (`if: false`) and not released.
+> The text below describes the original project.
+
 CI validates Windows native x64 Release, Linux x64 Release, and
 macOS arm64 Release, all with the editor OFF, and uploads no-data runtime
 artifacts for all three. Semantic Release publishes all three as GitHub Release

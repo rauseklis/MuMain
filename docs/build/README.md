@@ -1,5 +1,8 @@
 # Build Guide
 
+> **This private fork is Windows only.** The Linux and macOS guides below describe the original project; those builds are switched off in CI
+> (`if: false`) and are not released here. Do not build, fix or re-enable them.
+
 How to build the MU client on each platform, with one file per setup (terminal,
 WSL, and the common IDEs). Pick the guide that matches your environment.
 
