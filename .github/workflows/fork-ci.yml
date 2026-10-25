@@ -118,7 +118,9 @@ jobs:
 
   linux-editor:
     name: Linux x64 Release, editor ON
-    if: github.repository != 'sven-n/MuMain' || github.event_name == 'workflow_dispatch'
+    # Switched off for this private project (we only use Windows).
+    # To turn it back on, use: github.repository != 'sven-n/MuMain' || github.event_name == 'workflow_dispatch'
+    if: false
     runs-on: ubuntu-latest
 
     steps:
@@ -173,7 +175,9 @@ jobs:
 
   macos-editor:
     name: macOS arm64 Release, editor ON
-    if: github.repository != 'sven-n/MuMain' || github.event_name == 'workflow_dispatch'
+    # Switched off for this private project (we only use Windows); it failed on every run.
+    # To turn it back on, use: github.repository != 'sven-n/MuMain' || github.event_name == 'workflow_dispatch'
+    if: false
     runs-on: macos-latest
 
     steps:
