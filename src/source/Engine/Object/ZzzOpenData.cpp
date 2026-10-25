@@ -20,6 +20,7 @@
 #include "Network/MoveCommandData.h"
 #include "UI/Legacy/UIMng.h"
 #include "Data/DataHandler/LoadData.h"
+#include "Data/DataHandler/ModelPreloadStore.h"
 #include "World/MapInfra/MapManager.h"
 #include "GameLogic/Events/Event.h"
 #include "GameLogic/Items/MixMgr.h"
@@ -570,6 +571,7 @@ void OpenNpc(int Type)
     BMD* b = &Models[Type];
     if (b->NumActions > 0) return;
 
+    Data::Models::RememberModelForMap(gMapManager.WorldActive, {Data::Models::PreloadKind::Npc, Type});
     switch (Type)
     {
     case MODEL_MERCHANT_FEMALE:
@@ -1311,6 +1313,8 @@ void OpenMonsterModel(EMonsterModelType Type)
     BMD* b = &Models[Index];
     if (b->NumActions > 0 || b->NumMeshs > 0) return;
 
+    Data::Models::RememberModelForMap(gMapManager.WorldActive,
+                                      {Data::Models::PreloadKind::Monster, static_cast<int>(Type)});
     gLoadData.AccessModel(Index, L"Data\\Monster\\", L"Monster", Type + 1);
 
     if (b->NumMeshs == 0) return;

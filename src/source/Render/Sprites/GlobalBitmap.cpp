@@ -371,6 +371,25 @@ bool UploadCompressedTextureSDLGpu(BITMAP_t* bitmap, const std::vector<std::uint
     bitmap->sdlSampler = sampler;
     return true;
 }
+
+// Reads the rest of an open file in one go. Iterating over the stream byte by byte was a slow part of loading a
+// texture.
+std::vector<unsigned char> ReadRemainingBytes(std::ifstream& input)
+{
+    const std::streampos start = input.tellg();
+    input.seekg(0, std::ios::end);
+    const std::streamoff size = input.tellg() - start;
+    input.seekg(start);
+    if (size <= 0)
+    {
+        return {};
+    }
+
+    std::vector<unsigned char> bytes(static_cast<std::size_t>(size));
+    input.read(reinterpret_cast<char*>(bytes.data()), size);
+    bytes.resize(static_cast<std::size_t>(input.gcount()));
+    return bytes;
+}
 } // namespace
 
 bool CBitmapCache::Create()
@@ -932,8 +951,7 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
         return false;
     }
 
-    std::vector<unsigned char> jpegBuf((std::istreambuf_iterator<char>(compressedFile)),
-                                       std::istreambuf_iterator<char>());
+    std::vector<unsigned char> jpegBuf = ReadRemainingBytes(compressedFile);
     compressedFile.close();
 
     if (jpegBuf.size() <= 24)
@@ -1059,10 +1077,12 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
         return false;
     }
 
-    std::vector<unsigned char> pakBuffer((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    std::vector<unsigned char> pakBuffer = ReadRemainingBytes(input);
     input.close();
 
-    if (pakBuffer.size() < 18) // minimal TGA header length check for OZT payload
+    // The header read below ends where the pixels start; a shorter file would be read out of bounds.
+    constexpr std::size_t OztHeaderSize = 22;
+    if (pakBuffer.size() < OztHeaderSize)
     {
         g_ErrorReport.Write(L"OpenTga: file too small %ls (%zu bytes)\r\n", filename_ozt.c_str(), pakBuffer.size());
         return false;

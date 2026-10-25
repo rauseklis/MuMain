@@ -20,7 +20,7 @@
 #include "GameLogic/Events/w_CursedTemple.h"
 #include "Network/Server/WSclient.h"
 #include "I18N/All.h"
-
+#include "Data/DataHandler/ModelPreloadStore.h"
 
 CMapManager gMapManager;
 
@@ -1542,6 +1542,9 @@ void CMapManager::LoadWorld(int Map)
         g_pNewUIMiniMap->UnloadImages();
         g_pNewUIMiniMap->LoadImages(WorldName);
     }
+
+    // Load the NPCs and monsters this map needed before now, so none of them loads while the player walks around.
+    Data::Models::PreloadModelsForMap(this->WorldActive);
 }
 
 void CMapManager::DeleteObjects()

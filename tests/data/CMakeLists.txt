@@ -28,3 +28,10 @@ mu_add_test(
 target_compile_definitions(test_item_database_files PRIVATE
     MU_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/src/bin/Data"
 )
+
+mu_add_test(
+    NAME model_preload_list_tests
+    SOURCES
+        test_model_preload_list.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/Data/DataHandler/ModelPreloadList.cpp
+)
