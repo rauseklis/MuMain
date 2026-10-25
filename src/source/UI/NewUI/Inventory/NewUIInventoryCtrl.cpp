@@ -18,6 +18,7 @@
 #include "GameLogic/Items/MixMgr.h"
 #include "GameLogic/Items/ItemCategories.h"
 #include "GameLogic/Items/PotionStacking.h"
+#include "GameLogic/Items/CherryBlossomBranches.h"
 using namespace SEASON3B;
 
 namespace
@@ -1873,18 +1874,7 @@ bool SEASON3B::CNewUIInventoryCtrl::AreItemsStackable(ITEM* pSourceItem, ITEM* p
         return true;
     }
 
-    if (iSrcType == ITEM_WHITE_CHERRY_BLOSSOM_BRANCH && iTarType == ITEM_WHITE_CHERRY_BLOSSOM_BRANCH && (iSrcDurability < 10 && iTarDurability < 10))
-    {
-        return true;
-    }
-
-    if (iSrcType == ITEM_RED_CHERRY_BLOSSOM_BRANCH && iTarType == ITEM_RED_CHERRY_BLOSSOM_BRANCH && (iSrcDurability < 30 && iTarDurability < 30))
-    {
-        return true;
-    }
-
-    if (iSrcType == ITEM_GOLDEN_CHERRY_BLOSSOM_BRANCH && iTarType == ITEM_GOLDEN_CHERRY_BLOSSOM_BRANCH &&
-        (iSrcDurability < 50 && iTarDurability < 50))
+    if (GameLogic::Items::CherryBlossom::CanStack(iSrcType, iTarType, iSrcDurability, iTarDurability))
     {
         return true;
     }

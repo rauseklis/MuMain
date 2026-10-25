@@ -144,3 +144,15 @@ mu_add_test(
         test_reset_npc_model.cpp
         ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/ResetNpc/ResetNpcModel.cpp
 )
+
+mu_add_test(
+    NAME cherry_blossom_stacking_tests
+    SOURCES
+        test_cherry_blossom_stacking.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/GameLogic/Items/CherryBlossomBranches.cpp
+)
+
+add_test(
+    NAME cherry_blossom_recipes
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_cherry_blossom_recipes.py"
+)
