@@ -238,8 +238,8 @@ cd out\build\windows-x64\src\Release
   once, then it is cached. Both the .NET 10 SDK and the C++ workload are needed (the network library is compiled ahead of time).
 - The output folder gets `Data`, `fonts` and a `config.ini` copied in; edit its `ServerIP` / `ServerPort` to choose the server
   (`localhost` + `44406` for your local server, `109.199.104.230` + `44406` for the live server).
-- The CMake option `OPENMU_PACKETS_VERSION` follows `ClientLibrary/MUnique.Client.Library.csproj` (`OpenMuPacketsVersion`, now **0.9.22**).
-  A build directory configured earlier may have the old value cached: delete its `CMakeCache.txt` or pass `-DOPENMU_PACKETS_VERSION=0.9.22`.
+- The CMake option `OPENMU_PACKETS_VERSION` follows `ClientLibrary/MUnique.Client.Library.csproj` (`OpenMuPacketsVersion`, now **0.9.23**).
+  A build directory configured earlier may have the old value cached: delete its `CMakeCache.txt` or pass `-DOPENMU_PACKETS_VERSION=0.9.23`.
 - **Unit tests:** configure with `-DBUILD_TESTING=ON`, build a test target (for example `jewel_bank_model_tests`) and run its exe from
   `out/build/<preset>/tests/...`. (With testing ON the whole client can fail to compile for lack of memory; build only the test target.)
 - More: `docs/build/README.md` and `docs/build/windows/*.md`.

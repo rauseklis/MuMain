@@ -22,7 +22,7 @@ worktree after a task; remove a task-specific worktree after its branch is merge
 
 The client and the server speak a protocol that is defined in XML in the **server** repository (`src/Network/Packets/**/*.xml`). The client
 is built from three NuGet packages packed from it (`MUnique.OpenMU.PlugIns`, `.Network`, `.Network.Packets`), kept in this repository's
-`nuget-feed/` folder; `nuget-feed/README.md` says how to update them. The version (now 0.9.22) is in the three server project files and in
+`nuget-feed/` folder; `nuget-feed/README.md` says how to update them. The version (now 0.9.23) is in the three server project files and in
 `ClientLibrary/MUnique.Client.Library.csproj` (`OpenMuPacketsVersion`). **A change to the packets must be merged to both repositories
 together**, because a client with other packets cannot talk to the server. Encrypted requests longer than about 180 bytes must be C4
 packets (a C3 packet cannot carry them); see `docs/jewel-bank-handover-2026-10-20.md`.
