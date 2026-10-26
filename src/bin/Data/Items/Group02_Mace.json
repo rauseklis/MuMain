@@ -363,7 +363,7 @@
       "durability": 90,
       "damageMin": 200,
       "damageMax": 223,
-      "attackSpeed": 45,
+      "attackSpeed": 50,
       "magicPower": 138,
       "attackType": 1,
       "requirements": {
@@ -464,7 +464,7 @@
       "durability": 90,
       "damageMin": 114,
       "damageMax": 132,
-      "attackSpeed": 40,
+      "attackSpeed": 50,
       "magicPower": 72,
       "requirements": {
         "level": 380,

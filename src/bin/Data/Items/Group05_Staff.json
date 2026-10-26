@@ -277,7 +277,7 @@
       "magicDurability": 182,
       "damageMin": 153,
       "damageMax": 165,
-      "attackSpeed": 30,
+      "attackSpeed": 50,
       "magicPower": 156,
       "requirements": {
         "strength": 36,
@@ -716,7 +716,7 @@
       "magicDurability": 182,
       "damageMin": 153,
       "damageMax": 165,
-      "attackSpeed": 30,
+      "attackSpeed": 50,
       "magicPower": 146,
       "requirements": {
         "strength": 55,

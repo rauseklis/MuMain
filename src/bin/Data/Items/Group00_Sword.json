@@ -525,7 +525,7 @@
       "durability": 168,
       "damageMin": 220,
       "damageMax": 230,
-      "attackSpeed": 45,
+      "attackSpeed": 50,
       "requirements": {
         "strength": 140,
         "dexterity": 50
