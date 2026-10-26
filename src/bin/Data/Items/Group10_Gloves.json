@@ -686,7 +686,6 @@
       "defense": 60,
       "attackSpeed": 7,
       "requirements": {
-        "level": 380,
         "strength": 170,
         "dexterity": 60
       },
@@ -709,7 +708,6 @@
       "defense": 44,
       "attackSpeed": 7,
       "requirements": {
-        "level": 380,
         "strength": 44,
         "dexterity": 15
       },
@@ -732,7 +730,6 @@
       "defense": 50,
       "attackSpeed": 7,
       "requirements": {
-        "level": 380,
         "strength": 38,
         "dexterity": 80
       },
@@ -755,7 +752,6 @@
       "defense": 55,
       "attackSpeed": 7,
       "requirements": {
-        "level": 380,
         "strength": 145,
         "dexterity": 60
       },
@@ -778,7 +774,6 @@
       "defense": 40,
       "attackSpeed": 5,
       "requirements": {
-        "level": 380,
         "strength": 62,
         "dexterity": 16
       },
@@ -1001,7 +996,6 @@
       "defense": 34,
       "attackSpeed": 6,
       "requirements": {
-        "level": 380,
         "strength": 56,
         "dexterity": 20
       },
@@ -1019,14 +1013,12 @@
       "width": 2,
       "height": 2,
       "slot": "gloves",
-      "level": 102,
-      "durability": 86,
-      "defense": 29,
+      "level": 82,
+      "durability": 80,
+      "defense": 45,
       "requirements": {
-        "level": 380,
-        "strength": 62,
-        "dexterity": 20,
-        "energy": 170
+        "strength": 72,
+        "dexterity": 24
       },
       "classRequirements": {
         "summoner": 2

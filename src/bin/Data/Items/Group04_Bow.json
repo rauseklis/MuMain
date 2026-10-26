@@ -546,7 +546,6 @@
       "damageMax": 200,
       "attackSpeed": 45,
       "requirements": {
-        "level": 380,
         "strength": 46,
         "dexterity": 210
       },

@@ -477,3 +477,7 @@ Countdowns longer than a day include days. Paid duration continues offline and
 returns on login when supported by the updated server. The effect update does
 not implement X-shop checkout or currency handling. Values and stacking rules
 are documented in the parent repository's `docs/active-buff-tooltips.md`.
+
+## Staged Chocolate endgame balance
+
+Selected Pink/Blue Chocolate rewards no longer require level 380; other stat/class requirements remain. Eternal Wing armor uses the same IDs as server Lilium and now matches its 268 total base DEF, durability and normalized STR/AGI requirements, with no Energy requirement. Eternal Wing Stick has 65% base wizardry. Sockets are globally disabled in the paired server/client patch: socket statistics and tooltips are inactive, and existing items remain usable without socket bonuses.

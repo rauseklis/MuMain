@@ -42,3 +42,5 @@ for normal and 968/675 for Royal. Plain +0 requirements are 1200/841 and
 2401/1680 respectively; upgrades follow the normal requirement formula.
 Additional damage +4 requires 5 extra STR and no extra AGI. Both weapons
 remain without a built-in weapon skill.
+
+The staged Chocolate endgame patch changes base damage to 150–165 (normal) and 200–220 (Royal), preserving the +4-per-upgrade progression and requirements.
