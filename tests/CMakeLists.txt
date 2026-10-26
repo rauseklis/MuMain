@@ -77,3 +77,5 @@ add_subdirectory(platform)
 add_subdirectory(core)
 
 add_subdirectory(data)
+
+add_subdirectory(gamelogic)
