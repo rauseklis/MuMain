@@ -392,7 +392,6 @@
       "attackSpeed": 40,
       "magicPower": 84,
       "requirements": {
-        "level": 380,
         "strength": 80,
         "dexterity": 15
       },
@@ -537,8 +536,8 @@
       "slot": "mainHand",
       "level": 82,
       "durability": 84,
-      "damageMin": 110,
-      "damageMax": 125,
+      "damageMin": 150,
+      "damageMax": 165,
       "attackSpeed": 30,
       "attackType": 1,
       "requirements": {
@@ -561,8 +560,8 @@
       "slot": "mainHand",
       "level": 82,
       "durability": 84,
-      "damageMin": 150,
-      "damageMax": 170,
+      "damageMin": 200,
+      "damageMax": 220,
       "attackSpeed": 40,
       "attackType": 1,
       "requirements": {

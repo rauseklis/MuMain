@@ -14,6 +14,50 @@ using namespace SEASON4A;
 
 
 
+namespace
+{
+    constexpr bool kSocketSystemEnabled = false;
+
+    void ResetSocketStatus(SOCKET_OPTION_STATUS_BONUS& status)
+    {
+        memset(&status, 0, sizeof(status));
+        status.m_fDefenceRateBonus = 1.0f;
+    }
+
+    BOOL IsConfiguredSocketItemType(int iItemType)
+    {
+        switch (iItemType)
+        {
+        case ITEM_FLAMBERGE:
+        case ITEM_SWORD_BREAKER:
+        case ITEM_IMPERIAL_SWORD:
+        case ITEM_FROST_MACE:
+        case ITEM_ABSOLUTE_SCEPTER:
+        case ITEM_STINGER_BOW:
+        case ITEM_DEADLY_STAFF:
+        case ITEM_IMPERIAL_STAFF:
+        case ITEM_STAFF + 32:
+        case ITEM_CRIMSONGLORY:
+        case ITEM_SALAMANDER_SHIELD:
+        case ITEM_FROST_BARRIER:
+        case ITEM_GUARDIAN_SHILED:
+        case ITEM_TITAN_HELM: case ITEM_TITAN_ARMOR: case ITEM_TITAN_PANTS: case ITEM_TITAN_GLOVES: case ITEM_TITAN_BOOTS:
+        case ITEM_BRAVE_HELM: case ITEM_BRAVE_ARMOR: case ITEM_BRAVE_PANTS: case ITEM_BRAVE_GLOVES: case ITEM_BRAVE_BOOTS:
+        case ITEM_HELM + 47: case ITEM_DESTORY_ARMOR: case ITEM_DESTORY_PANTS: case ITEM_DESTORY_GLOVES: case ITEM_DESTORY_BOOTS:
+        case ITEM_HELM + 48: case ITEM_PHANTOM_ARMOR: case ITEM_PHANTOM_PANTS: case ITEM_PHANTOM_GLOVES: case ITEM_PHANTOM_BOOTS:
+        case ITEM_SERAPHIM_HELM: case ITEM_SERAPHIM_ARMOR: case ITEM_SERAPHIM_PANTS: case ITEM_SERAPHIM_GLOVES: case ITEM_SERAPHIM_BOOTS:
+        case ITEM_FAITH_HELM: case ITEM_FAITH_ARMOR: case ITEM_FAITH_PANTS: case ITEM_FAITH_GLOVES: case ITEM_FAITH_BOOTS:
+        case ITEM_PAEWANG_MASK: case ITEM_PAEWANG_ARMOR: case ITEM_PAEWANG_PANTS: case ITEM_PAEWANG_GLOVES: case ITEM_PHAEWANG_BOOTS:
+        case ITEM_HADES_HELM: case ITEM_HADES_ARMOR: case ITEM_HADES_PANTS: case ITEM_HADES_GLOVES: case ITEM_HADES_BOOTS:
+        case ITEM_HELM + 53: case ITEM_ARMOR + 53: case ITEM_PANTS + 53: case ITEM_GLOVES + 53: case ITEM_BOOTS + 53:
+            return TRUE;
+        default:
+            return FALSE;
+        }
+        // 	return (pItem->SocketCount > 0);
+    }
+}
+
 CSocketItemMgr g_SocketItemMgr;
 
 CSocketItemMgr::CSocketItemMgr()
@@ -39,35 +83,7 @@ BOOL CSocketItemMgr::IsSocketItem(const OBJECT* pObject)
 
 BOOL CSocketItemMgr::IsSocketItem(int iItemType)
 {
-    switch (iItemType)
-    {
-    case ITEM_FLAMBERGE:
-    case ITEM_SWORD_BREAKER:
-    case ITEM_IMPERIAL_SWORD:
-    case ITEM_FROST_MACE:
-    case ITEM_ABSOLUTE_SCEPTER:
-    case ITEM_STINGER_BOW:
-    case ITEM_DEADLY_STAFF:
-    case ITEM_IMPERIAL_STAFF:
-    case ITEM_STAFF + 32:
-    case ITEM_CRIMSONGLORY:
-    case ITEM_SALAMANDER_SHIELD:
-    case ITEM_FROST_BARRIER:
-    case ITEM_GUARDIAN_SHILED:
-    case ITEM_TITAN_HELM: case ITEM_TITAN_ARMOR: case ITEM_TITAN_PANTS: case ITEM_TITAN_GLOVES: case ITEM_TITAN_BOOTS:
-    case ITEM_BRAVE_HELM: case ITEM_BRAVE_ARMOR: case ITEM_BRAVE_PANTS: case ITEM_BRAVE_GLOVES: case ITEM_BRAVE_BOOTS:
-    case ITEM_HELM + 47: case ITEM_DESTORY_ARMOR: case ITEM_DESTORY_PANTS: case ITEM_DESTORY_GLOVES: case ITEM_DESTORY_BOOTS:
-    case ITEM_HELM + 48: case ITEM_PHANTOM_ARMOR: case ITEM_PHANTOM_PANTS: case ITEM_PHANTOM_GLOVES: case ITEM_PHANTOM_BOOTS:
-    case ITEM_SERAPHIM_HELM: case ITEM_SERAPHIM_ARMOR: case ITEM_SERAPHIM_PANTS: case ITEM_SERAPHIM_GLOVES: case ITEM_SERAPHIM_BOOTS:
-    case ITEM_FAITH_HELM: case ITEM_FAITH_ARMOR: case ITEM_FAITH_PANTS: case ITEM_FAITH_GLOVES: case ITEM_FAITH_BOOTS:
-    case ITEM_PAEWANG_MASK: case ITEM_PAEWANG_ARMOR: case ITEM_PAEWANG_PANTS: case ITEM_PAEWANG_GLOVES: case ITEM_PHAEWANG_BOOTS:
-    case ITEM_HADES_HELM: case ITEM_HADES_ARMOR: case ITEM_HADES_PANTS: case ITEM_HADES_GLOVES: case ITEM_HADES_BOOTS:
-    case ITEM_HELM + 53: case ITEM_ARMOR + 53: case ITEM_PANTS + 53: case ITEM_GLOVES + 53: case ITEM_BOOTS + 53:
-        return TRUE;
-    default:
-        return FALSE;
-    }
-    // 	return (pItem->SocketCount > 0);
+    return kSocketSystemEnabled && IsConfiguredSocketItemType(iItemType);
 }
 
 int CSocketItemMgr::GetSocketCategory(int iSeedID)
@@ -218,7 +234,7 @@ extern int SkipNum;
 
 int CSocketItemMgr::AttachToolTipForSocketItem(const ITEM* pItem, int iTextNum)
 {
-    if (pItem->SocketCount == 0) return iTextNum;
+    if (!kSocketSystemEnabled || pItem->SocketCount == 0) return iTextNum;
 
     mu_swprintf(TextList[iTextNum], L"\n"); ++iTextNum; ++SkipNum;
     mu_swprintf(TextList[iTextNum], L"%ls %ls", I18N::Game::Socket, I18N::Game::ItemOptionInfo);
@@ -277,6 +293,7 @@ int CSocketItemMgr::AttachToolTipForSocketItem(const ITEM* pItem, int iTextNum)
 
 int CSocketItemMgr::AttachToolTipForSeedSphereItem(const ITEM* pItem, int iTextNum)
 {
+    if (!kSocketSystemEnabled) return iTextNum;
     SOCKET_OPTION_INFO* pInfo = NULL;
 
     if (GameLogic::Items::IsSocketSeed(pItem))
@@ -378,7 +395,7 @@ int CSocketItemMgr::AttachToolTipForSeedSphereItem(const ITEM* pItem, int iTextN
 
 BOOL CSocketItemMgr::IsSocketSetOptionEnabled()
 {
-    return (!m_EquipSetBonusList.empty());
+    return kSocketSystemEnabled && !m_EquipSetBonusList.empty();
 }
 
 void CSocketItemMgr::RenderToolTipForSocketSetOption(int iPos_x, int iPos_y)
@@ -461,6 +478,7 @@ void CSocketItemMgr::CheckSocketSetOption()
 
 int CSocketItemMgr::GetSocketOptionValue(const ITEM* pItem, int iSocketIndex)
 {
+    if (!kSocketSystemEnabled) return 0;
     if (pItem->SocketCount > 0 && pItem->SocketSeedID[iSocketIndex] != SOCKET_EMPTY)
     {
         SOCKET_OPTION_INFO* pInfo = NULL;
@@ -476,8 +494,9 @@ int CSocketItemMgr::GetSocketOptionValue(const ITEM* pItem, int iSocketIndex)
 
 void CSocketItemMgr::CalcSocketStatusBonus()
 {
-    memset(&m_StatusBonus, 0, sizeof(SOCKET_OPTION_STATUS_BONUS));
-    m_StatusBonus.m_fDefenceRateBonus = 1.0f;
+    ResetSocketStatus(m_StatusBonus);
+
+    if (!kSocketSystemEnabled) return;
 
     ITEM* pItem = NULL;
     SOCKET_OPTION_INFO* pInfo = NULL;

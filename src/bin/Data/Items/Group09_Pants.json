@@ -664,7 +664,6 @@
       "durability": 90,
       "defense": 78,
       "requirements": {
-        "level": 380,
         "strength": 170,
         "dexterity": 60
       },
@@ -686,7 +685,6 @@
       "durability": 86,
       "defense": 55,
       "requirements": {
-        "level": 380,
         "strength": 44,
         "dexterity": 15
       },
@@ -708,7 +706,6 @@
       "durability": 86,
       "defense": 61,
       "requirements": {
-        "level": 380,
         "strength": 38,
         "dexterity": 80
       },
@@ -730,7 +727,6 @@
       "durability": 95,
       "defense": 74,
       "requirements": {
-        "level": 380,
         "strength": 145,
         "dexterity": 60
       },
@@ -752,7 +748,6 @@
       "durability": 82,
       "defense": 52,
       "requirements": {
-        "level": 380,
         "strength": 62,
         "dexterity": 16
       },
@@ -965,7 +960,6 @@
       "durability": 75,
       "defense": 49,
       "requirements": {
-        "level": 380,
         "strength": 57,
         "dexterity": 19
       },
@@ -983,14 +977,12 @@
       "width": 2,
       "height": 2,
       "slot": "pants",
-      "level": 122,
-      "durability": 86,
-      "defense": 41,
+      "level": 102,
+      "durability": 82,
+      "defense": 52,
       "requirements": {
-        "level": 380,
-        "strength": 62,
-        "dexterity": 20,
-        "energy": 170
+        "strength": 72,
+        "dexterity": 24
       },
       "classRequirements": {
         "summoner": 2
@@ -1540,7 +1532,6 @@
       "durability": 88,
       "defense": 68,
       "requirements": {
-        "level": 380,
         "strength": 97,
         "vitality": 85
       },

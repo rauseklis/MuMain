@@ -606,7 +606,6 @@
       "damageMax": 135,
       "attackSpeed": 40,
       "requirements": {
-        "level": 380,
         "strength": 100,
         "dexterity": 35
       },
@@ -633,7 +632,6 @@
       "attackSpeed": 45,
       "magicPower": 134,
       "requirements": {
-        "level": 380,
         "strength": 98,
         "dexterity": 48,
         "energy": 7
@@ -887,7 +885,6 @@
       "damageMax": 128,
       "attackSpeed": 40,
       "requirements": {
-        "level": 380,
         "strength": 101,
         "dexterity": 51
       },

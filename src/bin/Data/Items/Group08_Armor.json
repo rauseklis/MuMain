@@ -664,7 +664,6 @@
       "durability": 90,
       "defense": 88,
       "requirements": {
-        "level": 380,
         "strength": 170,
         "dexterity": 60
       },
@@ -686,7 +685,6 @@
       "durability": 86,
       "defense": 57,
       "requirements": {
-        "level": 380,
         "strength": 44,
         "dexterity": 15
       },
@@ -708,7 +706,6 @@
       "durability": 86,
       "defense": 68,
       "requirements": {
-        "level": 380,
         "strength": 38,
         "dexterity": 80
       },
@@ -730,7 +727,6 @@
       "durability": 95,
       "defense": 86,
       "requirements": {
-        "level": 380,
         "strength": 145,
         "dexterity": 60
       },
@@ -752,7 +748,6 @@
       "durability": 82,
       "defense": 64,
       "requirements": {
-        "level": 380,
         "strength": 62,
         "dexterity": 16
       },
@@ -965,7 +960,6 @@
       "durability": 75,
       "defense": 56,
       "requirements": {
-        "level": 380,
         "strength": 57,
         "dexterity": 19
       },
@@ -983,14 +977,12 @@
       "width": 2,
       "height": 2,
       "slot": "armor",
-      "level": 131,
-      "durability": 86,
-      "defense": 49,
+      "level": 113,
+      "durability": 84,
+      "defense": 71,
       "requirements": {
-        "level": 380,
-        "strength": 62,
-        "dexterity": 20,
-        "energy": 170
+        "strength": 70,
+        "dexterity": 24
       },
       "classRequirements": {
         "summoner": 2
@@ -1540,7 +1532,6 @@
       "durability": 88,
       "defense": 78,
       "requirements": {
-        "level": 380,
         "strength": 97,
         "vitality": 85
       },
