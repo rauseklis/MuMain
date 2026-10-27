@@ -341,7 +341,11 @@ void CNewUIInGameShop::RenderDisplayItems()
         int iPosX = IGS_ITEMRENDER_POS_X_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_X * (i % IGS_NUM_ITEMS_WIDTH));
         int iPosY = IGS_ITEMRENDER_POS_Y_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_Y * (i / IGS_NUM_ITEMS_HEIGHT));
         // The item is measured and fitted into the picture area, so every item is centered and about the same size.
-        RenderItem3DFittedToSlot(static_cast<float>(iPosX), static_cast<float>(iPosY), IGS_ITEMRENDER_POS_WIDTH, IGS_ITEMRENDER_POS_HEIGHT, g_InGameShopSystem->GetPackageItemCode(i), 0, 0, 0, 0.62f, true);
+        // Small one-cell items (seals, jewels) would fill the whole area and look huge next to scrolls, so they get less of it.
+        const int iItemType = g_InGameShopSystem->GetPackageItemCode(i);
+        const ITEM_ATTRIBUTE& itemAttr = ItemAttribute[iItemType];
+        const float fFill = (itemAttr.Width * itemAttr.Height >= 2) ? 0.62f : 0.42f;
+        RenderItem3DFittedToSlot(static_cast<float>(iPosX), static_cast<float>(iPosY), IGS_ITEMRENDER_POS_WIDTH, IGS_ITEMRENDER_POS_HEIGHT, iItemType, 0, 0, 0, fFill, true);
     }
 
     UpdateMousePositionn();
