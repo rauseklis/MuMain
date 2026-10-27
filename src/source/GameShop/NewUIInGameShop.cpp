@@ -344,7 +344,11 @@ void CNewUIInGameShop::RenderDisplayItems()
         // Small one-cell items (seals, jewels) would fill the whole area and look huge next to scrolls, so they get less of it.
         const int iItemType = g_InGameShopSystem->GetPackageItemCode(i);
         const ITEM_ATTRIBUTE& itemAttr = ItemAttribute[iItemType];
-        const float fFill = (itemAttr.Width * itemAttr.Height >= 2) ? 0.62f : 0.42f;
+        float fFill = (itemAttr.Width * itemAttr.Height >= 2) ? 0.62f : 0.42f;
+        if (iItemType / MAX_ITEM_INDEX == 12)
+        {
+            fFill *= 0.5f; // the jewel bundles of group 12 are drawn at half of that
+        }
         RenderItem3DFittedToSlot(static_cast<float>(iPosX), static_cast<float>(iPosY), IGS_ITEMRENDER_POS_WIDTH, IGS_ITEMRENDER_POS_HEIGHT, iItemType, 0, 0, 0, fFill, true);
     }
 
