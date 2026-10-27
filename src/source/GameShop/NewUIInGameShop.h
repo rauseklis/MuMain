@@ -250,6 +250,7 @@ private:
     void RenderButtons();
     void RenderListBox();
     void RenderDisplayItems();
+    void RenderItemTooltip();
 
     void RenderBanner();
     bool UpdateBanner();
