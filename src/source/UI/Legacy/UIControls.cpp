@@ -5822,7 +5822,8 @@ BOOL CUIInGameShopListBox::RenderDataLine(int iLineNumber)
     if (SLGetSelectLineNum() == m_iCurrentRenderEndLine + iLineNumber + 1)
     {
         // A dark amber bar (the old white bar made the pale text unreadable).
-        RenderColorQuadARGB(static_cast<float>(m_iPos_x), static_cast<float>(GetRenderLinePos_y(iLineNumber) - 3), static_cast<float>(m_iWidth - m_fScrollBarWidth + 4), 13.0f, 0xFF6B4A1A);
+        RenderColorQuadARGB(static_cast<float>(m_iPos_x), static_cast<float>(GetRenderLinePos_y(iLineNumber) - 3),
+                            static_cast<float>(m_iWidth - m_fScrollBarWidth + 4), 13.0f, 0xFF6B4A1A);
         mu::GetRenderer().SetTexture2D(true);
     }
 
@@ -5967,7 +5968,8 @@ BOOL CUIBuyingListBox::RenderDataLine(int iLineNumber)
     if (SLGetSelectLineNum() == m_iCurrentRenderEndLine + iLineNumber + 1 && GetLineColorRender())
     {
         // A dark amber bar (the old white bar made the pale text unreadable).
-        RenderColorQuadARGB(static_cast<float>(m_iPos_x), static_cast<float>(GetRenderLinePos_y(iLineNumber) - 3), static_cast<float>(m_iWidth - m_fScrollBarWidth + 1), 13.0f, 0xFF6B4A1A);
+        RenderColorQuadARGB(static_cast<float>(m_iPos_x), static_cast<float>(GetRenderLinePos_y(iLineNumber) - 3),
+                            static_cast<float>(m_iWidth - m_fScrollBarWidth + 1), 13.0f, 0xFF6B4A1A);
         mu::GetRenderer().SetTexture2D(true);
     }
 
