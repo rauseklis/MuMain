@@ -16,6 +16,7 @@
 #include "World/MapInfra/MapManager.h"
 #include "Audio/DSPlaySound.h"
 #include "Camera/CameraProjection.h"
+#include "Engine/Object/ZzzInfomation.h"
 #include "Render/Renderer/MuRenderer.h"
 
 using namespace SEASON3B;
@@ -90,6 +91,7 @@ bool CNewUIInGameShop::Render()
     RenderBanner();
     RenderListBox();
     RenderDisplayItems();
+    RenderItemTooltip();
     DisableAlphaBlend();
     return true;
 }
@@ -193,7 +195,7 @@ void CNewUIInGameShop::RenderTexts()
     g_pRenderText->RenderText(m_Pos.x + TEXT_IGS_STORAGE_PAGE_INFO_POS_X + 48, m_Pos.y + TEXT_IGS_STORAGE_PAGE_INFO_POS_Y, szText, 20, 0, RT3_SORT_LEFT);
 
 #ifdef KJH_MOD_SHOP_SCRIPT_DOWNLOAD
-#ifdef FOR_WORK
+#ifdef IGS_DEBUG_OVERLAY
     g_pRenderText->SetTextColor(210, 180, 230, 255);
     g_pRenderText->SetFont(g_hFont);
 
@@ -338,7 +340,17 @@ void CNewUIInGameShop::RenderDisplayItems()
     {
         int iPosX = IGS_ITEMRENDER_POS_X_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_X * (i % IGS_NUM_ITEMS_WIDTH));
         int iPosY = IGS_ITEMRENDER_POS_Y_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_Y * (i / IGS_NUM_ITEMS_HEIGHT));
-        RenderItem3D(iPosX, iPosY, IGS_ITEMRENDER_POS_WIDTH, IGS_ITEMRENDER_POS_HEIGHT, g_InGameShopSystem->GetPackageItemCode(i), 0, 0, 0, true);
+        // The item is measured and fitted into the picture area: centered, and about the same size.
+        // Small one-cell items (seals, jewels) would look huge next to scrolls, so they get less of the area.
+        const int iItemType = g_InGameShopSystem->GetPackageItemCode(i);
+        const ITEM_ATTRIBUTE& itemAttr = ItemAttribute[iItemType];
+        float fFill = (itemAttr.Width * itemAttr.Height >= 2) ? 0.62f : 0.42f;
+        if (iItemType / MAX_ITEM_INDEX == 12)
+        {
+            fFill *= 0.5f; // the jewel bundles of group 12 are drawn at half of that
+        }
+        RenderItem3DFittedToSlot(static_cast<float>(iPosX), static_cast<float>(iPosY), IGS_ITEMRENDER_POS_WIDTH,
+                                 IGS_ITEMRENDER_POS_HEIGHT, iItemType, 0, 0, 0, fFill, true);
     }
 
     UpdateMousePositionn();
@@ -349,6 +361,36 @@ void CNewUIInGameShop::RenderDisplayItems()
     mu::GetRenderer().PopMatrix();
 
     BeginBitmap();
+}
+
+// Shows the tooltip of the item of the package under the mouse, like the inventory does.
+void CNewUIInGameShop::RenderItemTooltip()
+{
+    for (int i = 0; i < g_InGameShopSystem->GetSizePackageAsDisplayPackage(); i++)
+    {
+        const int iPosX =
+            IGS_ITEMRENDER_POS_X_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_X * (i % IGS_NUM_ITEMS_WIDTH));
+        const int iPosY =
+            IGS_ITEMRENDER_POS_Y_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_Y * (i / IGS_NUM_ITEMS_HEIGHT));
+        if (!SEASON3B::CheckMouseIn(iPosX, iPosY, IGS_ITEMRENDER_POS_WIDTH, IGS_ITEMRENDER_POS_HEIGHT))
+        {
+            continue;
+        }
+
+        const int iItemType = g_InGameShopSystem->GetPackageItemCode(i);
+        if (iItemType < 0 || iItemType >= MAX_ITEM)
+        {
+            return;
+        }
+
+        ITEM item;
+        item.Type = iItemType;
+        item.Level = 0;
+        item.Durability = 1;
+        SetItemAttributes(&item);
+        RenderItemInfo(iPosX + IGS_ITEMRENDER_POS_WIDTH, iPosY, &item, false);
+        return;
+    }
 }
 
 bool CNewUIInGameShop::BtnProcess()
@@ -516,7 +558,7 @@ void CNewUIInGameShop::SetBtnInfo()
     std::list<std::wstring> TextList;
     strText = I18N::Game::Storage;
     TextList.push_back(strText);
-    strText = I18N::Game::GiftInventory;
+    strText = L"Gifts";
     TextList.push_back(strText);
 
     m_ListBoxTabButton.ChangeRadioText(TextList);

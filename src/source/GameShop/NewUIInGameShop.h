@@ -88,7 +88,7 @@ private:
         IMAGE_IGS_TAB_BTN_DISTANCE = -2,
         IMAGE_IGS_ZONE_BTN_POS_X = 95, // Zone Button
         IMAGE_IGS_ZONE_BTN_POS_Y = 0,
-        IMAGE_IGS_VIEWDETAIL_BTN_POS_X = 162, // View Detail Button
+        IMAGE_IGS_VIEWDETAIL_BTN_POS_X = 130, // View Detail Button
         IMAGE_IGS_VIEWDETAIL_BTN_POS_Y = 126,
         IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_X = 122,
         IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_Y = 121,
@@ -250,6 +250,7 @@ private:
     void RenderButtons();
     void RenderListBox();
     void RenderDisplayItems();
+    void RenderItemTooltip();
 
     void RenderBanner();
     bool UpdateBanner();

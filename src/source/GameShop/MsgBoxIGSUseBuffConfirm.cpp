@@ -54,6 +54,7 @@ void CMsgBoxIGSUseBuffConfirm::Initialize(int iStorageSeq, int iStorageItemSeq, 
     wcscpy(m_szCurrentBuffName, pszBuffName);
 
     mu_swprintf(szText, I18N::Game::UsingTheSItemWillNegate, pszItemName, pszBuffName, pszItemName);
+    memset(m_szDescription, 0, sizeof(m_szDescription));
     m_iDesciptionLine = ::DivideStringByPixel(&m_szDescription[0][0], UIMAX_TEXT_LINE, MAX_TEXT_LENGTH, szText, IGS_TEXT_DIVIDE_WIDTH, false, '#');
 }
 
@@ -179,7 +180,7 @@ void CMsgBoxIGSUseBuffConfirm::RenderTexts()
         g_pRenderText->RenderText(GetPos().x + IGS_TEXT_DESCRIPTION_POS_X, GetPos().y + IGS_TEXT_DESCRIPTION_POS_Y + (i * IGS_TEXT_DESCRIPTION_INTERVAL), m_szDescription[i], IGS_TEXT_DESCRIPTION_WIDTH, 0, RT3_SORT_LEFT);
     }
 
-#ifdef FOR_WORK
+#ifdef IGS_DEBUG_OVERLAY
     wchar_t szText[256] = { 0, };
     g_pRenderText->SetTextColor(255, 0, 0, 255);
     mu_swprintf(szText, L"m_iStorageSeq : %d", m_iStorageSeq);
