@@ -340,8 +340,8 @@ void CNewUIInGameShop::RenderDisplayItems()
     {
         int iPosX = IGS_ITEMRENDER_POS_X_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_X * (i % IGS_NUM_ITEMS_WIDTH));
         int iPosY = IGS_ITEMRENDER_POS_Y_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_Y * (i / IGS_NUM_ITEMS_HEIGHT));
-        // The item is measured and fitted into the picture area, so every item is centered and about the same size.
-        // Small one-cell items (seals, jewels) would fill the whole area and look huge next to scrolls, so they get less of it.
+        // The item is measured and fitted into the picture area: centered, and about the same size.
+        // Small one-cell items (seals, jewels) would look huge next to scrolls, so they get less of the area.
         const int iItemType = g_InGameShopSystem->GetPackageItemCode(i);
         const ITEM_ATTRIBUTE& itemAttr = ItemAttribute[iItemType];
         float fFill = (itemAttr.Width * itemAttr.Height >= 2) ? 0.62f : 0.42f;
@@ -349,7 +349,8 @@ void CNewUIInGameShop::RenderDisplayItems()
         {
             fFill *= 0.5f; // the jewel bundles of group 12 are drawn at half of that
         }
-        RenderItem3DFittedToSlot(static_cast<float>(iPosX), static_cast<float>(iPosY), IGS_ITEMRENDER_POS_WIDTH, IGS_ITEMRENDER_POS_HEIGHT, iItemType, 0, 0, 0, fFill, true);
+        RenderItem3DFittedToSlot(static_cast<float>(iPosX), static_cast<float>(iPosY), IGS_ITEMRENDER_POS_WIDTH,
+                                 IGS_ITEMRENDER_POS_HEIGHT, iItemType, 0, 0, 0, fFill, true);
     }
 
     UpdateMousePositionn();
@@ -367,8 +368,10 @@ void CNewUIInGameShop::RenderItemTooltip()
 {
     for (int i = 0; i < g_InGameShopSystem->GetSizePackageAsDisplayPackage(); i++)
     {
-        const int iPosX = IGS_ITEMRENDER_POS_X_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_X * (i % IGS_NUM_ITEMS_WIDTH));
-        const int iPosY = IGS_ITEMRENDER_POS_Y_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_Y * (i / IGS_NUM_ITEMS_HEIGHT));
+        const int iPosX =
+            IGS_ITEMRENDER_POS_X_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_X * (i % IGS_NUM_ITEMS_WIDTH));
+        const int iPosY =
+            IGS_ITEMRENDER_POS_Y_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_Y * (i / IGS_NUM_ITEMS_HEIGHT));
         if (!SEASON3B::CheckMouseIn(iPosX, iPosY, IGS_ITEMRENDER_POS_WIDTH, IGS_ITEMRENDER_POS_HEIGHT))
         {
             continue;
