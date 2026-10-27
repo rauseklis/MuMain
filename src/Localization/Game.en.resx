@@ -10224,7 +10224,7 @@
     <comment>legacy_id=2922</comment>
   </data>
   <data name="DoYouWishToUseS" xml:space="preserve">
-    <value>Do you wish to use %s?##*With the exception of seals and scrolls, all items will be transferred to your Inventory.##Items removed from storage or gift inventory cannot be recovered or returned.</value>
+    <value>Do you wish to use %s?##The item will be moved to your Inventory.##Items removed from storage or gift inventory cannot be recovered or returned.</value>
     <comment>legacy_id=2923</comment>
   </data>
   <data name="Item Used" xml:space="preserve">

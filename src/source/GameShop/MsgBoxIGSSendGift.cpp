@@ -92,6 +92,8 @@ void CMsgBoxIGSSendGift::Initialize(int iPackageSeq, int iDisplaySeq, int iPrice
     mu_swprintf(m_szPrice, I18N::Game::PriceS, pszPrice);
     mu_swprintf(m_szPeriod, I18N::Game::DurationS, pszPeriod);
 
+    memset(m_szNotice, 0, sizeof(m_szNotice));
+
     m_iNumNoticeLine = ::DivideStringByPixel(&m_szNotice[0][0], NUM_LINE_CMB, MAX_TEXT_LENGTH, I18N::Game::GiftedItemsCannotBeReturnedDeliverTheGiftS, IGS_TEXT_NOTICE_WIDTH);
 }
 
@@ -248,7 +250,7 @@ void CMsgBoxIGSSendGift::RenderTexts()
         g_pRenderText->RenderText(GetPos().x, GetPos().y + IGS_TEXT_NOTICE_POS_Y + i * 10, m_szNotice[i], IMAGE_IGS_FRAME_WIDTH, 0, RT3_SORT_CENTER);
     }
 
-#ifdef FOR_WORK
+#ifdef IGS_DEBUG_OVERLAY
     wchar_t szText[256] = { 0, };
     g_pRenderText->SetTextColor(255, 0, 0, 255);
     mu_swprintf(szText, L"Package Seq : %d", m_iPackageSeq);

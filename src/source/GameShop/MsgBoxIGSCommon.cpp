@@ -45,6 +45,8 @@ void CMsgBoxIGSCommon::Initialize(const wchar_t* pszTitle, const wchar_t* pszTex
 {
     wcscpy(m_szTitle, pszTitle);
 
+    memset(m_szText, 0, sizeof(m_szText));
+
     m_iNumTextLine = ::DivideStringByPixel(&m_szText[0][0], NUM_LINE_CMB, MAX_TEXT_LENGTH, pszText, IGS_TEXT_ITEM_INFO_WIDTH, true, '#');
 
     if (m_iNumTextLine > IGS_NUM_TEXT_LIMIT_RENDER_MIDDLE_LINE)

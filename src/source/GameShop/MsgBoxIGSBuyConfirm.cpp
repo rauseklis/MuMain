@@ -58,6 +58,7 @@ void CMsgBoxIGSBuyConfirm::Initialize(WORD wItemCode, int iPackageSeq, int iDisp
     mu_swprintf(m_szItemPeriod, I18N::Game::DurationS, pszPeriod);
 
     //int m_iNumNoticeLine = SeparateTextIntoLines( I18N::Game::BoughtItemsUsedOrTakenOutOfStorageCannotBeReturned, txtline[0], NUM_LINE_CMB, MAX_LENGTH_CMB);
+    memset(m_szNotice, 0, sizeof(m_szNotice));
     m_iNumNoticeLine = ::DivideStringByPixel(&m_szNotice[0][0], NUM_LINE_CMB, MAX_TEXT_LENGTH, I18N::Game::BoughtItemsUsedOrTakenOutOfStorageCannotBeReturned, IGS_TEXT_NOTICE_WIDTH);
 }
 
@@ -179,7 +180,7 @@ void CMsgBoxIGSBuyConfirm::RenderTexts()
         g_pRenderText->RenderText(GetPos().x, GetPos().y + IGS_TEXT_NOTICE_POS_Y + (i * 10), m_szNotice[i], IMAGE_IGS_FRAME_WIDTH, 0, RT3_SORT_CENTER);
     }
 
-#ifdef FOR_WORK
+#ifdef IGS_DEBUG_OVERLAY
     wchar_t szText[256] = { 0, };
     g_pRenderText->SetTextColor(255, 0, 0, 255);
     if (m_wItemCode == 65535)

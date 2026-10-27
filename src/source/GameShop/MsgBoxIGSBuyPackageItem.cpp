@@ -98,6 +98,7 @@ void CMsgBoxIGSBuyPackageItem::Initialize(CShopPackage* pPackage)
     ZeroMemory(m_szDescription, sizeof(wchar_t) * UIMAX_TEXT_LINE * MAX_TEXT_LENGTH);
 
     g_pRenderText->SetFont(g_hFont);
+    memset(m_szDescription, 0, sizeof(m_szDescription));
     int nLine = ::DivideStringByPixel(&m_szDescription[0][0], UIMAX_TEXT_LINE, MAX_TEXT_LENGTH, pPackage->Description, IGS_LISTBOX_WIDTH, false, '#');
 
     for (int i = 0; i < nLine; ++i)
@@ -182,7 +183,7 @@ void CMsgBoxIGSBuyPackageItem::RenderTexts()
 
     g_pRenderText->RenderText(GetPos().x + IGS_TEXT_PRICE_POS_X, GetPos().y + IGS_TEXT_PRICE_POX_Y, m_szPrice, IGS_TEXT_PRICE_WIDTH, 0, RT3_SORT_RIGHT);
 
-#ifdef FOR_WORK
+#ifdef IGS_DEBUG_OVERLAY
     wchar_t szText[256] = { '\0', };
     g_pRenderText->SetTextColor(255, 0, 0, 255);
     if (m_wItemCode == 65535)

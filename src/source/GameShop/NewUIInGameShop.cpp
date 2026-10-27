@@ -195,7 +195,7 @@ void CNewUIInGameShop::RenderTexts()
     g_pRenderText->RenderText(m_Pos.x + TEXT_IGS_STORAGE_PAGE_INFO_POS_X + 48, m_Pos.y + TEXT_IGS_STORAGE_PAGE_INFO_POS_Y, szText, 20, 0, RT3_SORT_LEFT);
 
 #ifdef KJH_MOD_SHOP_SCRIPT_DOWNLOAD
-#ifdef FOR_WORK
+#ifdef IGS_DEBUG_OVERLAY
     g_pRenderText->SetTextColor(210, 180, 230, 255);
     g_pRenderText->SetFont(g_hFont);
 
@@ -315,9 +315,6 @@ void CNewUIInGameShop::SetRateScale(int _ItemType)
 // BEFORE BeginBitmap() is called again (unlike CNewUI3DCamera::Render(), where it runs after) — a
 // genuine save/restore of whatever context was active at entry, not a BeginBitmap()-delegated
 // restore, hence its own pre-panel snapshot below.
-// The size of one inventory cell, which the anchors of the item models refer to.
-static constexpr int ITEM_SLOT_SIZE = 20;
-
 static float s_PreShopProj[16];
 static float s_PreShopView[16];
 
@@ -343,13 +340,8 @@ void CNewUIInGameShop::RenderDisplayItems()
     {
         int iPosX = IGS_ITEMRENDER_POS_X_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_X * (i % IGS_NUM_ITEMS_WIDTH));
         int iPosY = IGS_ITEMRENDER_POS_Y_STANDAD + (IMAGE_IGS_VIEWDETAIL_BTN_DISTANCE_Y * (i / IGS_NUM_ITEMS_HEIGHT));
-        // The anchors of the item models are tuned for the slot the item has in the inventory, so the item is drawn in a
-        // slot of its own size which is centered in the picture area of the package.
-        const int iItemType = g_InGameShopSystem->GetPackageItemCode(i);
-        const ITEM_ATTRIBUTE* pItemAttr = &ItemAttribute[iItemType];
-        const float fSlotWidth = static_cast<float>(pItemAttr->Width * ITEM_SLOT_SIZE);
-        const float fSlotHeight = static_cast<float>(pItemAttr->Height * ITEM_SLOT_SIZE);
-        RenderItem3D(iPosX + (IGS_ITEMRENDER_POS_WIDTH - fSlotWidth) / 2.0f, iPosY + (IGS_ITEMRENDER_POS_HEIGHT - fSlotHeight) / 2.0f, fSlotWidth, fSlotHeight, iItemType, 0, 0, 0, true);
+        // The item is measured and fitted into the picture area, so every item is centered and about the same size.
+        RenderItem3DFittedToSlot(static_cast<float>(iPosX), static_cast<float>(iPosY), IGS_ITEMRENDER_POS_WIDTH, IGS_ITEMRENDER_POS_HEIGHT, g_InGameShopSystem->GetPackageItemCode(i), 0, 0, 0, 0.8f, true);
     }
 
     UpdateMousePositionn();
@@ -555,7 +547,7 @@ void CNewUIInGameShop::SetBtnInfo()
     std::list<std::wstring> TextList;
     strText = I18N::Game::Storage;
     TextList.push_back(strText);
-    strText = I18N::Game::GiftInventory;
+    strText = L"Gifts";
     TextList.push_back(strText);
 
     m_ListBoxTabButton.ChangeRadioText(TextList);
