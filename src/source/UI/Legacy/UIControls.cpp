@@ -188,15 +188,11 @@ CUIControl::CUIControl()
 {
     m_dwUIID = CreateUIID();
     m_dwParentUIID = 0;
-    // cppcheck-suppress virtualCallInConstructor
     SetState(0);
     m_iOptions = 0;
     SetPosition(0, 0);
-    // cppcheck-suppress virtualCallInConstructor
     SetSize(100, 100);
-    // cppcheck-suppress virtualCallInConstructor
     SetArrangeType();
-    // cppcheck-suppress virtualCallInConstructor
     SetResizeType();
     m_iCoordType = COORDINATE_TYPE_LEFT_TOP;
 }
@@ -500,7 +496,6 @@ CUITextListBox<T>::CUITextListBox()
     m_bUseSelectLine = FALSE;
     m_bPressCursorKey = 0;
     m_bNewTypeScrollBar = TRUE;
-    // cppcheck-suppress virtualCallInConstructor
     SLSetSelectLine(0);
     m_bUseNewUIScrollBar = FALSE;
 }
@@ -508,7 +503,6 @@ CUITextListBox<T>::CUITextListBox()
 template <class T>
 CUITextListBox<T>::~CUITextListBox()
 {
-    // cppcheck-suppress virtualCallInConstructor
     Clear();
 }
 
