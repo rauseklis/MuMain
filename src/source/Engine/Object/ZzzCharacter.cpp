@@ -2795,7 +2795,7 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
                 c->SetLastAttackEffectTime();
             }
 
-            if (Render::Effects::SkillTiming::CrossedUp(o->PriorAnimationFrame, o->AnimationFrame, 3.0f))
+            if (c->CheckAttackTime(3))
             {
                 o->PKKey = getTargetCharacterKey(c, SelectedCharacter);
 
@@ -2814,6 +2814,7 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
 
                 float AttackSpeed1 = CharacterAttribute->AttackSpeed * 0.004f; //
                 Models[MODEL_PLAYER].Actions[PLAYER_ATTACK_SKILL_WHEEL].PlaySpeed = 0.54f + AttackSpeed1;
+                c->SetLastAttackEffectTime();
                 c->AttackTime = 15;
             }
         }
@@ -4611,7 +4612,7 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
             for (int i = 0; i < 4; i++)
             {
                 vec3_t Angle;
-                Vector(0.f, 0.f, i * 90.f, Angle);
+                Vector(0.f, 0.f, Render::Effects::SkillTiming::CardinalAngle(i), Angle);
 
                 int SkillIndex = FindHotKey((c->Skill));
                 // SubType 26 is Evil Spirit's own joint subtype (distinct from the shared SubType 0

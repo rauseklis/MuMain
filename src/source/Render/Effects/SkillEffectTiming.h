@@ -19,6 +19,21 @@ inline bool CrossedUp(float previous, float current, float threshold)
     return previous < threshold && current >= threshold;
 }
 
+// Effect lifetimes count down by one legacy tick at 25 Hz and by a fractional
+// tick at higher render rates. This detects the one rendered frame which
+// crosses a legacy lifetime milestone without relying on an integer cast.
+inline bool CrossedDown(float current, float frameFactor, float threshold)
+{
+    constexpr float epsilon = 0.0001f;
+    const float step = std::clamp(frameFactor, 0.0f, 1.0f);
+    return current <= threshold + epsilon && current + step > threshold + epsilon;
+}
+
+inline float CardinalAngle(int index)
+{
+    return static_cast<float>((index % 4) * 90);
+}
+
 // Returns the number of legacy 25 Hz events due now, then advances the phase
 // by this rendered frame. Set phase to 1 for an event on the first update.
 inline int ReferenceEventsDue(float& phase, float frameFactor)

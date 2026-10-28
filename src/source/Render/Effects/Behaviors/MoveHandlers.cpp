@@ -3020,7 +3020,7 @@ namespace Render::Effects::Behaviors
         Vector(0.f, 0.f, 0.f, Angle);
         Vector(0.f, 0.f, 0.f, p);
 
-        if ((int)o->LifeTime == 11)
+        if (SkillTiming::CrossedDown(o->LifeTime, FPS_ANIMATION_FACTOR, 11.0f))
         {
             vec3_t  light;
             Vector(1.f, 1.f, 1.f, light);
@@ -3053,28 +3053,26 @@ namespace Render::Effects::Behaviors
             o->StartPosition[2] = RequestTerrainHeight(o->StartPosition[0], o->StartPosition[1]) + AddHeight;
             AddHeight = 3.f;
 
-            CreateParticleFpsChecked(BITMAP_EXPLOTION, o->StartPosition, Angle, light, 0, 0.5f);
+            CreateParticle(BITMAP_EXPLOTION, o->StartPosition, Angle, light, 0, 0.5f);
 
             if (o->Kind == 0)
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    if (rand_fps_check(1))
-                    {
-                        Vector((float)(rand() % 60 - 60.f), 0.f, (float)(rand() % 30 + 90), Angle);
-                        VectorAdd(Angle, o->Angle, Angle);
-                        VectorCopy(o->StartPosition, Position);
-                        Position[0] += rand() % 20 - 10;
-                        Position[1] += rand() % 20 - 10;
-                        CreateJointFpsChecked(BITMAP_JOINT_SPARK, Position, Position, Angle);
-                        if (rand_fps_check(8)) CreateParticleFpsChecked(BITMAP_SPARK, Position, Angle, Light);
-                    }
+                    Vector((float)(rand() % 60 - 60.f), 0.f, (float)(rand() % 30 + 90), Angle);
+                    VectorAdd(Angle, o->Angle, Angle);
+                    VectorCopy(o->StartPosition, Position);
+                    Position[0] += rand() % 20 - 10;
+                    Position[1] += rand() % 20 - 10;
+                    CreateJoint(BITMAP_JOINT_SPARK, Position, Position, Angle);
+                    if (rand() % 8 == 0)
+                        CreateParticle(BITMAP_SPARK, Position, Angle, Light);
                 }
             }
             Vector(0.f, 0.f, 0.f, Angle);
 
             if (o->Kind == 0)
-                CreateEffectFpsChecked(MODEL_WAVE, o->StartPosition, Angle, o->Light);
+                CreateEffect(MODEL_WAVE, o->StartPosition, Angle, o->Light);
 
             o->StartPosition[2] -= 27; //* FPS_ANIMATION_FACTOR;
 
@@ -3082,9 +3080,9 @@ namespace Render::Effects::Behaviors
             {
                 if (o->Owner->Type != MODEL_WEREWOLF_HERO)
                 {
-                    CreateEffectFpsChecked(MODEL_SKILL_FURY_STRIKE + 3, o->StartPosition, Angle, o->Light, 0, o, scale);
-                    CreateEffectFpsChecked(MODEL_SKILL_FURY_STRIKE + 1, o->StartPosition, Angle, o->Light, 0, o, scale);
-                    CreateEffectFpsChecked(MODEL_SKILL_FURY_STRIKE + 2, o->StartPosition, Angle, o->Light, 0, o, scale);
+                    CreateEffect(MODEL_SKILL_FURY_STRIKE + 3, o->StartPosition, Angle, o->Light, 0, o, scale);
+                    CreateEffect(MODEL_SKILL_FURY_STRIKE + 1, o->StartPosition, Angle, o->Light, 0, o, scale);
+                    CreateEffect(MODEL_SKILL_FURY_STRIKE + 2, o->StartPosition, Angle, o->Light, 0, o, scale);
                 }
             }
 
@@ -3114,12 +3112,12 @@ namespace Render::Effects::Behaviors
                     }
                     Position[2] = RequestTerrainHeight(Position[0], Position[1]) + AddHeight;
 
-                    CreateEffectFpsChecked(MODEL_SKILL_FURY_STRIKE + 4, Position, Angle, o->Light, 0, o->Owner, scale);
-                    CreateEffectFpsChecked(MODEL_SKILL_FURY_STRIKE + 5, Position, Angle, o->Light, 0, o->Owner, scale);
+                    CreateEffect(MODEL_SKILL_FURY_STRIKE + 4, Position, Angle, o->Light, 0, o->Owner, scale);
+                    CreateEffect(MODEL_SKILL_FURY_STRIKE + 5, Position, Angle, o->Light, 0, o->Owner, scale);
                 }
             }
         }
-        else if ((int)o->LifeTime == 10)
+        else if (SkillTiming::CrossedDown(o->LifeTime, FPS_ANIMATION_FACTOR, 10.0f))
         {
             for (int j = 0; j < 5; ++j)
             {
@@ -3161,8 +3159,8 @@ namespace Render::Effects::Behaviors
                             Pos[i][2] = RequestTerrainHeight(Pos[i][0], Pos[i][1]) + 3;
                         Angle[2] += 270.f;
 
-                        CreateEffectFpsChecked(MODEL_SKILL_FURY_STRIKE + 7, Pos[i], Angle, o->Light, 0, o->Owner, 100);
-                        CreateEffectFpsChecked(MODEL_SKILL_FURY_STRIKE + 8, Pos[i], Angle, o->Light, 0, o->Owner, 100);
+                        CreateEffect(MODEL_SKILL_FURY_STRIKE + 7, Pos[i], Angle, o->Light, 0, o->Owner, 100);
+                        CreateEffect(MODEL_SKILL_FURY_STRIKE + 8, Pos[i], Angle, o->Light, 0, o->Owner, 100);
                     }
                 }
 
@@ -3180,13 +3178,13 @@ namespace Render::Effects::Behaviors
             {
                 count = 12.5;
                 addAngle = 18.f;
-                if ((int)o->LifeTime == 15)
-                    o->Gravity *= pow(-1, FPS_ANIMATION_FACTOR);
+                if (SkillTiming::CrossedDown(o->LifeTime, FPS_ANIMATION_FACTOR, 15.0f))
+                    o->Gravity = -o->Gravity;
             }
 
             if (o->Kind == 0)
             {
-                if ((int)o->LifeTime == 13)
+                if (SkillTiming::CrossedDown(o->LifeTime, FPS_ANIMATION_FACTOR, 13.0f))
                 {
                     vec3_t  pos;
                     Vector(0.f, 0.f, 0.f, Angle);
@@ -3201,7 +3199,7 @@ namespace Render::Effects::Behaviors
                     {
                         position[0] = pos[0]; position[1] = pos[1];
                         position[2] = pos[2] - (i * 50);
-                        CreateEffectFpsChecked(MODEL_TAIL, position, Angle, o->Light);
+                        CreateEffect(MODEL_TAIL, position, Angle, o->Light);
                     }
                     pos[0] += rand() % 30 + 20;
                     pos[2] += rand() % 500 - 250;
@@ -3210,7 +3208,7 @@ namespace Render::Effects::Behaviors
                     {
                         position[0] = pos[0]; position[1] = pos[1];
                         position[2] = pos[2] - (i * 30);
-                        CreateEffectFpsChecked(MODEL_TAIL, position, Angle, o->Light);
+                        CreateEffect(MODEL_TAIL, position, Angle, o->Light);
                     }
                     PlayBuffer(SOUND_FURY_STRIKE2);
                 }
@@ -5069,13 +5067,15 @@ namespace Render::Effects::Behaviors
             {
                 vec3_t Light;
                 Vector(1.f, 1.f, 1.f, Light);
-                CreateJointFpsChecked(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 10, o->Owner, 150.f, o->PKKey, o->Skill, 0, -1, Light);
+                CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 10, o->Owner, 150.f, o->PKKey,
+                            o->Skill, 0, -1, Light);
             }
+            else if (o->SubType == 0)
+                CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 0, o->Owner, 150.f, o->PKKey,
+                            o->Skill);
             else
-                if (o->SubType == 0)
-                    CreateJointFpsChecked(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 0, o->Owner, 150.f, o->PKKey, o->Skill);
-                else
-                    CreateJointFpsChecked(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 8, o->Owner, 150.f, o->PKKey, o->Skill);
+                CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 8, o->Owner, 150.f, o->PKKey,
+                            o->Skill);
         }
         return true;
     }
@@ -5687,16 +5687,6 @@ namespace Render::Effects::Behaviors
                 VectorCopy(o->Owner->Position, p);
                 VectorAdd(p, o->StartPosition, p);
 
-                // The homing re-steer is sub-stepped Gravity-1 times per call for a
-                // smooth curved approach. Trail-child spawning used to live inside
-                // this same loop, so as Gravity grew over the projectile's flight
-                // the number of spawn attempts per call grew with it -- right as
-                // the projectile converged on the target, this produced a dense
-                // burst of trail children clustered around it (the reported ring
-                // of discrete meshes). Spawning is now done once per call below,
-                // independent of Gravity, so trail density stays flat and
-                // time-based (via CreateEffectFpsChecked's own FPS scaling) for
-                // the whole flight instead of escalating near the target.
                 float Distance = 0.0f;
                 for (int i = 1; i < o->Gravity; ++i)
                 {
@@ -5718,11 +5708,10 @@ namespace Render::Effects::Behaviors
                     AngleMatrix(o->Angle, Matrix);
                     VectorRotate(o->Direction, Matrix, Position);
                     VectorAddScaled(o->Position, Position, o->Position, FPS_ANIMATION_FACTOR);
-                }
-                const int trailSegments = SkillTiming::ReferenceEventsDue(o->Timer, FPS_ANIMATION_FACTOR);
-                for (int segment = 0; segment < trailSegments; ++segment)
-                {
-                    CreateEffect(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
+
+                    // This child is part of every canonical homing sub-step. Moving
+                    // it outside the loop chops the projectile's curved fire trail.
+                    CreateEffectFpsChecked(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
                 }
                 if (Distance < 40 && (int)o->LifeTime == 5)
                 {
@@ -5730,8 +5719,6 @@ namespace Render::Effects::Behaviors
                     Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
                 }
                 o->Gravity += (0.1f) * FPS_ANIMATION_FACTOR;
-                if (o->Gravity > 5.f)
-                    o->Gravity = 5.f;
 
                 PlayBuffer(SOUND_ATTACK_FIRE_BUST_EXP);
             }

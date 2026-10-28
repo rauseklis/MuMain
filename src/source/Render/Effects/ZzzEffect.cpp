@@ -1861,6 +1861,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 break;
             case MODEL_SKILL_WHEEL1:
                 o->LifeTime = 5;
+                o->Timer = 0.0f;
                 CharacterMachine->PacketSerial++;
                 break;
             case MODEL_SKILL_WHEEL2:
@@ -3392,7 +3393,6 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->SubType == 0)
                 {
                     o->LifeTime = 20;
-                    o->Timer = 1.0f;
                     o->Gravity = 2.f;
                     o->Velocity = 10.f;
                     o->HiddenMesh = 1;
@@ -3405,10 +3405,10 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 }
                 else if (o->SubType == 1)
                 {
-                    o->LifeTime = 12.f;
+                    o->LifeTime = o->Owner->LifeTime;
                     o->HiddenMesh = 0;
                     o->Scale = 0.5f;
-                    o->Alpha = 1.0f;
+                    o->Alpha = (float)((20 - o->LifeTime) / 5.f);
                     Vector(0.f, 0.f, 0.f, o->Direction);
 
                     CreateParticle(BITMAP_FIRE + 1, o->Position, o->Angle, o->Light, 0, 1.0f, o);
