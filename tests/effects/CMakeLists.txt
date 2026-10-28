@@ -28,3 +28,21 @@ mu_add_test(
     SOURCES
         test_monster_dash.cpp
 )
+
+mu_add_test(
+    NAME test_skill_effect_timing
+    SOURCES
+        test_skill_effect_timing.cpp
+)
+
+add_test(
+    NAME reported_skill_effect_contract
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_reported_skill_effect_contract.py"
+        "${CMAKE_SOURCE_DIR}"
+)
+
+add_test(
+    NAME all_skill_effect_contract
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_all_skill_effect_contract.py"
+        "${CMAKE_SOURCE_DIR}"
+)

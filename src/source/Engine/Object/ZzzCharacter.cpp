@@ -7,6 +7,7 @@
 
 #include "stdafx.h"
 #include "Render/Effects/WeaponTrailTiming.h"
+#include "Render/Effects/SkillEffectTiming.h"
 #include "GameLogic/NPCs/MonsterDash.h"
 #include "Render/Items/RoyalMaceFlames.h"
 #include "Core/Time/FrameTiming.h"
@@ -2686,14 +2687,11 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
             if (c->TargetCharacter != -1)
             {
                 CHARACTER* tc = &CharactersClient[c->TargetCharacter];
-                if (c->TargetCharacter != -1)
+                OBJECT* to = &tc->Object;
+                if (10 <= c->AttackTime && to->Live)
                 {
-                    OBJECT* to = &tc->Object;
-                    if (10 <= c->AttackTime && to->Live)
-                    {
-                        //PlayBuffer( SOUND_THUNDER01);
-                        to->m_byHurtByDeathstab = 35;
-                    }
+                    // PlayBuffer( SOUND_THUNDER01);
+                    to->m_byHurtByDeathstab = 35;
                 }
             }
         }
@@ -2797,7 +2795,7 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
                 c->SetLastAttackEffectTime();
             }
 
-            if (o->AnimationFrame >= 3.f && rand_fps_check(1))
+            if (Render::Effects::SkillTiming::CrossedUp(o->PriorAnimationFrame, o->AnimationFrame, 3.0f))
             {
                 o->PKKey = getTargetCharacterKey(c, SelectedCharacter);
 
@@ -2805,14 +2803,16 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
 
                 if (iSkill == AT_SKILL_FIRE_SLASH_STR)
                 {
-                    CreateEffect(BITMAP_SWORD_FORCE, o->Position, o->Angle, o->Light, 1, o, o->PKKey, FindHotKey(iSkill));
+                    CreateEffect(BITMAP_SWORD_FORCE, o->Position, o->Angle, o->Light, 1, o, o->PKKey,
+                                 FindHotKey(iSkill));
                 }
                 else
                 {
-                    CreateEffect(BITMAP_SWORD_FORCE, o->Position, o->Angle, o->Light, 0, o, o->PKKey, FindHotKey(iSkill));
+                    CreateEffect(BITMAP_SWORD_FORCE, o->Position, o->Angle, o->Light, 0, o, o->PKKey,
+                                 FindHotKey(iSkill));
                 }
 
-                float AttackSpeed1 = CharacterAttribute->AttackSpeed * 0.004f;//
+                float AttackSpeed1 = CharacterAttribute->AttackSpeed * 0.004f; //
                 Models[MODEL_PLAYER].Actions[PLAYER_ATTACK_SKILL_WHEEL].PlaySpeed = 0.54f + AttackSpeed1;
                 c->AttackTime = 15;
             }
@@ -2822,7 +2822,7 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
 
     case AT_SKILL_POWER_SLASH:
     case AT_SKILL_POWER_SLASH_STR:
-        if (o->Type == MODEL_PLAYER && o->CurrentAction == PLAYER_ATTACK_TWO_HAND_SWORD_TWO && rand_fps_check(1))
+        if (o->Type == MODEL_PLAYER && o->CurrentAction == PLAYER_ATTACK_TWO_HAND_SWORD_TWO)
         {
             vec3_t Angle;
 
@@ -2961,8 +2961,8 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
             }
         }
         break;
-    case    AT_SKILL_SPIRAL_SLASH:
-        if (o->AnimationFrame > 5.f && rand_fps_check(1))
+    case AT_SKILL_SPIRAL_SLASH:
+        if (Render::Effects::SkillTiming::CrossedUp(o->PriorAnimationFrame, o->AnimationFrame, 5.0f))
         {
             CreateJoint(BITMAP_FLARE, o->Position, o->Position, o->Angle, 23, NULL, 40.f, 0);
             CreateJoint(BITMAP_FLARE, o->Position, o->Position, o->Angle, 23, NULL, 40.f, 1);
@@ -2971,7 +2971,7 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
 
             PlayBuffer(SOUND_BCS_ONE_FLASH);
         }
-        else if (o->AnimationFrame > 2.3f && o->AnimationFrame < 2.6f && rand_fps_check(1))
+        else if (Render::Effects::SkillTiming::CrossedUp(o->PriorAnimationFrame, o->AnimationFrame, 2.3f))
         {
             CreateJoint(BITMAP_FLARE, o->Position, o->Position, o->Angle, 23, NULL, 40.f, 2);
             CreateJoint(BITMAP_FLARE, o->Position, o->Position, o->Angle, 23, NULL, 40.f, 3);
@@ -4433,9 +4433,6 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
         case AT_SKILL_TWISTING_SLASH_MASTERY:
             o->Weapon = c->Weapon[0].Type - MODEL_SWORD;
             o->WeaponLevel = (BYTE)c->Weapon[0].Level;
-            // A new cast starts before the previous 25-tick orbit can expire.
-            // Keep one current weapon per character instead of overlapping casts.
-            DeleteEffect(MODEL_SKILL_WHEEL2, o);
             CreateEffect(MODEL_SKILL_WHEEL1, o->Position, o->Angle, o->Light, 0, o, o->PKKey, FindHotKey((c->Skill)));
 
             if (SceneFlag != LOG_IN_SCENE)
