@@ -1864,20 +1864,15 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 CharacterMachine->PacketSerial++;
                 break;
             case MODEL_SKILL_WHEEL2:
-                o->LifeTime = 25;//
+                o->LifeTime = 25; //
                 o->Weapon = CharacterMachine->PacketSerial;
-                // Drive the orbit sweep from its own phase instead of o->Angle[2]
-                // so the blade's render orientation stays fixed while it circles
-                // the caster (see Move_MODEL_SKILL_WHEEL2). StartPosition is
-                // otherwise unused by this effect.
-                o->StartPosition[0] = o->Angle[2];
                 break;
             case MODEL_SKILL_FURY_STRIKE:
             {
                 VectorCopy(o->Angle, o->HeadAngle);
                 VectorCopy(o->Position, o->StartPosition);
 
-                o->LifeTime = 20;//18;
+                o->LifeTime = 20; // 18;
                 o->SubType = rand() % 100;
                 o->Angle[2] += 330.f;
                 o->HeadAngle[0] += 80.f;
@@ -3111,27 +3106,32 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->BlendMesh = -2;
                     o->LifeTime = rand() % 15 + 15;
                     o->Gravity = -20.f;
+                    o->Distance = 1.0f;
                     o->Velocity = (float)(rand() % 360);
                     Vector(0.f, 0.f, 0.f, o->Light);
 
                     int rangeX, rangeY, rangeZ;
 
-                    rangeX = 300; rangeY = 150; rangeZ = 700;
+                    rangeX = 300;
+                    rangeY = 150;
+                    rangeZ = 700;
                     o->Scale = 0.5f;
-                    o->Gravity -= (rand() % 30 + 10) * FPS_ANIMATION_FACTOR;
+                    o->Gravity -= rand() % 30 + 10;
 
                     o->Position[0] = o->Position[0] + rand() % rangeX - rangeY;
                     o->Position[1] = o->Position[1] + rand() % rangeX - rangeY;
                     o->Position[2] = o->Position[2] + 600.f;
-                    o->Position[0] += (100.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += 100.f;
 
                     VectorCopy(o->Position, o->StartPosition);
 
                     if (o->SubType == 2)
                     {
-                        CreateJoint(BITMAP_JOINT_THUNDER + 1, o->Position, o->Position, o->Angle, 4, o, 60.f + rand() % 10);
-                        if (rand_fps_check(2))
-                            CreateJoint(BITMAP_JOINT_THUNDER + 1, o->Position, o->Position, o->Angle, 4, o, 60.f + rand() % 10);
+                        CreateJoint(BITMAP_JOINT_THUNDER + 1, o->Position, o->Position, o->Angle, 4, o,
+                                    60.f + rand() % 10);
+                        if ((rand() % 2) == 0)
+                            CreateJoint(BITMAP_JOINT_THUNDER + 1, o->Position, o->Position, o->Angle, 4, o,
+                                        60.f + rand() % 10);
                     }
                 }
                 else if (o->SubType == 1)
@@ -3392,6 +3392,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->SubType == 0)
                 {
                     o->LifeTime = 20;
+                    o->Timer = 1.0f;
                     o->Gravity = 2.f;
                     o->Velocity = 10.f;
                     o->HiddenMesh = 1;
@@ -3404,25 +3405,13 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 }
                 else if (o->SubType == 1)
                 {
-                    // Trail children used to inherit the owner projectile's remaining
-                    // lifetime, which ranges from nearly the full 20-tick flight (when
-                    // spawned early) down to almost nothing (when spawned late). Combined
-                    // with the spawn-rate fix in Move_MODEL_PIER_PART, that produced an
-                    // inconsistent, sometimes long-lived trail. Each child now gets a
-                    // short, fixed, time-based lifetime so every trail segment reliably
-                    // fades out quickly regardless of when in the flight it was created.
-                    o->LifeTime = 8.f;
+                    o->LifeTime = 12.f;
                     o->HiddenMesh = 0;
                     o->Scale = 0.5f;
                     o->Alpha = 1.0f;
                     Vector(0.f, 0.f, 0.f, o->Direction);
 
-                    // Fireburst lays down many trail segments along each projectile.  The
-                    // generic fire particle lives for 12 legacy ticks and expands, so
-                    // repeated casts leave large cards scattered across the viewport.
-                    // Use the existing short flame variant and keep it below the trail
-                    // model's scale so the flames form a compact chain around the cast.
-                    CreateParticle(BITMAP_FIRE + 1, o->Position, o->Angle, o->Light, 1, 0.6f, o);
+                    CreateParticle(BITMAP_FIRE + 1, o->Position, o->Angle, o->Light, 0, 1.0f, o);
                 }
                 else if (o->SubType == 2)
                 {
@@ -6746,13 +6735,15 @@ void MoveEffect(OBJECT* o, int iIndex)
             CreateParticleFpsChecked(BITMAP_CLUD64, o->Position, o->Angle, vLight, 10, 1.f, pObject);
         }
     }
-    {
-        if (o->LifeTime < 20) o->BlendMeshLight -= 0.03f;
-        else if (o->BlendMeshLight < 0.5f) o->BlendMeshLight += 0.05f;
+        {
+            if (o->LifeTime < 20)
+                o->BlendMeshLight = mu::FrameStepTowards(o->BlendMeshLight, 0.0f, 0.03f);
+            else if (o->BlendMeshLight < 0.5f)
+                o->BlendMeshLight = mu::FrameStepTowards(o->BlendMeshLight, 0.5f, 0.05f);
 
-        o->BlendMeshTexCoordV += (0.05f) * FPS_ANIMATION_FACTOR;
-    }
-    break;
+            o->BlendMeshTexCoordV += (0.05f) * FPS_ANIMATION_FACTOR;
+        }
+        break;
 
     case BITMAP_FIRE + 1:
         Vector(1.f, 1.f, 1.f, Light);
@@ -10040,20 +10031,23 @@ void RenderEffectShadows()
                         RenderTerrainAlphaBitmap(BITMAP_LIGHT, o->Position[0], o->Position[1], 2.0f, 2.0f, vLight);
                     }
                     break;
-#endif	// ASG_ADD_INFLUENCE_GROUND_EFFECT
+#endif // ASG_ADD_INFLUENCE_GROUND_EFFECT
                 case BITMAP_FLAME:
+                case BITMAP_FLAME_VOID:
                     if (o->SubType != 3 && o->SubType != 6)
                     {
                         Luminosity = (float)(rand() % 4 + 8) * 0.1f;
                         Vector(Luminosity, Luminosity, Luminosity, Light);
-                        RenderTerrainAlphaBitmap(BITMAP_FLAME, o->Position[0], o->Position[1], 2.f, 2.f, Light, -o->Angle[2]);
+                        RenderTerrainAlphaBitmap(o->Type, o->Position[0], o->Position[1], 2.f, 2.f, Light,
+                                                 -o->Angle[2]);
                     }
                     break;
                 case BITMAP_LIGHTNING + 1:
                     o->Scale += (0.2f) * FPS_ANIMATION_FACTOR;
                     Luminosity = (float)(o->LifeTime) * 0.1f;
                     Vector(Luminosity, Luminosity, Luminosity, Light);
-                    RenderTerrainAlphaBitmap(BITMAP_LIGHTNING + 1, o->Position[0], o->Position[1], o->Scale, o->Scale, Light, -o->Angle[2]);
+                    RenderTerrainAlphaBitmap(BITMAP_LIGHTNING + 1, o->Position[0], o->Position[1], o->Scale, o->Scale,
+                                             Light, -o->Angle[2]);
                     break;
                 case BITMAP_TWLIGHT:
                 case BITMAP_SHOCK_WAVE:
