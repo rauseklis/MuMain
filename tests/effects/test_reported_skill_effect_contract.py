@@ -111,7 +111,26 @@ assert "CreateEffectFpsChecked(MODEL_PIER_PART" not in fire_burst, (
 assert "CreateEffect(MODEL_PIER_PART" in fire_burst, (
     "Fire Burst must retain its canonical trail segment"
 )
-assert "o->Gravity > 5.f" not in fire_burst, "Fire Burst's canonical curve must not be clamped"
+homing_loop_start = fire_burst.index("for (int i = 1; i < o->Gravity; ++i)")
+homing_loop_brace = fire_burst.index("{", homing_loop_start)
+depth = 0
+homing_loop_end = None
+for index in range(homing_loop_brace, len(fire_burst)):
+    if fire_burst[index] == "{":
+        depth += 1
+    elif fire_burst[index] == "}":
+        depth -= 1
+        if depth == 0:
+            homing_loop_end = index + 1
+            break
+assert homing_loop_end is not None
+homing_loop = fire_burst[homing_loop_start:homing_loop_end]
+assert "CreateEffect(MODEL_PIER_PART" not in homing_loop, (
+    "Fire Burst must emit one trail child per reference event, not one per growing homing sub-step"
+)
+assert "SkillTiming::FireBurstMaximumGravity" in fire_burst, (
+    "Fire Burst must cap its growing homing sub-steps so the projectile cannot accelerate without bound"
+)
 
 rageful_blow = function_body(move_handlers, "bool Move_MODEL_SKILL_FURY_STRIKE")
 assert "pow(-1" not in rageful_blow, (

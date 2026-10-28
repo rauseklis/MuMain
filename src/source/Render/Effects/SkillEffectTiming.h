@@ -7,6 +7,7 @@ namespace Render::Effects::SkillTiming
 {
 constexpr int TwistingSlashStageCount = 5;
 constexpr float TwistingSlashDriverLifetime = 5.0f;
+constexpr float FireBurstMaximumGravity = 5.0f;
 
 inline float TwistingSlashRadius(bool usesSpear)
 {
