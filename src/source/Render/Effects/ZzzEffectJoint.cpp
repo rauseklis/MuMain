@@ -3863,12 +3863,13 @@ void MoveJoint(JOINT* o, int iIndex)
             }
             else
             {
-                o->Direction[0] += ((float)(rand() % 32 - 16) * 0.2f) * FPS_ANIMATION_FACTOR;
-                o->Direction[2] += ((float)(rand() % 32 - 16) * 0.8f) * FPS_ANIMATION_FACTOR;
+                const float randomWalkScale = sqrtf(FPS_ANIMATION_FACTOR);
+                o->Direction[0] += ((float)(rand() % 33 - 16) * 0.2f) * randomWalkScale;
+                o->Direction[2] += ((float)(rand() % 33 - 16) * 0.8f) * randomWalkScale;
                 o->Angle[0] += (o->Direction[0]) * FPS_ANIMATION_FACTOR;
                 o->Angle[2] += (o->Direction[2]) * FPS_ANIMATION_FACTOR;
-                o->Direction[0] *= 0.6f;// powf(0.6f, FPS_ANIMATION_FACTOR);
-                o->Direction[2] *= 0.8f; // powf(0.8f, FPS_ANIMATION_FACTOR);
+                o->Direction[0] *= powf(0.6f, FPS_ANIMATION_FACTOR);
+                o->Direction[2] *= powf(0.8f, FPS_ANIMATION_FACTOR);
             }
 
             Height = RequestTerrainHeight(o->Position[0], o->Position[1]);
@@ -5508,7 +5509,7 @@ void MoveJoint(JOINT* o, int iIndex)
                 count = (o->Direction[1] + (o->LifeTime * 2)) * 0.1f;
                 if (o->Skill == 1)
                 {
-                    count *= powf(-1, FPS_ANIMATION_FACTOR);
+                    count = -count;
                 }
             }
             else
@@ -5551,7 +5552,7 @@ void MoveJoint(JOINT* o, int iIndex)
                 count = o->Direction[1] * 0.1f;
                 if (o->SubType == 15)
                 {
-                    count *= powf(-1, FPS_ANIMATION_FACTOR);
+                    count = -count;
                 }
                 o->Position[0] = o->TargetPosition[0] + cosf(count) * o->Velocity;
                 o->Position[1] = o->TargetPosition[1] - sinf(count) * o->Velocity;

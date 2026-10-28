@@ -32,6 +32,11 @@ def function_body(source: str, signature: str) -> str:
 
 attack_stage = function_body(characters, "bool AttackStage")
 
+for effect_source in (move_handlers, (root / "src/source/Render/Effects/ZzzEffectJoint.cpp").read_text(encoding="utf-8")):
+    assert "pow(-1" not in effect_source and "powf(-1" not in effect_source, (
+        "A negative sign must never be FPS-scaled; fractional exponents produce NaN and destroy effects"
+    )
+
 power_slash_start = attack_stage.index("case AT_SKILL_POWER_SLASH:")
 power_slash_end = attack_stage.index("case AT_SKILL_NOVA:", power_slash_start)
 power_slash = attack_stage[power_slash_start:power_slash_end]

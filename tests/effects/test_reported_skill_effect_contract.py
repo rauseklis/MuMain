@@ -14,6 +14,9 @@ effects = (root / "src/source/Render/Effects/ZzzEffect.cpp").read_text(
 characters = (root / "src/source/Engine/Object/ZzzCharacter.cpp").read_text(
     encoding="utf-8"
 )
+effect_joints = (root / "src/source/Render/Effects/ZzzEffectJoint.cpp").read_text(
+    encoding="utf-8"
+)
 
 
 def function_body(source: str, signature: str) -> str:
@@ -81,10 +84,39 @@ assert "o->AnimationFrame >= 3.f && rand_fps_check(1)" not in fire_slash, (
     "Fire Slash's one-shot arc must use an animation crossing, not a random high-FPS gate"
 )
 
+fire_slash_effect = function_body(move_handlers, "bool Move_BITMAP_SWORD_FORCE")
+assert "CreateJointFpsChecked" not in fire_slash_effect, (
+    "Fire Slash's only sword-force joint is a one-shot event and must never be randomly discarded"
+)
+
 fire_burst = function_body(move_handlers, "bool Move_MODEL_PIER_PART")
-assert "SkillTiming::ReferenceEventsDue" in fire_burst
-assert "CreateEffectFpsChecked(MODEL_PIER_PART" not in fire_burst, (
-    "Fire Burst's continuous trail must not use random per-frame emission"
+assert "CreateEffectFpsChecked(MODEL_PIER_PART" in fire_burst, (
+    "Fire Burst must retain the canonical trail segment inside each homing substep"
+)
+assert "o->Gravity > 5.f" not in fire_burst, "Fire Burst's canonical curve must not be clamped"
+
+rageful_blow = function_body(move_handlers, "bool Move_MODEL_SKILL_FURY_STRIKE")
+assert "pow(-1" not in rageful_blow, (
+    "Rageful Blow must not raise a negative value to a fractional FPS exponent"
+)
+assert "SkillTiming::CrossedDown" in rageful_blow, (
+    "Rageful Blow's rise, return and impact milestones must be crossed exactly once"
+)
+
+evil_spirit_start = characters.index("case AT_SKILL_EVIL_SPIRIT:")
+evil_spirit_end = characters.index("case AT_SKILL_PLASMA_STORM_FENRIR:", evil_spirit_start)
+evil_spirit = characters[evil_spirit_start:evil_spirit_end]
+assert "SkillTiming::CardinalAngle" in evil_spirit, (
+    "Evil Spirit must generate four exact cardinal launch angles from one tested definition"
+)
+
+evil_spirit_move_start = effect_joints.rindex("case BITMAP_JOINT_SPIRIT:")
+evil_spirit_move = effect_joints[evil_spirit_move_start:evil_spirit_move_start + 10000]
+assert "sqrtf(FPS_ANIMATION_FACTOR)" in evil_spirit_move
+assert "powf(0.6f, FPS_ANIMATION_FACTOR)" in evil_spirit_move
+assert "powf(0.8f, FPS_ANIMATION_FACTOR)" in evil_spirit_move
+assert evil_spirit_move.count("rand() % 33 - 16") >= 2, (
+    "Evil Spirit steering noise must be centered on zero instead of carrying a directional bias"
 )
 
 print("PASS: reported skill production paths preserve canonical staged and one-shot effects")
