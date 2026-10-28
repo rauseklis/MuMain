@@ -95,6 +95,14 @@ TEST_CASE("Twisting Slash emits every canonical trail stage at every frame rate"
     }
 }
 
+TEST_CASE("Twisting Slash uses the reviewed compact orbit while retaining the spear proportion")
+{
+    using Render::Effects::SkillTiming::TwistingSlashRadius;
+    CHECK(TwistingSlashRadius(false) == doctest::Approx(112.5f));
+    CHECK(TwistingSlashRadius(true) == doctest::Approx(135.0f));
+    CHECK(TwistingSlashRadius(true) / TwistingSlashRadius(false) == doctest::Approx(1.2f));
+}
+
 TEST_CASE("reference-tick skill emissions retain their 25 Hz cadence")
 {
     for (const float fps : {25.0f, 60.0f, 120.0f, 240.0f})

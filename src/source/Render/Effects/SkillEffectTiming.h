@@ -8,6 +8,13 @@ namespace Render::Effects::SkillTiming
 constexpr int TwistingSlashStageCount = 5;
 constexpr float TwistingSlashDriverLifetime = 5.0f;
 
+inline float TwistingSlashRadius(bool usesSpear)
+{
+    // The legacy 150/180-unit orbit overwhelms the character at the modern
+    // camera scale. Keep the spear proportion while tightening both rings.
+    return usesSpear ? 135.0f : 112.5f;
+}
+
 inline int TwistingSlashStage(float lifetime)
 {
     const int elapsedTicks = static_cast<int>(std::floor(TwistingSlashDriverLifetime - lifetime + 0.0001f));

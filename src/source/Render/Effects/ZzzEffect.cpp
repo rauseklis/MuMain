@@ -1867,6 +1867,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
             case MODEL_SKILL_WHEEL2:
                 o->LifeTime = 25; //
                 o->Weapon = CharacterMachine->PacketSerial;
+                o->Timer = o->Angle[2];
                 break;
             case MODEL_SKILL_FURY_STRIKE:
             {
@@ -3393,6 +3394,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->SubType == 0)
                 {
                     o->LifeTime = 20;
+                    o->Timer = 1.0f;
                     o->Gravity = 2.f;
                     o->Velocity = 10.f;
                     o->HiddenMesh = 1;
@@ -10033,12 +10035,23 @@ void RenderEffectShadows()
                     break;
 #endif // ASG_ADD_INFLUENCE_GROUND_EFFECT
                 case BITMAP_FLAME:
-                case BITMAP_FLAME_VOID:
                     if (o->SubType != 3 && o->SubType != 6)
                     {
                         Luminosity = (float)(rand() % 4 + 8) * 0.1f;
                         Vector(Luminosity, Luminosity, Luminosity, Light);
-                        RenderTerrainAlphaBitmap(o->Type, o->Position[0], o->Position[1], 2.f, 2.f, Light,
+                        RenderTerrainAlphaBitmap(BITMAP_FLAME, o->Position[0], o->Position[1], 2.f, 2.f, Light,
+                                                 -o->Angle[2]);
+                    }
+                    break;
+                case BITMAP_FLAME_VOID:
+                    if (o->SubType != 3 && o->SubType != 6)
+                    {
+                        Luminosity = (float)(rand() % 4 + 8) * 0.1f;
+                        Vector(Luminosity * 0.45f, Luminosity * 0.12f, Luminosity, Light);
+                        // FlameVoid01 has non-black JPEG border pixels. Stretching it through
+                        // the tiled terrain renderer clamps those pixels into a visible square.
+                        // A radial light preserves the violet footprint without texture-edge bleed.
+                        RenderTerrainAlphaBitmap(BITMAP_LIGHT, o->Position[0], o->Position[1], 1.5f, 1.5f, Light,
                                                  -o->Angle[2]);
                     }
                     break;
