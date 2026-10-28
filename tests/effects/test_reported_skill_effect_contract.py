@@ -45,9 +45,18 @@ assert "o->LifeTime = 0" not in twisting_driver, (
 )
 
 twisting_orbit = function_body(move_handlers, "bool Move_MODEL_SKILL_WHEEL2")
-assert "AngleMatrix(o->Angle, Matrix)" in twisting_orbit
+assert "AngleMatrix(OrbitAngle, Matrix)" in twisting_orbit
+assert "o->Timer -= 18 * FPS_ANIMATION_FACTOR" in twisting_orbit, (
+    "Twisting Slash's orbit must advance at the canonical rate"
+)
 assert "o->Angle[2] -= 18 * FPS_ANIMATION_FACTOR" in twisting_orbit, (
-    "Twisting Slash's rendered blade must follow the canonical orbit angle"
+    "Twisting Slash's rendered weapon must retain its canonical rotation"
+)
+assert "SkillTiming::TwistingSlashRadius" in twisting_orbit, (
+    "Twisting Slash must use the reviewed, bounded visual radius"
+)
+assert "OrbitAngle[2] = o->Timer" in twisting_orbit, (
+    "Twisting Slash's orbit phase must not be polluted by render-time weapon spin"
 )
 assert "DeleteEffect(MODEL_SKILL_WHEEL2" not in characters, (
     "A new Twisting Slash cast must not erase the staged trail of the previous cast"
@@ -59,8 +68,11 @@ flame_render = effects[flame_render_start:flame_render_end]
 assert "case BITMAP_FLAME_VOID:" in flame_render, (
     "Scroll of Flame's violet replacement must retain the original ground footprint"
 )
-assert "RenderTerrainAlphaBitmap(o->Type" in flame_render, (
-    "The Flame ground footprint must render the active flame texture"
+assert "RenderTerrainAlphaBitmap(BITMAP_LIGHT" in flame_render, (
+    "The violet Flame ground footprint must use a bounded radial texture"
+)
+assert "RenderTerrainAlphaBitmap(o->Type" not in flame_render, (
+    "The clamped void-flame JPEG must not be stretched across terrain tiles"
 )
 
 ice_storm = function_body(move_handlers, "bool Move_MODEL_BLIZZARD")
@@ -90,8 +102,14 @@ assert "CreateJointFpsChecked" not in fire_slash_effect, (
 )
 
 fire_burst = function_body(move_handlers, "bool Move_MODEL_PIER_PART")
-assert "CreateEffectFpsChecked(MODEL_PIER_PART" in fire_burst, (
-    "Fire Burst must retain the canonical trail segment inside each homing substep"
+assert "SkillTiming::ReferenceEventsDue" in fire_burst, (
+    "Fire Burst must emit trail segments on deterministic legacy ticks"
+)
+assert "CreateEffectFpsChecked(MODEL_PIER_PART" not in fire_burst, (
+    "Fire Burst's canonical trail must not contain random high-FPS gaps"
+)
+assert "CreateEffect(MODEL_PIER_PART" in fire_burst, (
+    "Fire Burst must retain its canonical trail segment"
 )
 assert "o->Gravity > 5.f" not in fire_burst, "Fire Burst's canonical curve must not be clamped"
 

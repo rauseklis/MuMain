@@ -2856,19 +2856,17 @@ namespace Render::Effects::Behaviors
             o->Alpha = 0.3f;
             break;
         }
-        if (o->Owner->Weapon >= MODEL_SPEAR - MODEL_SWORD &&
-            o->Owner->Weapon < MODEL_SPEAR - MODEL_SWORD + MAX_ITEM_INDEX)
-        {
-            Vector(0.f, -180.f, 0.f, p);
-        }
-        else
-        {
-            Vector(0.f, -150.f, 0.f, p);
-        }
+        const bool usesSpear = o->Owner->Weapon >= MODEL_SPEAR - MODEL_SWORD &&
+                               o->Owner->Weapon < MODEL_SPEAR - MODEL_SWORD + MAX_ITEM_INDEX;
+        Vector(0.f, -SkillTiming::TwistingSlashRadius(usesSpear), 0.f, p);
 
-        AngleMatrix(o->Angle, Matrix);
+        vec3_t OrbitAngle;
+        VectorCopy(o->Angle, OrbitAngle);
+        OrbitAngle[2] = o->Timer;
+        AngleMatrix(OrbitAngle, Matrix);
         VectorRotate(p, Matrix, Position);
         VectorAdd(o->Owner->Position, Position, o->Position);
+        o->Timer -= 18 * FPS_ANIMATION_FACTOR;
         o->Angle[2] -= 18 * FPS_ANIMATION_FACTOR;
 
         if (rand_fps_check(1))
@@ -5684,6 +5682,7 @@ namespace Render::Effects::Behaviors
         {
             if (o->Owner != NULL)
             {
+                const int trailEvents = SkillTiming::ReferenceEventsDue(o->Timer, FPS_ANIMATION_FACTOR);
                 VectorCopy(o->Owner->Position, p);
                 VectorAdd(p, o->StartPosition, p);
 
@@ -5709,9 +5708,12 @@ namespace Render::Effects::Behaviors
                     VectorRotate(o->Direction, Matrix, Position);
                     VectorAddScaled(o->Position, Position, o->Position, FPS_ANIMATION_FACTOR);
 
-                    // This child is part of every canonical homing sub-step. Moving
-                    // it outside the loop chops the projectile's curved fire trail.
-                    CreateEffectFpsChecked(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
+                    // Emit on deterministic legacy ticks. Random FPS gating left visible
+                    // holes in the curved trail at high frame rates.
+                    for (int event = 0; event < trailEvents; ++event)
+                    {
+                        CreateEffect(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
+                    }
                 }
                 if (Distance < 40 && (int)o->LifeTime == 5)
                 {
@@ -5720,7 +5722,10 @@ namespace Render::Effects::Behaviors
                 }
                 o->Gravity += (0.1f) * FPS_ANIMATION_FACTOR;
 
-                PlayBuffer(SOUND_ATTACK_FIRE_BUST_EXP);
+                if (trailEvents > 0)
+                {
+                    PlayBuffer(SOUND_ATTACK_FIRE_BUST_EXP);
+                }
             }
         }
         else if (o->SubType == 2)
