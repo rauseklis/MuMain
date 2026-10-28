@@ -3065,7 +3065,8 @@ namespace Render::Effects::Behaviors
                     Position[0] += rand() % 20 - 10;
                     Position[1] += rand() % 20 - 10;
                     CreateJoint(BITMAP_JOINT_SPARK, Position, Position, Angle);
-                    if (rand() % 8 == 0) CreateParticle(BITMAP_SPARK, Position, Angle, Light);
+                    if (rand() % 8 == 0)
+                        CreateParticle(BITMAP_SPARK, Position, Angle, Light);
                 }
             }
             Vector(0.f, 0.f, 0.f, Angle);
@@ -5066,13 +5067,15 @@ namespace Render::Effects::Behaviors
             {
                 vec3_t Light;
                 Vector(1.f, 1.f, 1.f, Light);
-                CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 10, o->Owner, 150.f, o->PKKey, o->Skill, 0, -1, Light);
+                CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 10, o->Owner, 150.f, o->PKKey,
+                            o->Skill, 0, -1, Light);
             }
+            else if (o->SubType == 0)
+                CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 0, o->Owner, 150.f, o->PKKey,
+                            o->Skill);
             else
-                if (o->SubType == 0)
-                    CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 0, o->Owner, 150.f, o->PKKey, o->Skill);
-                else
-                    CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 8, o->Owner, 150.f, o->PKKey, o->Skill);
+                CreateJoint(BITMAP_JOINT_FORCE, Position, Position, o->HeadAngle, 8, o->Owner, 150.f, o->PKKey,
+                            o->Skill);
         }
         return true;
     }
