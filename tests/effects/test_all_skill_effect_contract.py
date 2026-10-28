@@ -36,6 +36,9 @@ for effect_source in (move_handlers, (root / "src/source/Render/Effects/ZzzEffec
     assert "pow(-1" not in effect_source and "powf(-1" not in effect_source, (
         "A negative sign must never be FPS-scaled; fractional exponents produce NaN and destroy effects"
     )
+    assert "o->SubType >= 11 || o->SubType <= 13" not in effect_source, (
+        "A bounded subtype range must not use an always-true disjunction"
+    )
 
 power_slash_start = attack_stage.index("case AT_SKILL_POWER_SLASH:")
 power_slash_end = attack_stage.index("case AT_SKILL_NOVA:", power_slash_start)

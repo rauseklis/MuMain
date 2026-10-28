@@ -6752,7 +6752,7 @@ void MoveJoint(JOINT* o, int iIndex)
                         {
                             o->TargetPosition[1] -= (20.f) * FPS_ANIMATION_FACTOR;
                         }
-                        else if (o->SubType >= 11 || o->SubType <= 13)
+                        else if (o->SubType >= 11 && o->SubType <= 13)
                         {
                             o->TargetPosition[1] -= (20.f) * FPS_ANIMATION_FACTOR;
                         }
