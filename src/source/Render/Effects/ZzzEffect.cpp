@@ -5051,9 +5051,9 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 }
                 else if (o->SubType == 3)
                 {
-                    const int	TOTAL_LIFETIME = 60;
-                    vec3_t		v3PosStart, v3PosTarget;
-                    vec3_t		arv3PosProcess[3];
+                    const int TOTAL_LIFETIME = 60;
+                    vec3_t v3PosStart, v3PosTarget;
+                    vec3_t arv3PosProcess[4];
 
                     o->ExtState = TOTAL_LIFETIME;
                     o->LifeTime = TOTAL_LIFETIME;
@@ -5069,19 +5069,18 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     VectorCopy(o->Position, v3PosStart);
                     VectorCopy(o->Light, v3PosTarget);
 
-                    vec3_t		v3DirDistAD;
-                    vec3_t		v3PosStartModify, v3PosTargetModify;
-                    const int	iLimitArea1 = 200;
-                    float		fDistAD, fDistAB, fDistCD;
-                    float		fHeightTerrainTarget = RequestTerrainHeight(v3PosTarget[0], v3PosTarget[1]);
-                    int			iOffsetDist = 100;
+                    vec3_t v3DirDistAD;
+                    vec3_t v3PosStartModify, v3PosTargetModify;
+                    const int iLimitArea1 = 200;
+                    float fDistAD, fDistAB;
+                    float fHeightTerrainTarget = RequestTerrainHeight(v3PosTarget[0], v3PosTarget[1]);
+                    int iOffsetDist = 100;
                     VectorCopy(v3PosStart, v3PosStartModify);
                     VectorCopy(v3PosTarget, v3PosTargetModify);
                     v3PosTargetModify[2] = v3PosStartModify[2];
                     fDistAD = VectorDistance3D_DirDist(v3PosStartModify, v3PosTargetModify, v3DirDistAD);
 
                     fDistAB = 900.0f + (rand() % iOffsetDist - (iOffsetDist / 2));
-                    fDistCD;
                     VectorCopy(v3PosStart, arv3PosProcess[0]);
                     arv3PosProcess[1][0] = arv3PosProcess[0][0] + (float)(rand() % iLimitArea1 - (iLimitArea1 / 2));
                     arv3PosProcess[1][1] = arv3PosProcess[0][1] + (float)(rand() % iLimitArea1 - (iLimitArea1 / 2));
@@ -5089,11 +5088,12 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     VectorAdd(arv3PosProcess[1], v3DirDistAD, arv3PosProcess[2]);
 
                     VectorCopy(v3PosTargetModify, arv3PosProcess[3]);
-                    arv3PosProcess[3][0] = arv3PosProcess[2][0];// + (float)(rand()%iLimitArea2 - (iLimitArea2/2));
-                    arv3PosProcess[3][1] = arv3PosProcess[2][1];// + (float)(rand()%iLimitArea2 - (iLimitArea2/2));
-                    arv3PosProcess[3][2] = fHeightTerrainTarget + (float)iOffsetDist * 1.2f + ((rand() % iOffsetDist) - (iOffsetDist / 2));
+                    arv3PosProcess[3][0] = arv3PosProcess[2][0]; // + (float)(rand()%iLimitArea2 - (iLimitArea2/2));
+                    arv3PosProcess[3][1] = arv3PosProcess[2][1]; // + (float)(rand()%iLimitArea2 - (iLimitArea2/2));
+                    arv3PosProcess[3][2] =
+                        fHeightTerrainTarget + (float)iOffsetDist * 1.2f + ((rand() % iOffsetDist) - (iOffsetDist / 2));
 
-                    float	arfRates[] = { 0.0f, 0.22f, 0.35f, 0.50f, 1.01f };
+                    float arfRates[] = {0.0f, 0.22f, 0.35f, 0.50f, 1.01f};
                     float	fOffsetRate = (0.03f * (o->Type - MODEL_SWORDLEFT01_EMPIREGUARDIAN_BOSS_GAION_));
 
                     o->m_Interpolates.ClearContainer();

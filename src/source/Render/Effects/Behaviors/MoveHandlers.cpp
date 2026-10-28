@@ -396,8 +396,6 @@ namespace Render::Effects::Behaviors
                         break;
                     }
 
-                    if (Ran < 0)
-                        Ran = Ran;
                     for (int i = 0; i < 3; i++)
                     {
                         VectorCopy(o->Position, p);
@@ -2111,146 +2109,150 @@ namespace Render::Effects::Behaviors
     // MODEL_ALICE_DRAIN_LIFE
     bool Move_MODEL_ALICE_DRAIN_LIFE(OBJECT* o, int index, float Luminosity)
     {
-    {
-        int iNumBones = 0;
-
-        vec3_t vSourcePos, vTargetPos, vLight, vRelativePos;
-        Vector(0.0f, 0.0f, 0.0f, vRelativePos);
-
-        OBJECT* pSourceObj = o->Owner;
-        OBJECT* pTargetObj = pSourceObj->Owner;
-        BMD* pSourceModel = &Models[pSourceObj->Type];
-        BMD* pTargetModel = &Models[pTargetObj->Type];
-
-        if (pSourceObj == NULL || pTargetObj == NULL ||
-            pSourceObj->Live == false || pTargetObj->Live == false)
         {
-            return true;
-        }
+            int iNumBones = 0;
 
-        int iRandom = rand() % 10;
-        int iCnt = 0;
-        switch (iRandom)
-        {
-        case 0:
-            iCnt = 0;
-            break;
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-            iCnt = 1;
-            break;
-        case 8:
-        case 9:
-            iCnt = 2;
-            break;
-        }
+            vec3_t vSourcePos, vTargetPos, vLight, vRelativePos;
+            Vector(0.0f, 0.0f, 0.0f, vRelativePos);
 
-        for (int i = 0; i < iCnt; i++)
-        {
-            VectorCopy(pSourceObj->Position, vSourcePos);
-            vSourcePos[0] += ((float)((rand() % 80 - 40)));
-            vSourcePos[1] += ((float)((rand() % 60 - 30)));
-            vSourcePos[2] += (80.0f + ((float)((rand() % 180 - 100))));
-            Vector(1.0f, 0.2f, 0.2f, vLight);
-            CreateParticleFpsChecked(BITMAP_LIGHT + 2, vSourcePos, pSourceObj->Angle, vLight, 7, 1.8f);
-        }
-
-        if (o->LifeTime <= 60)
-        {
-            for (int i = 0; i < iCnt; i++)
+            OBJECT* pSourceObj = o->Owner;
+            if (pSourceObj == NULL || pSourceObj->Live == false)
             {
-                VectorCopy(pTargetObj->Position, vTargetPos);
-                vTargetPos[0] += ((float)((rand() % 80 - 40)));
-                vTargetPos[1] += ((float)((rand() % 60 - 30)));
-                vTargetPos[2] += (80.0f + ((float)((rand() % 180 - 100))));
-                Vector(1.0f, 0.2f, 0.2f, vLight);
-                CreateParticleFpsChecked(BITMAP_LIGHT + 2, vTargetPos, pTargetObj->Angle, vLight, 7, 1.8f);
+                return true;
             }
-        }
+            OBJECT* pTargetObj = pSourceObj->Owner;
+            if (pTargetObj == NULL || pTargetObj->Live == false)
+            {
+                return true;
+            }
+            BMD* pSourceModel = &Models[pSourceObj->Type];
+            BMD* pTargetModel = &Models[pTargetObj->Type];
 
-        if (o->LifeTime <= 70 && o->LifeTime >= 66)
-        {
             int iRandom = rand() % 10;
-            int iCnt2 = 0;
+            int iCnt = 0;
             switch (iRandom)
             {
             case 0:
-                iCnt2 = 0;
+                iCnt = 0;
                 break;
             case 1:
             case 2:
             case 3:
-                iCnt2 = 1;
-                break;
             case 4:
             case 5:
-                iCnt2 = 2;
             case 6:
             case 7:
-            case 8:
-                iCnt2 = 3;
+                iCnt = 1;
                 break;
+            case 8:
             case 9:
-                iCnt2 = 4;
+                iCnt = 2;
                 break;
             }
 
-            float fMatrix[3][4];
-            vec3_t vDir;
-            for (int i = 0; i < iCnt2; i++)
+            for (int i = 0; i < iCnt; i++)
+            {
+                VectorCopy(pSourceObj->Position, vSourcePos);
+                vSourcePos[0] += ((float)((rand() % 80 - 40)));
+                vSourcePos[1] += ((float)((rand() % 60 - 30)));
+                vSourcePos[2] += (80.0f + ((float)((rand() % 180 - 100))));
+                Vector(1.0f, 0.2f, 0.2f, vLight);
+                CreateParticleFpsChecked(BITMAP_LIGHT + 2, vSourcePos, pSourceObj->Angle, vLight, 7, 1.8f);
+            }
+
+            if (o->LifeTime <= 60)
+            {
+                for (int i = 0; i < iCnt; i++)
+                {
+                    VectorCopy(pTargetObj->Position, vTargetPos);
+                    vTargetPos[0] += ((float)((rand() % 80 - 40)));
+                    vTargetPos[1] += ((float)((rand() % 60 - 30)));
+                    vTargetPos[2] += (80.0f + ((float)((rand() % 180 - 100))));
+                    Vector(1.0f, 0.2f, 0.2f, vLight);
+                    CreateParticleFpsChecked(BITMAP_LIGHT + 2, vTargetPos, pTargetObj->Angle, vLight, 7, 1.8f);
+                }
+            }
+
+            if (o->LifeTime <= 70 && o->LifeTime >= 66)
+            {
+                int iRandom = rand() % 10;
+                int iCnt2 = 0;
+                switch (iRandom)
+                {
+                case 0:
+                    iCnt2 = 0;
+                    break;
+                case 1:
+                case 2:
+                case 3:
+                    iCnt2 = 1;
+                    break;
+                case 4:
+                case 5:
+                    iCnt2 = 2;
+                case 6:
+                case 7:
+                case 8:
+                    iCnt2 = 3;
+                    break;
+                case 9:
+                    iCnt2 = 4;
+                    break;
+                }
+
+                float fMatrix[3][4];
+                vec3_t vDir;
+                for (int i = 0; i < iCnt2; i++)
+                {
+                    VectorCopy(pSourceObj->Position, pSourceModel->BodyOrigin);
+                    pSourceModel->TransformPosition(pSourceObj->BoneTransform[18], vRelativePos, vSourcePos, true);
+
+                    AngleMatrix(pSourceObj->Angle, fMatrix);
+                    vDir[0] = fMatrix[0][1];
+                    vDir[1] = fMatrix[1][1];
+                    vDir[2] = fMatrix[2][1];
+
+                    VectorNormalize(vDir);
+
+                    vSourcePos[0] = vSourcePos[0] + ((vDir[0]) * 100.0f) + (float)((rand() % 10) * 5);
+                    vSourcePos[1] = vSourcePos[1] + ((vDir[1]) * 100.0f) + (float)((rand() % 10) * 5);
+                    vSourcePos[2] += (float)((rand() % 10) * 5);
+
+                    VectorCopy(pTargetObj->Position, vTargetPos);
+                    vTargetPos[2] += 100.f + (float)(((rand() % 10 - 5)) * 4); // 80~120
+
+                    Vector(0.8f, 0.1f, 0.2f, vLight);
+                    CreateJointFpsChecked(BITMAP_DRAIN_LIFE_GHOST, vSourcePos, vTargetPos, o->Angle, 0, pSourceObj,
+                                          40.f, 0, 0, 0, -1, vLight);
+                }
+            }
+
+            if ((int)o->LifeTime == 64)
             {
                 VectorCopy(pSourceObj->Position, pSourceModel->BodyOrigin);
                 pSourceModel->TransformPosition(pSourceObj->BoneTransform[18], vRelativePos, vSourcePos, true);
 
-                AngleMatrix(pSourceObj->Angle, fMatrix);
-                vDir[0] = fMatrix[0][1];
-                vDir[1] = fMatrix[1][1];
-                vDir[2] = fMatrix[2][1];
+                iNumBones = pTargetModel->NumBones;
 
-                VectorNormalize(vDir);
-
-                vSourcePos[0] = vSourcePos[0] + ((vDir[0]) * 100.0f) + (float)((rand() % 10) * 5);
-                vSourcePos[1] = vSourcePos[1] + ((vDir[1]) * 100.0f) + (float)((rand() % 10) * 5);
-                vSourcePos[2] += (float)((rand() % 10) * 5);
-
-                VectorCopy(pTargetObj->Position, vTargetPos);
-                vTargetPos[2] += 100.f + (float)(((rand() % 10 - 5)) * 4);		// 80~120
-
-                Vector(0.8f, 0.1f, 0.2f, vLight);
-                CreateJointFpsChecked(BITMAP_DRAIN_LIFE_GHOST, vSourcePos, vTargetPos, o->Angle, 0, pSourceObj, 40.f, 0, 0, 0, -1, vLight);
-            }
-        }
-
-        if ((int)o->LifeTime == 64)
-        {
-            VectorCopy(pSourceObj->Position, pSourceModel->BodyOrigin);
-            pSourceModel->TransformPosition(pSourceObj->BoneTransform[18], vRelativePos, vSourcePos, true);
-
-            iNumBones = pTargetModel->NumBones;
-
-            for (int i = 0; i < iNumBones; i++)
-            {
-                VectorCopy(pTargetObj->Position, pTargetModel->BodyOrigin);
-                pTargetModel->TransformPosition(pTargetObj->BoneTransform[i], vRelativePos, vTargetPos, true);
-
-                Vector(0.4f, 0.4f, 0.8f, vLight);
-                //CreateParticle( BITMAP_LIGHT, vTargetPos, pTargetObj->Angle, vLight, 14, 3.5f);
-
-                if (rand_fps_check(2))
+                for (int i = 0; i < iNumBones; i++)
                 {
-                    VectorCopy(pSourceObj->Position, vSourcePos);
-                    vSourcePos[2] += 80.0f;
-                    Vector(1.0f, 0.0f, 0.1f, vLight);
-                    CreateJointFpsChecked(BITMAP_JOINT_ENERGY, vTargetPos, vSourcePos, pTargetObj->Angle, 45, pSourceObj, 10.0f, -1, 0, 0, -1, vLight);
+                    VectorCopy(pTargetObj->Position, pTargetModel->BodyOrigin);
+                    pTargetModel->TransformPosition(pTargetObj->BoneTransform[i], vRelativePos, vTargetPos, true);
+
+                    Vector(0.4f, 0.4f, 0.8f, vLight);
+                    // CreateParticle( BITMAP_LIGHT, vTargetPos, pTargetObj->Angle, vLight, 14, 3.5f);
+
+                    if (rand_fps_check(2))
+                    {
+                        VectorCopy(pSourceObj->Position, vSourcePos);
+                        vSourcePos[2] += 80.0f;
+                        Vector(1.0f, 0.0f, 0.1f, vLight);
+                        CreateJointFpsChecked(BITMAP_JOINT_ENERGY, vTargetPos, vSourcePos, pTargetObj->Angle, 45,
+                                              pSourceObj, 10.0f, -1, 0, 0, -1, vLight);
+                    }
                 }
             }
         }
-    }
         return true;
     }
 
@@ -5617,57 +5619,57 @@ namespace Render::Effects::Behaviors
         vec3_t Position;
         float Matrix[3][4];
         vec3_t p;
-    {
-        if (o->SubType == 0)
         {
-            if (o->Owner != NULL)
+            if (o->SubType == 0)
             {
-                VectorCopy(o->Owner->Position, p);
-                VectorAdd(p, o->StartPosition, p);
-
-                float Distance;
-                for (int i = 1; i < o->Gravity; ++i)
+                if (o->Owner != NULL)
                 {
-                    if (rand_fps_check(2))
+                    VectorCopy(o->Owner->Position, p);
+                    VectorAdd(p, o->StartPosition, p);
+
+                    float Distance = 0.0f;
+                    for (int i = 1; i < o->Gravity; ++i)
                     {
-                        if (o->Angle[0] < -90)
-                            o->Angle[0] += (20.f) * FPS_ANIMATION_FACTOR;
-                        else
-                            o->Angle[0] -= (20.f) * FPS_ANIMATION_FACTOR;
-                    }
-                    Distance = MoveHumming(o->Position, o->Angle, p, o->Velocity);
-                    o->Velocity += (0.4f) * FPS_ANIMATION_FACTOR;
+                        if (rand_fps_check(2))
+                        {
+                            if (o->Angle[0] < -90)
+                                o->Angle[0] += (20.f) * FPS_ANIMATION_FACTOR;
+                            else
+                                o->Angle[0] -= (20.f) * FPS_ANIMATION_FACTOR;
+                        }
+                        Distance = MoveHumming(o->Position, o->Angle, p, o->Velocity);
+                        o->Velocity += (0.4f) * FPS_ANIMATION_FACTOR;
 
-                    if (o->LifeTime < 10)
+                        if (o->LifeTime < 10)
+                        {
+                            o->Velocity += (0.1f) * FPS_ANIMATION_FACTOR;
+                            CreateEffectFpsChecked(BITMAP_MAGIC + 1, Position, o->Angle, o->Light, 1, o);
+                        }
+
+                        AngleMatrix(o->Angle, Matrix);
+                        VectorRotate(o->Direction, Matrix, Position);
+                        VectorAddScaled(o->Position, Position, o->Position, FPS_ANIMATION_FACTOR);
+
+                        CreateEffectFpsChecked(MODEL_TAIL, o->Position, o->Angle, o->Light, 0, o);
+                    }
+                    if (Distance < 40 && (int)o->LifeTime == 5)
                     {
-                        o->Velocity += (0.1f) * FPS_ANIMATION_FACTOR;
-                        CreateEffectFpsChecked(BITMAP_MAGIC + 1, Position, o->Angle, o->Light, 1, o);
+                        VectorCopy(o->Position, Position);
+                        Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
                     }
+                    o->Gravity += (0.1f) * FPS_ANIMATION_FACTOR;
 
-                    AngleMatrix(o->Angle, Matrix);
-                    VectorRotate(o->Direction, Matrix, Position);
-                    VectorAddScaled(o->Position, Position, o->Position, FPS_ANIMATION_FACTOR);
-
-                    CreateEffectFpsChecked(MODEL_TAIL, o->Position, o->Angle, o->Light, 0, o);
+                    PlayBuffer(SOUND_ATTACK_FIRE_BUST_EXP);
                 }
-                if (Distance < 40 && (int)o->LifeTime == 5)
+            }
+            else if (o->SubType == 1)
+            {
+                if (o->LifeTime < 5)
                 {
-                    VectorCopy(o->Position, Position);
-                    Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
+                    o->Alpha *= pow(1.0f / (1.3f), FPS_ANIMATION_FACTOR);
                 }
-                o->Gravity += (0.1f) * FPS_ANIMATION_FACTOR;
-
-                PlayBuffer(SOUND_ATTACK_FIRE_BUST_EXP);
             }
         }
-        else if (o->SubType == 1)
-        {
-            if (o->LifeTime < 5)
-            {
-                o->Alpha *= pow(1.0f / (1.3f), FPS_ANIMATION_FACTOR);
-            }
-        }
-    }
         return true;
     }
 
@@ -5695,7 +5697,7 @@ namespace Render::Effects::Behaviors
                 // independent of Gravity, so trail density stays flat and
                 // time-based (via CreateEffectFpsChecked's own FPS scaling) for
                 // the whole flight instead of escalating near the target.
-                float Distance;
+                float Distance = 0.0f;
                 for (int i = 1; i < o->Gravity; ++i)
                 {
                     if (rand_fps_check(2))

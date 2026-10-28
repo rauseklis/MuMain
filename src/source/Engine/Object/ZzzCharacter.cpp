@@ -2687,14 +2687,11 @@ bool AttackStage(CHARACTER* c, OBJECT* o)
             if (c->TargetCharacter != -1)
             {
                 CHARACTER* tc = &CharactersClient[c->TargetCharacter];
-                if (c->TargetCharacter != -1)
+                OBJECT* to = &tc->Object;
+                if (10 <= c->AttackTime && to->Live)
                 {
-                    OBJECT* to = &tc->Object;
-                    if (10 <= c->AttackTime && to->Live)
-                    {
-                        //PlayBuffer( SOUND_THUNDER01);
-                        to->m_byHurtByDeathstab = 35;
-                    }
+                    // PlayBuffer( SOUND_THUNDER01);
+                    to->m_byHurtByDeathstab = 35;
                 }
             }
         }
