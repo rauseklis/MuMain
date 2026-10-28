@@ -5708,12 +5708,13 @@ namespace Render::Effects::Behaviors
                     VectorRotate(o->Direction, Matrix, Position);
                     VectorAddScaled(o->Position, Position, o->Position, FPS_ANIMATION_FACTOR);
 
-                    // Emit on deterministic legacy ticks. Random FPS gating left visible
-                    // holes in the curved trail at high frame rates.
-                    for (int event = 0; event < trailEvents; ++event)
-                    {
-                        CreateEffect(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
-                    }
+                }
+                // The homing loop grows with Gravity. Emitting in that loop multiplies
+                // full fire children near the target and makes the trail explode across
+                // the screen. One child per reference event keeps density time-based.
+                for (int event = 0; event < trailEvents; ++event)
+                {
+                    CreateEffect(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
                 }
                 if (Distance < 40 && (int)o->LifeTime == 5)
                 {
@@ -5721,6 +5722,10 @@ namespace Render::Effects::Behaviors
                     Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
                 }
                 o->Gravity += (0.1f) * FPS_ANIMATION_FACTOR;
+                if (o->Gravity > SkillTiming::FireBurstMaximumGravity)
+                {
+                    o->Gravity = SkillTiming::FireBurstMaximumGravity;
+                }
 
                 if (trailEvents > 0)
                 {
