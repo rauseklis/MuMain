@@ -4,10 +4,11 @@
 
 namespace Render::Models
 {
-// Mitigation for the intermittent "yellow folded planes" rendering bug: it disappears when plain-textured
-// meshes are skinned on the CPU, so they stay off the GPU skinning path. The GPU path itself is kept and
-// still serves flat colour, bright and environment-mapped meshes. Set to false to compare against it.
-inline constexpr bool CpuSkinPlainTexturedMeshes = true;
+// Switch to keep plain-textured meshes off the GPU skinning path (they are skinned on the CPU instead). It was
+// the first mitigation tried for the "yellow folded planes" bug; the real cause was the Zen coin heap reading
+// unskinned vertices (BMD::AddToCoinHeap). With the switch on, equipping Fenrir froze the game (the GPU stopped
+// finishing frames), so it is off. Kept for comparing a model against the CPU path.
+inline constexpr bool CpuSkinPlainTexturedMeshes = false;
 
 struct GpuSkinningRequest
 {

@@ -17,14 +17,18 @@ constexpr Render::Models::GpuSkinningRequest MakeRequest(bool plainTextured)
 
 TEST_CASE("plain textured meshes select CPU skinning while the mitigation is enabled [render][gpu_skinning_policy]")
 {
-    static_assert(Render::Models::CpuSkinPlainTexturedMeshes, "the yellow-shape mitigation must stay on by default");
-    CHECK_FALSE(Render::Models::IsGpuSkinningAllowed(MakeRequest(true)));
     CHECK_FALSE(Render::Models::IsGpuSkinningAllowed(MakeRequest(true), true));
+}
+
+TEST_CASE("the mitigation is off by default because it froze the game on Fenrir [render][gpu_skinning_policy]")
+{
+    static_assert(!Render::Models::CpuSkinPlainTexturedMeshes);
+    CHECK(Render::Models::IsGpuSkinningAllowed(MakeRequest(true)));
 }
 
 TEST_CASE("other materials keep GPU skinning under the mitigation [render][gpu_skinning_policy]")
 {
-    CHECK(Render::Models::IsGpuSkinningAllowed(MakeRequest(false)));
+    CHECK(Render::Models::IsGpuSkinningAllowed(MakeRequest(false), true));
 }
 
 TEST_CASE("the GPU path stays reachable for plain textured meshes with the mitigation off [render][gpu_skinning_policy]")
