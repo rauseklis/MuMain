@@ -36,9 +36,9 @@ constexpr double MIN_FRAME_TIME_MS = 0.001;
 constexpr double MILLISECONDS_IN_SECOND = 1000.0;
 } // namespace
 
-float MoveHumming(vec3_t Position, vec3_t Angle, vec3_t TargetPosition, float Turn)
+float MoveHumming(vec3_t Position, vec3_t Angle, vec3_t TargetPosition, float Turn, bool perFrame)
 {
-    float scaledTurn = Turn * FPS_ANIMATION_FACTOR;
+    const float scaledTurn = perFrame ? Turn * FPS_ANIMATION_FACTOR : Turn;
     float targetAngle = CreateAngle2D(Position, TargetPosition);
     Angle[2] = TurnAngle2(Angle[2], targetAngle, scaledTurn);
     vec3_t Range;

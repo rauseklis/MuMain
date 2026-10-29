@@ -5698,7 +5698,7 @@ namespace Render::Effects::Behaviors
                             else
                                 o->Angle[0] -= 20.f;
                         }
-                        Distance = MoveHumming(o->Position, o->Angle, p, o->Velocity);
+                        Distance = MoveHumming(o->Position, o->Angle, p, o->Velocity, false);
                         o->Velocity += 0.4f;
 
                         if (o->LifeTime < 10)
