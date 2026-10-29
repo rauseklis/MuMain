@@ -12,6 +12,7 @@
 #include "Engine/Object/ZzzCharacter.h"
 #include "Render/Terrain/ZzzLodTerrain.h"
 #include "Engine/AI/ZzzAI.h"
+#include "Engine/AI/ArrivalCatchup.h"
 
 #include <algorithm>
 #include <cmath>
@@ -558,40 +559,9 @@ bool MovePath(CHARACTER* c, bool Turn)
 void UpdateVisualArrivalCatchup(CHARACTER* c)
 {
     PATH_t* p = &c->Path;
-    if (!p->VisualCatchupActive)
-        return;
-
-    OBJECT* o = &c->Object;
-    const float dx = p->VisualCatchupTargetX - o->Position[0];
-    const float dy = p->VisualCatchupTargetY - o->Position[1];
-    const float distSq = dx * dx + dy * dy;
-
-    // Close enough to stop easing and land exactly on the tile center.
-    // Threshold is in world units; well below anything visible on screen.
-    constexpr float CATCHUP_SNAP_EPSILON = 0.5f;
-    if (distSq <= CATCHUP_SNAP_EPSILON * CATCHUP_SNAP_EPSILON)
-    {
-        o->Position[0] = p->VisualCatchupTargetX;
-        o->Position[1] = p->VisualCatchupTargetY;
-        p->VisualCatchupActive = false;
-        return;
-    }
-
-    // Frame-rate-independent exponential decay -- same technique as the
-    // body-turn smoothing in MovePath() above and the mount-offset/hero-
-    // tracking lerps in DefaultCamera.cpp. Reaches ~95% of the remaining
-    // distance within CATCHUP_MS regardless of frame rate. Deliberately
-    // fast (tens of ms): this is only ever closing the small remainder
-    // (<=20.f world units, MovePath's arrival tolerance) left over from
-    // velocity integration, not a real travel distance, so it should read
-    // as the walk settling, not as added travel time.
-    constexpr float CATCHUP_MS = 60.0f;
-    constexpr float CATCHUP_TAU = CATCHUP_MS / 3000.0f;  // seconds
-    extern float FPS_ANIMATION_FACTOR;
-    const float dt = FPS_ANIMATION_FACTOR / 25.0f;  // REFERENCE_FPS = 25
-    const float blend = 1.0f - expf(-dt / CATCHUP_TAU);
-    o->Position[0] += dx * blend;
-    o->Position[1] += dy * blend;
+    p->VisualCatchupActive = Engine::Movement::UpdateArrivalCatchup(
+        c->Object.Position, p->VisualCatchupTargetX, p->VisualCatchupTargetY, p->VisualCatchupActive,
+        c->Movement || c->JumpTime > 0, FPS_ANIMATION_FACTOR);
 }
 
 void InitPath()

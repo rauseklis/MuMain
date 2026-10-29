@@ -2207,19 +2207,25 @@ void ReceiveMovePosition(const BYTE* ReceiveBuffer)
 
 extern int EnableEvent;
 
+static void ResetHeroTeleportPosition(int x, int y)
+{
+    Hero->PositionX = x;
+    Hero->PositionY = y;
+    Hero->JumpTime = 0;
+    // Arrival smoothing belongs to the previous position, even for a warp
+    // inside the same map or when the helper has already been stopped.
+    Hero->Path.VisualCatchupActive = false;
+    Hero->Object.Position[0] = (static_cast<float>(x) + 0.5f) * TERRAIN_SCALE;
+    Hero->Object.Position[1] = (static_cast<float>(y) + 0.5f) * TERRAIN_SCALE;
+}
+
 BOOL ReceiveTeleport(const BYTE* ReceiveBuffer, BOOL bEncrypted)
 {
     SEASON3B::CNewUIInventoryCtrl::BackupPickedItem();
 
     auto Data = (LPPRECEIVE_TELEPORT_POSITION)ReceiveBuffer;
-    Hero->PositionX = Data->PositionX;
-    Hero->PositionY = Data->PositionY;
-
-    Hero->JumpTime = 0;
-
+    ResetHeroTeleportPosition(Data->PositionX, Data->PositionY);
     OBJECT* o = &Hero->Object;
-    o->Position[0] = ((float)(Hero->PositionX) + 0.5f) * TERRAIN_SCALE;
-    o->Position[1] = ((float)(Hero->PositionY) + 0.5f) * TERRAIN_SCALE;
 
     if (gMapManager.WorldActive == -1 || Hero->Helper.Type != MODEL_HORN_OF_DINORANT || Hero->SafeZone)
     {

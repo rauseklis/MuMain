@@ -40,6 +40,9 @@ press F10 again.
 
 ## What's new
 
+- Arrival smoothing stops when a new walk, skill slide or teleport begins.
+  This prevents MU Helper movement from getting pinned to the previous tile
+  and prevents an old position from pulling the character back after a warp.
 - **F10 zoom lock and F11 reset.** Both keys work with whichever camera
   is currently active.
 - **Orbital wheel zoom remembers your last setting** across sessions (saved
