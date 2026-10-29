@@ -20,6 +20,9 @@
 #include "Render/Effects/ZzzEffect.h"
 #include "Core/Utilities/Log/ErrorReport.h"
 #include "Camera/CameraState.h"
+#include "Data/GameConfig/GameConfig.h"
+#include "Render/Models/GpuSkinningPolicy.h"
+#include "Render/Models/BoneIndexRepair.h"
 
 #include "UI/Legacy/UIMng.h"
 #include "Camera/CameraMove.h"
@@ -113,12 +116,58 @@ mu::SkinningTextureCoordinates GetSkinningTextureCoordinates(int renderFlags)
     return mu::SkinningTextureCoordinates::Mesh;
 }
 
+bool IsPlainTexturedMaterial(int finalRenderFlags, int renderFlags)
+{
+    return finalRenderFlags == RENDER_TEXTURE &&
+           GetSkinningTextureCoordinates(renderFlags) == mu::SkinningTextureCoordinates::Mesh;
+}
+
 bool CanGpuSkinMesh(int finalRenderFlags, int renderFlags, const float (*boneMatrices)[3][4])
 {
+    static const bool gpuSkinningEnabled = GameConfig::GetInstance().GetGpuSkinningEnabled();
     const bool supportedMaterial = finalRenderFlags == RENDER_TEXTURE || finalRenderFlags == RENDER_COLOR ||
                                    finalRenderFlags == RENDER_BRIGHT ||
                                    GetSkinningTextureCoordinates(renderFlags) != mu::SkinningTextureCoordinates::Mesh;
-    return boneMatrices && supportedMaterial && !(renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE));
+    return Render::Models::IsGpuSkinningAllowed({
+        .configEnabled = gpuSkinningEnabled,
+        .hasBoneMatrices = boneMatrices != nullptr,
+        .supportedMaterial = supportedMaterial,
+        .excludedByFlags = (renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE)) != 0,
+        .plainTextured = IsPlainTexturedMaterial(finalRenderFlags, renderFlags),
+    });
+}
+
+// Attaches every vertex and normal with an out-of-range bone index to the root bone (see BoneIndexRepair.h)
+// and reports the model once, so a bad shipped model shows up in MuError.log.
+void RepairOutOfRangeBoneIndices(BMD& model, const wchar_t* modelPath)
+{
+    int badVertices = 0;
+    int badNormals = 0;
+    for (int i = 0; i < model.NumMeshs; ++i)
+    {
+        Mesh_t& mesh = model.Meshs[i];
+        for (int j = 0; j < mesh.NumVertices; ++j)
+        {
+            Vertex_t& vertex = mesh.Vertices[j];
+            if (Render::Models::IsBoneIndexValid(vertex.Node, model.NumBones))
+                continue;
+            vertex.Node = static_cast<short>(Render::Models::RepairBoneIndex(vertex.Node, model.NumBones));
+            ++badVertices;
+        }
+        for (int j = 0; j < mesh.NumNormals; ++j)
+        {
+            Normal_t& normal = mesh.Normals[j];
+            if (Render::Models::IsBoneIndexValid(normal.Node, model.NumBones))
+                continue;
+            normal.Node = static_cast<short>(Render::Models::RepairBoneIndex(normal.Node, model.NumBones));
+            ++badNormals;
+        }
+    }
+    if (badVertices > 0 || badNormals > 0)
+    {
+        g_ErrorReport.Write(L"[BMD] %ls: %d vertices and %d normals had a bone index outside the %d bones; attached to the root bone\r\n",
+                            modelPath, badVertices, badNormals, static_cast<int>(model.NumBones));
+    }
 }
 
 std::pair<int, int> ResolveMeshRange(int meshCount, int requestedStart, int requestedEnd)
@@ -1255,6 +1304,10 @@ int BMD::AddToCoinHeap(int coinIndex, int target_vertex_index)
 
     Mesh_t* m = &Meshs[meshIndex];
 
+    // Transform() only stashes the skin request; without this the coin would read whatever model last filled the
+    // shared VertexTransform scratch (flat gold plates in the wrong shape).
+    EnsureCpuVertices(meshIndex);
+
     for (int j = 0; j < m->NumTriangles; j++)
     {
         const auto triangle = &m->Triangles[j];
@@ -1742,7 +1795,11 @@ void BMD::RenderMesh(int meshIndex, int renderFlags, float alpha, int blendMeshI
             .lightEnabled = usesCpuLighting,
         };
         gpuSkinningSubmitted =
-            mu::GetRenderer().RenderSkinnedTriangles(skinnedVertices.first(skinnedVertexCount), 0u, skinning);
+            mu::GetRenderer().RenderSkinnedTriangles(skinnedVertices.first(skinnedVertexCount),
+                                                                 Render::Models::SelectSkinnedTextureId(
+                                                                     IsPlainTexturedMaterial(finalRenderFlags, renderFlags),
+                                                                     textureIndex),
+                                                                 skinning);
     }
 
     const Render::Models::GpuSkinningPath skinningPath =
@@ -1866,6 +1923,8 @@ void BMD::RenderMeshAlternative(int iRndExtFlag, int iParam, int i, int RenderFl
 
     Mesh_t* m = &Meshs[i];
     if (m->NumTriangles == 0) return;
+    EnsureCpuVertices(i); // Transform() defers skinning; see AddToCoinHeap
+    EnsureCpuNormals(i);
     float Wave = (int)WorldTime % 10000 * 0.0001f;
 
     int Texture = IndexTexture[m->Texture];
@@ -2424,6 +2483,8 @@ void BMD::RenderMeshTranslate(int i, int RenderFlag, float Alpha, int BlendMesh,
 
     Mesh_t* m = &Meshs[i];
     if (m->NumTriangles == 0) return;
+    EnsureCpuVertices(i); // Transform() defers skinning; see AddToCoinHeap
+    EnsureCpuNormals(i);
     float Wave = (int)WorldTime % 10000 * 0.0001f;
 
     int Texture = IndexTexture[m->Texture];
@@ -3373,6 +3434,7 @@ bool BMD::Open2(const wchar_t* DirName, const wchar_t* ModelFileName, bool bReAl
         }
     }
 
+    RepairOutOfRangeBoneIndices(*this, ModelPath);
     Init(false);
 
     m_bCompletedAlloc = true;

@@ -52,6 +52,7 @@ namespace CfgKeys
     inline constexpr wchar_t CfgKeyAntiAliasing[] = L"AntiAliasing";
     inline constexpr wchar_t CfgKeyTextureMipmaps[] = L"TextureMipmaps";
     inline constexpr wchar_t CfgKeyAnisotropy[] = L"Anisotropy";
+    inline constexpr wchar_t CfgKeyGpuSkinning[] = L"GpuSkinning";
 }
 
 namespace CfgDefaults
@@ -105,4 +106,5 @@ namespace CfgDefaults
     inline constexpr int CfgDefaultAntiAliasing = 4;
     inline constexpr bool CfgDefaultTextureMipmaps = true;
     inline constexpr int CfgDefaultAnisotropy = 16;
+    inline constexpr bool CfgDefaultGpuSkinning = true;
 }

@@ -33,6 +33,7 @@
 
 #include "D3D12Diagnostics.h"
 #include "DrawCommandHistory.h"
+#include "DrawTextureId.h"
 #include "GraphicsQuality.h"
 #include "MuRenderer.h"
 #include "QuadTopology.h"
@@ -3553,11 +3554,7 @@ private:
     // - textureId == 0 AND texture enabled: use m_boundTextureId (migration compat: BindTexture state)
     [[nodiscard]] std::uint32_t ResolveTextureId(std::uint32_t textureId) const
     {
-        if (textureId != 0u)
-            return textureId;
-        if (!m_texture2DEnabled)
-            return 0u; // DisableTexture() was called — use white texture (registered at ID 0)
-        return static_cast<std::uint32_t>(m_boundTextureId);
+        return ResolveDrawTextureId(textureId, m_texture2DEnabled, m_boundTextureId);
     }
 
     // Per-instance render state.

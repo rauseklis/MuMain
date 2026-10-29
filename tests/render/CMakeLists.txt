@@ -68,6 +68,18 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME gpu_skinning_policy_tests
+    SOURCES
+        test_gpu_skinning_policy.cpp
+)
+
+mu_add_test(
+    NAME bone_index_repair_tests
+    SOURCES
+        test_bone_index_repair.cpp
+)
+
+mu_add_test(
     NAME bmd_polygon_topology_tests
     SOURCES
         test_bmd_polygon_topology.cpp
@@ -84,6 +96,13 @@ add_test(
     COMMAND "${CMAKE_COMMAND}"
         "-DMU_SOURCE_DIR=${CMAKE_SOURCE_DIR}/src"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/test_imgui_sdlgpu_backend.cmake"
+)
+
+add_test(
+    NAME bmd_lazy_skin_consumers
+    COMMAND "${CMAKE_COMMAND}"
+        "-DMU_BMD_SOURCE=${CMAKE_SOURCE_DIR}/src/source/Render/Models/ZzzBMD.cpp"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/test_bmd_lazy_skin_consumers.cmake"
 )
 
 add_test(

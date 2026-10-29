@@ -95,6 +95,7 @@ void GameConfig::Load()
     m_antiAliasing = ReadInt(CfgSectionRender, CfgKeyAntiAliasing, CfgDefaultAntiAliasing);
     m_textureMipmaps = ReadBool(CfgSectionRender, CfgKeyTextureMipmaps, CfgDefaultTextureMipmaps);
     m_anisotropy = ReadInt(CfgSectionRender, CfgKeyAnisotropy, CfgDefaultAnisotropy);
+    m_gpuSkinning = ReadBool(CfgSectionRender, CfgKeyGpuSkinning, CfgDefaultGpuSkinning);
 
     // Strip keys/sections we used to write but no longer use, so user config
     // files don't accumulate orphans. Append one line per retired key — no
@@ -145,6 +146,7 @@ void GameConfig::Save()
     WriteInt(CfgSectionRender, CfgKeyAntiAliasing, m_antiAliasing);
     WriteBool(CfgSectionRender, CfgKeyTextureMipmaps, m_textureMipmaps);
     WriteInt(CfgSectionRender, CfgKeyAnisotropy, m_anisotropy);
+    WriteBool(CfgSectionRender, CfgKeyGpuSkinning, m_gpuSkinning);
 }
 
 std::vector<std::wstring> GameConfig::ReadStringList(const wchar_t* section, const wchar_t* keyPrefix)
