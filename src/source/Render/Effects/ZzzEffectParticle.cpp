@@ -4706,7 +4706,7 @@ void MoveParticles()
                 {
                     //					o->Gravity += 0.02f;
                     //					o->Scale += o->Gravity;
-                    VectorScale(o->Velocity, 1.05f, o->Velocity);
+                    VectorScale(o->Velocity, powf(1.05f, FPS_ANIMATION_FACTOR), o->Velocity);
                     o->Position[2] += o->Gravity * 20.f * FPS_ANIMATION_FACTOR;
                     Luminosity = (float)(o->LifeTime) * 0.2f;
                     Vector(Luminosity, Luminosity, Luminosity, o->Light);
@@ -4724,7 +4724,7 @@ void MoveParticles()
                 {
                     o->Gravity += (0.02f) * FPS_ANIMATION_FACTOR;
                     o->Scale += o->Gravity * FPS_ANIMATION_FACTOR;
-                    VectorScale(o->Velocity, 1.05f, o->Velocity);
+                    VectorScale(o->Velocity, powf(1.05f, FPS_ANIMATION_FACTOR), o->Velocity);
                     o->Position[2] += o->Gravity * 20.f * FPS_ANIMATION_FACTOR;
                     Luminosity = (float)(o->LifeTime) * 0.2f;
                     Vector(Luminosity, Luminosity, Luminosity, o->Light);
@@ -4756,7 +4756,7 @@ void MoveParticles()
                 }
                 else if (o->SubType == 7)
                 {
-                    VectorScale(o->Velocity, 1.05f, o->Velocity);
+                    VectorScale(o->Velocity, powf(1.05f, FPS_ANIMATION_FACTOR), o->Velocity);
                     Luminosity = (float)(o->LifeTime) * 0.2f;
                     Vector(Luminosity, Luminosity, Luminosity, o->Light);
                 }
@@ -4772,7 +4772,7 @@ void MoveParticles()
                 {
                     o->Gravity += (0.02f) * FPS_ANIMATION_FACTOR;
                     o->Scale += o->Gravity * FPS_ANIMATION_FACTOR;
-                    VectorScale(o->Velocity, 1.05f, o->Velocity);
+                    VectorScale(o->Velocity, powf(1.05f, FPS_ANIMATION_FACTOR), o->Velocity);
                     o->Position[2] += o->Gravity * 20.f * FPS_ANIMATION_FACTOR;
                     Luminosity = (float)(o->LifeTime) * 0.2f;
                     Vector(Luminosity, Luminosity, Luminosity, o->Light);
