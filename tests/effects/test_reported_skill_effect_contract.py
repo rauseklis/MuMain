@@ -17,6 +17,9 @@ characters = (root / "src/source/Engine/Object/ZzzCharacter.cpp").read_text(
 effect_joints = (root / "src/source/Render/Effects/ZzzEffectJoint.cpp").read_text(
     encoding="utf-8"
 )
+effect_particles = (
+    root / "src/source/Render/Effects/ZzzEffectParticle.cpp"
+).read_text(encoding="utf-8")
 
 
 def function_body(source: str, signature: str) -> str:
@@ -153,6 +156,22 @@ assert simulation_loop.count("CreateEffect(MODEL_PIER_PART") == 1, (
 )
 assert "FPS_ANIMATION_FACTOR" not in simulation_loop, (
     "Fire Burst's fixed legacy simulation tick must not be fractionally scaled a second time"
+)
+
+fire_particle_move_start = effect_particles.index(
+    "case BITMAP_FIRE + 1:", effect_particles.index("void MoveParticle")
+)
+fire_particle_move_end = effect_particles.index(
+    "case BITMAP_FLAME:", fire_particle_move_start
+)
+fire_particle_move = effect_particles[fire_particle_move_start:fire_particle_move_end]
+assert "VectorScale(o->Velocity, 1.05f" not in fire_particle_move, (
+    "Fire Burst flame velocity must not accelerate once per rendered frame"
+)
+assert fire_particle_move.count(
+    "VectorScale(o->Velocity, powf(1.05f, FPS_ANIMATION_FACTOR), o->Velocity)"
+) == 4, (
+    "Every accelerating BITMAP_FIRE + 1 subtype must preserve the legacy 25 FPS rate"
 )
 
 rageful_blow = function_body(move_handlers, "bool Move_MODEL_SKILL_FURY_STRIKE")
