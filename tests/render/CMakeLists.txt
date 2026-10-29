@@ -74,6 +74,12 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME bone_index_repair_tests
+    SOURCES
+        test_bone_index_repair.cpp
+)
+
+mu_add_test(
     NAME bmd_polygon_topology_tests
     SOURCES
         test_bmd_polygon_topology.cpp

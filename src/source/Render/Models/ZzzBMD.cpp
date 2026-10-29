@@ -22,6 +22,7 @@
 #include "Camera/CameraState.h"
 #include "Data/GameConfig/GameConfig.h"
 #include "Render/Models/GpuSkinningPolicy.h"
+#include "Render/Models/BoneIndexRepair.h"
 
 #include "UI/Legacy/UIMng.h"
 #include "Camera/CameraMove.h"
@@ -134,6 +135,39 @@ bool CanGpuSkinMesh(int finalRenderFlags, int renderFlags, const float (*boneMat
         .excludedByFlags = (renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE)) != 0,
         .plainTextured = IsPlainTexturedMaterial(finalRenderFlags, renderFlags),
     });
+}
+
+// Attaches every vertex and normal with an out-of-range bone index to the root bone (see BoneIndexRepair.h)
+// and reports the model once, so a bad shipped model shows up in MuError.log.
+void RepairOutOfRangeBoneIndices(BMD& model, const wchar_t* modelPath)
+{
+    int badVertices = 0;
+    int badNormals = 0;
+    for (int i = 0; i < model.NumMeshs; ++i)
+    {
+        Mesh_t& mesh = model.Meshs[i];
+        for (int j = 0; j < mesh.NumVertices; ++j)
+        {
+            Vertex_t& vertex = mesh.Vertices[j];
+            if (Render::Models::IsBoneIndexValid(vertex.Node, model.NumBones))
+                continue;
+            vertex.Node = static_cast<short>(Render::Models::RepairBoneIndex(vertex.Node, model.NumBones));
+            ++badVertices;
+        }
+        for (int j = 0; j < mesh.NumNormals; ++j)
+        {
+            Normal_t& normal = mesh.Normals[j];
+            if (Render::Models::IsBoneIndexValid(normal.Node, model.NumBones))
+                continue;
+            normal.Node = static_cast<short>(Render::Models::RepairBoneIndex(normal.Node, model.NumBones));
+            ++badNormals;
+        }
+    }
+    if (badVertices > 0 || badNormals > 0)
+    {
+        g_ErrorReport.Write(L"[BMD] %ls: %d vertices and %d normals had a bone index outside the %d bones; attached to the root bone\r\n",
+                            modelPath, badVertices, badNormals, static_cast<int>(model.NumBones));
+    }
 }
 
 std::pair<int, int> ResolveMeshRange(int meshCount, int requestedStart, int requestedEnd)
@@ -3392,6 +3426,7 @@ bool BMD::Open2(const wchar_t* DirName, const wchar_t* ModelFileName, bool bReAl
         }
     }
 
+    RepairOutOfRangeBoneIndices(*this, ModelPath);
     Init(false);
 
     m_bCompletedAlloc = true;
