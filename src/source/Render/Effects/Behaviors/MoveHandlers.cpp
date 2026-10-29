@@ -5682,53 +5682,43 @@ namespace Render::Effects::Behaviors
         {
             if (o->Owner != NULL)
             {
-                const int trailEvents = SkillTiming::ReferenceEventsDue(o->Timer, FPS_ANIMATION_FACTOR);
-                VectorCopy(o->Owner->Position, p);
-                VectorAdd(p, o->StartPosition, p);
-
-                float Distance = 0.0f;
-                for (int i = 1; i < o->Gravity; ++i)
+                const int simulationTicks = SkillTiming::ReferenceEventsDue(o->Timer, FPS_ANIMATION_FACTOR);
+                for (int tick = 0; tick < simulationTicks; ++tick)
                 {
-                    if (rand_fps_check(2))
+                    VectorCopy(o->Owner->Position, p);
+                    VectorAdd(p, o->StartPosition, p);
+
+                    float Distance = 0.0f;
+                    for (int i = 1; i < o->Gravity; ++i)
                     {
-                        if (o->Angle[0] < -90)
-                            o->Angle[0] += (20.f) * FPS_ANIMATION_FACTOR;
-                        else
-                            o->Angle[0] -= (20.f) * FPS_ANIMATION_FACTOR;
-                    }
-                    Distance = MoveHumming(o->Position, o->Angle, p, o->Velocity);
-                    o->Velocity += (0.4f) * FPS_ANIMATION_FACTOR;
+                        if ((rand() % 2) == 0)
+                        {
+                            if (o->Angle[0] < -90)
+                                o->Angle[0] += 20.f;
+                            else
+                                o->Angle[0] -= 20.f;
+                        }
+                        Distance = MoveHumming(o->Position, o->Angle, p, o->Velocity);
+                        o->Velocity += 0.4f;
 
-                    if (o->LifeTime < 10)
+                        if (o->LifeTime < 10)
+                        {
+                            o->Velocity += 0.1f;
+                        }
+
+                        AngleMatrix(o->Angle, Matrix);
+                        VectorRotate(o->Direction, Matrix, Position);
+                        VectorAdd(o->Position, Position, o->Position);
+
+                        CreateEffect(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
+                    }
+                    if (Distance < 40 && (int)o->LifeTime == 5)
                     {
-                        o->Velocity += (0.1f) * FPS_ANIMATION_FACTOR;
+                        VectorCopy(o->Position, Position);
+                        Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
                     }
+                    o->Gravity += 0.1f;
 
-                    AngleMatrix(o->Angle, Matrix);
-                    VectorRotate(o->Direction, Matrix, Position);
-                    VectorAddScaled(o->Position, Position, o->Position, FPS_ANIMATION_FACTOR);
-
-                }
-                // The homing loop grows with Gravity. Emitting in that loop multiplies
-                // full fire children near the target and makes the trail explode across
-                // the screen. One child per reference event keeps density time-based.
-                for (int event = 0; event < trailEvents; ++event)
-                {
-                    CreateEffect(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
-                }
-                if (Distance < 40 && (int)o->LifeTime == 5)
-                {
-                    VectorCopy(o->Position, Position);
-                    Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
-                }
-                o->Gravity += (0.1f) * FPS_ANIMATION_FACTOR;
-                if (o->Gravity > SkillTiming::FireBurstMaximumGravity)
-                {
-                    o->Gravity = SkillTiming::FireBurstMaximumGravity;
-                }
-
-                if (trailEvents > 0)
-                {
                     PlayBuffer(SOUND_ATTACK_FIRE_BUST_EXP);
                 }
             }

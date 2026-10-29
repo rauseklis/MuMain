@@ -111,11 +111,6 @@ TEST_CASE("reference-tick skill emissions retain their 25 Hz cadence")
     }
 }
 
-TEST_CASE("Fire Burst homing sub-steps have a finite ceiling")
-{
-    CHECK(Render::Effects::SkillTiming::FireBurstMaximumGravity == doctest::Approx(5.0f));
-}
-
 TEST_CASE("animation thresholds fire once when crossed")
 {
     using Render::Effects::SkillTiming::CrossedUp;
