@@ -480,9 +480,7 @@ void EmitRequirements(Model& m, const BuildOptions& options, int skillType)
         curCha = CharacterAttribute->Charisma + CharacterAttribute->AddCharisma;
     }
 
-    const int requiredLevel = options.includeCharacterSpecific
-                                  ? GameLogic::Skills::RequiredSkillLevel(skillType)
-                                  : SkillAttribute[skillType].Level;
+    const int requiredLevel = GameLogic::Skills::RequiredSkillLevel(skillType);
     AddRequirementLine(m, requiredLevel, curLevel, GLOBAL_TEXT_REQUIRED_LEVEL);
     AddRequirementLine(m, SkillAttribute[skillType].Strength, curStr, GLOBAL_TEXT_REQUIRED_STRENGTH);
     AddRequirementLine(m, SkillAttribute[skillType].Dexterity, curDex, GLOBAL_TEXT_REQUIRED_DEXTERITY);

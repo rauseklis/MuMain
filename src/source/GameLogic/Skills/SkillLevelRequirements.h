@@ -2,10 +2,10 @@
 
 namespace GameLogic::Skills
 {
-constexpr int ResolveSkillLevelRequirement(int configuredLevel, bool isSummonerSpell) noexcept
+constexpr int ResolveSkillLevelRequirement(int /*configuredLevel*/) noexcept
 {
-    return isSummonerSpell ? 0 : configuredLevel;
+    return 0;
 }
 
 int RequiredSkillLevel(int skillType);
-}
+} // namespace GameLogic::Skills
