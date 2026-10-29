@@ -68,6 +68,12 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME gpu_skinning_policy_tests
+    SOURCES
+        test_gpu_skinning_policy.cpp
+)
+
+mu_add_test(
     NAME bmd_polygon_topology_tests
     SOURCES
         test_bmd_polygon_topology.cpp

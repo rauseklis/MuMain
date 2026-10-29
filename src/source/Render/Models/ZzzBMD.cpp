@@ -21,6 +21,7 @@
 #include "Core/Utilities/Log/ErrorReport.h"
 #include "Camera/CameraState.h"
 #include "Data/GameConfig/GameConfig.h"
+#include "Render/Models/GpuSkinningPolicy.h"
 
 #include "UI/Legacy/UIMng.h"
 #include "Camera/CameraMove.h"
@@ -114,18 +115,25 @@ mu::SkinningTextureCoordinates GetSkinningTextureCoordinates(int renderFlags)
     return mu::SkinningTextureCoordinates::Mesh;
 }
 
+bool IsPlainTexturedMaterial(int finalRenderFlags, int renderFlags)
+{
+    return finalRenderFlags == RENDER_TEXTURE &&
+           GetSkinningTextureCoordinates(renderFlags) == mu::SkinningTextureCoordinates::Mesh;
+}
+
 bool CanGpuSkinMesh(int finalRenderFlags, int renderFlags, const float (*boneMatrices)[3][4])
 {
     static const bool gpuSkinningEnabled = GameConfig::GetInstance().GetGpuSkinningEnabled();
-    if (!gpuSkinningEnabled)
-    {
-        return false;
-    }
-
     const bool supportedMaterial = finalRenderFlags == RENDER_TEXTURE || finalRenderFlags == RENDER_COLOR ||
                                    finalRenderFlags == RENDER_BRIGHT ||
                                    GetSkinningTextureCoordinates(renderFlags) != mu::SkinningTextureCoordinates::Mesh;
-    return boneMatrices && supportedMaterial && !(renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE));
+    return Render::Models::IsGpuSkinningAllowed({
+        .configEnabled = gpuSkinningEnabled,
+        .hasBoneMatrices = boneMatrices != nullptr,
+        .supportedMaterial = supportedMaterial,
+        .excludedByFlags = (renderFlags & (RENDER_SHADOWMAP | RENDER_WAVE)) != 0,
+        .plainTextured = IsPlainTexturedMaterial(finalRenderFlags, renderFlags),
+    });
 }
 
 std::pair<int, int> ResolveMeshRange(int meshCount, int requestedStart, int requestedEnd)
@@ -1749,7 +1757,11 @@ void BMD::RenderMesh(int meshIndex, int renderFlags, float alpha, int blendMeshI
             .lightEnabled = usesCpuLighting,
         };
         gpuSkinningSubmitted =
-            mu::GetRenderer().RenderSkinnedTriangles(skinnedVertices.first(skinnedVertexCount), 0u, skinning);
+            mu::GetRenderer().RenderSkinnedTriangles(skinnedVertices.first(skinnedVertexCount),
+                                                                 Render::Models::SelectSkinnedTextureId(
+                                                                     IsPlainTexturedMaterial(finalRenderFlags, renderFlags),
+                                                                     textureIndex),
+                                                                 skinning);
     }
 
     const Render::Models::GpuSkinningPath skinningPath =
