@@ -131,8 +131,25 @@ simulation_loop = fire_burst[simulation_loop_start:simulation_loop_end]
 assert "MoveHumming(o->Position, o->Angle, p, o->Velocity, false)" in simulation_loop, (
     "Fire Burst's discrete steering must use a whole reference-step turn, not render-frame scaling"
 )
-assert "CreateEffect(MODEL_PIER_PART" in simulation_loop, (
-    "Fire Burst must retain the original trail child at each legacy homing sub-step"
+homing_loop_start = simulation_loop.index("for (int i = 1; i < o->Gravity; ++i)")
+homing_loop_brace = simulation_loop.index("{", homing_loop_start)
+depth = 0
+homing_loop_end = None
+for index in range(homing_loop_brace, len(simulation_loop)):
+    if simulation_loop[index] == "{":
+        depth += 1
+    elif simulation_loop[index] == "}":
+        depth -= 1
+        if depth == 0:
+            homing_loop_end = index + 1
+            break
+assert homing_loop_end is not None
+homing_loop = simulation_loop[homing_loop_start:homing_loop_end]
+assert "CreateEffect(MODEL_PIER_PART" not in homing_loop, (
+    "Fire Burst must not emit a full-size flame for every internal homing sub-step"
+)
+assert simulation_loop.count("CreateEffect(MODEL_PIER_PART") == 1, (
+    "Fire Burst must emit exactly one trail child per deterministic legacy tick"
 )
 assert "FPS_ANIMATION_FACTOR" not in simulation_loop, (
     "Fire Burst's fixed legacy simulation tick must not be fractionally scaled a second time"

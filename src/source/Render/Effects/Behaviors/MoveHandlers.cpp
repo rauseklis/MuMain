@@ -5709,9 +5709,12 @@ namespace Render::Effects::Behaviors
                         AngleMatrix(o->Angle, Matrix);
                         VectorRotate(o->Direction, Matrix, Position);
                         VectorAdd(o->Position, Position, o->Position);
-
-                        CreateEffect(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
                     }
+                    // The inner loop is a steering integrator, not an emission clock.
+                    // Emitting here once per 25 Hz reference tick prevents the three
+                    // Fire Burst arms from multiplying full-size flame billboards as
+                    // Gravity increases later in their flight.
+                    CreateEffect(MODEL_PIER_PART, o->Position, o->Angle, o->Light, 1, o);
                     if (Distance < 40 && (int)o->LifeTime == 5)
                     {
                         VectorCopy(o->Position, Position);
