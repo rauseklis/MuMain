@@ -1,4 +1,11 @@
 mu_add_test(
+    NAME test_arrival_catchup
+    SOURCES
+        test_arrival_catchup.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/Engine/AI/ArrivalCatchup.cpp
+)
+
+mu_add_test(
     NAME test_mu_timer
     SOURCES
         test_mu_timer.cpp
