@@ -841,23 +841,26 @@ int CMixRecipes::CalcUpgradeRate(int iNumMixItems, CMixItem* pMixItems)
     for (int i = 0; i < iNumMixItems; ++i)
     {
         const auto& item = pMixItems[i];
-        if (!IsUpgradableItem(pMixItems[i])) continue;
-        return Upgrade::Rate(recipeId, item.m_bMixLuck != FALSE,
-            (item.m_dwSpecialItem & RCP_SP_EXCELLENT) != 0,
-            (item.m_dwSpecialItem & RCP_SP_SETITEM) != 0,
-            Upgrade::IsGuardianType(item.m_sType / MAX_ITEM_INDEX, item.m_sType % MAX_ITEM_INDEX),
-            item.m_bySocketCount > 0);
+        if (!IsUpgradableItem(pMixItems[i]))
+            continue;
+        return Upgrade::Rate(recipeId, item.m_bMixLuck != FALSE, (item.m_dwSpecialItem & RCP_SP_EXCELLENT) != 0,
+                             (item.m_dwSpecialItem & RCP_SP_SETITEM) != 0,
+                             Upgrade::IsGuardianType(item.m_sType / MAX_ITEM_INDEX, item.m_sType % MAX_ITEM_INDEX),
+                             item.m_bySocketCount > 0);
     }
     return 0;
 }
 
 void CMixRecipes::CalcMixRate(int iNumMixItems, CMixItem* pMixItems)
 {
-    if (iNumMixItems < 0)	return;
-    if (pMixItems == NULL)	return;
+    if (iNumMixItems < 0)
+        return;
+    if (pMixItems == NULL)
+        return;
 
     m_iSuccessRate = 0;
-    if (GetCurRecipe() == NULL) return;
+    if (GetCurRecipe() == NULL)
+        return;
 
     const int upgradeRate = CalcUpgradeRate(iNumMixItems, pMixItems);
     if (upgradeRate != GameLogic::Items::ChaosUpgrade::kUnsupportedRecipe)

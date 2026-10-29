@@ -16,8 +16,8 @@ TEST_CASE("Chaos upgrade preview matches all cumulative server modifiers")
             const bool ancient = (mask & 4) != 0;
             const bool guardian = (mask & 8) != 0;
             const bool socket = (mask & 16) != 0;
-            const int expected = std::max(0, bases[i] + (luck ? 20 : 0)
-                - 10 * (excellent + ancient + guardian) - (socket ? 20 : 0));
+            const int expected =
+                std::max(0, bases[i] + (luck ? 20 : 0) - 10 * (excellent + ancient + guardian) - (socket ? 20 : 0));
             CHECK(Upgrade::Rate(recipes[i], luck, excellent, ancient, guardian, socket) == expected);
         }
     }
