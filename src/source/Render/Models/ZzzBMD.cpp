@@ -1304,6 +1304,10 @@ int BMD::AddToCoinHeap(int coinIndex, int target_vertex_index)
 
     Mesh_t* m = &Meshs[meshIndex];
 
+    // Transform() only stashes the skin request; without this the coin would read whatever model last filled the
+    // shared VertexTransform scratch (flat gold plates in the wrong shape).
+    EnsureCpuVertices(meshIndex);
+
     for (int j = 0; j < m->NumTriangles; j++)
     {
         const auto triangle = &m->Triangles[j];
@@ -1919,6 +1923,8 @@ void BMD::RenderMeshAlternative(int iRndExtFlag, int iParam, int i, int RenderFl
 
     Mesh_t* m = &Meshs[i];
     if (m->NumTriangles == 0) return;
+    EnsureCpuVertices(i); // Transform() defers skinning; see AddToCoinHeap
+    EnsureCpuNormals(i);
     float Wave = (int)WorldTime % 10000 * 0.0001f;
 
     int Texture = IndexTexture[m->Texture];
@@ -2477,6 +2483,8 @@ void BMD::RenderMeshTranslate(int i, int RenderFlag, float Alpha, int BlendMesh,
 
     Mesh_t* m = &Meshs[i];
     if (m->NumTriangles == 0) return;
+    EnsureCpuVertices(i); // Transform() defers skinning; see AddToCoinHeap
+    EnsureCpuNormals(i);
     float Wave = (int)WorldTime % 10000 * 0.0001f;
 
     int Texture = IndexTexture[m->Texture];

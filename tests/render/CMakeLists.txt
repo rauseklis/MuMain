@@ -99,6 +99,13 @@ add_test(
 )
 
 add_test(
+    NAME bmd_lazy_skin_consumers
+    COMMAND "${CMAKE_COMMAND}"
+        "-DMU_BMD_SOURCE=${CMAKE_SOURCE_DIR}/src/source/Render/Models/ZzzBMD.cpp"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/test_bmd_lazy_skin_consumers.cmake"
+)
+
+add_test(
     NAME renderer_pipeline_fail_fast
     COMMAND "${CMAKE_COMMAND}"
         "-DMU_RENDERER_SOURCE=${CMAKE_SOURCE_DIR}/src/source/Render/Renderer/MuRendererSDLGpu.cpp"
