@@ -1,35 +1,26 @@
 # Skill requirements
 
-## 2026-10-15: Summoner reset-friendly skills
+All classes can cast already learned skills without a character-level minimum.
+This also applies to Master replacements and after a reset. Skill tooltips no
+longer show a minimum casting level, including previews without a character.
 
-Summoner, Bloody Summoner and Dimension Master do not need to regain a character
-level before casting their learned spells after a reset. This includes
-Summoner-compatible shared spells and the base spells behind master upgrades.
-The spell tooltips follow the same rule as their use checks.
+Learning a scroll, orb, crystal or parchment still requires its configured
+learning level and stats. Dark Horse keeps its equipment level requirement.
+Class advancement, equipment, master-tree prerequisites, cooldowns, mana and AG
+costs still apply.
 
-Energy, strength, mana, AG, cooldowns, class advancement, master-tree prerequisites
-and equipment requirements are unchanged. Learning parchments is unchanged.
-Books equipped as weapons and wings still have their normal equipment
-requirements. Other classes are unchanged.
+Required stats are strict: a spell requiring 220 energy cannot be cast with 219;
+220 meets that energy requirement, provided every other requirement is met.
+Strength, agility and leadership requirements behave the same way. Skill data
+retains its original values, including the level value used to calculate energy
+requirements; removing the casting-level check does not lower the energy cost.
 
-The original skill-data level remains intact because it also scales the energy
-requirement. Only the character-level gate is removed, not that energy scaling.
+Online casting, offline combat and offline buffs follow the same server rule.
+Stat checks use the current values, so spending or removing stats updates whether
+a skill can be used.
 
-The client policy is in
-`src/source/GameLogic/Skills/SkillLevelRequirements.cpp`. The small resolver and
-its tests are in `SkillLevelRequirements.h` and
-`tests/core/test_skill_level_requirements.cpp`. The current Season 6 server
-configuration already has no character-level requirement on the base Summoner
-spells and parchments; no database-only override is needed.
-
-Validation: the Windows x86 Release client builds successfully and all 500 CTest
-tests pass, including the two reset-level regression cases (18 assertions).
-The owner still needs to confirm casting the affected spells in the running game.
-
-## Live check
-
-With a low-level Summoner and enough energy, cast a learned
-spell whose original client data had a higher level requirement. Check that its
-tooltip no longer lists that level. Repeat below the energy requirement: the
-spell must still be unavailable. Check a different class and equipment to confirm
-their level requirements still apply.
+After installation, check Evil Spirit on a low-level Soul Master: it should have
+no minimum casting-level line, should fail below the required energy, and should
+cast once energy and all other requirements are sufficient. Also check a learned
+Knight skill after reset, a Master replacement, an orb below its learning level,
+and Dark Horse below its equipment level. Automated checks do not verify gameplay.
