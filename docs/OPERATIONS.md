@@ -211,4 +211,3 @@ connection loss still reconnects and minimizing/restoring still works.
 ## Chaos Machine upgrade preview
 
 Equipment +10/+11 uses 60%, +12/+13 55%, and +14/+15 20%. Luck adds 20 percentage points. Excellent, Ancient and Guardian categories each subtract 10 points; socket items subtract 20. Penalties accumulate, with a minimum of 0%. Other recipes retain their existing calculation. Install the current client with the updater so the displayed upgrade chance matches the server. The server decides the outcome.
-
