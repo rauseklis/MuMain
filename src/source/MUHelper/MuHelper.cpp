@@ -177,10 +177,22 @@ namespace MUHelper
 
         if (Hero != nullptr && SceneFlag == MAIN_SCENE)
         {
+            const bool wasMoving = Hero->Movement;
             Hero->Movement = false;
-            std::lock_guard<SpinLock> lock(Hero->Path.Lock);
-            Hero->Path.PathNum = 0;
-            Hero->Path.CurrentPath = 0;
+            {
+                std::lock_guard<SpinLock> lock(Hero->Path.Lock);
+                Hero->Path.PathNum = 0;
+                Hero->Path.CurrentPath = 0;
+                Hero->Path.CurrentPathFloat = 0;
+                Hero->Path.VisualCatchupActive = false;
+            }
+
+            // A cleared path no longer reaches MovePath's normal arrival,
+            // which would otherwise end the walk/run/flying animation.
+            if (wasMoving && Hero->Dead == 0)
+            {
+                SetPlayerStop(Hero);
+            }
         }
     }
 
