@@ -213,6 +213,7 @@ namespace SEASON3A
         bool CheckItem(MIX_RECIPE_ITEM& rItem, CMixItem& rSource);	// 같은 아이템인지 비교
         void EvaluateMixItems(int iNumMixItems, CMixItem* pMixItems);
         void CalcMixRate(int iNumMixItems, CMixItem* pMixItems);
+        int CalcUpgradeRate(int iNumMixItems, CMixItem* pMixItems);
         void CalcMixReqZen(int iNumMixItems, CMixItem* pMixItems);
         BOOL GetRecipeName(MIX_RECIPE* pRecipe, wchar_t* pszNameOut, int iNameLine, BOOL bSimilarRecipe);	// 주어진 조합법의 이름 얻기
         BOOL IsChaosItem(CMixItem& rSource);
