@@ -9,6 +9,7 @@
 #include "Network/Server/SocketSystem.h"
 #include "GameLogic/Skills/SkillManager.h"
 #include "GameLogic/Items/ItemCategories.h"
+#include "GameLogic/Items/ChaosUpgradeRates.h"
 
 using namespace SEASON3A;
 
@@ -831,6 +832,25 @@ void CMixRecipes::CalcChaosCharmCount(int iNumMixItems, CMixItem* pMixItems)
     }
 }
 
+int CMixRecipes::CalcUpgradeRate(int iNumMixItems, CMixItem* pMixItems)
+{
+    namespace Upgrade = GameLogic::Items::ChaosUpgrade;
+    const int recipeId = GetCurRecipe()->m_iMixID;
+    if (Upgrade::BaseRate(recipeId) == Upgrade::kUnsupportedRecipe)
+        return Upgrade::kUnsupportedRecipe;
+    for (int i = 0; i < iNumMixItems; ++i)
+    {
+        const auto& item = pMixItems[i];
+        if (!IsUpgradableItem(pMixItems[i])) continue;
+        return Upgrade::Rate(recipeId, item.m_bMixLuck != FALSE,
+            (item.m_dwSpecialItem & RCP_SP_EXCELLENT) != 0,
+            (item.m_dwSpecialItem & RCP_SP_SETITEM) != 0,
+            Upgrade::IsGuardianType(item.m_sType / MAX_ITEM_INDEX, item.m_sType % MAX_ITEM_INDEX),
+            item.m_bySocketCount > 0);
+    }
+    return 0;
+}
+
 void CMixRecipes::CalcMixRate(int iNumMixItems, CMixItem* pMixItems)
 {
     if (iNumMixItems < 0)	return;
@@ -838,6 +858,13 @@ void CMixRecipes::CalcMixRate(int iNumMixItems, CMixItem* pMixItems)
 
     m_iSuccessRate = 0;
     if (GetCurRecipe() == NULL) return;
+
+    const int upgradeRate = CalcUpgradeRate(iNumMixItems, pMixItems);
+    if (upgradeRate != GameLogic::Items::ChaosUpgrade::kUnsupportedRecipe)
+    {
+        m_iSuccessRate = upgradeRate;
+        return;
+    }
 
     m_pMixRates = GetCurRecipe()->m_RateToken;
     m_iMixRateIter = 0;
