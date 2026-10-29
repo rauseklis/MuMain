@@ -16,7 +16,9 @@ float CreateAngle2D(const vec3_t from, const vec2_t to);
 int TurnAngle(int iTheta, int iHeading, int maxTURN);
 float TurnAngle2(float angle, float a, float d);
 float FarAngle(float angle1, float angle2, bool absolute = true);
-float MoveHumming(vec3_t Position, vec3_t Angle, vec3_t TargetPosition, float Turn);
+// perFrame false is for discrete spatial/reference steps which already run at
+// the legacy 25 Hz cadence and therefore need the complete turn for that tick.
+float MoveHumming(vec3_t Position, vec3_t Angle, vec3_t TargetPosition, float Turn, bool perFrame = true);
 void MovePosition(vec3_t Position, vec3_t Angle, vec3_t Speed);
 std::uint8_t CalcTargetPos(float x, float y, int Tx, int Ty);
 void Alpha(OBJECT* o);

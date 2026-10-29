@@ -128,8 +128,8 @@ for index in range(simulation_loop_brace, len(fire_burst)):
             break
 assert simulation_loop_end is not None
 simulation_loop = fire_burst[simulation_loop_start:simulation_loop_end]
-assert "MoveHumming" in simulation_loop, (
-    "Fire Burst's discrete steering must only run on accumulated legacy simulation ticks"
+assert "MoveHumming(o->Position, o->Angle, p, o->Velocity, false)" in simulation_loop, (
+    "Fire Burst's discrete steering must use a whole reference-step turn, not render-frame scaling"
 )
 assert "CreateEffect(MODEL_PIER_PART" in simulation_loop, (
     "Fire Burst must retain the original trail child at each legacy homing sub-step"
