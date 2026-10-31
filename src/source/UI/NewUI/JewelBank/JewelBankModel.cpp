@@ -153,7 +153,7 @@ namespace JewelBank
         case Result::InsufficientBalance: return L"The bank does not hold that many.";
         case Result::InventoryFull: return L"Not enough free space in your inventory.";
         case Result::CapReached: return L"The bank is full for that item.";
-        case Result::NothingToDeposit: return L"Nothing to deposit. Nothing of that kind to deposit.";
+        case Result::NothingToDeposit: return L"Nothing to deposit.";
         case Result::NotConfigured: return L"This item is not available on the server.";
         case Result::StateRestricted: return L"Go to a safe zone and close other windows first.";
         case Result::RateLimited: return L"Please wait a moment.";

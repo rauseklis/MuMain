@@ -81,6 +81,7 @@ private:
     bool m_waitingForAnswer = false;
     bool m_confirmPending = false;
     std::chrono::steady_clock::time_point m_confirmDeadline;
+    std::chrono::steady_clock::time_point m_answerDeadline;
     const wchar_t* m_message = L"";
 };
 } // namespace SEASON3B
