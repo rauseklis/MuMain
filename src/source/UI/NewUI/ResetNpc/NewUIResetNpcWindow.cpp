@@ -224,7 +224,7 @@ bool SEASON3B::CNewUIResetNpcWindow::Update()
 
     if (m_waitingForAnswer && now > m_answerDeadline)
     {
-        // The server did not answer: let the player try again instead of keeping the button locked until the window is closed.
+        // No answer from the server: let the player try again instead of keeping the button locked.
         m_waitingForAnswer = false;
         m_message = NoAnswerText;
     }
