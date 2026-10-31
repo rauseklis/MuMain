@@ -38,6 +38,9 @@ constexpr float IconSize = 20.f;
 constexpr float FruitSize = 16.f;
 constexpr float MarkSize = 11.f;
 constexpr std::chrono::seconds ConfirmTime{5};
+// How long the window waits for the server's answer to a reset before it lets the player press the button again.
+constexpr std::chrono::seconds AnswerTimeout{10};
+constexpr const wchar_t* NoAnswerText = L"No answer from the server. Try again.";
 
 constexpr unsigned int MetColor = 0xFF7EE28Cu;
 constexpr unsigned int UnmetColor = 0xFFFF7E74u;
@@ -207,14 +210,23 @@ void SEASON3B::CNewUIResetNpcWindow::PressResetButton()
 
     m_confirmPending = false;
     m_waitingForAnswer = true;
+    m_answerDeadline = now + AnswerTimeout;
     SocketClient->ToGameServer()->SendResetNpcResetRequest();
 }
 
 bool SEASON3B::CNewUIResetNpcWindow::Update()
 {
-    if (m_confirmPending && std::chrono::steady_clock::now() > m_confirmDeadline)
+    const auto now = std::chrono::steady_clock::now();
+    if (m_confirmPending && now > m_confirmDeadline)
     {
         m_confirmPending = false;
+    }
+
+    if (m_waitingForAnswer && now > m_answerDeadline)
+    {
+        // No answer from the server: let the player try again instead of keeping the button locked.
+        m_waitingForAnswer = false;
+        m_message = NoAnswerText;
     }
     return true;
 }
