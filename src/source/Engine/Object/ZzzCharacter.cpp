@@ -13187,6 +13187,31 @@ void Setting_Monster(CHARACTER* c, EMonsterType Type, int PositionX, int Positio
     }
 }
 
+namespace
+{
+// Raymond the Reset Master wears the Great Dragon set, with the glow of a +9 item.
+constexpr int RESET_MASTER_ITEM_LEVEL = 9;
+// Added to the light on his body, so the set keeps its own colours and gets an emerald tone on top.
+constexpr float RESET_MASTER_TINT_RED = 0.0f;
+constexpr float RESET_MASTER_TINT_GREEN = 0.4f;
+constexpr float RESET_MASTER_TINT_BLUE = 0.25f;
+
+void DressResetMaster(CHARACTER* c)
+{
+    Vector(RESET_MASTER_TINT_RED, RESET_MASTER_TINT_GREEN, RESET_MASTER_TINT_BLUE, c->Object.Light);
+    c->BodyPart[BODYPART_HELM].Type = MODEL_GREAT_DRAGON_HELM;
+    c->BodyPart[BODYPART_ARMOR].Type = MODEL_GREAT_DRAGON_ARMOR;
+    c->BodyPart[BODYPART_PANTS].Type = MODEL_GREAT_DRAGON_PANTS;
+    c->BodyPart[BODYPART_GLOVES].Type = MODEL_GREAT_DRAGON_GLOVES;
+    c->BodyPart[BODYPART_BOOTS].Type = MODEL_GREAT_DRAGON_BOOTS;
+    for (const int part : {BODYPART_HELM, BODYPART_ARMOR, BODYPART_PANTS, BODYPART_GLOVES, BODYPART_BOOTS})
+    {
+        c->BodyPart[part].Level = RESET_MASTER_ITEM_LEVEL;
+    }
+    c->Weapon[0].Type = -1;
+}
+} // namespace
+
 CHARACTER* CreateMonster(EMonsterType Type, int PositionX, int PositionY, int Key)
 {
     CHARACTER* c = NULL;
@@ -14618,8 +14643,14 @@ CHARACTER* CreateMonster(EMonsterType Type, int PositionX, int PositionY, int Ke
         c->Object.EnableShadow = false;
         c->Object.m_bRenderShadow = false;
         break;
-    case MONSTER_LUKE_THE_HELPER:
     case MONSTER_LEO_THE_HELPER:
+        c = CreateCharacter(Key, MODEL_PLAYER, PositionX, PositionY);
+        wcscpy(c->ID, L"HelperName");
+        DressResetMaster(c);
+        SetCharacterScale(c);
+        c->Object.m_bpcroom = true;
+        break;
+    case MONSTER_LUKE_THE_HELPER:
     case MONSTER_HELPER_ELLEN:
         c = CreateCharacter(Key, MODEL_PLAYER, PositionX, PositionY);
         wcscpy(c->ID, L"HelperName");
