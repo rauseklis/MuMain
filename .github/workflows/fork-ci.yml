@@ -32,6 +32,12 @@ jobs:
     name: Windows x64 Release, editor ${{ matrix.editor }}
     if: github.repository != 'sven-n/MuMain' || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 1G
+      # Hash the compiler itself, so a Visual Studio update on the runner never reuses objects of the old one.
+      CCACHE_COMPILERCHECK: content
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +95,17 @@ jobs:
           key: vcpkg-windows-x64-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-windows-x64-
 
+      - name: Install ccache
+        run: choco install ccache --yes --no-progress
+
+      # Compiled objects are reused between runs, so a change to one file only recompiles that file.
+      - name: Cache compiled objects
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-windows-x64-editor-${{ matrix.editor }}-${{ github.sha }}
+          restore-keys: ccache-windows-x64-editor-${{ matrix.editor }}-
+
       - name: Configure CMake
         run: >
           cmake --preset windows-x64
@@ -105,10 +122,16 @@ jobs:
           -DSPIRV_CROSS_EXE=C:/vcpkg/installed/x64-windows/tools/spirv-cross/spirv-cross.exe
           -DDXC_EXE=C:/vcpkg/installed/x64-windows/tools/directx-dxc/dxc.exe
           -DMU_COPY_RUNTIME_ASSETS=OFF
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DBUILD_TESTING=ON
 
       - name: Build
         run: cmake --build out/build/fork-ci-windows --config Release
+
+      - name: Show ccache statistics
+        if: always()
+        run: ccache --show-stats
 
       - name: Run tests
         run: >
