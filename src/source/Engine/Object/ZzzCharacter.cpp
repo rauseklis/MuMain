@@ -13191,14 +13191,15 @@ namespace
 {
 // Raymond the Reset Master wears the Great Dragon set, with the glow of a +9 item.
 constexpr int RESET_MASTER_ITEM_LEVEL = 9;
-// Added to the light on his body, so the set keeps its own colours and gets an emerald tone on top.
-constexpr float RESET_MASTER_TINT_RED = 0.0f;
-constexpr float RESET_MASTER_TINT_GREEN = 0.4f;
-constexpr float RESET_MASTER_TINT_BLUE = 0.25f;
+// The emerald shine drawn over his armour; the set keeps its own colours underneath.
+constexpr float RESET_MASTER_GLOW_RED = 0.1f;
+constexpr float RESET_MASTER_GLOW_GREEN = 0.75f;
+constexpr float RESET_MASTER_GLOW_BLUE = 0.4f;
 
 void DressResetMaster(CHARACTER* c)
 {
-    Vector(RESET_MASTER_TINT_RED, RESET_MASTER_TINT_GREEN, RESET_MASTER_TINT_BLUE, c->Object.Light);
+    c->Object.m_bGlowTint = TRUE;
+    Vector(RESET_MASTER_GLOW_RED, RESET_MASTER_GLOW_GREEN, RESET_MASTER_GLOW_BLUE, c->Object.m_v3GlowTint);
     c->BodyPart[BODYPART_HELM].Type = MODEL_GREAT_DRAGON_HELM;
     c->BodyPart[BODYPART_ARMOR].Type = MODEL_GREAT_DRAGON_ARMOR;
     c->BodyPart[BODYPART_PANTS].Type = MODEL_GREAT_DRAGON_PANTS;

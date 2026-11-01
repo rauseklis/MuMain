@@ -4573,6 +4573,7 @@ OBJECT* CreateObject(int Type, vec3_t Position, vec3_t Angle, float Scale)
     o->CollisionRange = -30.f;
     o->Timer = 0.f;
     o->m_bpcroom = FALSE;
+    o->m_bGlowTint = FALSE;
     o->m_bRenderAfterCharacter = false;
 
     VectorCopy(Position, o->Position);
@@ -9054,6 +9055,12 @@ void RenderPartObjectEffect(OBJECT* o, int Type, vec3_t Light, float Alpha, int 
         if (g_pOption->GetRenderLevel() == 0)
         {
             return;
+        }
+
+        if (o->m_bGlowTint)
+        {
+            VectorCopy(o->m_v3GlowTint, b->BodyLight);
+            RenderPartObjectBodyColor(b, o, Type, Alpha, RENDER_CHROME | RENDER_BRIGHT, 1.f);
         }
 
         if (!g_isCharacterBuff(o, eDeBuff_Harden) && !g_isCharacterBuff(o, eBuff_Cloaking)

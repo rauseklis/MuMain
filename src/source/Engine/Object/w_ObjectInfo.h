@@ -231,6 +231,9 @@ public:
 
 public:
     BOOL		m_bpcroom;
+    // An extra additive shine over the worn armour in this colour, drawn like the glow of a +9 item.
+    BOOL		m_bGlowTint;
+    vec3_t		m_v3GlowTint;
     vec3_t		m_v3PrePos1;
     vec3_t		m_v3PrePos2;
 

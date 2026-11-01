@@ -85,6 +85,7 @@ OBJECT::~OBJECT()
 void OBJECT::Initialize()
 {
     m_bpcroom = false;
+    m_bGlowTint = false;
     Live = false;
     bBillBoard = false;
     m_bCollisionCheck = false;
