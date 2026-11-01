@@ -279,9 +279,9 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
         PlayBuffer(SOUND_CLICK01);
         return false;
     }
-    else if (SEASON3B::IsPress('J') == true && SEASON3B::IsRepeat(VK_CONTROL))
+    else if (SEASON3B::IsPress('J') == true)
     {
-        // Ctrl+J is the Jewel Bank; the plain key below keeps showing the chat commands.
+        // J is the Jewel Bank. The chat command list is in the menu (U).
         if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_AUCTION_HOUSE))
         {
             g_pNewUISystem->Hide(SEASON3B::INTERFACE_AUCTION_HOUSE);
@@ -289,17 +289,6 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
 
         g_pNewUISystem->Toggle(SEASON3B::INTERFACE_JEWEL_BANK);
         PlayBuffer(SOUND_CLICK01);
-
-        return false;
-    }
-    else if (SEASON3B::IsPress('J') == true)
-    {
-        // Only servers which offer their chat commands have something to show.
-        if (GameLogic::Commands::Catalog().IsAvailable())
-        {
-            g_pNewUISystem->Toggle(SEASON3B::INTERFACE_COMMAND_LIST);
-            PlayBuffer(SOUND_CLICK01);
-        }
 
         return false;
     }

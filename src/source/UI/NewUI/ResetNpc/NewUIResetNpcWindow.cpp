@@ -346,7 +346,7 @@ void SEASON3B::CNewUIResetNpcWindow::RenderHelpTooltip() const
                                L"(200 at reset 7, 4,500 at reset 50).",
                                TEXT_COLOR_WHITE, false, count);
     UI::Buffs::Tooltip::Append(
-        L"Fruits of any type are taken from your Jewel Bank (Ctrl+J). Deposit them there before you come here.",
+        L"Fruits of any type are taken from your Jewel Bank (J). Deposit them there before you come here.",
         TEXT_COLOR_GREEN, false, count);
     UI::Buffs::Tooltip::Append(
         L"You must wear nothing: take off all your equipment first. The items may stay in your inventory.",
@@ -468,7 +468,7 @@ bool SEASON3B::CNewUIResetNpcWindow::Render()
     {
         g_pRenderText->SetTextColor(170, 176, 190, 255);
         g_pRenderText->RenderText(static_cast<float>(m_posX + 15), static_cast<float>(m_posY + HintY),
-                                  L"Fruits of any type are taken from your Jewel Bank (Ctrl+J).",
+                                  L"Fruits of any type are taken from your Jewel Bank (J).",
                                   static_cast<float>(WINDOW_WIDTH - 30), 0, RT3_SORT_CENTER);
     }
 

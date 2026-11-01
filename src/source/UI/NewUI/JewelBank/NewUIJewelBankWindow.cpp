@@ -1,4 +1,4 @@
-// NewUIJewelBankWindow.cpp: the Jewel Bank window, opened with Ctrl+J.
+// NewUIJewelBankWindow.cpp: the Jewel Bank window, opened with J.
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
