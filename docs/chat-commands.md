@@ -15,7 +15,7 @@ them for you.
 
 ## Opening it
 
-- Press **J**, or
+- Press **U** for the menu and click **Commands**, or
 - press **D** for the command window and click **Special**.
 
 Both routes lead to the same window. **Escape** goes back one page and closes

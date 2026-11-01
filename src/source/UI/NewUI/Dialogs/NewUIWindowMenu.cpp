@@ -10,6 +10,7 @@
 #include "UI/Legacy/UIControls.h"
 #include "Audio/DSPlaySound.h"
 #include "I18N/All.h"
+#include "GameLogic/Commands/ChatCommandCatalog.h"
 
 using namespace SEASON3B;
 
@@ -133,6 +134,17 @@ bool SEASON3B::CNewUIWindowMenu::UpdateMouseEvent()
             return false;
         }
         break;
+        case MENU_INDEX_COMMANDS:
+        {
+            // Only servers which offer their chat commands have something to show.
+            if (GameLogic::Commands::Catalog().IsAvailable())
+            {
+                g_pNewUISystem->Hide(SEASON3B::INTERFACE_WINDOW_MENU);
+                g_pNewUISystem->Show(SEASON3B::INTERFACE_COMMAND_LIST);
+            }
+            return false;
+        }
+        break;
         }
     }
 
@@ -222,7 +234,7 @@ void SEASON3B::CNewUIWindowMenu::RenderTexts()
     g_pRenderText->SetBgColor(0);
     g_pRenderText->SetTextColor(255, 255, 255, 255);
 
-    int iTextNumber[] = {1741, 1742, 364, 1743, 3055, 3103};
+    const int iTextNumber[] = {1741, 1742, 364, 1743, 3055, 3103};
     float y = m_Pos.y + 20.f;
     for (int i = 0; i < MENU_MAX_INDEX; ++i)
     {
@@ -234,7 +246,9 @@ void SEASON3B::CNewUIWindowMenu::RenderTexts()
         {
             g_pRenderText->SetTextColor(255, 255, 255, 255);
         }
-        g_pRenderText->RenderText(m_Pos.x, y, I18N::Game::Lookup(iTextNumber[i]), 112, 0, RT3_SORT_CENTER);
+        const wchar_t* text =
+            i == MENU_INDEX_COMMANDS ? I18N::Game::ChatCommandsTitle : I18N::Game::Lookup(iTextNumber[i]);
+        g_pRenderText->RenderText(m_Pos.x, y, text, 112, 0, RT3_SORT_CENTER);
         y += 20.f;
     }
 }

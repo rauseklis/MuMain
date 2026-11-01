@@ -271,7 +271,7 @@ when the branch is merged. Only one session at a time may build in a worktree.
 - **GM commands** (a game-master account): `/item <group> <number> [level]` drops an item at your feet (Jewel of Bless `14 13 0`; Fruit of Strength
   `13 15 3`), `/move <map>`, `/jewelrain` starts the Jewel Rain event; the list of commands is in the chat-commands plug-ins
   (`src/GameLogic/PlugIns/ChatCommands/`) and `docs/chat-commands.md` in the client repository.
-- Jewel Bank window: **Ctrl+J**. Auction House: **A**. Skill tree (Master Level): **S**.
+- Jewel Bank window: **J**. Chat command list: **U** menu, "Commands". Auction House: **A**. Skill tree (Master Level): **S**.
 - The Auction House refuses accounts younger than 24 hours (`MinimumAccountAgeHours`); the owner set the registration date of the two game-master
   accounts back to get round it.
 - Remember: on the live server **your actions are real for the other player**. Do not wipe or damage characters or the database.

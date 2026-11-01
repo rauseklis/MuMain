@@ -1,4 +1,4 @@
-// NewUIJewelBankWindow.h: the Jewel Bank window, opened with Ctrl+J.
+// NewUIJewelBankWindow.h: the Jewel Bank window, opened with J.
 //////////////////////////////////////////////////////////////////////
 
 #pragma once
