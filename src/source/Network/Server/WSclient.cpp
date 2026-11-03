@@ -2889,7 +2889,7 @@ void ReceiveCreateTransformViewport(std::span<const BYTE> ReceiveBuffer)
 
             CMultiLanguage::ConvertFromUtf8(c->ID, Data2->ID, MAX_USERNAME_SIZE);
 
-            ChangeCharacterExt(FindCharacterIndex(Key), Data2->Equipment);
+            ReadEquipmentExtended(FindCharacterIndex(Key), Data2->Flags, Data2->Equipment);
         }
 
         Offset += *EntryLength;
