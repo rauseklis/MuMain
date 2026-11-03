@@ -12833,6 +12833,49 @@ void ChangeCharacterExt(int Key, BYTE* Equipment, CHARACTER* pCharacter, OBJECT*
     SetCharacterScale(c);
 }
 
+namespace
+{
+// Size in bytes of an armour or weapon entry in the extended appearance: group, number and glow bits.
+constexpr int ExtendedShinyItemSize = 3;
+
+// Reads the helm, armour, pants, gloves and boots entries, starting at offset, and advances offset past them.
+void ReadBodyPartsExtended(CHARACTER* c, const BYTE* Equipment, int& offset)
+{
+    short bodyParts[] = {0, MODEL_BODY_HELM, MODEL_BODY_ARMOR, MODEL_BODY_PANTS, MODEL_BODY_GLOVES, MODEL_BODY_BOOTS};
+    for (int i = 1; i < MAX_BODYPART; i++)
+    {
+        c->BodyPart[i].Type = bodyParts[i] + c->SkinIndex;
+        c->BodyPart[i].ExcellentFlags = 0;
+        c->BodyPart[i].AncientDiscriminator = 0;
+        c->BodyPart[i].Level = 0;
+
+        if (Equipment[offset] != 0xFF && Equipment[offset + 1] != 0xFF)
+        {
+            short number = MAKEWORD(Equipment[offset + 1], Equipment[offset] & 0xF);
+            BYTE group = (Equipment[offset] & 0xF0) >> 4;
+            BYTE glowLevel = (Equipment[offset + 2] & 0xF0) >> 4;
+            bool isAncient = Equipment[offset + 2] & 0x04;
+            bool isExcellent = Equipment[offset + 2] & 0x08;
+
+            if (number > MAX_ITEM_INDEX)
+            {
+                // not supported
+            }
+            else
+            {
+                auto modelOffset = group * MAX_ITEM_INDEX + number;
+                c->BodyPart[i].Type = MODEL_ITEM + modelOffset;
+                c->BodyPart[i].Level = LevelConvert(glowLevel);
+                c->BodyPart[i].ExcellentFlags = isExcellent;
+                c->BodyPart[i].AncientDiscriminator = isAncient;
+            }
+        }
+
+        offset += ExtendedShinyItemSize;
+    }
+}
+} // namespace
+
 void ReadEquipmentExtended(int Key, BYTE flags, BYTE* Equipment, CHARACTER* pCharacter, OBJECT* pHelper)
 {
     CHARACTER* c;
@@ -12885,43 +12928,16 @@ void ReadEquipmentExtended(int Key, BYTE flags, BYTE* Equipment, CHARACTER* pCha
     }
 
     DeleteParts(c);
+
+    // A transformed character keeps its monster model, so its armour is not read. The entries are still
+    // stepped over, otherwise the wings and the helper below would be read from the wrong bytes.
     if (c->Change)
     {
-        // todo: is this the correct place to return?
-        return;
+        offset += ExtendedShinyItemSize * (MAX_BODYPART - 1);
     }
-
-    short bodyParts[] = { 0, MODEL_BODY_HELM, MODEL_BODY_ARMOR, MODEL_BODY_PANTS, MODEL_BODY_GLOVES, MODEL_BODY_BOOTS};
-    for (int i = 1; i < MAX_BODYPART; i++)
+    else
     {
-        c->BodyPart[i].Type = bodyParts[i] + c->SkinIndex;
-        c->BodyPart[i].ExcellentFlags = 0;
-        c->BodyPart[i].AncientDiscriminator = 0;
-        c->BodyPart[i].Level = 0;
-
-        if (Equipment[offset] != 0xFF && Equipment[offset + 1] != 0xFF)
-        {
-            short number = MAKEWORD(Equipment[offset + 1], Equipment[offset] & 0xF);
-            BYTE group = (Equipment[offset] & 0xF0) >> 4;
-            BYTE glowLevel = (Equipment[offset + 2] & 0xF0) >> 4;
-            bool isAncient = Equipment[offset + 2] & 0x04;
-            bool isExcellent = Equipment[offset + 2] & 0x08;
-
-            if (number > MAX_ITEM_INDEX)
-            {
-                // not supported
-            }
-            else
-            {
-                auto modelOffset = group * MAX_ITEM_INDEX + number;
-                c->BodyPart[i].Type = MODEL_ITEM + modelOffset;
-                c->BodyPart[i].Level = LevelConvert(glowLevel);
-                c->BodyPart[i].ExcellentFlags = isExcellent;
-                c->BodyPart[i].AncientDiscriminator = isAncient;
-            }
-        }
-
-        offset += 3;
+        ReadBodyPartsExtended(c, Equipment, offset);
     }
 
     // Wings:
