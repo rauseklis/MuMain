@@ -338,12 +338,10 @@ namespace
 
     constexpr int WINDOW_WIDTH = 190;
     constexpr int WINDOW_HEIGHT = 419;
-    constexpr int CLOSE_BUTTON_X_LOCAL = 73;
-    constexpr int CLOSE_BUTTON_Y_LOCAL = 391;
-    constexpr int CLOSE_BUTTON_WIDTH = 44;
-    constexpr int CLOSE_BUTTON_HEIGHT = 24;
-    constexpr int CLOSE_BUTTON_SOURCE_WIDTH = 54;
-    constexpr int CLOSE_BUTTON_SOURCE_HEIGHT = 30;
+    constexpr int CLOSE_BUTTON_X_LOCAL = 71;
+    constexpr int CLOSE_BUTTON_Y_LOCAL = 395;
+    constexpr int CLOSE_BUTTON_WIDTH = 48;
+    constexpr int CLOSE_BUTTON_HEIGHT = 17;
     constexpr int PAGER_Y_LOCAL = 375;
     constexpr int PAGER_GENERAL_X_LOCAL = 29;
     constexpr int PAGER_GRAPHICS_X_LOCAL = 96;
@@ -1054,21 +1052,36 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
                         (float)(PAGER_TAB_WIDTH - 16), 1.f, 0xFFFFBD19u);
 }
 
+void SEASON3B::CNewUIOptionWindow::RenderCloseButton()
+{
+    // A flat dark plate with a thin gold rim and the same gold label as the page tabs,
+    // instead of the bulky stone button artwork.
+    const auto state = m_BtnClose.GetBTState();
+    const bool hover = state == BUTTON_STATE_OVER;
+    const bool down = state == BUTTON_STATE_DOWN;
+    const unsigned int fill = down ? 0xFF0A0805u : (hover ? 0xFF2A200Eu : 0xFF15110Au);
+    const unsigned int rim = (hover || down) ? 0xFFFFBD19u : 0xFF9A7418u;
+
+    const float x = (float)(m_Pos.x + CLOSE_BUTTON_X_LOCAL);
+    const float y = (float)(m_Pos.y + CLOSE_BUTTON_Y_LOCAL);
+    const float w = (float)CLOSE_BUTTON_WIDTH;
+    const float h = (float)CLOSE_BUTTON_HEIGHT;
+    RenderColorQuadARGB(x, y, w, h, fill);
+    RenderColorQuadARGB(x, y, w, 1.f, rim);
+    RenderColorQuadARGB(x, y + h - 1.f, w, 1.f, rim);
+    RenderColorQuadARGB(x, y, 1.f, h, rim);
+    RenderColorQuadARGB(x + w - 1.f, y, 1.f, h, rim);
+
+    g_pRenderText->SetFont(g_hFont);
+    g_pRenderText->SetBgColor(0, 0, 0, 0);
+    g_pRenderText->SetTextColor(RGBA(255, 189, 25, 255));
+    g_pRenderText->RenderText(m_Pos.x + CLOSE_BUTTON_X_LOCAL, m_Pos.y + CLOSE_BUTTON_Y_LOCAL + (down ? 5 : 4), L"Close",
+                              CLOSE_BUTTON_WIDTH, 0, RT3_SORT_CENTER);
+}
+
 void SEASON3B::CNewUIOptionWindow::RenderButtons()
 {
-    // CNewUIButton's ordinary renderer crops sprites when its destination is
-    // smaller than the source. Draw the same state frame through the stretch
-    // helper so the 54x30 artwork scales cleanly to this compact 44x24 button.
-    int closeFrame = 0;
-    if (m_BtnClose.GetBTState() == BUTTON_STATE_OVER)
-        closeFrame = 1;
-    else if (m_BtnClose.GetBTState() == BUTTON_STATE_DOWN)
-        closeFrame = 2;
-    RenderImageStretch(IMAGE_OPTION_BTN_CLOSE,
-                       m_Pos.x + CLOSE_BUTTON_X_LOCAL, m_Pos.y + CLOSE_BUTTON_Y_LOCAL,
-                       (float)CLOSE_BUTTON_WIDTH, (float)CLOSE_BUTTON_HEIGHT,
-                       0.f, (float)(closeFrame * CLOSE_BUTTON_SOURCE_HEIGHT),
-                       (float)CLOSE_BUTTON_SOURCE_WIDTH, (float)CLOSE_BUTTON_SOURCE_HEIGHT);
+    RenderCloseButton();
 
     if (m_iCurrentPage == PAGE_GENERAL)
     {

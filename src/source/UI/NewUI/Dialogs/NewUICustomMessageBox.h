@@ -34,6 +34,9 @@ namespace SEASON3B
     class CNewUITextInputMsgBox : public CNewUIMessageBoxBase
     {
         static constexpr float INPUTBOX_TOP_BLANK = 10.0f;
+        // The shared message box buttons look oversized under a one-line input box; draw them smaller.
+        static constexpr float INPUT_BTN_WIDTH = 42.0f;
+        static constexpr float INPUT_BTN_HEIGHT = 23.0f;
 
         typedef struct _MSGBOX_TEXTDATA
         {

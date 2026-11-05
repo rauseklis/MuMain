@@ -125,10 +125,11 @@ void SEASON3B::CNewUITextInputMsgBox::SetButtonInfo()
     switch (m_dwMsgBoxType)
     {
     case MSGBOX_COMMON_TYPE_OK:
-        x = GetPos().x + (GetSize().cx / 2) - (MSGBOX_BTN_WIDTH / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
-        width = MSGBOX_BTN_WIDTH;
-        height = MSGBOX_BTN_HEIGHT;
+        x = GetPos().x + (GetSize().cx / 2) - (INPUT_BTN_WIDTH / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) +
+            ((MSGBOX_BTN_HEIGHT - INPUT_BTN_HEIGHT) / 2);
+        width = INPUT_BTN_WIDTH;
+        height = INPUT_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM
@@ -136,20 +137,22 @@ void SEASON3B::CNewUITextInputMsgBox::SetButtonInfo()
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
         break;
     case MSGBOX_COMMON_TYPE_OKCANCEL:
-        x = GetPos().x + (((GetSize().cx / 2) - MSGBOX_BTN_WIDTH) / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
-        width = MSGBOX_BTN_WIDTH;
-        height = MSGBOX_BTN_HEIGHT;
+        x = GetPos().x + (((GetSize().cx / 2) - INPUT_BTN_WIDTH) / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) +
+            ((MSGBOX_BTN_HEIGHT - INPUT_BTN_HEIGHT) / 2);
+        width = INPUT_BTN_WIDTH;
+        height = INPUT_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height);
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
 
-        x = GetPos().x + (GetSize().cx / 2) + (((GetSize().cx / 2) - MSGBOX_BTN_WIDTH) / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
-        width = MSGBOX_BTN_WIDTH;
-        height = MSGBOX_BTN_HEIGHT;
+        x = GetPos().x + (GetSize().cx / 2) + (((GetSize().cx / 2) - INPUT_BTN_WIDTH) / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) +
+            ((MSGBOX_BTN_HEIGHT - INPUT_BTN_HEIGHT) / 2);
+        width = INPUT_BTN_WIDTH;
+        height = INPUT_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnCancel.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_CANCEL, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM

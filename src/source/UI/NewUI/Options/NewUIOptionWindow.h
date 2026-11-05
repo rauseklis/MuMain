@@ -90,6 +90,7 @@ namespace SEASON3B
 
         void RenderFrame();
         void RenderContents();
+        void RenderCloseButton();
         void RenderButtons();
         void ChangePage(int page);
 
