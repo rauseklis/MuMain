@@ -13,6 +13,10 @@ namespace SEASON3B
     {
         CNewUIManager* m_pNewUIMng;
         bool			m_bStateGameOver;
+        bool m_bLogoutPending = false;
+        int m_nLogoutType = 0;
+        int m_nLogoutSecondsShown = 0;
+        unsigned long m_dwLogoutStartTime = 0;
 
     public:
         CNewUIHotKey();
@@ -34,6 +38,11 @@ namespace SEASON3B
 
         void SetStateGameOver(bool bGameOver);	// 게임오버중인 상태
         bool IsStateGameOver();
+
+        /// Starts the delayed log out (exit game / server selection / character selection).
+        /// The log out is sent once the countdown has run out.
+        void StartLogoutCountdown(int logoutType);
+        void CancelLogoutCountdown();
 
         bool AutoGetItem();
 

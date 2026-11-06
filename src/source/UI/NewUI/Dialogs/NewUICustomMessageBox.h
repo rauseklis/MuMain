@@ -378,6 +378,10 @@ namespace SEASON3B
         bool Render();
 
         static CALLBACK_RESULT LButtonUp(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam);
+        /// Sends the log out request to the server and closes the window if the game is being closed.
+        static void PerformLogout(LogOutType logoutType);
+        /// Writes the "N seconds left" line of the log out countdown to the system log.
+        static void AnnounceLogoutCountdown(LogOutType logoutType, int secondsLeft);
         static CALLBACK_RESULT GameOverBtnDown(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam);
         static CALLBACK_RESULT ChooseServerBtnDown(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam);
         static CALLBACK_RESULT ChooseCharacterBtnDown(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam);
