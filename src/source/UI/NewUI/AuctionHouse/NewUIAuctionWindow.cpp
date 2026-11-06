@@ -1748,6 +1748,17 @@ void SEASON3B::CNewUIAuctionWindow::SetOperationResponse(const AuctionHouse::Auc
     m_ServerClock.Sync(response.ServerTime, GetTickCount());
     const AuctionResult result = response.Result;
 
+    // A bid, buyout or claim moves jewels and fruits in or out of the Jewel Bank, so re-read the wallet the window
+    // shows from the server instead of keeping the amounts from when the window was opened. Create already does this.
+    if (result == AuctionResult::Success && (response.OperationType == AuctionOperationType::Bid ||
+                                             response.OperationType == AuctionOperationType::Buyout ||
+                                             response.OperationType == AuctionOperationType::Collect))
+    {
+        m_PendingOpenRequestId = AuctionHouse::NextAuctionRequestId();
+        m_bOpenRequestPending = true;
+        SocketClient->ToGameServer()->SendAuctionOpenRequest(m_PendingOpenRequestId);
+    }
+
     if (response.OperationType == AuctionOperationType::Create)
     {
         m_SellPanel.SetBusy(false);
