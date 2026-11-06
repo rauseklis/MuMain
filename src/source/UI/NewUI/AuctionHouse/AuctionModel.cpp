@@ -547,7 +547,7 @@ namespace AuctionHouse
             case AuctionResult::BidTooLow: return L"Your bid is too low.";
             case AuctionResult::AlreadyHighestBidder: return L"You are already the highest bidder.";
             case AuctionResult::SelfTrade: return L"You cannot bid on your own listing.";
-            case AuctionResult::InsufficientCurrency: return L"Not enough in your Jewel Bank or inventory Zen for that bid.";
+            case AuctionResult::InsufficientCurrency: return L"Not enough Jewel Bank or inventory Zen for that bid.";
             default: return L"The bid could not be placed.";
             }
         case AuctionOperationType::Buyout:
@@ -556,7 +556,7 @@ namespace AuctionHouse
             case AuctionResult::Success: return L"Purchased. Collect your item from the Mailbox.";
             case AuctionResult::BuyoutUnavailable: return L"This listing has no buyout.";
             case AuctionResult::SelfTrade: return L"You cannot buy your own listing.";
-            case AuctionResult::InsufficientCurrency: return L"Not enough in your Jewel Bank or inventory Zen to buy this.";
+            case AuctionResult::InsufficientCurrency: return L"Not enough Jewel Bank or inventory Zen to buy this.";
             default: return L"The purchase could not be completed.";
             }
         case AuctionOperationType::Cancel:
