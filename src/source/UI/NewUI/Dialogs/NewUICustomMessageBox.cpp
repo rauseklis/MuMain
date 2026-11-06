@@ -125,10 +125,11 @@ void SEASON3B::CNewUITextInputMsgBox::SetButtonInfo()
     switch (m_dwMsgBoxType)
     {
     case MSGBOX_COMMON_TYPE_OK:
-        x = GetPos().x + (GetSize().cx / 2) - (MSGBOX_BTN_WIDTH / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
-        width = MSGBOX_BTN_WIDTH;
-        height = MSGBOX_BTN_HEIGHT;
+        x = GetPos().x + (GetSize().cx / 2) - (INPUT_BTN_WIDTH / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) +
+            ((MSGBOX_BTN_HEIGHT - INPUT_BTN_HEIGHT) / 2);
+        width = INPUT_BTN_WIDTH;
+        height = INPUT_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM
@@ -136,20 +137,22 @@ void SEASON3B::CNewUITextInputMsgBox::SetButtonInfo()
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
         break;
     case MSGBOX_COMMON_TYPE_OKCANCEL:
-        x = GetPos().x + (((GetSize().cx / 2) - MSGBOX_BTN_WIDTH) / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
-        width = MSGBOX_BTN_WIDTH;
-        height = MSGBOX_BTN_HEIGHT;
+        x = GetPos().x + (((GetSize().cx / 2) - INPUT_BTN_WIDTH) / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) +
+            ((MSGBOX_BTN_HEIGHT - INPUT_BTN_HEIGHT) / 2);
+        width = INPUT_BTN_WIDTH;
+        height = INPUT_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height);
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
 
-        x = GetPos().x + (GetSize().cx / 2) + (((GetSize().cx / 2) - MSGBOX_BTN_WIDTH) / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
-        width = MSGBOX_BTN_WIDTH;
-        height = MSGBOX_BTN_HEIGHT;
+        x = GetPos().x + (GetSize().cx / 2) + (((GetSize().cx / 2) - INPUT_BTN_WIDTH) / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) +
+            ((MSGBOX_BTN_HEIGHT - INPUT_BTN_HEIGHT) / 2);
+        width = INPUT_BTN_WIDTH;
+        height = INPUT_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnCancel.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_CANCEL, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM
@@ -2326,6 +2329,41 @@ CALLBACK_RESULT SEASON3B::CSystemMenuMsgBox::LButtonUp(class CNewUIMessageBoxBas
     return CALLBACK_CONTINUE;
 }
 
+void SEASON3B::CSystemMenuMsgBox::PerformLogout(LogOutType logoutType)
+{
+    MUHelper::g_MuHelper.TriggerStop();
+    if (logoutType != LogOutType::CloseGame)
+    {
+        g_pNewUIMng->ResetActiveUIObj();
+    }
+
+    LogOut = true;
+    SocketClient->ToGameServer()->SendLogOut(logoutType);
+    g_ConsoleDebug->Write(MCD_SEND, L"0xF1 [SendRequestLogOut] %d", static_cast<int>(logoutType));
+
+    if (logoutType == LogOutType::CloseGame)
+    {
+        PostMessage(g_hWnd, WM_CLOSE, 0, 0);
+    }
+}
+
+void SEASON3B::CSystemMenuMsgBox::AnnounceLogoutCountdown(LogOutType logoutType, int secondsLeft)
+{
+    wchar_t message[128]{};
+    if (logoutType == LogOutType::CloseGame)
+    {
+        mu_swprintf(message, I18N::Game::YouWillExitGameInDSeconds, secondsLeft);
+    }
+    else
+    {
+        const wchar_t* label =
+            (logoutType == LogOutType::BackToServerSelection) ? I18N::Game::SelectServer : I18N::Game::SwitchCharacter;
+        mu_swprintf(message, L"%ls: %d", label, secondsLeft);
+    }
+
+    g_pSystemLogBox->AddText(message, SEASON3B::TYPE_SYSTEM_MESSAGE);
+}
+
 CALLBACK_RESULT SEASON3B::CSystemMenuMsgBox::GameOverBtnDown(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam)
 {
     g_ErrorReport.Write(L"> Menu - Exit game. ");
@@ -2340,11 +2378,7 @@ CALLBACK_RESULT SEASON3B::CSystemMenuMsgBox::GameOverBtnDown(class CNewUIMessage
     }
     else
     {
-        MUHelper::g_MuHelper.TriggerStop();
-        LogOut = true;
-        SocketClient->ToGameServer()->SendLogOut(LogOutType::CloseGame);
-        PostMessage(g_hWnd, WM_CLOSE, 0, 0);
-        g_ConsoleDebug->Write(MCD_SEND, L"0xF1 [SendRequestLogOut] 0");
+        g_pNewUIHotKey->StartLogoutCountdown(static_cast<int>(LogOutType::CloseGame));
     }
 
     PlayBuffer(SOUND_CLICK01);
@@ -2371,11 +2405,7 @@ CALLBACK_RESULT SEASON3B::CSystemMenuMsgBox::ChooseServerBtnDown(class CNewUIMes
     }
     else
     {
-        MUHelper::g_MuHelper.TriggerStop();
-        g_pNewUIMng->ResetActiveUIObj();
-        LogOut = true;
-        SocketClient->ToGameServer()->SendLogOut(LogOutType::BackToServerSelection);
-        g_ConsoleDebug->Write(MCD_SEND, L"0xF1 [SendRequestLogOut] 2");
+        g_pNewUIHotKey->StartLogoutCountdown(static_cast<int>(LogOutType::BackToServerSelection));
     }
 
     PlayBuffer(SOUND_CLICK01);
@@ -2403,10 +2433,7 @@ CALLBACK_RESULT SEASON3B::CSystemMenuMsgBox::ChooseCharacterBtnDown(class CNewUI
     }
     else
     {
-        MUHelper::g_MuHelper.TriggerStop();
-        g_pNewUIMng->ResetActiveUIObj();
-        LogOut = true;SocketClient->ToGameServer()->SendLogOut(LogOutType::BackToCharacterSelection);
-        g_ConsoleDebug->Write(MCD_SEND, L"0xF1 [SendRequestLogOut] 1");
+        g_pNewUIHotKey->StartLogoutCountdown(static_cast<int>(LogOutType::BackToCharacterSelection));
     }
 
     PlayBuffer(SOUND_CLICK01);

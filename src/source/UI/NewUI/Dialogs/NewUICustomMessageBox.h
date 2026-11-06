@@ -34,6 +34,9 @@ namespace SEASON3B
     class CNewUITextInputMsgBox : public CNewUIMessageBoxBase
     {
         static constexpr float INPUTBOX_TOP_BLANK = 10.0f;
+        // The shared message box buttons look oversized under a one-line input box; draw them smaller.
+        static constexpr float INPUT_BTN_WIDTH = 42.0f;
+        static constexpr float INPUT_BTN_HEIGHT = 23.0f;
 
         typedef struct _MSGBOX_TEXTDATA
         {
@@ -375,6 +378,10 @@ namespace SEASON3B
         bool Render();
 
         static CALLBACK_RESULT LButtonUp(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam);
+        /// Sends the log out request to the server and closes the window if the game is being closed.
+        static void PerformLogout(LogOutType logoutType);
+        /// Writes the "N seconds left" line of the log out countdown to the system log.
+        static void AnnounceLogoutCountdown(LogOutType logoutType, int secondsLeft);
         static CALLBACK_RESULT GameOverBtnDown(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam);
         static CALLBACK_RESULT ChooseServerBtnDown(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam);
         static CALLBACK_RESULT ChooseCharacterBtnDown(class CNewUIMessageBoxBase* pOwner, const leaf::xstreambuf& xParam);

@@ -26,6 +26,12 @@
 
 using namespace SEASON3B;
 
+namespace
+{
+constexpr int LOGOUT_COUNTDOWN_SECONDS = 5;
+constexpr unsigned long MS_PER_SECOND = 1000;
+} // namespace
+
 SEASON3B::CNewUIHotKey::CNewUIHotKey() : m_pNewUIMng(NULL), m_bStateGameOver(false)
 {
 }
@@ -384,6 +390,27 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
 
 bool SEASON3B::CNewUIHotKey::Update()
 {
+    if (!m_bLogoutPending)
+    {
+        return true;
+    }
+
+    const unsigned long elapsed = timeGetTime() - m_dwLogoutStartTime;
+    if (elapsed >= LOGOUT_COUNTDOWN_SECONDS * MS_PER_SECOND)
+    {
+        const auto logoutType = static_cast<LogOutType>(m_nLogoutType);
+        m_bLogoutPending = false;
+        CSystemMenuMsgBox::PerformLogout(logoutType);
+        return true;
+    }
+
+    const int remaining = LOGOUT_COUNTDOWN_SECONDS - static_cast<int>(elapsed / MS_PER_SECOND);
+    if (remaining != m_nLogoutSecondsShown)
+    {
+        m_nLogoutSecondsShown = remaining;
+        CSystemMenuMsgBox::AnnounceLogoutCountdown(static_cast<LogOutType>(m_nLogoutType), remaining);
+    }
+
     return true;
 }
 
@@ -459,6 +486,29 @@ float SEASON3B::CNewUIHotKey::GetKeyEventOrder()
 void SEASON3B::CNewUIHotKey::SetStateGameOver(bool bGameOver)
 {
     m_bStateGameOver = bGameOver;
+    if (!bGameOver)
+    {
+        m_bLogoutPending = false;
+    }
+}
+
+void SEASON3B::CNewUIHotKey::StartLogoutCountdown(int logoutType)
+{
+    if (m_bLogoutPending)
+    {
+        return;
+    }
+
+    m_bLogoutPending = true;
+    m_nLogoutType = logoutType;
+    m_nLogoutSecondsShown = LOGOUT_COUNTDOWN_SECONDS;
+    m_dwLogoutStartTime = timeGetTime();
+    CSystemMenuMsgBox::AnnounceLogoutCountdown(static_cast<LogOutType>(logoutType), LOGOUT_COUNTDOWN_SECONDS);
+}
+
+void SEASON3B::CNewUIHotKey::CancelLogoutCountdown()
+{
+    m_bLogoutPending = false;
 }
 
 bool SEASON3B::CNewUIHotKey::IsStateGameOver()
