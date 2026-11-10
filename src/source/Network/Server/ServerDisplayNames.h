@@ -7,10 +7,10 @@ namespace Network::ServerNames
     // The name of the server group as shown to the player.
     const wchar_t* GroupName(const wchar_t* nameInFile);
 
-    // Writes the label of the server ("Emberion 50x") for the 1-based number of the server in its group and returns
+    // Writes the label of the server ("Inferno 500x") for the 1-based number of the server in its group and returns
     // true. Returns false for a number which has no label, so that the caller keeps the classic name.
     bool ServerLabel(const wchar_t* groupName, int serverNumberInGroup, wchar_t* label, size_t labelSize);
 
-    // Writes "[Emberion 50x]" into title when the server has a label; otherwise leaves title as it is.
+    // Writes "[Inferno 500x]" into title when the server has a label; otherwise leaves title as it is.
     void FormatServerTitle(wchar_t* title, size_t titleSize, const wchar_t* groupName, int serverNumberInGroup);
 }
