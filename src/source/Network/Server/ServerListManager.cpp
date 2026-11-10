@@ -205,7 +205,7 @@ void CServerListManager::InsertServer(CServerGroup* pServerGroup, int iConnectIn
         break;
     }
 
-    // "Emberion 50x": the server is named after its experience rate. A busy or full server still says so.
+    // "Inferno 500x" / "Ember 5x": each server has its own name (see ServerDisplayNames.cpp). A busy or full server still says so.
     wchar_t label[SLM_MAX_SERVER_NAME_LENGTH * 2];
     if (Network::ServerNames::ServerLabel(pServerGroup->m_szName, pServerInfo->m_iIndex, label, std::size(label)))
     {
