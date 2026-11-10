@@ -156,7 +156,8 @@ namespace JewelBank
         case Result::NothingToDeposit:
             return L"Nothing to deposit.";
         case Result::NotConfigured: return L"This item is not available on the server.";
-        case Result::StateRestricted: return L"Close other windows or finish your activity first.";
+        case Result::StateRestricted:
+            return L"Close other windows or finish your task first.";
         case Result::RateLimited: return L"Please wait a moment.";
         case Result::ServiceUnavailable: return L"The Jewel Bank is not available.";
         }
