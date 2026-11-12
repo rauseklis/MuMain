@@ -580,10 +580,10 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->LifeTime = 1000;
                 o->Gravity = 1.0f;
                 o->Distance = 1.0f;
-                o->Position[2] += ((float)(rand() % 200) - 100.f) * FPS_ANIMATION_FACTOR;
-                o->Position[1] += ((float)(rand() % 200) - 100.f) * FPS_ANIMATION_FACTOR;
-                o->Position[0] += ((float)(rand() % 200) - 100.f) * FPS_ANIMATION_FACTOR;
-                o->Angle[2] += ((float)(rand() % 360)) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += ((float)(rand() % 200) - 100.f);
+                o->Position[1] += ((float)(rand() % 200) - 100.f);
+                o->Position[0] += ((float)(rand() % 200) - 100.f);
+                o->Angle[2] += ((float)(rand() % 360));
                 Vector(0.f, (float)(rand() % 8) * 0.1f - 5.0f, 0.f, o->Direction);
                 o->Scale = o->Scale + (float)(rand() % 5) / 40.f;
                 VectorCopy(o->Position, o->StartPosition);
@@ -591,7 +591,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
             }
             break;
             case MODEL_TREE_ATTACK:
-                o->Position[2] += (20.0f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (20.0f);
                 o->LifeTime = 20;
                 o->LightEnable = false;
                 o->Scale = 0.05f;
@@ -622,12 +622,12 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->LifeTime = 1000;
                 if (1 == o->SubType)
                 {
-                    o->LifeTime -= (60) * FPS_ANIMATION_FACTOR;
+                    o->LifeTime -= (60);
                 }
                 else if (2 == o->SubType)
                 {
                     o->LifeTime = 8;
-                    o->Position[2] += (150.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (150.f);
                 }
                 else if (o->SubType == 4)
                 {
@@ -803,7 +803,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->Alpha = 0.0f;
                 o->Velocity = 0.35f;
                 o->Skill = 0;
-                o->Position[2] += (10.0f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (10.0f);
 
                 VectorCopy(Light, o->HeadTargetAngle);
                 Vector(1.0f, 1.0f, 1.0f, o->Light);
@@ -834,7 +834,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 {
                     o->LifeTime = 20;
                     Vector(0.f, -60.f, 0.f, o->Direction);
-                    o->Position[2] += (100.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (100.f);
                 }
                 break;
             case MODEL_LIGHTNING_ORB:
@@ -843,7 +843,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 {
                     o->LifeTime = 20;
                     Vector(0.f, -60.f, 0.f, o->Direction);
-                    o->Position[2] += (100.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (100.f);
                 }
                 else if (o->SubType == 1)
                 {
@@ -880,7 +880,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->SubType == 0 || o->SubType == 1 || o->SubType == 2)
                 {
                     o->LifeTime = 34;
-                    o->Position[2] += (100) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (100);
                     VectorCopy(Light, o->Light);
                     o->AlphaEnable = true;
                     o->Alpha = 0.f;
@@ -907,7 +907,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
             case MODEL_ALICE_BUFFSKILL_EFFECT2:
             {
                 o->LifeTime = 35;
-                o->Position[2] += (100) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (100);
                 VectorCopy(Light, o->Light);
                 o->AlphaEnable = true;
                 o->Alpha = 0.f;
@@ -921,7 +921,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->SubType == 0)
                 {
                     o->LifeTime = 20;
-                    o->Position[2] += (280.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (280.f);
                     o->Velocity = 0.0f;
                     o->Gravity = 1.0f;
                 }
@@ -1077,8 +1077,8 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 Vector(0.f, -60.f, 0.f, p1);
                 VectorRotate(p1, Matrix, p2);
-                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
-                o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
+                VectorAdd(o->Position, p2, o->Position);
+                o->Position[2] += (130.f);
                 break;
             case BITMAP_FLAME:
             case BITMAP_FLAME_VOID:
@@ -1116,7 +1116,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 {
                     o->LifeTime = 40;
                     o->Scale = Scale + 1.f;
-                    o->Position[2] += (30.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (30.f);
                     o->Angle[2] = rand() % 360;
                 }
                 break;
@@ -1276,7 +1276,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 {
                     o->Alpha = 1.0f;
                     o->LifeTime = 30;
-                    o->Scale += ((float)(rand() % 5) / 10.0f) * FPS_ANIMATION_FACTOR;
+                    o->Scale += ((float)(rand() % 5) / 10.0f);
                     o->Angle[1] = rand() % 360;
                 }break;
                 }
@@ -1305,9 +1305,9 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     Vector(0.f, -100.f, 0.f, p1);
                     AngleMatrix(o->Angle, Matrix);
                     VectorRotate(p1, Matrix, p2);
-                    VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                    VectorAdd(o->Position, p2, o->Position);
 
-                    o->Position[2] += (150.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (150.f);
                     break;
                 case 1:
                 case 2:
@@ -1319,7 +1319,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     Vector(-10.f, 10.f, 0.f, p1);
                     AngleMatrix(o->Angle, Matrix);
                     VectorRotate(p1, Matrix, p2);
-                    VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                    VectorAdd(o->Position, p2, o->Position);
                     break;
                 }
                 break;
@@ -1335,8 +1335,8 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->LifeTime = 30;
                 o->BlendMesh = -2;
                 o->Scale = 1.f;
-                o->Position[2] += (280.f) * FPS_ANIMATION_FACTOR;
-                o->Angle[0] += (20.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (280.f);
+                o->Angle[0] += (20.f);
                 Vector(0.f, -80.f, -10.f, o->Direction);
                 break;
             case MODEL_WAVE:
@@ -1344,7 +1344,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->BlendMeshLight = 1.5f;
                 o->Scale = 0.5f;
                 o->LifeTime = 15;
-                o->Position[2] -= (15.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] -= (15.f);
 
                 Vector(1.f, 1.f, 1.f, o->Light);
                 break;
@@ -1553,7 +1553,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 Vector(-10.f, -60.f, 135.f, p1);
                 VectorRotate(p1, Matrix, p2);
-                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                VectorAdd(o->Position, p2, o->Position);
 
                 o->Scale = 0.8f;
                 o->Direction[1] = -70.f;
@@ -1565,7 +1565,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->LifeTime = 30;
                 o->BlendMesh = -2;
                 o->Scale = 1.f;
-                o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (130.f);
                 Vector(0.f, -70.f, 0.f, o->Direction);
                 VectorCopy(o->Position, o->EyeLeft);
                 CreateJoint(BITMAP_JOINT_ENERGY, o->Position, o->Position, o->Angle, 5, o, 100.f);
@@ -1584,7 +1584,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->LifeTime = 30;
                 o->BlendMesh = -2;
                 o->Scale = 1.f;
-                o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (130.f);
                 Vector(0.f, -70.f, 0.f, o->Direction);
                 VectorCopy(o->Position, o->EyeLeft);
                 CreateJoint(BITMAP_JOINT_ENERGY, o->Position, o->Position, o->Angle, 5, o, 100.f);
@@ -1603,7 +1603,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->LifeTime = 30;
                 o->BlendMesh = -2;
                 o->Scale = 1.f;
-                o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (130.f);
 
                 Vector(0.f, -60.f, 0.f, o->Direction);
                 AngleMatrix(o->Angle, Matrix);
@@ -1677,7 +1677,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 }
                 else if (Type == MODEL_ARROW_TANKER)
                 {
-                    o->Angle[0] -= (18.0f) * FPS_ANIMATION_FACTOR;
+                    o->Angle[0] -= (18.0f);
                     o->Scale = 1.0f;
                     o->Direction[1] = -42.0f;
                     o->Direction[2] = 4.0f;
@@ -1723,7 +1723,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                                     {
                                         CreateJoint(BITMAP_JOINT_FORCE, o->Position, o->Position, o->Angle, 20, o, 400.f, 40);
                                     }
-                                    o->Position[2] += (20.f) * FPS_ANIMATION_FACTOR;
+                                    o->Position[2] += (20.f);
                                     vec3_t ap, P, dp;
                                     VectorCopy(o->Position, ap);
                                     Vector(0.f, -20.f, 0.f, P);
@@ -1810,7 +1810,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 Vector(-10.f, -60.f, 135.f, p1);
                 VectorRotate(p1, Matrix, p2);
-                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                VectorAdd(o->Position, p2, o->Position);
 
                 o->BlendMesh = 0;
                 o->Scale = 1.f;
@@ -1828,7 +1828,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 break;
             case MODEL_SAW:
                 o->LifeTime = 10;
-                o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (130.f);
                 AngleMatrix(o->Angle, Matrix);
                 Vector(0.f, -60.f, 0.f, p1);
                 VectorRotate(p1, Matrix, o->Direction);
@@ -1851,7 +1851,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->Scale = 1.3f;
                     o->RenderType = RENDER_DARK;
 
-                    o->Position[2] += (150.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (150.f);
                     Vector(0.f, -1.f, 0.f, o->Direction);
                     Vector(1.f, 0.f, 0.f, o->Light);
                     Vector(30.f, 0.f, Angle[2], o->Angle);
@@ -2065,7 +2065,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->Scale = 0.7f;
                 else
                     o->Scale = 1.2f;
-                o->Angle[2] += (rand() % 360) * FPS_ANIMATION_FACTOR;
+                o->Angle[2] += (rand() % 360);
             }
             break;
             case MODEL_STORM2:
@@ -2230,7 +2230,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 Vector(0.f, -40.f, 150.f, p1);
                 VectorRotate(p1, Matrix, p2);
-                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                VectorAdd(o->Position, p2, o->Position);
                 o->Direction[1] = -40.f;
                 o->Direction[2] = 10.f;
                 o->LifeTime = 20;
@@ -2251,7 +2251,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     AngleMatrix(o->Angle, Matrix);
                     Vector(0.f, (float)(rand() % 128 + 64) * 0.1f, 0.f, p1);
                     VectorRotate(p1, Matrix, o->HeadAngle);
-                    o->HeadAngle[2] += (15.0f) * FPS_ANIMATION_FACTOR;
+                    o->HeadAngle[2] += (15.0f);
                     break;
                 }
                 else
@@ -2259,7 +2259,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     AngleMatrix(o->Angle, Matrix);
                     Vector(0.f, -60.f, 150.f, p1);
                     VectorRotate(p1, Matrix, p2);
-                    VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                    VectorAdd(o->Position, p2, o->Position);
                     o->Direction[1] = -40.f;
                     o->Direction[2] = 10.f;
                     o->LifeTime = 20;
@@ -2637,8 +2637,8 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->BlendMeshLight = 0.f;
                     o->LifeTime = 600;
                     o->Scale = (float)(rand() % 10 + 20) * 0.13f;
-                    o->Position[0] += (130.f + rand() % 32) * FPS_ANIMATION_FACTOR;
-                    o->Position[2] += (400.f + rand() % 32) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += (130.f + rand() % 32);
+                    o->Position[2] += (400.f + rand() % 32);
                     Vector(0.f, -rand() % 5 - 8.0f, -10.f - rand() % 10, o->Direction);
                     Vector(0.f, 0.f, 0.f, o->Angle);
                 }
@@ -2646,14 +2646,14 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 {
                     o->LifeTime = 60;
                     o->Scale = (float)(rand() % 4 + 8) * 0.1f;
-                    o->Position[2] += (120.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (120.f);
                     Vector(0.f, -50.f, 0.f, o->Direction);
                 }
                 break;
             case MODEL_BONE1:
-                o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (50.f);
             case MODEL_BONE2:
-                o->Position[2] += (100.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (100.f);
             case MODEL_BIG_STONE1:
             case MODEL_BIG_STONE2:
                 if (o->SubType == 5)
@@ -2718,7 +2718,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     AngleMatrix(o->Angle, Matrix);
                     Vector(0.f, (float)(rand() % 128 + 64) * 0.1f, 0.f, p1);
                     VectorRotate(p1, Matrix, o->HeadAngle);
-                    o->HeadAngle[2] += (15.0f) * FPS_ANIMATION_FACTOR;
+                    o->HeadAngle[2] += (15.0f);
                     break;
                 }
 
@@ -2729,7 +2729,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->Type == MODEL_BIG_STONE1 || o->Type == MODEL_BIG_STONE2)
                 {
                     Vector((float)(rand() % 128 - 64), (float)(rand() % 128 - 64), (float)(rand() % 180), p1);
-                    VectorAddScaled(o->Position, p1, o->Position, FPS_ANIMATION_FACTOR);
+                    VectorAdd(o->Position, p1, o->Position);
                 }
 
                 if (Type == MODEL_ICE_SMALL)
@@ -2737,7 +2737,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->BlendMesh = 0;
                     o->BlendMeshLight = 0.3f;
                     Vector(0.f, (float)(rand() % 256 + 64) * 0.1f, 0.f, p1);
-                    o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (50.f);
                     if (o->SubType == 13)
                     {
                         Vector(0.f, (float)(rand() % 256 + 64) * 0.2, 0.f, p1);
@@ -2755,7 +2755,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->BlendMesh = 0;
                     o->BlendMeshLight = 1.0f;
                     Vector(0.f, (float)(rand() % 256 + 64) * 0.1f, 0.f, p1);
-                    o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (50.f);
                 }
                 else
                 {
@@ -2829,7 +2829,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     AngleMatrix(o->Angle, Matrix);
                     Vector(0.f, (float)(rand() % 128 + 64) * 0.1f, 0.f, p1);
                     VectorRotate(p1, Matrix, o->HeadAngle);
-                    o->HeadAngle[2] += (25.0f) * FPS_ANIMATION_FACTOR;
+                    o->HeadAngle[2] += (25.0f);
                     break;
                 }
                 else if (o->SubType == 1)
@@ -2885,7 +2885,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 Vector((float)(rand() % 64 - 32), -(float)(rand() % 32 + 50), (float)(rand() % 128 + 200), p1);
                 AngleMatrix(o->Angle, Matrix);
                 VectorRotate(p1, Matrix, p2);
-                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                VectorAdd(o->Position, p2, o->Position);
                 break;
             case MODEL_WARCRAFT:
                 o->LifeTime = 50;
@@ -2990,7 +2990,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 {
                     rangeX = 300; rangeY = 150; rangeZ = 700;
                     o->Scale = 0.5f;
-                    o->Gravity -= (rand() % 20 + 10) * FPS_ANIMATION_FACTOR;
+                    o->Gravity -= (rand() % 20 + 10);
                 }
                 else
                 {
@@ -3001,7 +3001,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->Position[0] = o->Position[0] + rand() % rangeX - rangeY;
                 o->Position[1] = o->Position[1] + rand() % rangeX - rangeY;
                 o->Position[2] = o->Position[2] + 500.f;
-                o->Position[0] += (100.f) * FPS_ANIMATION_FACTOR;
+                o->Position[0] += (100.f);
 
                 VectorCopy(o->Position, o->StartPosition);
                 PlayBuffer(SOUND_METEORITE01);
@@ -3015,7 +3015,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 Vector(0.f, -20.f, 50.f, p1);
                 VectorRotate(p1, Matrix, p2);
-                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                VectorAdd(o->Position, p2, o->Position);
 
                 vec3_t  Angle, Pos, p3;
                 Vector(-20.f, -20.f, 60.f, p1);
@@ -3045,7 +3045,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
             case MODEL_GATE:
             case MODEL_GATE + 1:
                 Vector(0.f, (float)(rand() % 128 + 64) * 0.1f, 0.f, p1);
-                o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (50.f);
                 o->LifeTime = rand() % 16 + 32;
                 o->Scale = (float)(rand() % 4 + 8) * 0.1f;
                 o->Angle[2] = (float)(rand() % 360);
@@ -3055,7 +3055,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->Type == MODEL_GATE && o->SubType == 0)
                 {
                     o->SubType = 1;
-                    o->Gravity += ((float)(rand() % 5)) * FPS_ANIMATION_FACTOR;
+                    o->Gravity += ((float)(rand() % 5));
                 }
                 else if (o->SubType == 2)
                 {
@@ -3070,7 +3070,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
             case MODEL_STONE_COFFIN:
             case MODEL_STONE_COFFIN + 1:
                 Vector(0.f, (float)(rand() % 128 + 32) * 0.1f, 0.f, p1);
-                o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (50.f);
                 o->LifeTime = rand() % 16 + 32;
                 o->Scale = (float)(rand() % 4 + 8) * 0.1f;
                 o->Angle[2] = (float)(rand() % 360);
@@ -3080,7 +3080,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->Type == MODEL_STONE_COFFIN + 1 && o->SubType == 0)
                 {
                     o->SubType = 1;
-                    o->Gravity += ((float)(rand() % 5)) * FPS_ANIMATION_FACTOR;
+                    o->Gravity += ((float)(rand() % 5));
                 }
 
                 o->Angle[0] = (float)(rand() % 360);
@@ -3151,7 +3151,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->BlendMesh = -2;
                     o->Scale = 1.f;
                     o->Gravity = -10.f;
-                    o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (130.f);
 
                     if (o->SubType != 0)
                     {
@@ -3175,7 +3175,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->BlendMeshLight = 1.f;
                 Vector(0.f, 0.f, 0.f, o->Angle);
                 VectorCopy(o->Position, o->StartPosition);
-                o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (50.f);
 
                 if (o->SubType == 0)
                 {
@@ -3206,7 +3206,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->BlendMeshLight = 1.f;
                 Vector(0.f, 0.f, 0.f, o->Angle);
                 VectorCopy(o->Position, o->StartPosition);
-                o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (50.f);
 
                 if (o->SubType == 0)
                 {
@@ -3219,7 +3219,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 {
                     o->LifeTime = 15;
                     o->RenderType = RENDER_NODEPTH;
-                    o->Position[2] += (80.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (80.f);
                     o->Scale = 0.1f + rand() % 50 / 100.f;
                     o->Gravity = 0.01f;
 
@@ -3231,8 +3231,8 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                         CreateJoint(BITMAP_PIERCING, o->Position, o->Position, o->Angle, 0, NULL, (float)(rand() % 40 + 70));
                     }
 
-                    o->Position[0] += (rand() % 100 - 50.f) * FPS_ANIMATION_FACTOR;
-                    o->Position[1] += (rand() % 100 - 50.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += (rand() % 100 - 50.f);
+                    o->Position[1] += (rand() % 100 - 50.f);
                 }
                 else if (o->SubType == 2 || o->SubType == 3 || o->SubType == 4)
                 {
@@ -3240,7 +3240,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->PKKey = -1;
                     o->Scale = PKKey * 0.05f;
                     o->Gravity = 0.01f;
-                    o->Position[2] -= (50.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] -= (50.f);
 
                     o->Angle[0] = 90.f;
                     o->Angle[2] = Angle[2];
@@ -3251,7 +3251,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->PKKey = -1;
                     o->Scale = PKKey * 0.05f;
                     o->Gravity = 0.08f;
-                    o->Position[2] -= (50.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] -= (50.f);
 
                     o->Angle[0] = -90.f;
                     o->Angle[2] = Angle[2];
@@ -3272,7 +3272,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->BlendMesh = -2;
                 Vector(0.f, -60.f, 0.f, o->Direction);
                 VectorCopy(o->Position, o->StartPosition);
-                o->Position[2] += (130.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (130.f);
                 break;
             case MODEL_DEASULER:
                 if (o->SubType == 0)
@@ -3420,7 +3420,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->LifeTime = 20;
                     o->Velocity = 50.f;
                     o->HiddenMesh = -2;
-                    o->Position[2] -= (20.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] -= (20.f);
 
                     Vector(0.f, -40.f, 0.f, o->Direction);
                     VectorCopy(o->Angle, o->HeadAngle);
@@ -3682,7 +3682,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->Alpha = 0;
                 vec3_t Position;
                 VectorCopy(o->Position, Position);
-                o->Position[2] += (100) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (100);
 
                 auto fAngle = float(rand() % 360);
                 auto fDistance = float(rand() % 600 + 200);
@@ -3810,7 +3810,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->Scale = 0.7f + (rand() % 10 - 5) * 0.02f;
                 if (o->Type == MODEL_XMAS_EVENT_BOX)
                 {
-                    o->Scale += (0.3f) * FPS_ANIMATION_FACTOR;
+                    o->Scale += (0.3f);
                 }
                 o->LifeTime = rand() % 10 + 50;
                 o->Angle[0] = (float)(rand() % 360);
@@ -4090,14 +4090,14 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 o->Angle[1] = (float)(rand() % 360);
                 o->Angle[2] = (float)(rand() % 360);
 
-                o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (50.f);
                 break;
 
             case MODEL_GATE_PART1:
             case MODEL_GATE_PART2:
             case MODEL_GATE_PART3:
                 Vector(0.f, (float)(rand() % 128 + 64) * 0.1f, 0.f, p1);
-                o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (50.f);
                 o->LifeTime = rand() % 16 + 32;
                 o->Scale = (float)(rand() % 2 + 7) * 0.1f;
                 o->Angle[2] = (float)(rand() % 360);
@@ -4107,7 +4107,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 if (o->Type == MODEL_GATE_PART1 && o->SubType == 0)
                 {
                     o->SubType = 1;
-                    o->Gravity += ((float)(rand() % 5)) * FPS_ANIMATION_FACTOR;
+                    o->Gravity += ((float)(rand() % 5));
                 }
                 else if (o->SubType == 2)
                 {
@@ -4174,7 +4174,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->Gravity = -(float)(rand() % 16 + 10);
 
                     o->ExtState = 0;
-                    o->Position[2] += (600.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (600.f);
 
                     AngleMatrix(Angle, Matrix);
                     VectorRotate(p1, Matrix, o->StartPosition);
@@ -4195,7 +4195,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
 
             case MODEL_SKIN_SHELL:
                 Vector(0.f, (float)(rand() % 128 + 32) * 0.1f, 0.f, p1);
-                o->Position[2] += (50.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (50.f);
                 o->LifeTime = rand() % 16 + 32;
                 o->Scale = (float)(rand() % 3 + 3) * 0.1f;
                 o->Alpha = 0.5f;
@@ -4203,7 +4203,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 VectorRotate(p1, Matrix, o->Direction);
                 o->Gravity = (float)(rand() % 5 + 2);
-                o->Gravity += ((float)(rand() % 5)) * FPS_ANIMATION_FACTOR;
+                o->Gravity += ((float)(rand() % 5));
 
                 o->Angle[0] = (float)(rand() % 360);
                 o->Angle[1] = (float)(rand() % 360);
@@ -4252,11 +4252,11 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 Vector(0.f, -5.f, 0.f, o->Direction);
                 VectorCopy(o->Angle, o->HeadAngle);
                 VectorCopy(o->Owner->Position, o->StartPosition);
-                o->Position[2] += (150.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (150.f);
 
                 float Ang = rand() % 80 + 10;
 
-                o->HeadAngle[2] += (o->SubType * Ang - Ang) * FPS_ANIMATION_FACTOR;
+                o->HeadAngle[2] += (o->SubType * Ang - Ang);
             }
             break;
             case MODEL_FENRIR_THUNDER:
@@ -4285,7 +4285,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     }
                     else if (irandom == 3)
                     {
-                        o->Scale -= (0.2f) * FPS_ANIMATION_FACTOR;
+                        o->Scale -= (0.2f);
                         p_b->TransformPosition(BoneTransform[14], vPos, o->Position, false);
                     }
                     else if (irandom >= 4 && irandom <= 5)
@@ -4294,7 +4294,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     }
                     else if (irandom >= 6 && irandom <= 7)
                     {
-                        o->Scale -= (0.2f) * FPS_ANIMATION_FACTOR;
+                        o->Scale -= (0.2f);
                         if (rand_fps_check(2))
                             p_b->TransformPosition(BoneTransform[50], vPos, o->Position, false);
                         else
@@ -4302,7 +4302,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     }
                     else if (irandom == 8)
                     {
-                        o->Scale -= (0.2f) * FPS_ANIMATION_FACTOR;
+                        o->Scale -= (0.2f);
                         p_b->TransformPosition(BoneTransform[53], vPos, o->Position, false);
                     }
                     else if (irandom >= 9 && irandom <= 10)
@@ -4312,10 +4312,10 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     }
                     else
                     {
-                        o->Scale += (0.1f) * FPS_ANIMATION_FACTOR;
-                        o->Position[0] += (rand() % 240 - 120) * FPS_ANIMATION_FACTOR;
-                        o->Position[1] += (rand() % 10 - 5) * FPS_ANIMATION_FACTOR;
-                        o->Position[2] += (110) * FPS_ANIMATION_FACTOR;
+                        o->Scale += (0.1f);
+                        o->Position[0] += (rand() % 240 - 120);
+                        o->Position[1] += (rand() % 10 - 5);
+                        o->Position[2] += (110);
                     }
 
                     vec3_t vLight;
@@ -4337,9 +4337,9 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
 
                     VectorCopy(Light, o->Light);
 
-                    o->Position[0] += (rand() % 40 - 20) * FPS_ANIMATION_FACTOR;
-                    o->Position[1] += (rand() % 40 - 20) * FPS_ANIMATION_FACTOR;
-                    o->Position[2] += (rand() % 40 - 20) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += (rand() % 40 - 20);
+                    o->Position[1] += (rand() % 40 - 20);
+                    o->Position[2] += (rand() % 40 - 20);
 
                     vec3_t vLight;
                     vLight[0] = o->Light[0] - 0.3f;
@@ -4360,9 +4360,9 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
 
                     VectorCopy(Light, o->Light);
 
-                    o->Position[0] += (rand() % 40 - 20) * FPS_ANIMATION_FACTOR;
-                    o->Position[1] += (rand() % 40 - 20) * FPS_ANIMATION_FACTOR;
-                    o->Position[2] += (rand() % 40 - 20) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += (rand() % 40 - 20);
+                    o->Position[1] += (rand() % 40 - 20);
+                    o->Position[2] += (rand() % 40 - 20);
 
                     vec3_t vLight;
                     vLight[0] = o->Light[0] - 0.3f;
@@ -4383,9 +4383,9 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
 
                     VectorCopy(Light, o->Light);
 
-                    o->Position[0] += (rand() % 160 - 80) * FPS_ANIMATION_FACTOR;
-                    o->Position[1] += (rand() % 160 - 80) * FPS_ANIMATION_FACTOR;
-                    o->Position[2] += (rand() % 160 - 80) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += (rand() % 160 - 80);
+                    o->Position[1] += (rand() % 160 - 80);
+                    o->Position[2] += (rand() % 160 - 80);
 
                     vec3_t vLight;
                     vLight[0] = o->Light[0] - 0.3f;
@@ -4410,8 +4410,8 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->Angle[1] = (float)(rand() % 360);
                     o->Angle[2] = (float)(rand() % 360);
 
-                    o->Position[0] += ((float)(rand() % 100 - 50)) * FPS_ANIMATION_FACTOR;
-                    o->Position[1] += ((float)(rand() % 100 - 50)) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += ((float)(rand() % 100 - 50));
+                    o->Position[1] += ((float)(rand() % 100 - 50));
 
                     o->Gravity = (float)(rand() % 10 + 10) * 0.5f;
                 }
@@ -4436,7 +4436,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     AngleMatrix(o->Angle, Matrix);
                     Vector(0.f, (float)(rand() % 60 + 30) * 0.1f, 0.f, p1);
                     VectorRotate(p1, Matrix, o->HeadAngle);
-                    o->HeadAngle[2] += (25.0f) * FPS_ANIMATION_FACTOR;
+                    o->HeadAngle[2] += (25.0f);
 
                     Vector(0, 0, 0, o->Direction);
                 }
@@ -4515,7 +4515,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 Vector(-10.f, -80.f, 200.f, p1);
                 VectorRotate(p1, Matrix, p2);
-                VectorAddScaled(o->Position, p2, o->Position, FPS_ANIMATION_FACTOR);
+                VectorAdd(o->Position, p2, o->Position);
 
                 o->Angle[0] = -30.f;
                 CreateJoint(BITMAP_FLASH, o->Position, o->Position, o->Angle, 4, o, 40.f, 50);
@@ -4548,7 +4548,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->LifeTime = 15;
                     o->Scale = 0.f;
 
-                    o->Position[2] += (100.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (100.f);
                     Vector(0.f, -10.f, 0.f, o->Direction);
                 }
                 else if (o->SubType == 1 || o->SubType == 3)
@@ -4650,7 +4650,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 {
                     o->BlendMesh = 0;
                     o->BlendMeshLight = 1.0f;
-                    o->Position[2] += (100.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (100.f);
                     o->LifeTime = 17;
                     o->Scale = 1.1f;
                     VectorSubtract(o->Owner->Position, o->Position, o->Direction);
@@ -4714,16 +4714,16 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     vec3_t vOriginPos;
                     VectorCopy(o->Position, vOriginPos);
 
-                    o->Position[0] += ((float)(rand() % 20 - 10) * 4.f) * FPS_ANIMATION_FACTOR;
-                    o->Position[1] += ((float)(rand() % 20 - 10) * 4.f) * FPS_ANIMATION_FACTOR;
-                    o->Position[2] += ((float)(rand() % 20 - 10) * 4.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += ((float)(rand() % 20 - 10) * 4.f);
+                    o->Position[1] += ((float)(rand() % 20 - 10) * 4.f);
+                    o->Position[2] += ((float)(rand() % 20 - 10) * 4.f);
 
                     VectorSubtract(vOriginPos, o->Position, o->Direction);
                     VectorNormalize(o->Direction);
                     int iAddDirection = ((float)(rand() % 10 - 5) * 0.08f);
-                    o->Direction[0] += (iAddDirection) * FPS_ANIMATION_FACTOR;
-                    o->Direction[1] += (iAddDirection) * FPS_ANIMATION_FACTOR;
-                    o->Direction[2] += (iAddDirection) * FPS_ANIMATION_FACTOR;
+                    o->Direction[0] += (iAddDirection);
+                    o->Direction[1] += (iAddDirection);
+                    o->Direction[2] += (iAddDirection);
 
                     o->Scale = o->Scale + ((float)(rand() % 20 - 10) * (o->Scale * 0.03f));
                     o->LifeTime = 30 + (rand() % 20 - 10);
@@ -4755,16 +4755,16 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     vec3_t vOriginPos;
                     VectorCopy(o->Position, vOriginPos);
 
-                    o->Position[0] += ((float)(rand() % 20 - 10) * 4.f) * FPS_ANIMATION_FACTOR;
-                    o->Position[1] += ((float)(rand() % 20 - 10) * 4.f) * FPS_ANIMATION_FACTOR;
-                    o->Position[2] += ((float)(rand() % 20 - 10) * 4.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[0] += ((float)(rand() % 20 - 10) * 4.f);
+                    o->Position[1] += ((float)(rand() % 20 - 10) * 4.f);
+                    o->Position[2] += ((float)(rand() % 20 - 10) * 4.f);
 
                     VectorSubtract(vOriginPos, o->Position, o->Direction);
                     VectorNormalize(o->Direction);
                     int iAddDirection = ((float)(rand() % 10 - 5) * 0.08f);
-                    o->Direction[0] += (iAddDirection) * FPS_ANIMATION_FACTOR;
-                    o->Direction[1] += (iAddDirection) * FPS_ANIMATION_FACTOR;
-                    o->Direction[2] += (iAddDirection) * FPS_ANIMATION_FACTOR;
+                    o->Direction[0] += (iAddDirection);
+                    o->Direction[1] += (iAddDirection);
+                    o->Direction[2] += (iAddDirection);
 
                     o->Scale = o->Scale + ((float)(rand() % 20 - 10) * (o->Scale * 0.03f));
                     o->LifeTime = 25;
@@ -4833,7 +4833,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->Alpha = 1.f;
                     o->Angle[2] = rand() % 360;
                     o->Scale = Scale + rand() % 10 * 0.05f;
-                    o->Position[2] += (10.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (10.f);
                 }
                 else if (o->SubType == 1)
                 {
@@ -4841,15 +4841,15 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->Alpha = 1.f;
                     o->Angle[2] = rand() % 360;
                     o->Scale = Scale + rand() % 10 * 0.05f;
-                    o->Position[2] += (10.f) * FPS_ANIMATION_FACTOR;
+                    o->Position[2] += (10.f);
                 }
                 break;
             case MODEL_KNIGHT_PLANCRACK_B:
             {
                 o->LifeTime = 25;
                 o->Alpha = 1.f;
-                o->Position[2] += (15.f) * FPS_ANIMATION_FACTOR;
-                o->Angle[2] += (90.f) * FPS_ANIMATION_FACTOR;
+                o->Position[2] += (15.f);
+                o->Angle[2] += (90.f);
             }
             break;
             case MODEL_EFFECT_FLAME_STRIKE:
@@ -5861,7 +5861,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     o->Scale = 0.8f + rand() % 3 * 0.1f;
                     o->Direction[1] = -40.f;
                     o->LifeTime = 3 + rand() % 3;
-                    o->Angle[2] += ((rand() % 10 - 5.0f)) * FPS_ANIMATION_FACTOR;
+                    o->Angle[2] += ((rand() % 10 - 5.0f));
                 }
             }
             break;
@@ -5921,7 +5921,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     vec3_t Transpos;
                     VectorScale(vDir, 5.0f, vDir);
                     VectorCopy(vDir, Transpos);
-                    VectorAddScaled(o->Position, Transpos, o->Position, FPS_ANIMATION_FACTOR);
+                    VectorAdd(o->Position, Transpos, o->Position);
                 }
                 else if (o->SubType == 4)
                 {
@@ -5941,7 +5941,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                     VectorNormalize(vDir);
                     VectorScale(vDir, 150.0f, vDir);
                     VectorCopy(vDir, Transpos);
-                    VectorAddScaled(o->Position, Transpos, o->Position, FPS_ANIMATION_FACTOR);
+                    VectorAdd(o->Position, Transpos, o->Position);
                 }
                 else
                 {
@@ -6225,7 +6225,7 @@ void CreateEffect(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Sub
                 AngleMatrix(o->Angle, Matrix);
                 Vector(0.f, (float)(rand() % 128 + 64) * 0.1f, 0.f, p1);
                 VectorRotate(p1, Matrix, o->HeadAngle);
-                o->HeadAngle[2] += (25.0f) * FPS_ANIMATION_FACTOR;
+                o->HeadAngle[2] += (25.0f);
             }
             break;
             case MODEL_PHOENIX_SHOT:
