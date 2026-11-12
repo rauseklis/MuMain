@@ -46,3 +46,9 @@ add_test(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_all_skill_effect_contract.py"
         "${CMAKE_SOURCE_DIR}"
 )
+
+add_test(
+    NAME effect_pool_capacity
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_effect_pool_capacity.py"
+        "${CMAKE_SOURCE_DIR}"
+)
