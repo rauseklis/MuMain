@@ -439,7 +439,11 @@ constexpr int ITEM_GROUP_ETC = 15;
 ///////////////////////////////////////////_Infomation end_//////////////////////////////////////////////////////
 ////////////////////////////////////////////_effect start_//////////////////////////////////////////////////////
 
-#define MAX_EFFECTS       200
+// The effect and joint pools are shared by every character in view, and a creation that finds no free slot is
+// silently dropped: the cast animation plays but its projectile or aura never appears. The original sizes (200 and
+// 500) are exhausted within a second or two of sustained casting at modern attack speeds: Elf Multi Shot alone peaks
+// near 470 effects, and Heal / Greater Defense spam near 870 joints. Keep these well above that demand.
+#define MAX_EFFECTS 1000
 #define MAX_SKILL_EFFECTS 100
 
 #define MAX_SPRITES       1000
@@ -487,7 +491,7 @@ constexpr int ITEM_GROUP_ETC = 15;
 #define REGIMENT_DEFENSE    1
 #define REGIMENT_ATTACK     2
 
-#define MAX_JOINTS 500
+#define MAX_JOINTS 2000
 #define MAX_TAILS  200
 
 #define RENDER_FACE_ONE 0x01
