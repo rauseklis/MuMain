@@ -73,4 +73,23 @@ assert "FrameStepTowards" in lagul, (
     "Summoner's Lagul casting light must fade in real time, not rendered frames"
 )
 
+multi_shot_blade = function_body(move_handlers, "bool Move_MODEL_BLADE_SKILL")
+assert "SkillTiming::LifetimeTickCrossed" in multi_shot_blade, (
+    "Multi Shot's blade must act once per legacy tick, not on every frame of it"
+)
+assert "(int)o->LifeTime % 2" not in multi_shot_blade, (
+    "An integer-lifetime modulus is true for several frames per tick at high FPS and launches extra arrows"
+)
+assert "CreateJointFpsChecked" not in multi_shot_blade, (
+    "The blade's sparks sit in a once-per-tick block, so a second rate gate would thin them twice"
+)
+
+for handler in ("bool Move_MODEL_ARROW_BOMB", "bool Move_BITMAP_SHOTGUN", "bool Move_MODEL_ARROW_DRILL"):
+    body = function_body(move_handlers, handler)
+    assert "(int)o->LifeTime == 1" not in body, (
+        handler + ": the integer part of the lifetime is 1 for several frames per tick at high FPS, "
+        "so the end-of-life explosion must use SkillTiming::LifetimeTickCrossed"
+    )
+    assert "SkillTiming::LifetimeTickCrossed" in body
+
 print("PASS: all-skill audit preserves deterministic milestones and timed fades")

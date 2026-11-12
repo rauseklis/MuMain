@@ -36,6 +36,20 @@ inline bool CrossedDown(float current, float frameFactor, float threshold)
     return current <= threshold + epsilon && current + step > threshold + epsilon;
 }
 
+// The whole lifetime value this rendered frame passes, or a value below 1 when it passes none.
+// Legacy handlers ran `(int)o->LifeTime == n` or `% n` once per 25 Hz tick, on lifetimes that were
+// whole numbers. At higher rates the lifetime is fractional and keeps one integer part for several
+// frames, so the same check fires on every one of them: Multi Shot launched an arrow on each. Call
+// this where the handler runs (before the lifetime is reduced) and test the returned tick instead;
+// at 25 FPS it equals `(int)lifeTime`.
+inline int LifetimeTickCrossed(float lifeTime, float frameFactor)
+{
+    constexpr float epsilon = 0.0001f;
+    const float step = std::clamp(frameFactor, 0.0f, 1.0f);
+    const int tick = static_cast<int>(std::ceil(lifeTime - epsilon));
+    return lifeTime + step > static_cast<float>(tick) + epsilon ? tick : 0;
+}
+
 inline float CardinalAngle(int index)
 {
     return static_cast<float>((index % 4) * 90);

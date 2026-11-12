@@ -137,3 +137,66 @@ TEST_CASE("Rageful Blow completes a finite rise and return at every frame rate")
         CHECK(SimulateRagefulBlow(fps));
     }
 }
+
+namespace
+{
+// What the legacy handler saw at 25 FPS: every whole lifetime value, once, from the start down to 1.
+std::vector<int> SimulateLifetimeTicks(float fps, float startLifetime)
+{
+    const float factor = std::min(ReferenceFps / fps, 1.0f);
+    float lifetime = startLifetime;
+    std::vector<int> ticks;
+    while (lifetime > 0.0f)
+    {
+        const int tick = Render::Effects::SkillTiming::LifetimeTickCrossed(lifetime, factor);
+        if (tick > 0)
+        {
+            ticks.push_back(tick);
+        }
+        lifetime -= factor;
+    }
+    return ticks;
+}
+} // namespace
+
+TEST_CASE("Lifetime ticks are reported once each at every frame rate")
+{
+    std::vector<int> legacy;
+    for (int tick = 14; tick >= 1; --tick)
+    {
+        legacy.push_back(tick);
+    }
+
+    for (const float fps : {25.0f, 60.0f, 120.0f, 144.0f, 165.0f, 240.0f, 360.0f})
+    {
+        CHECK(SimulateLifetimeTicks(fps, 14.0f) == legacy);
+    }
+}
+
+TEST_CASE("Multi Shot's blade fires its six even ticks once each at every frame rate")
+{
+    // Move_MODEL_BLADE_SKILL: `LifeTime >= 3 && (int)LifeTime % 2 == 0` created one arrow per hit.
+    for (const float fps : {25.0f, 144.0f, 240.0f})
+    {
+        int arrows = 0;
+        for (const int tick : SimulateLifetimeTicks(fps, 14.0f))
+        {
+            arrows += (tick >= 3 && tick % 2 == 0) ? 1 : 0;
+        }
+        CHECK(arrows == 6);
+    }
+}
+
+TEST_CASE("An arrow's end-of-life explosion happens once at every frame rate")
+{
+    // Move_MODEL_ARROW_BOMB / ARROW_DRILL: `LifetimeTickCrossed(...) == 1` creates the explosion.
+    for (const float fps : {25.0f, 144.0f, 240.0f})
+    {
+        int explosions = 0;
+        for (const int tick : SimulateLifetimeTicks(fps, 40.0f))
+        {
+            explosions += tick == 1 ? 1 : 0;
+        }
+        CHECK(explosions == 1);
+    }
+}
