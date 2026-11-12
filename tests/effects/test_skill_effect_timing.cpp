@@ -200,3 +200,33 @@ TEST_CASE("An arrow's end-of-life explosion happens once at every frame rate")
         CHECK(explosions == 1);
     }
 }
+
+TEST_CASE("Multi Shot covers its whole fan on every cast at every frame rate")
+{
+    // Each of the blade's six arrows takes a fixed direction by tick, so a cast never leaves a gap.
+    for (const float fps : {25.0f, 144.0f, 240.0f})
+    {
+        std::vector<float> offsets;
+        for (const int tick : SimulateLifetimeTicks(fps, 14.0f))
+        {
+            if (tick >= 3 && tick % 2 == 0)
+            {
+                offsets.push_back(Render::Effects::SkillTiming::MultiShotFanOffset(tick));
+            }
+        }
+        std::sort(offsets.begin(), offsets.end());
+        const std::vector<float> fan = {-35.0f, -21.0f, -7.0f, 7.0f, 21.0f, 35.0f};
+        CHECK((offsets == fan));
+    }
+}
+
+TEST_CASE("Multi Shot's fan alternates sides, starting close to the aim")
+{
+    using Render::Effects::SkillTiming::MultiShotFanOffset;
+    CHECK(MultiShotFanOffset(14) == 7.0f);
+    CHECK(MultiShotFanOffset(12) == -7.0f);
+    CHECK(MultiShotFanOffset(10) == 21.0f);
+    CHECK(MultiShotFanOffset(8) == -21.0f);
+    CHECK(MultiShotFanOffset(6) == 35.0f);
+    CHECK(MultiShotFanOffset(4) == -35.0f);
+}

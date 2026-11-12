@@ -362,44 +362,10 @@ namespace Render::Effects::Behaviors
                 if (lifetimeTick >= 3 && lifetimeTick % 2 == 0)
                 {
                     VectorCopy(o->Owner->Angle, Angle);
-                    int Ran = -1;
                     CHARACTER* c = &CharactersClient[(int)o->PKKey];
 
-                    Ran = rand() % 6;
-                    if (o->m_sTargetIndex > -1)
-                    {
-                        while (true)
-                        {
-                            Ran = rand() % 6;
-                            if (Ran != o->m_sTargetIndex)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    o->m_sTargetIndex = Ran;
-
-                    switch (Ran)
-                    {
-                    case 0:
-                        o->Owner->Angle[2] = Angle[2] + 7.f;
-                        break;
-                    case 1:
-                        o->Owner->Angle[2] = Angle[2] + 21.f;
-                        break;
-                    case 2:
-                        o->Owner->Angle[2] = Angle[2] + 35.f;
-                        break;
-                    case 3:
-                        o->Owner->Angle[2] = Angle[2] - 7.f;
-                        break;
-                    case 4:
-                        o->Owner->Angle[2] = Angle[2] - 21.f;
-                        break;
-                    case 5:
-                        o->Owner->Angle[2] = Angle[2] - 35.f;
-                        break;
-                    }
+                    // Each of the six arrows takes its own fan direction, so every cast covers the whole fan.
+                    o->Owner->Angle[2] = Angle[2] + Render::Effects::SkillTiming::MultiShotFanOffset(lifetimeTick);
 
                     for (int i = 0; i < 3; i++)
                     {
