@@ -949,7 +949,7 @@ void CreateJoint(int Type, vec3_t Position, vec3_t TargetPosition, vec3_t Angle,
                         vec3_t vLight;
                         Vector(0.0f, 0.0f, 0.1f, vLight);
                         CreateEffect(MODEL_SUMMONER_SUMMON_LAGUL, o->Position, o->Angle,
-                            vLight, 1, (OBJECT*)o, -1, 0, 0, 0, fRargleScale);
+                            vLight, 1, reinterpret_cast<OBJECT*>(o), -1, 0, 0, 0, fRargleScale);
                     }
                 }
                 break;
