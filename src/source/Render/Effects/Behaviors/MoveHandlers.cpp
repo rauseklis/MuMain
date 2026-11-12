@@ -354,7 +354,12 @@ namespace Render::Effects::Behaviors
 
                 OBJECT* to = NULL;
 
-                if (o->LifeTime >= 3 && (int)o->LifeTime % 2 == 0)
+                // Once per legacy tick. A modulus test on the integer part of the lifetime is true on
+                // every frame of a tick at high FPS, which launched about seven times as many arrows
+                // (each with its own trail).
+                const int lifetimeTick =
+                    Render::Effects::SkillTiming::LifetimeTickCrossed(o->LifeTime, FPS_ANIMATION_FACTOR);
+                if (lifetimeTick >= 3 && lifetimeTick % 2 == 0)
                 {
                     VectorCopy(o->Owner->Angle, Angle);
                     int Ran = -1;
@@ -408,7 +413,8 @@ namespace Render::Effects::Behaviors
                         CreateSprite(BITMAP_SHINY + 1, p, (float)(rand() % 8 + 8) * 0.07f, Light, o->Owner, (float)(rand() % 360));
                         VectorCopy(o->Owner->Position, p);
                         p[2] += ((rand() % 80 - 40) + 200);
-                        CreateJointFpsChecked(BITMAP_SPARK + 1, p, p, o->Owner->Angle, 1, o->Owner, 18.7f);
+                        CreateJoint(BITMAP_SPARK + 1, p, p, o->Owner->Angle, 1, o->Owner,
+                                    18.7f); // once per tick: no second rate gate
                     }
                     CreateArrow(c, o->Owner, to, FindHotKey((o->Skill)), 1, 0);
                     o->Owner->Angle[2] = Angle[2];
@@ -4864,7 +4870,8 @@ namespace Render::Effects::Behaviors
             CreateParticleFpsChecked(BITMAP_BUBBLE, Position, o->Angle, o->Light, 1);
         }
         MoveJump(o);
-        if ((int)o->LifeTime == 1)
+        // Once, on the legacy tick the arrow ends: the integer part is 1 for about seven frames at high FPS.
+        if (Render::Effects::SkillTiming::LifetimeTickCrossed(o->LifeTime, FPS_ANIMATION_FACTOR) == 1)
         {
             CreateBomb(o->Position, true);
             if (o->Owner == &Hero->Object && o->SubType != 99)
@@ -5167,7 +5174,7 @@ namespace Render::Effects::Behaviors
         VectorAdd(o->Position, Position, o->StartPosition);
         CreateParticleFpsChecked(BITMAP_FIRE + 2, o->StartPosition, o->Angle, Light, 10, o->Scale);
 
-        if ((int)o->LifeTime == 1)
+        if (Render::Effects::SkillTiming::LifetimeTickCrossed(o->LifeTime, FPS_ANIMATION_FACTOR) == 1)
         {
             CreateBomb2(o->Position, false);
         }
@@ -5307,7 +5314,7 @@ namespace Render::Effects::Behaviors
             CreateParticleFpsChecked(BITMAP_SMOKE, o->Position, o->Angle, Light, 13);
             CreateParticleFpsChecked(BITMAP_SMOKE, o->Position, o->Angle, Light, 13);
 
-            if ((int)o->LifeTime == 1)
+            if (Render::Effects::SkillTiming::LifetimeTickCrossed(o->LifeTime, FPS_ANIMATION_FACTOR) == 1)
             {
                 CreateBomb(o->Position, true);
             }
