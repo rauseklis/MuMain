@@ -80,6 +80,12 @@ assert "SkillTiming::LifetimeTickCrossed" in multi_shot_blade, (
 assert "(int)o->LifeTime % 2" not in multi_shot_blade, (
     "An integer-lifetime modulus is true for several frames per tick at high FPS and launches extra arrows"
 )
+assert "SkillTiming::MultiShotFanOffset" in multi_shot_blade, (
+    "Multi Shot's six arrows must take the six fan directions by tick so every cast shows the whole fan"
+)
+assert "rand() % 6" not in multi_shot_blade, (
+    "A random fan direction per arrow leaves a gap in most casts"
+)
 assert "CreateJointFpsChecked" not in multi_shot_blade, (
     "The blade's sparks sit in a once-per-tick block, so a second rate gate would thin them twice"
 )

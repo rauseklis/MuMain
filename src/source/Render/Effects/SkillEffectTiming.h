@@ -50,6 +50,21 @@ inline int LifetimeTickCrossed(float lifeTime, float frameFactor)
     return lifeTime + step > static_cast<float>(tick) + epsilon ? tick : 0;
 }
 
+// Multi Shot's blade starts with a lifetime of 14 and fires an arrow on the whole ticks 14, 12, 10, 8, 6 and 4.
+constexpr int MultiShotFirstTick = 14;
+constexpr int MultiShotArrowCount = 6;
+
+// The direction, in degrees from where the caster faces, of the arrow fired on `lifetimeTick`. The six arrows
+// take the six fan directions once each, alternating sides outwards from the aim, so every cast shows the whole
+// fan. (They used to pick a random direction each, which left a gap in most casts: only about 4 of the 6
+// directions were covered on average.)
+inline float MultiShotFanOffset(int lifetimeTick)
+{
+    constexpr float offsets[MultiShotArrowCount] = {7.0f, -7.0f, 21.0f, -21.0f, 35.0f, -35.0f};
+    const int index = std::clamp((MultiShotFirstTick - lifetimeTick) / 2, 0, MultiShotArrowCount - 1);
+    return offsets[index];
+}
+
 inline float CardinalAngle(int index)
 {
     return static_cast<float>((index % 4) * 90);
