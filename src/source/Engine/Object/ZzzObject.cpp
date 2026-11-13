@@ -415,20 +415,17 @@ bool Calc_ObjectAnimation(OBJECT* o, bool Translate, int Select)
 
 // Lost Tower blocks carry a fire layer: BITMAP_CHROME tinted orange, with the
 // texture streaming on one mesh. The look players know shows that fire only
-// through the alpha holes of the strip texture. Drawing the layer as an opaque
-// pass after the stone gives exactly that: the depth test rejects it on the
-// faces the stone already covered and keeps it where the strip was discarded.
-// Drawing it additively on top instead paints the whole block orange (#589).
+// through the alpha holes of the strip texture. The fire layer is drawn first
+// and the stone over it: the depth compare is LESS_OR_EQUAL, so the stone wins
+// at equal depth on every face it covers and the fire stays only where the
+// strip was alpha-discarded. Drawing the fire after the stone would paint the
+// whole block orange, and drawing it additively on top as well (#589).
 static const vec3_t kLostTowerFireTint = {1.f, 0.2f, 0.1f};
 
 static void RenderLostTowerFireBlock(BMD* b, OBJECT* o, int streamMesh)
 {
     vec3_t bodyLight;
     VectorCopy(b->BodyLight, bodyLight);
-
-    b->StreamMesh = -1;
-    b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU,
-                  o->BlendMeshTexCoordV, o->HiddenMesh);
 
     VectorCopy(kLostTowerFireTint, b->BodyLight);
     b->StreamMesh = streamMesh;
@@ -437,6 +434,8 @@ static void RenderLostTowerFireBlock(BMD* b, OBJECT* o, int streamMesh)
 
     VectorCopy(bodyLight, b->BodyLight);
     b->StreamMesh = -1;
+    b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU,
+                  o->BlendMeshTexCoordV, o->HiddenMesh);
 }
 
 void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
