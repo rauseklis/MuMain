@@ -1581,8 +1581,9 @@ void Receive_Master_SetSkillList(PMSG_MASTER_SKILL_LIST_SEND* lpMsg)
 
     for (int n = 0; n < lpMsg->count; n++)
     {
-        auto lpInfo = (PMSG_MASTER_SKILL_LIST*)(((BYTE*)lpMsg) + sizeof(PMSG_MASTER_SKILL_LIST_SEND) +
-                                                (sizeof(PMSG_MASTER_SKILL_LIST) * n));
+        auto lpInfo = reinterpret_cast<PMSG_MASTER_SKILL_LIST*>(reinterpret_cast<BYTE*>(lpMsg) +
+                                                                sizeof(PMSG_MASTER_SKILL_LIST_SEND) +
+                                                                (sizeof(PMSG_MASTER_SKILL_LIST) * n));
         interface->SetMasterSkillTreeInfo(lpInfo->SkillIndex, lpInfo->SkillLevel, lpInfo->MainValue, lpInfo->NextValue);
     }
 
@@ -9380,7 +9381,8 @@ void ReceiveCreateShopTitleViewport(const BYTE* ReceiveBuffer)
 {
     auto Header = (LPPSHOPTITLE_HEADERINFO)ReceiveBuffer;
 
-    auto* pShopTitle = (PSHOPTITLE_DATAINFO*)(ReceiveBuffer + sizeof(PSHOPTITLE_HEADERINFO));
+    auto* pShopTitle =
+        reinterpret_cast<PSHOPTITLE_DATAINFO*>(const_cast<BYTE*>(ReceiveBuffer) + sizeof(PSHOPTITLE_HEADERINFO));
     for (int i = 0; i < Header->byCount; i++, pShopTitle++)
     {
         int key = MAKEWORD(pShopTitle->byIndexL, pShopTitle->byIndexH);
@@ -10711,15 +10713,18 @@ void ReceiveQuestByItemUseEP(const BYTE* ReceiveBuffer)
 void ReceiveQuestByEtcEPList(const BYTE* ReceiveBuffer)
 {
     auto pData = (LPPMSG_NPCTALK_QUESTLIST)ReceiveBuffer;
-    g_QuestMng.SetQuestIndexByEtcList((DWORD*)(ReceiveBuffer + sizeof(PMSG_NPCTALK_QUESTLIST)), pData->m_wQuestCount);
+    g_QuestMng.SetQuestIndexByEtcList(
+        reinterpret_cast<DWORD*>(const_cast<BYTE*>(ReceiveBuffer) + sizeof(PMSG_NPCTALK_QUESTLIST)),
+        pData->m_wQuestCount);
 }
 
 void ReceiveQuestByNPCEPList(const BYTE* ReceiveBuffer)
 {
     auto pData = (LPPMSG_NPCTALK_QUESTLIST)ReceiveBuffer;
     if (g_pNewUISystem->IsVisible(SEASON3B::INTERFACE_NPC_DIALOGUE))
-        g_pNPCDialogue->ProcessQuestListReceive((DWORD*)(ReceiveBuffer + sizeof(PMSG_NPCTALK_QUESTLIST)),
-                                                pData->m_wQuestCount);
+        g_pNPCDialogue->ProcessQuestListReceive(
+            reinterpret_cast<DWORD*>(const_cast<BYTE*>(ReceiveBuffer) + sizeof(PMSG_NPCTALK_QUESTLIST)),
+            pData->m_wQuestCount);
 }
 
 void ReceiveQuestQSSelSentence(const BYTE* ReceiveBuffer)
@@ -10784,8 +10789,9 @@ void ReceiveQuestGiveUp(const BYTE* ReceiveBuffer)
 void ReceiveProgressQuestList(const BYTE* ReceiveBuffer)
 {
     auto pData = (LPPMSG_ANS_QUESTEXP_PROGRESS_LIST)ReceiveBuffer;
-    g_QuestMng.SetCurQuestIndexList((DWORD*)(ReceiveBuffer + sizeof(PMSG_ANS_QUESTEXP_PROGRESS_LIST)),
-                                    int(pData->m_byQuestCount));
+    g_QuestMng.SetCurQuestIndexList(
+        reinterpret_cast<DWORD*>(const_cast<BYTE*>(ReceiveBuffer) + sizeof(PMSG_ANS_QUESTEXP_PROGRESS_LIST)),
+        int(pData->m_byQuestCount));
 }
 
 void ReceiveProgressQuestRequestReward(const BYTE* ReceiveBuffer)
@@ -13840,7 +13846,8 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
             Receive_Master_LevelGetSkill(ReceiveBuffer);
             break;
         case 0x53:
-            Receive_Master_SetSkillList((PMSG_MASTER_SKILL_LIST_SEND*)ReceiveBuffer);
+            Receive_Master_SetSkillList(
+                reinterpret_cast<PMSG_MASTER_SKILL_LIST_SEND*>(const_cast<BYTE*>(ReceiveBuffer)));
             break;
         }
         break;
