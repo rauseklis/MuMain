@@ -2996,7 +2996,7 @@ void ReceiveCreateMonsterViewport(const BYTE* ReceiveBuffer)
 
         BYTE bMyMob = (Data2->TypeH) & 0x80;
         BYTE byBuildTime = (Data2->TypeH & 0x70) >> 4;
-        auto Type = (EMonsterType)(((WORD)(Data2->TypeH & 0x03) << 8) + Data2->TypeL);
+        auto Type = static_cast<EMonsterType>((static_cast<WORD>(Data2->TypeH & 0x0F) << 8) + Data2->TypeL);
 
         if (Type != 106)
             int a = 0;

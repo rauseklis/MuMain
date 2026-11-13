@@ -10,6 +10,7 @@
 #include "Render/Effects/SkillEffectTiming.h"
 #include "GameLogic/NPCs/MonsterDash.h"
 #include "Render/Items/RoyalMaceFlames.h"
+#include "Engine/Object/ArenaWarriors.h"
 #include "Core/Time/FrameTiming.h"
 #include <execution>
 #include <algorithm>
@@ -13339,6 +13340,13 @@ CHARACTER* CreateMonster(EMonsterType Type, int PositionX, int PositionY, int Ke
     }
 
     c = TheMapProcess().CreateMonster(Type, PositionX, PositionY, Key);
+    if (c != NULL)
+    {
+        Setting_Monster(c, Type, PositionX, PositionY);
+        return c;
+    }
+
+    c = CreateArenaWarrior(Type, Key, PositionX, PositionY);
     if (c != NULL)
     {
         Setting_Monster(c, Type, PositionX, PositionY);

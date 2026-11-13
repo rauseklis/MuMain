@@ -675,4 +675,15 @@
 // ·°Å°¾ÆÀÌÅÛ NPC Ãß°¡ 2010-09-01 ÀÌ±â¼ö																													
 579	1	"David"	
 585	1	"Scarecrow"	
+1100	1	"Scale Warrior"	
+1101	1	"Brass Warrior"	
+1102	1	"Plate Warrior"	
+1103	1	"Red Dragon Warrior"	
+1104	1	"Black Dragon Knight"	
+1105	1	"Phoenix Knight"	
+1106	1	"Guardian Elf"	
+1107	1	"Sphinx Wizzard"	
+1108	1	"Soul Wizzard"	
+1109	1	"Great Dragon Warrior"	
+1110	1	"Dragon Knight Warrior"	
 end			
