@@ -236,3 +236,11 @@ Bonus drops and what to type (the English ground name):
 The helper also stops waiting for a drop that moved out of its pickup range, and gives up a drop it cannot walk to, so
 hunting continues. After updating, check that the helper picks up a Silver medal typed as `Silver medal`, and that it
 keeps hunting when a wanted drop lies behind a wall.
+
+### MU Helper: hunting range
+
+The hunting range is a circle around the spot where the helper was started, not around where the character stands
+at the moment: monsters outside it are not chased, and a target that walks out of it is let go. A range of 6 reaches
+about 9 tiles in a straight line (the corner of a 6 by 6 square). Self Defense switches to a monster only when that
+monster attacks the character inside the range; with Long-Range Counter Attack also on, attackers outside the range
+are answered too. After updating, check that the helper no longer runs after monsters 20 or more tiles away.

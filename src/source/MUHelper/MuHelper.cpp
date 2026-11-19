@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <limits>
 #include <mutex>
 
 #include "Engine/AI/ZzzAI.h"
@@ -26,6 +27,7 @@
 
 #include "MuHelper.h"
 #include "ExtraItemFilter.h"
+#include "HuntingArea.h"
 #include "PickupFollowUp.h"
 #include "Scenes/SceneCore.h"
 
@@ -295,10 +297,9 @@ namespace MUHelper
             return;
         }
 
-        int iDistance = ComputeDistanceFromTarget(pTarget);
+        const bool bInsideArea = IsInHuntingArea(pTarget);
 
-        if ((iDistance <= m_iHuntingDistance)
-            || (bIsAttacking && m_config.bLongRangeCounterAttack))
+        if (bInsideArea || (bIsAttacking && m_config.bLongRangeCounterAttack))
         {
             _targetsLock.lock();
 
@@ -312,10 +313,43 @@ namespace MUHelper
             _targetsLock.unlock();
         }
 
-        if (m_config.bUseSelfDefense && IsMonster(pTarget))
+        // Every monster that appears or moves in view comes through here: only one that attacks the character may
+        // take over the current target, or the helper runs after far monsters that merely walked by.
+        if (IsMonster(pTarget) && HuntingArea::ShouldDefendAgainst(m_config.bUseSelfDefense, bIsAttacking, bInsideArea,
+                                                                   m_config.bLongRangeCounterAttack))
         {
             m_iCurrentTarget = iTargetId;
         }
+    }
+
+    bool CMuHelper::IsInHuntingArea(CHARACTER* pTarget)
+    {
+        return HuntingArea::Contains({m_posOriginal.x, m_posOriginal.y}, m_iHuntingDistance,
+                                     {pTarget->PositionX, pTarget->PositionY}, {pTarget->TargetX, pTarget->TargetY});
+    }
+
+    bool CMuHelper::IsWantedTarget(int iTargetId)
+    {
+        const int iIndex = FindCharacterIndex(iTargetId);
+        if (iIndex == MAX_CHARACTERS_CLIENT)
+        {
+            return false;
+        }
+
+        if (IsInHuntingArea(&CharactersClient[iIndex]))
+        {
+            return true;
+        }
+
+        if (!m_config.bLongRangeCounterAttack)
+        {
+            return false;
+        }
+
+        _targetsLock.lock();
+        const bool bIsAttacking = m_setTargetsAttacking.count(iTargetId) > 0;
+        _targetsLock.unlock();
+        return bIsAttacking;
     }
 
     void CMuHelper::DeleteTarget(int iTargetId)
@@ -363,16 +397,13 @@ namespace MUHelper
 
     int CMuHelper::ComputeDistanceBetween(POINT posA, POINT posB)
     {
-        int iDx = posA.x - posB.x;
-        int iDy = posA.y - posB.y;
-
-        return static_cast<int>(std::ceil(std::sqrt(iDx * iDx + iDy * iDy)));
+        return HuntingArea::Distance({posA.x, posA.y}, {posB.x, posB.y});
     }
 
     int CMuHelper::GetNearestTarget()
     {
         int iClosestMonsterId = -1;
-        int iMinDistance = m_iHuntingDistance;
+        int iMinDistance = std::numeric_limits<int>::max();
         std::set<int> setTargets;
         {
             _targetsLock.lock();
@@ -385,7 +416,7 @@ namespace MUHelper
             int iIndex = FindCharacterIndex(iMonsterId);
             CHARACTER* pTarget = &CharactersClient[iIndex];
 
-            if (!IsMonster(pTarget))
+            if (!IsMonster(pTarget) || !IsInHuntingArea(pTarget))
             {
                 continue;
             }
@@ -813,6 +844,12 @@ namespace MUHelper
 
     int CMuHelper::Attack()
     {
+        // Let go of a target that left the hunting area, unless it attacks with long-range counter attack on.
+        if (m_iCurrentTarget != -1 && !IsWantedTarget(m_iCurrentTarget))
+        {
+            m_iCurrentTarget = -1;
+        }
+
         if (m_iCurrentTarget == -1)
         {
             if (!m_setTargets.empty())
