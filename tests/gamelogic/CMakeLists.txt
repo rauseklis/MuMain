@@ -10,3 +10,10 @@ mu_add_test(
     LINK_LIBS
         MuClient
 )
+
+mu_add_test(
+    NAME test_muhelper_extra_items
+    SOURCES
+        test_muhelper_extra_items.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/MUHelper/ExtraItemFilter.cpp
+)

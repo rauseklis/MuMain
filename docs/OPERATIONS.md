@@ -211,3 +211,28 @@ connection loss still reconnects and minimizing/restoring still works.
 ## Chaos Machine upgrade preview
 
 Equipment +10/+11 uses 60%, +12/+13 55%, and +14/+15 20%. Luck adds 20 percentage points. Excellent, Ancient and Guardian categories each subtract 10 points; socket items subtract 20. Penalties accumulate, with a minimum of 0%. Other recipes retain their existing calculation. Install the current client with the updater so the displayed upgrade chance matches the server. The server decides the outcome.
+
+## MU Helper: picking up items by name
+
+In the MU Helper's Obtaining tab, tick "Pick Selected Items" and "Add Extra Item", type a name, press Add, then press
+Save Setting (the list is used only after saving). The helper picks up a dropped item when an entry appears anywhere in
+its name: upper and lower case do not matter, and spaces around the entry are ignored. Each entry is checked against
+two names: the name shown above the item on the ground, and the item's own name with its level (for example a Silver
+medal is a "Box of Luck +5"). A short entry matches more: "Box" picks up every Box of Luck level, the ribbon boxes and
+the Silver and Golden Boxes; "Silver" picks up Silver medals and Silver Boxes.
+
+Bonus drops and what to type (the English ground name):
+
+| Drop | Type |
+| --- | --- |
+| Box of Luck +0 | `Box of Luck` (also matches all levels below) |
+| Box of Luck +1, +2, +3 | `Star of Sacred Birth`, `Firecracker`, `Heart of love` |
+| Box of Luck +5, +6 | `Silver medal`, `Gold medal` (`medal` takes both) |
+| Box of Luck +7 | `Box of Heaven` |
+| Box of Luck +8 to +12 | `Box of Kundun +1` to `Box of Kundun +5` (`Kundun` takes all five) |
+| Ribbon boxes | `box of red ribbon`, `box of green ribbon`, `box of blue ribbon` (`ribbon` takes all three) |
+| Ancient boxes | `Silver Box`, `Golden Box` |
+
+The helper also stops waiting for a drop that moved out of its pickup range, and gives up a drop it cannot walk to, so
+hunting continues. After updating, check that the helper picks up a Silver medal typed as `Silver medal`, and that it
+keeps hunting when a wanted drop lies behind a wall.

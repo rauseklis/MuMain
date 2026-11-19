@@ -25,6 +25,8 @@
 #include "GameLogic/Items/ItemCategories.h"
 
 #include "MuHelper.h"
+#include "ExtraItemFilter.h"
+#include "PickupFollowUp.h"
 #include "Scenes/SceneCore.h"
 
 constexpr int MAX_ACTIONABLE_DISTANCE = 10;
@@ -1070,28 +1072,22 @@ namespace MUHelper
             }
         }
 
-        using GameLogic::Automation::PickupResult;
-        const PickupResult result = GameLogic::Automation::PickUpItem(m_iCurrentItem, m_iObtainingDistance);
+        const auto result = GameLogic::Automation::PickUpItem(m_iCurrentItem, m_iObtainingDistance);
+        const PickupFollowUp::Step step = PickupFollowUp::After(result);
 
-        switch (result)
+        switch (step.action)
         {
-        case PickupResult::Requested:
-            // The request is out; stop tracking the drop, as before.
+        case PickupFollowUp::Action::ForgetDrop:
             DeleteItem(m_iCurrentItem);
-            return 1;
-        case PickupResult::Gone:
-            DeleteItem(m_iCurrentItem);
-            return 1;
-        case PickupResult::Approaching:
-        case PickupResult::NoPath:
-            // Walking towards it: the helper's other work waits a frame.
-            return 0;
-        case PickupResult::TooFar:
-        case PickupResult::Busy:
-            return 1;
+            break;
+        case PickupFollowUp::Action::ChooseAgainLater:
+            m_iCurrentItem = MAX_ITEMS;
+            break;
+        case PickupFollowUp::Action::KeepTarget:
+            break;
         }
 
-        return 1;
+        return step.continueOtherWork ? 1 : 0;
     }
 
     bool CMuHelper::ShouldObtainItem(int iItemId)
@@ -1107,17 +1103,15 @@ namespace MUHelper
             return true;
         }
 
-        if (m_config.bPickExtraItems)
+        if (m_config.bPickExtraItems && !m_config.aExtraItems.empty())
         {
-            std::wstring strDisplayName = GetItemDisplayName(pItem);
-
-            for (const auto& str : m_config.aExtraItems)
+            // The player types what they see on the ground ("Silver medal"), which can differ from the item name
+            // ("Box of Luck +5"): both are checked.
+            const std::wstring itemName = GetItemDisplayName(pItem);
+            const std::wstring groundName = GetGroundItemLabelName(&pDrop->Object, pItem);
+            if (ExtraItemFilter::MatchesAny({itemName, groundName}, m_config.aExtraItems))
             {
-                // Check if the search keyword is in the item's display name
-                if (strDisplayName.find(str) != std::wstring::npos)
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
