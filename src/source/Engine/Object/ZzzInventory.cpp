@@ -7709,7 +7709,7 @@ void CreateGuildMark(int nMarkIndex, bool blend)
     {
         for (int j = 0; j < Width; j++)
         {
-            *((unsigned int*)(Buffer)) = MarkColor[MarkBuffer[0]];
+            *reinterpret_cast<unsigned int*>(Buffer) = MarkColor[MarkBuffer[0]];
             Buffer += 4;
             MarkBuffer++;
         }
@@ -7812,18 +7812,18 @@ void CreateCastleMark(int Type, BYTE* buffer, bool blend)
         {
             if (j >= (Width / 2 - 16) && j < (Width / 2 + 16) && i >= (Height / 2 - 16) && i < (Height / 2 + 16))
             {
-                *((unsigned int*)(Buffer + offset)) = MarkColor[MarkBuffer[offset2]];
+                *reinterpret_cast<unsigned int*>(Buffer + offset) = MarkColor[MarkBuffer[offset2]];
                 offset2++;
             }
             else if (j<3 || j>(Width - 4) || i<10 || i>(Height - 10))
             {
-                *((unsigned int*)(Buffer + offset)) = (255u << 24) + (0u << 16) +
-                                                      ((unsigned int)(50 + i / 100.f * 160) << 8) +
-                                                      (unsigned int)(50 + i / 100.f * 255);
+                *reinterpret_cast<unsigned int*>(Buffer + offset) =
+                    (255u << 24) + (0u << 16) + (static_cast<unsigned int>(50 + i / 100.f * 160) << 8) +
+                    static_cast<unsigned int>(50 + i / 100.f * 255);
             }
             else
             {
-                *((unsigned int*)(Buffer + offset)) = (255u << 24) + (i << 16) + (i << 8) + (i);
+                *reinterpret_cast<unsigned int*>(Buffer + offset) = (255u << 24) + (i << 16) + (i << 8) + (i);
             }
             offset += 4;
         }
