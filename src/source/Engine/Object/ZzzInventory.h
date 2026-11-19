@@ -173,6 +173,8 @@ void RenderObjectScreen(int Type, int ItemLevel, int excellentFlags, int ancient
 bool GetAttackDamage(int* iMinDamage, int* iMaxDamage);
 void GetItemName(int iType, int iLevel, wchar_t* Text);
 std::wstring GetItemDisplayName(ITEM* pItem);
+// The name shown above a dropped item on the ground, for example "Silver medal" for a Box of Luck +5.
+std::wstring GetGroundItemLabelName(OBJECT* o, ITEM* ip);
 void GetSpecialOptionText(int Type, wchar_t* Text, WORD Option, BYTE Value, int iMana);
 void RenderItemInfo(int sx, int sy, ITEM* ip, bool Sell, int Inventype = 0, bool bItemTextListBoxUse = false);
 void RenderRepairInfo(int sz, int sy, ITEM* ip, bool Sell);

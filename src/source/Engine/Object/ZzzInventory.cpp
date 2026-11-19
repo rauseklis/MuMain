@@ -6435,6 +6435,13 @@ void RenderItemName(int i, OBJECT* o, ITEM* ip, bool Sort)
     g_pRenderText->SetBgColor(0, 0, 0, 255);
 }
 
+std::wstring GetGroundItemLabelName(OBJECT* o, ITEM* ip)
+{
+    GroundItemLabelDescriptor descriptor;
+    BuildGroundItemLabelDescriptor(o, ip, descriptor);
+    return std::wstring(descriptor.Name, wcsnlen(descriptor.Name, std::size(descriptor.Name)));
+}
+
 int GetScreenWidth()
 {
     int iWidth = 0;
