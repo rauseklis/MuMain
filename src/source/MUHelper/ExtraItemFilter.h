@@ -14,6 +14,7 @@ namespace MUHelper::ExtraItemFilter
 [[nodiscard]] bool Matches(std::wstring_view itemName, std::wstring_view entry);
 
 // True when any entry matches any of the item's names (for example its item name and the name shown on the ground).
-[[nodiscard]] bool MatchesAny(std::initializer_list<std::wstring_view> itemNames, const std::set<std::wstring>& entries);
+[[nodiscard]] bool MatchesAny(std::initializer_list<std::wstring_view> itemNames,
+                              const std::set<std::wstring>& entries);
 
 } // namespace MUHelper::ExtraItemFilter

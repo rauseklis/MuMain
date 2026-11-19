@@ -36,8 +36,8 @@ bool Matches(std::wstring_view itemName, std::wstring_view entry)
         return false;
     }
 
-    const auto found = std::search(itemName.begin(), itemName.end(), trimmedEntry.begin(), trimmedEntry.end(),
-                                   SameLetterIgnoringCase);
+    const auto found =
+        std::search(itemName.begin(), itemName.end(), trimmedEntry.begin(), trimmedEntry.end(), SameLetterIgnoringCase);
     return found != itemName.end();
 }
 
