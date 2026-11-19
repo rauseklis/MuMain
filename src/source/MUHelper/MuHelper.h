@@ -75,6 +75,8 @@ private:
     void CleanupTargets();
     int ComputeDistanceByRange(int iRange);
     int ComputeDistanceFromTarget(CHARACTER* pTarget);
+    bool IsInHuntingArea(CHARACTER* pTarget);
+    bool IsWantedTarget(int iTargetId);
     int ComputeDistanceBetween(POINT posA, POINT posB);
     int SimulateMove(POINT posMove);
     int ObtainItem();

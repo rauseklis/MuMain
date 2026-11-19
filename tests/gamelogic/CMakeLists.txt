@@ -17,3 +17,10 @@ mu_add_test(
         test_muhelper_extra_items.cpp
         ${CMAKE_SOURCE_DIR}/src/source/MUHelper/ExtraItemFilter.cpp
 )
+
+mu_add_test(
+    NAME test_muhelper_hunting_area
+    SOURCES
+        test_muhelper_hunting_area.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/MUHelper/HuntingArea.cpp
+)
