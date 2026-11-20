@@ -1,6 +1,5 @@
 #include "HuntingArea.h"
 
-#include <algorithm>
 #include <cmath>
 
 namespace MUHelper::HuntingArea
@@ -13,10 +12,9 @@ int Distance(Tile from, Tile to)
     return static_cast<int>(std::ceil(std::sqrt(static_cast<double>(dx * dx + dy * dy))));
 }
 
-bool Contains(Tile start, int huntingDistance, Tile monster, Tile monsterDestination)
+bool Contains(Tile start, int huntingDistance, Tile monster)
 {
-    const int closest = std::min(Distance(start, monster), Distance(start, monsterDestination));
-    return closest <= huntingDistance;
+    return Distance(start, monster) <= huntingDistance;
 }
 
 bool ShouldDefendAgainst(bool selfDefense, bool isAttacking, bool insideArea, bool longRangeCounterAttack)

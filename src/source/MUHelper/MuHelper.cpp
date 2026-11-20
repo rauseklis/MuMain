@@ -325,7 +325,7 @@ namespace MUHelper
     bool CMuHelper::IsInHuntingArea(CHARACTER* pTarget)
     {
         return HuntingArea::Contains({m_posOriginal.x, m_posOriginal.y}, m_iHuntingDistance,
-                                     {pTarget->PositionX, pTarget->PositionY}, {pTarget->TargetX, pTarget->TargetY});
+                                     {pTarget->PositionX, pTarget->PositionY});
     }
 
     bool CMuHelper::IsWantedTarget(int iTargetId)
