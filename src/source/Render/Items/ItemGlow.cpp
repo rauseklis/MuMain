@@ -21,6 +21,9 @@ using Data::Items::ItemModelDefinition;
 
 const ItemGlow DefaultGlow;
 
+// The colors set by ScopedColors, or nullptr.
+const Colors* OverrideColors = nullptr;
+
 // The colors of models that are not items (monsters, ...); they stay in code
 // until the monsters get data of their own.
 const Colors OtherModelColors{{1.0f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, false, {0.1f, 0.6f, 1.0f}};
@@ -89,6 +92,16 @@ void RenderMeshes(BMD* b, OBJECT* o, const ItemGlowMeshes& meshes, int renderTyp
 }
 } // namespace
 
+ScopedColors::ScopedColors(const Colors& colors) : m_previous(OverrideColors)
+{
+    OverrideColors = &colors;
+}
+
+ScopedColors::~ScopedColors()
+{
+    OverrideColors = m_previous;
+}
+
 const ItemGlow& Get(int modelType)
 {
     const ItemModelDefinition* model = FindItemModel(modelType);
@@ -97,6 +110,11 @@ const ItemGlow& Get(int modelType)
 
 const Colors& GetColors(int modelType)
 {
+    if (OverrideColors != nullptr)
+    {
+        return *OverrideColors;
+    }
+
     if (const std::optional<int> item = Display::GetItemOfInventoryModel(modelType))
     {
         return GetItemColors(*item);

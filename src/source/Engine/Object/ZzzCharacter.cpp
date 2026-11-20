@@ -133,6 +133,10 @@ namespace
 #include "World/MapInfra/w_MapHeaders.h"
 #include "GameLogic/Combat/DuelMgr.h"
 #include "GameLogic/Social/MonkSystem.h"
+#include "GameLogic/Items/InvisibleEquipment.h"
+#include "Render/Items/ItemGlow.h"
+
+#include <optional>
 #include "UI/NewUI/NewUISystem.h"
 
 namespace
@@ -6572,6 +6576,18 @@ void WaitCharactersAnimation()
 
 extern thread_local float  ParentMatrix[3][4];
 
+namespace
+{
+// The golden glow of the body parts the Invisible set shows from +7.
+const Render::Items::Glow::Colors InvisibleGoldenGlowColors{
+    {GameLogic::Items::InvisibleEquipment::GoldRed, GameLogic::Items::InvisibleEquipment::GoldGreen,
+     GameLogic::Items::InvisibleEquipment::GoldBlue},
+    {1.0f, 0.85f, 0.4f},
+    false,
+    {GameLogic::Items::InvisibleEquipment::GoldRed, GameLogic::Items::InvisibleEquipment::GoldGreen,
+     GameLogic::Items::InvisibleEquipment::GoldBlue}};
+} // namespace
+
 void RenderGuild(OBJECT* o, int Type, vec3_t vPos)
 {
     EnableAlphaTest();
@@ -9584,6 +9600,24 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
                 if (p->Type != -1)
                 {
                     int Type = p->Type;
+
+                    // The Invisible set: nothing up to +6, the character's own body part with a golden glow from +7.
+                    namespace Invisible = GameLogic::Items::InvisibleEquipment;
+                    const Invisible::Look invisibleLook =
+                        Invisible::GetLook(Type - MODEL_ITEM, MAX_ITEM_INDEX, p->Level);
+                    if (invisibleLook == Invisible::Look::Hidden)
+                    {
+                        continue;
+                    }
+
+                    std::optional<Render::Items::Glow::ScopedColors> invisibleGoldenGlow;
+                    if (invisibleLook == Invisible::Look::GoldenBody)
+                    {
+                        Type = static_cast<int>(MODEL_BODY_HELM) +
+                               Invisible::GetBodySlot(Type - MODEL_ITEM, MAX_ITEM_INDEX) * MODEL_BODY_NUM +
+                               c->SkinIndex;
+                        invisibleGoldenGlow.emplace(InvisibleGoldenGlowColors);
+                    }
 
                     if (CLASS_SUMMONER == gCharacterManager.GetBaseClass(c->Class))
                     {

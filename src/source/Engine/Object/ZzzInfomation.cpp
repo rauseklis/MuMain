@@ -23,6 +23,7 @@
 #include "GameLogic/Items/CComGem.h"
 #include "GameLogic/Items/ItemCategories.h"
 #include "GameLogic/Items/KingMaceRules.h"
+#include "GameLogic/Items/InvisibleEquipment.h"
 #include "UI/NewUI/Inventory/NewUIInventoryCtrl.h"
 #include "Network/Server/SocketSystem.h"
 #include "UI/NewUI/NewUISystem.h"
@@ -627,6 +628,13 @@ void CalcSuccessfulBlocking(ITEM* ip, ITEM_ATTRIBUTE* p)
 
 void CalcDefense(ITEM* ip, ITEM_ATTRIBUTE* p)
 {
+    if (GameLogic::Items::InvisibleEquipment::IsInvisiblePiece(ip->Type, MAX_ITEM_INDEX))
+    {
+        // The Invisible set has the same defense at every item level.
+        ip->Defense = GameLogic::Items::InvisibleEquipment::FixedDefense;
+        return;
+    }
+
     if (p->MagicDefense > 0)
     {
         ip->MagicDefense += (std::min<int>(9, p->Level) * 3);	// ~ +9
@@ -844,6 +852,16 @@ void CalcRequirements(ITEM* ip, ITEM_ATTRIBUTE* p)
     if (isExcellent && ip->RequireLevel > 0 && !GameLogic::Items::IsWingItem(ip) && ip->Type != ITEM_HORN_OF_FENRIR)
     {
         ip->RequireLevel += 20;
+    }
+
+    if (GameLogic::Items::InvisibleEquipment::IsInvisiblePiece(ip->Type, MAX_ITEM_INDEX))
+    {
+        // The Invisible set needs the same stats at every item level.
+        constexpr int required = GameLogic::Items::InvisibleEquipment::FixedStatRequirement;
+        ip->RequireStrength = required;
+        ip->RequireDexterity = required;
+        ip->RequireVitality = required;
+        ip->RequireEnergy = required;
     }
 }
 

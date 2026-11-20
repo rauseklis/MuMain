@@ -25,6 +25,7 @@
 #include "GameLogic/Quests/CSQuest.h"
 #include "App/Platform/Windows/Local.h"
 #include "GameLogic/Items/PersonalShopTitleImp.h"
+#include "GameLogic/Items/InvisibleEquipment.h"
 #include "Engine/AI/GOBoid.h"
 #include "GameLogic/Items/CSItemOption.h"
 #include "GameLogic/Events/CSChaosCastle.h"
@@ -993,6 +994,16 @@ void ComputeItemInfo(int iHelpItem)
 
         if (p->RequireCharisma)	RequireCharisma = 20 + p->RequireCharisma * (p->Level + Level * 3) * 3 / 100;
         else RequireCharisma = 0;
+
+        if (GameLogic::Items::InvisibleEquipment::IsInvisiblePiece(ItemHelp, MAX_ITEM_INDEX))
+        {
+            // The Invisible set has the same defense and requirements at every item level.
+            Defense = GameLogic::Items::InvisibleEquipment::FixedDefense;
+            RequireStrength = GameLogic::Items::InvisibleEquipment::FixedStatRequirement;
+            RequireDexterity = GameLogic::Items::InvisibleEquipment::FixedStatRequirement;
+            RequireVitality = GameLogic::Items::InvisibleEquipment::FixedStatRequirement;
+            RequireEnergy = GameLogic::Items::InvisibleEquipment::FixedStatRequirement;
+        }
 
         g_iItemInfo[Level][_COLUMN_TYPE_LEVEL] = Level;
         g_iItemInfo[Level][_COLUMN_TYPE_ATTMIN] = DamageMin;

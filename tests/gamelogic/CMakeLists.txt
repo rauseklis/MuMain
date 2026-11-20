@@ -24,3 +24,8 @@ mu_add_test(
         test_muhelper_hunting_area.cpp
         ${CMAKE_SOURCE_DIR}/src/source/MUHelper/HuntingArea.cpp
 )
+
+mu_add_test(
+    NAME test_invisible_equipment
+    SOURCES test_invisible_equipment.cpp
+)

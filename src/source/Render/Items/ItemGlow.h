@@ -28,6 +28,21 @@ const Colors& GetColors(int modelType);
 // The level the model glows like instead of the item level.
 int GetLevel(int modelType, int level);
 
+// While an instance lives, GetColors returns these colors for every model.
+// Used to draw a body part in the colors of the item it stands for (the
+// golden body parts of the Invisible set).
+class ScopedColors
+{
+public:
+    explicit ScopedColors(const Colors& colors);
+    ~ScopedColors();
+    ScopedColors(const ScopedColors&) = delete;
+    ScopedColors& operator=(const ScopedColors&) = delete;
+
+private:
+    const Colors* m_previous;
+};
+
 // Whether excellent items with this model glow.
 bool HasExcellentGlow(int modelType);
 
