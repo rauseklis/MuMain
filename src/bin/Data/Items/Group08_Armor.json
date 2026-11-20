@@ -1540,6 +1540,34 @@
       }
     },
     {
+      "number": 74,
+      "name": {
+        "en": "Invisible Armor"
+      },
+      "width": 2,
+      "height": 3,
+      "slot": "armor",
+      "level": 100,
+      "durability": 90,
+      "defense": 200,
+      "attackType": 4,
+      "requirements": {
+        "strength": 100,
+        "dexterity": 100,
+        "energy": 100,
+        "vitality": 100
+      },
+      "classRequirements": {
+        "darkWizard": 1,
+        "darkKnight": 1,
+        "fairyElf": 1,
+        "magicGladiator": 1,
+        "darkLord": 1,
+        "summoner": 1,
+        "rageFighter": 1
+      }
+    },
+    {
       "number": 78,
       "name": {
         "en": "Dragon Armor-J",
