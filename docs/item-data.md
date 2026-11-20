@@ -15,6 +15,12 @@ vault storage, personal-shop selling and repair. Their base stats and level
 150 requirement are unchanged. Install the matching server update for the
 Trite definitions and Golden Box rewards.
 
+The Invisible set (Helm, Armor, Pants, Gloves and Boots at item number 74) is drawn by code
+(`GameLogic/Items/InvisibleEquipment.h`): on the character a piece up to +6 is not drawn, from +7 the
+character's own body part is drawn in its place with a golden glow. It has no model yet, so nothing is
+drawn in the inventory or on the ground. Its defense (200) and stat requirements are the same at every
+item level; install the matching server update.
+
 ---
 
 ## Files
