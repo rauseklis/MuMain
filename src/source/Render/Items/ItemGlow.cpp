@@ -92,8 +92,7 @@ void RenderMeshes(BMD* b, OBJECT* o, const ItemGlowMeshes& meshes, int renderTyp
 }
 } // namespace
 
-ScopedColors::ScopedColors(const Colors& colors)
-    : m_previous(OverrideColors)
+ScopedColors::ScopedColors(const Colors& colors) : m_previous(OverrideColors)
 {
     OverrideColors = &colors;
 }

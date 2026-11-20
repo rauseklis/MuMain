@@ -9603,7 +9603,8 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
 
                     // The Invisible set: nothing up to +6, the character's own body part with a golden glow from +7.
                     namespace Invisible = GameLogic::Items::InvisibleEquipment;
-                    const Invisible::Look invisibleLook = Invisible::GetLook(Type - MODEL_ITEM, MAX_ITEM_INDEX, p->Level);
+                    const Invisible::Look invisibleLook =
+                        Invisible::GetLook(Type - MODEL_ITEM, MAX_ITEM_INDEX, p->Level);
                     if (invisibleLook == Invisible::Look::Hidden)
                     {
                         continue;
@@ -9612,8 +9613,9 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
                     std::optional<Render::Items::Glow::ScopedColors> invisibleGoldenGlow;
                     if (invisibleLook == Invisible::Look::GoldenBody)
                     {
-                        Type = static_cast<int>(MODEL_BODY_HELM)
-                            + Invisible::GetBodySlot(Type - MODEL_ITEM, MAX_ITEM_INDEX) * MODEL_BODY_NUM + c->SkinIndex;
+                        Type = static_cast<int>(MODEL_BODY_HELM) +
+                               Invisible::GetBodySlot(Type - MODEL_ITEM, MAX_ITEM_INDEX) * MODEL_BODY_NUM +
+                               c->SkinIndex;
                         invisibleGoldenGlow.emplace(InvisibleGoldenGlowColors);
                     }
 
