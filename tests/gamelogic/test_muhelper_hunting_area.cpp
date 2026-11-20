@@ -17,15 +17,22 @@ TEST_CASE("the hunting area is measured from where the helper was started")
     const Tile start{100, 100};
     const int huntingDistance = 9;
 
-    CHECK(Area::Contains(start, huntingDistance, {109, 100}, {109, 100}));
-    CHECK_FALSE(Area::Contains(start, huntingDistance, {110, 100}, {110, 100}));
+    CHECK(Area::Contains(start, huntingDistance, {109, 100}));
+    CHECK_FALSE(Area::Contains(start, huntingDistance, {110, 100}));
     // A monster 20 tiles from the start is outside, wherever the character stands now.
-    CHECK_FALSE(Area::Contains(start, huntingDistance, {120, 100}, {120, 100}));
+    CHECK_FALSE(Area::Contains(start, huntingDistance, {120, 100}));
 }
 
-TEST_CASE("a monster walking into the hunting area counts as inside")
+TEST_CASE("a monster outside the hunting area stays outside while it walks in")
 {
-    CHECK(Area::Contains({100, 100}, 9, {112, 100}, {105, 100}));
+    CHECK_FALSE(Area::Contains({100, 100}, 9, {112, 100}));
+}
+
+TEST_CASE("a far monster chasing the character is not a target until it is inside")
+{
+    // Seen by the client but off screen, running at the character: its destination is the character's tile.
+    CHECK_FALSE(Area::Contains({100, 100}, 9, {125, 100}));
+    CHECK(Area::Contains({100, 100}, 9, {108, 100}));
 }
 
 TEST_CASE("self defense ignores a monster that only moved or appeared")
@@ -56,7 +63,6 @@ struct RangeScenario
 {
     const char* name;
     Tile monster;
-    Tile destination;
     bool expectedInside;
 };
 
@@ -82,19 +88,16 @@ TEST_CASE("100 hunting range scenarios: ranges 1 to 10, ten monster positions ea
         const int far = 25;
 
         const RangeScenario cases[] = {
-            {"on the edge, east", {start.x + d, start.y}, {start.x + d, start.y}, true},
-            {"one past the edge, east", {start.x + d + 1, start.y}, {start.x + d + 1, start.y}, false},
-            {"on the edge, north", {start.x, start.y - d}, {start.x, start.y - d}, true},
-            {"one past the edge, south", {start.x, start.y + d + 1}, {start.x, start.y + d + 1}, false},
-            {"on the edge, west", {start.x - d, start.y}, {start.x - d, start.y}, true},
-            {"range corner, diagonal", {start.x + range, start.y + range}, {start.x + range, start.y + range}, true},
-            {"one past the corner, diagonal",
-             {start.x + range + 1, start.y + range + 1},
-             {start.x + range + 1, start.y + range + 1},
-             false},
-            {"outside, walking in", {start.x + d + 3, start.y}, {start.x + d - 1, start.y}, true},
-            {"inside, walking out", {start.x - d + 1, start.y}, {start.x - d - 3, start.y}, true},
-            {"25 tiles away", {start.x + far, start.y + 1}, {start.x + far, start.y + 1}, d >= 26},
+            {"on the edge, east", {start.x + d, start.y}, true},
+            {"one past the edge, east", {start.x + d + 1, start.y}, false},
+            {"on the edge, north", {start.x, start.y - d}, true},
+            {"one past the edge, south", {start.x, start.y + d + 1}, false},
+            {"on the edge, west", {start.x - d, start.y}, true},
+            {"range corner, diagonal", {start.x + range, start.y + range}, true},
+            {"one past the corner, diagonal", {start.x + range + 1, start.y + range + 1}, false},
+            {"outside, walking in", {start.x + d + 3, start.y}, false},
+            {"inside, walking out", {start.x - d + 1, start.y}, true},
+            {"25 tiles away", {start.x + far, start.y + 1}, d >= 26},
         };
 
         for (const RangeScenario& scenario : cases)
@@ -103,11 +106,10 @@ TEST_CASE("100 hunting range scenarios: ranges 1 to 10, ten monster positions ea
             CAPTURE(d);
             CAPTURE(scenario.name);
 
-            const bool inside = Area::Contains(start, d, scenario.monster, scenario.destination);
+            const bool inside = Area::Contains(start, d, scenario.monster);
             CHECK(inside == scenario.expectedInside);
 
-            const bool bySquares =
-                InsideBySquares(start, d, scenario.monster) || InsideBySquares(start, d, scenario.destination);
+            const bool bySquares = InsideBySquares(start, d, scenario.monster);
             CHECK(inside == bySquares);
             ++scenarios;
         }
