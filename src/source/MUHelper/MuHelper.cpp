@@ -24,6 +24,8 @@
 #include "World/MapInfra/MapManager.h"
 #include "Network/Server/WSclient.h"
 #include "GameLogic/Items/ItemCategories.h"
+#include "Core/Text/Utf8.h"
+#include "Core/Utilities/Log/MuLogger.h"
 
 #include "MuHelper.h"
 #include "ExtraItemFilter.h"
@@ -165,6 +167,7 @@ namespace MUHelper
 
         m_clock.Start(NowMs());
         m_attackFollowUp.Clear();
+        LogPickupConfig();
     }
 
     void CMuHelper::Stop()
@@ -1150,6 +1153,8 @@ namespace MUHelper
             {
                 return 1;
             }
+
+            LogObtainedItem(m_iCurrentItem);
         }
 
         const auto result = GameLogic::Automation::PickUpItem(m_iCurrentItem, m_iObtainingDistance);
@@ -1170,17 +1175,26 @@ namespace MUHelper
         return step.continueOtherWork ? 1 : 0;
     }
 
-    bool CMuHelper::ShouldObtainItem(int iItemId)
+    ObtainReason CMuHelper::GetObtainReason(int iItemId)
     {
         ITEM_t* pDrop = &Items[iItemId];
         ITEM* pItem = &pDrop->Item;
 
-        if ((m_config.bPickZen && IsMoneyItem(pItem))
-            || (m_config.bPickJewel && GameLogic::Items::IsJewelItem(pItem))
-            || (m_config.bPickAncient && IsAncientItem(pItem))
-            || (m_config.bPickExcellent && IsExcellentItem(pItem)))
+        if (m_config.bPickZen && IsMoneyItem(pItem))
         {
-            return true;
+            return ObtainReason::Zen;
+        }
+        if (m_config.bPickJewel && GameLogic::Items::IsJewelItem(pItem))
+        {
+            return ObtainReason::Jewel;
+        }
+        if (m_config.bPickAncient && IsAncientItem(pItem))
+        {
+            return ObtainReason::Ancient;
+        }
+        if (m_config.bPickExcellent && IsExcellentItem(pItem))
+        {
+            return ObtainReason::Excellent;
         }
 
         if (m_config.bPickExtraItems && !m_config.aExtraItems.empty())
@@ -1191,11 +1205,33 @@ namespace MUHelper
             const std::wstring groundName = GetGroundItemLabelName(&pDrop->Object, pItem);
             if (ExtraItemFilter::MatchesAny({itemName, groundName}, m_config.aExtraItems))
             {
-                return true;
+                return ObtainReason::ExtraItem;
             }
         }
 
-        return m_config.bPickAllItems;
+        return m_config.bPickAllItems ? ObtainReason::PickAll : ObtainReason::None;
+    }
+
+    void CMuHelper::LogPickupConfig()
+    {
+        mu::log::Get("gameplay")
+            ->info("[MU Helper] pickup settings in use: pickAll={} pickSelected={} zen={} jewel={} excellent={} set={} "
+                   "extraItems={} ({} entries) range={}",
+                   m_config.bPickAllItems, m_config.bPickSelectItems, m_config.bPickZen, m_config.bPickJewel,
+                   m_config.bPickExcellent, m_config.bPickAncient, m_config.bPickExtraItems,
+                   m_config.aExtraItems.size(), m_config.iObtainingRange);
+        mu::log::Get("gameplay")->flush();
+    }
+
+    void CMuHelper::LogObtainedItem(int iItemId)
+    {
+        ITEM* pItem = &Items[iItemId].Item;
+        mu::log::Get("gameplay")
+            ->info("[MU Helper] going to pick up '{}' (slot {}): reason={} excellentFlags={} setDiscriminator={}",
+                   Core::Text::ToUtf8(GetItemDisplayName(pItem).c_str()), iItemId,
+                   ObtainReasonName(GetObtainReason(iItemId)), static_cast<int>(pItem->ExcellentFlags),
+                   static_cast<int>(pItem->AncientDiscriminator));
+        mu::log::Get("gameplay")->flush();
     }
 
     void CMuHelper::AddItem(int iItemId, POINT posWhere)
@@ -1231,7 +1267,7 @@ namespace MUHelper
 
         for (const int& iItemId : setItems)
         {
-            if (!ShouldObtainItem(iItemId))
+            if (GetObtainReason(iItemId) == ObtainReason::None)
             {
                 continue;
             }

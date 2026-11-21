@@ -237,6 +237,10 @@ The helper also stops waiting for a drop that moved out of its pickup range, and
 hunting continues. After updating, check that the helper picks up a Silver medal typed as `Silver medal`, and that it
 keeps hunting when a wanted drop lies behind a wall.
 
+To see why the helper took an item you did not want, open `MuError.log` in the game folder. Each time the helper starts
+it writes the pickup settings it is really using (they can differ from what the window shows until you press Save
+Setting), and every item it goes to pick up is listed with its name and the setting that allowed it ("reason").
+
 ### MU Helper: hunting range
 
 The hunting range is a circle around the spot where the helper was started, not around where the character stands
