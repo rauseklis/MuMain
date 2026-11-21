@@ -167,8 +167,7 @@ void SEASON3B::CNewUIBuffWindow::BuffSort(std::list<eBuffState>& buffstate)
     for (int i = 0; i < iBuffSize; ++i)
     {
         eBuffState buf = g_CharacterBuff(pHeroObject, i);
-        if (buf == eBuffNone || buf >= eBuff_Count ||
-            GameLogic::Buffs::ActiveBuffDetails().IsExpired(buf, GameLogic::Buffs::BuffDetailsClock()))
+        if (buf == eBuffNone || buf >= eBuff_Count)
         {
             continue;
         }
@@ -187,8 +186,7 @@ void SEASON3B::CNewUIBuffWindow::BuffSort(std::list<eBuffState>& buffstate)
     for (int i = 0; i < iBuffSize; ++i)
     {
         eBuffState buf = g_CharacterBuff(pHeroObject, i);
-        if (buf == eBuffNone || buf >= eBuff_Count ||
-            GameLogic::Buffs::ActiveBuffDetails().IsExpired(buf, GameLogic::Buffs::BuffDetailsClock()))
+        if (buf == eBuffNone || buf >= eBuff_Count)
         {
             continue;
         }
