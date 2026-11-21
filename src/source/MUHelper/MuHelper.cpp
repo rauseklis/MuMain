@@ -34,6 +34,15 @@
 constexpr int MAX_ACTIONABLE_DISTANCE = 10;
 constexpr int DEFAULT_DURABILITY_THRESHOLD = 50;
 
+namespace
+{
+std::uint64_t NowMs()
+{
+    using namespace std::chrono;
+    return static_cast<std::uint64_t>(duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count());
+}
+} // namespace
+
 SpinLock _targetsLock;
 SpinLock _itemsLock;
 
@@ -154,7 +163,8 @@ namespace MUHelper
         m_bTimerActivatedBuffOngoing = false;
         m_bPetActivated = false;
 
-        m_iLoopCounter = 0;
+        m_clock.Start(NowMs());
+        m_attackFollowUp.Clear();
     }
 
     void CMuHelper::Stop()
@@ -226,22 +236,51 @@ namespace MUHelper
             return;
         }
 
-        Work();
-
-        if (m_iLoopCounter++ == 4)
+        const std::uint64_t nowMs = NowMs();
+        if (!m_clock.TakeFullWorkDue(nowMs))
         {
-            m_iSecondsElapsed++;
+            FollowUpAttack();
+            return;
+        }
 
-            if (ComputeDistanceBetween({Hero->PositionX, Hero->PositionY}, m_posOriginal) > 1)
-            {
-                m_iSecondsAway++;
-            }
-            else
-            {
-                m_iSecondsAway = 0;
-            }
+        Work();
+        UpdateSecondsCounters(m_clock.SecondsElapsed(nowMs));
+    }
 
-            m_iLoopCounter = 0;
+    void CMuHelper::FollowUpAttack()
+    {
+        if (!m_attackFollowUp.IsDue(GameLogic::Automation::IsSwingInProgress()))
+        {
+            return;
+        }
+
+        try
+        {
+            Attack();
+        }
+        catch (...)
+        {
+            g_ConsoleDebug->Write(MCD_NORMAL, L"[MU Helper] Exception occurred. Ignoring...");
+        }
+    }
+
+    void CMuHelper::UpdateSecondsCounters(int iSecondsElapsed)
+    {
+        const int iNewSeconds = iSecondsElapsed - m_iSecondsElapsed;
+        if (iNewSeconds <= 0)
+        {
+            return;
+        }
+
+        m_iSecondsElapsed = iSecondsElapsed;
+
+        if (ComputeDistanceBetween({Hero->PositionX, Hero->PositionY}, m_posOriginal) > 1)
+        {
+            m_iSecondsAway += iNewSeconds;
+        }
+        else
+        {
+            m_iSecondsAway = 0;
         }
     }
 
@@ -249,28 +288,10 @@ namespace MUHelper
     {
         try
         {
-            if (!ActivatePet())
+            // A pet command, buff, heal, pickup or walk back comes first: no follow-up attack until it is done.
+            if (!ActivatePet() || !Buff() || !RecoverHealth() || !ObtainItem() || !Regroup())
             {
-                return;
-            }
-
-            if (!Buff())
-            {
-                return;
-            }
-
-            if (!RecoverHealth())
-            {
-                return;
-            }
-
-            if (!ObtainItem())
-            {
-                return;
-            }
-
-            if (!Regroup())
-            {
+                m_attackFollowUp.Clear();
                 return;
             }
 
@@ -869,6 +890,7 @@ namespace MUHelper
             else
             {
                 m_iComboState = 0;
+                m_attackFollowUp.Clear();
                 return 0;
             }
         }
@@ -896,6 +918,8 @@ namespace MUHelper
             }
         }
 
+        // Nothing was tried: wait for the next full work.
+        m_attackFollowUp.Clear();
         return 1;
     }
 
@@ -958,6 +982,7 @@ namespace MUHelper
         {
             if (m_config.aiSkill[i] == 0)
             {
+                m_attackFollowUp.Clear();
                 return 0;
             }
         }
@@ -972,7 +997,21 @@ namespace MUHelper
 
     int CMuHelper::SimulateAttack(ActionSkillType iSkill)
     {
-        return SimulateSkill(iSkill, true, m_iCurrentTarget);
+        const bool bWasSwinging = GameLogic::Automation::IsSwingInProgress();
+        const int iCast = SimulateSkill(iSkill, true, m_iCurrentTarget);
+        RecordAttack(bWasSwinging, iCast == 1);
+        return iCast;
+    }
+
+    void CMuHelper::RecordAttack(bool bWasSwinging, bool bLanded)
+    {
+        // Refused only because the previous swing still runs: the follow-up keeps waiting for that swing to end.
+        if (bWasSwinging)
+        {
+            return;
+        }
+
+        m_attackFollowUp.OnAttack(bLanded, GameLogic::Automation::IsSwingInProgress());
     }
 
     int CMuHelper::SimulateSkill(ActionSkillType iSkill, bool bTargetRequired, int iTarget)
@@ -1002,9 +1041,11 @@ namespace MUHelper
         // automation for object -1 and then forgets a target it never had.
         if (iTarget == -1)
         {
+            m_attackFollowUp.Clear();
             return 0;
         }
 
+        const bool bWasSwinging = GameLogic::Automation::IsSwingInProgress();
         const AttackResult result = GameLogic::Automation::AttackObject(iTarget, false, m_iHuntingDistance);
 
         if (GameLogic::Automation::ShouldForgetTarget(result))
@@ -1012,7 +1053,9 @@ namespace MUHelper
             DeleteTarget(iTarget);
         }
 
-        return result == AttackResult::Attacked ? 1 : 0;
+        const bool bLanded = result == AttackResult::Attacked;
+        RecordAttack(bWasSwinging, bLanded);
+        return bLanded ? 1 : 0;
     }
 
     int CMuHelper::Regroup()

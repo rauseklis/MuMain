@@ -2181,7 +2181,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int nC
 
     auto& timers = Core::Time::FrameTimerScheduler::Instance();
     timers.SetRepeating(HACK_TIMER, 20 * 1000, [] { CheckHack(); });
-    timers.SetRepeating(MUHELPER_TIMER, 250 /* ms */,
+    timers.SetRepeating(MUHELPER_TIMER, MUHelper::HelperClock::TickMs,
                         [] { MUHelper::CMuHelper::TimerProc(nullptr, 0, MUHELPER_TIMER, 0); });
 
     srand((unsigned)time(nullptr));

@@ -245,3 +245,13 @@ stands counts, not where it is walking to: a far monster running at the characte
 about 9 tiles in a straight line (the corner of a 6 by 6 square). Self Defense switches to a monster only when that
 monster attacks the character inside the range; with Long-Range Counter Attack also on, attackers outside the range
 are answered too. After updating, check that the helper no longer runs after monsters 20 or more tiles away.
+
+### MU Helper: attack speed
+
+The helper attacks as fast as holding the mouse button does: after a hit it starts the next attack as soon as the swing
+ends, so attack speed counts in full. Before, it only looked every 250 ms and waited up to a quarter second after each
+swing, which made it clearly slower than manual attacks at high attack speed. Only a hit whose swing was seen is
+followed up this way; buffs, healing, potions, pickup, repair and walking back still run every 250 ms as before, so they
+are not sent to the server more often. Skill and buff timers set in seconds are now real seconds (they used to last
+1.25 s each). After updating, compare 10 seconds of helper attacks with 10 seconds of holding the mouse on the same
+monsters: the hit count should be about the same.

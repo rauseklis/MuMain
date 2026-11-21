@@ -7,6 +7,8 @@
 #include <thread>
 #include <atomic>
 
+#include "AttackFollowUp.h"
+#include "HelperClock.h"
 #include "MuHelperData.h"
 
 namespace MUHelper
@@ -52,6 +54,8 @@ public:
 private:
     void WorkLoop(HWND hWnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime);
     void Work();
+    void FollowUpAttack();
+    void UpdateSecondsCounters(int iSecondsElapsed);
     void ResetRunState();
     void CancelActions();
     int ActivatePet();
@@ -67,6 +71,7 @@ private:
     int Regroup();
     ActionSkillType SelectAttackSkill();
     int SimulateAttack(ActionSkillType iSkill);
+    void RecordAttack(bool bWasSwinging, bool bLanded);
     int SimulateSkill(ActionSkillType iSkill, bool bTargetRequired, int iTarget);
     int SimulateBasicAttack(int iTarget);
     int SimulateComboAttack();
@@ -106,7 +111,8 @@ private:
     ActionSkillType m_iCurrentSkill;
     int m_iHuntingDistance;
     int m_iObtainingDistance;
-    int m_iLoopCounter;
+    HelperClock m_clock;
+    AttackFollowUp m_attackFollowUp;
     int m_iSecondsElapsed;
     int m_iSecondsAway;
     bool m_bTimerActivatedBuffOngoing;
