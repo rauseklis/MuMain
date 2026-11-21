@@ -26,6 +26,14 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME test_muhelper_clock
+    SOURCES
+        test_muhelper_clock.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/MUHelper/HelperClock.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/MUHelper/AttackFollowUp.cpp
+)
+
+mu_add_test(
     NAME test_invisible_equipment
     SOURCES test_invisible_equipment.cpp
 )
