@@ -122,6 +122,10 @@ file(GLOB_RECURSE MU_CLIENT_SOURCES
 list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX "[/\\]Platform[/\\][^/\\]+[/\\][Ww]in[Mm]ain\\.[Cc]pp$")
 list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX "[/\\]Platform[/\\][^/\\]+[/\\]main\\.(cpp|mm)$")
 
+# The build serial of the login is compiled into the executable itself: nothing references it, so the linker
+# would drop it from the static library together with its initializer (see the file).
+list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX "[/\\]Network[/\\]Server[/\\]BuildSerial\\.cpp$")
+
 # The in-game shop uses one libcurl transport on every platform. Keep the
 # legacy WinINet implementation out of the build.
 list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX "[/\\]GameShop[/\\]FileDownloader[/\\](FileDownloader|FTPConnecter|HTTPConnecter|DownloadInfo)\\.cpp$")
@@ -194,20 +198,20 @@ endif()
 # links MuClient inherit them automatically.
 add_library(MuClient STATIC ${MU_CLIENT_SOURCES})
 
-# The control socket's `ping` names the git commit the client was built from,
-# so a test report says which client it tested (cmake/WriteGitCommit.cmake).
+# The git commit the client was built from is recorded on every build
+# (cmake/WriteGitCommit.cmake): the control socket's `ping` names it, so a test
+# report says which client it tested, and the login sends it as the build
+# identifier (the serial field), so the server knows which build connects.
 # Checked on every build; the header only changes with the commit.
-if(ENABLE_CONTROL_SOCKET)
-  set(MU_GIT_COMMIT_HEADER "${CMAKE_BINARY_DIR}/Generated/MuGitCommit.h")
-  add_custom_target(GitCommitHeader
-    COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}" "-DOUTPUT=${MU_GIT_COMMIT_HEADER}"
-            -P "${CMAKE_SOURCE_DIR}/cmake/WriteGitCommit.cmake"
-    BYPRODUCTS "${MU_GIT_COMMIT_HEADER}"
-    COMMENT "Recording the git commit for the control socket"
-    VERBATIM)
-  add_dependencies(MuClient GitCommitHeader)
-  target_include_directories(MuClient PRIVATE "${CMAKE_BINARY_DIR}/Generated")
-endif()
+set(MU_GIT_COMMIT_HEADER "${CMAKE_BINARY_DIR}/Generated/MuGitCommit.h")
+add_custom_target(GitCommitHeader
+  COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}" "-DOUTPUT=${MU_GIT_COMMIT_HEADER}"
+          -P "${CMAKE_SOURCE_DIR}/cmake/WriteGitCommit.cmake"
+  BYPRODUCTS "${MU_GIT_COMMIT_HEADER}"
+  COMMENT "Recording the git commit of the client"
+  VERBATIM)
+add_dependencies(MuClient GitCommitHeader)
+target_include_directories(MuClient PRIVATE "${CMAKE_BINARY_DIR}/Generated")
 target_compile_features(MuClient PUBLIC cxx_std_20)
 if(MSVC)
   target_compile_options(MuClient PRIVATE /utf-8 /we4828)
@@ -307,6 +311,9 @@ else()
   )
 endif()
 target_compile_features(Main PUBLIC cxx_std_20)
+target_sources(Main PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/source/Network/Server/BuildSerial.cpp")
+target_include_directories(Main PRIVATE "${CMAKE_BINARY_DIR}/Generated")
+add_dependencies(Main GitCommitHeader)
 target_link_libraries(Main PRIVATE MuClient::MuClient)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND MU_LINK_SDL_PLATFORM_BACKENDS)
   target_link_libraries(Main PRIVATE Vulkan::Vulkan)
