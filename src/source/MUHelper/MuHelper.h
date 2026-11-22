@@ -10,6 +10,7 @@
 #include "AttackFollowUp.h"
 #include "HelperClock.h"
 #include "MuHelperData.h"
+#include "ObtainReason.h"
 
 namespace MUHelper
 {
@@ -86,7 +87,9 @@ private:
     int SimulateMove(POINT posMove);
     int ObtainItem();
     int SelectItemToObtain();
-    bool ShouldObtainItem(int iItemId);
+    ObtainReason GetObtainReason(int iItemId);
+    void LogPickupConfig();
+    void LogObtainedItem(int iItemId);
     ActionSkillType GetHealingSkill();
     ActionSkillType GetDrainLifeSkill();
     bool HasAssignedBuffSkill();
