@@ -19,6 +19,8 @@ namespace UI::Items::Drag
                        int pointerX, int pointerY, bool preserveAnchor);
     POINT ItemTopLeft(int pointerX, int pointerY, const POINT& pickupOffset);
     bool ShouldConsumePanelPress(bool hasPickedItem, bool leftButtonPressed);
+    // A held item already sent to an NPC merchant waits for the answer; clicks must not move it meanwhile.
+    bool IsHeldItemBeingSold(bool hasPickedItem, bool sellPending);
 }
 
 namespace UI::Items::Grid

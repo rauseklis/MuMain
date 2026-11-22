@@ -61,6 +61,11 @@ bool UI::Items::Drag::ShouldConsumePanelPress(bool hasPickedItem, bool leftButto
     return hasPickedItem && leftButtonPressed;
 }
 
+bool UI::Items::Drag::IsHeldItemBeingSold(bool hasPickedItem, bool sellPending)
+{
+    return hasPickedItem && sellPending;
+}
+
 bool UI::Items::Grid::Fits(int startIndex, int itemWidth, int itemHeight, int columnCount, int rowCount)
 {
     if (startIndex < 0 || itemWidth <= 0 || itemHeight <= 0 || columnCount <= 0 || rowCount <= 0)

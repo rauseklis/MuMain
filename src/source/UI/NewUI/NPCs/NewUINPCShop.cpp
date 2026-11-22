@@ -111,7 +111,9 @@ bool SEASON3B::CNewUINPCShop::UpdateMouseEvent()
         {
             ITEM* pItem = m_pNewInventoryCtrl->FindItemAtPt(MouseX, MouseY);
 
-            if ((m_bIsNPCShopOpen == true) && (pItem) && (SEASON3B::IsRelease(VK_LBUTTON)))
+            // Clicking a shop item while holding another item must not buy: the held item is put down or sold.
+            const bool holdingItem = CNewUIInventoryCtrl::GetPickedItem() != NULL;
+            if ((m_bIsNPCShopOpen == true) && (pItem) && !holdingItem && (SEASON3B::IsRelease(VK_LBUTTON)))
             {
                 int iIndex = (pItem->y * m_pNewInventoryCtrl->GetNumberOfColumn()) + pItem->x;
                 GambleSystem& _gambleSys = GambleSystem::Instance();

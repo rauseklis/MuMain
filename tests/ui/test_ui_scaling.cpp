@@ -328,6 +328,13 @@ TEST_CASE("inventory consumes picked-item presses before world input [ui][invent
     CHECK_FALSE(UI::Items::Drag::ShouldConsumePanelPress(false, true));
 }
 
+TEST_CASE("a held item already sent to the merchant ignores further clicks [ui][inventory]")
+{
+    CHECK(UI::Items::Drag::IsHeldItemBeingSold(true, true));
+    CHECK_FALSE(UI::Items::Drag::IsHeldItemBeingSold(true, false));
+    CHECK_FALSE(UI::Items::Drag::IsHeldItemBeingSold(false, true));
+}
+
 TEST_CASE("store window consumes passive hover before world selection [ui][store]")
 {
     const int previousMouseX = MouseX;

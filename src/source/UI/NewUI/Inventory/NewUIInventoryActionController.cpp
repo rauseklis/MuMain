@@ -98,6 +98,14 @@ bool CNewUIInventoryActionController::HandleInventoryActions(CNewUIInventoryCtrl
         return true;
     }
 
+    // The merchant has not answered the sale yet: the held item is not ours to move any more. Placing it now
+    // would send a second request for the same item and the two answers would disagree.
+    if (UI::Items::Drag::IsHeldItemBeingSold(hasPickedItem, g_pNPCShop->IsSellingItem()) &&
+        (IsRelease(VK_LBUTTON) || IsPress(VK_RBUTTON)))
+    {
+        return true;
+    }
+
     if (hasPickedItem && IsRelease(VK_LBUTTON))
     {
         return HandlePickedItemPlacement(targetControl);
