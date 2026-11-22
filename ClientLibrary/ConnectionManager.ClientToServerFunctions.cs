@@ -7478,4 +7478,42 @@ public unsafe partial class ConnectionManager
         {
             Debug.WriteLine(ex);
         }
+    }
+
+    /// <summary>
+    /// Sends a <see cref="ClientIntegrityReport" /> to this connection.
+    /// </summary>
+    /// <param name="handle">The handle of the connection.</param>
+    /// <param name="build">The build.</param>
+    /// <param name="buildByteLength">The length of <paramref name="build"/>.</param>
+    /// <param name="programHash">The program hash.</param>
+    /// <param name="programHashByteLength">The length of <paramref name="programHash"/>.</param>
+    /// <remarks>
+    /// Is sent by the client when: The client has started and the player logged in. It tells which build it is and a fingerprint of its program files.
+    /// Causes reaction on server side: The server records the report for the session. Nothing changes in the game.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "SendClientIntegrityReport")]
+    public static void SendClientIntegrityReport(int handle, byte* @build, uint buildByteLength, byte* @programHash, uint programHashByteLength)
+    {
+        if (!Connections.TryGetValue(handle, out var connection))
+        {
+            return;
+        }
+
+        try
+        {
+            connection.CreateAndSend(pipeWriter =>
+            {
+                var length = ClientIntegrityReportRef.Length;
+                var packet = new ClientIntegrityReportRef(pipeWriter.GetSpan(length)[..length]);
+                new Span<byte>(@build, (int)buildByteLength).CopyTo(packet.Build);
+                new Span<byte>(@programHash, (int)programHashByteLength).CopyTo(packet.ProgramHash);
+
+                return length;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
     }}

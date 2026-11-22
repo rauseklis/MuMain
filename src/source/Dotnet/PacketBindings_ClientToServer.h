@@ -437,3 +437,5 @@ typedef void(CORECLR_DELEGATE_CALLTYPE* SendJewelBankSetAutoDepositRequest)(int3
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendResetNpcResetRequest)(int32_t);
 
 typedef void(CORECLR_DELEGATE_CALLTYPE* SendResetNpcInfoRequest)(int32_t);
+
+typedef void(CORECLR_DELEGATE_CALLTYPE* SendClientIntegrityReport)(int32_t, const BYTE* , uint32_t, const BYTE* , uint32_t);
