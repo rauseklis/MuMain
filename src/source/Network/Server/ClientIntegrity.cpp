@@ -16,6 +16,7 @@
 
 #include <openssl/evp.h>
 
+#include "Core/Utilities/Log/MuLogger.h"
 #include "Network/Server/WSclient.h"
 
 extern unsigned char Serial[];
@@ -200,6 +201,8 @@ void OnTick(bool loggedIn)
                 return;
             }
             g_result = g_programHash.get();
+            mu::log::Get("gameplay")
+                ->info("[Client check] program fingerprint {}", g_result ? "computed" : "could not be computed");
         }
 
         if (!g_result)
@@ -216,10 +219,12 @@ void OnTick(bool loggedIn)
         sender->SendClientIntegrityReport(Serial, static_cast<std::uint32_t>(BuildLength), g_result->data(),
                                           static_cast<std::uint32_t>(HashLength));
         ++g_reportsSent;
+        mu::log::Get("gameplay")->info("[Client check] report {} sent", g_reportsSent);
     }
     catch (...)
     {
         g_reportsSent = MaximumReportsPerConnection;
+        mu::log::Get("gameplay")->info("[Client check] report stopped after an error");
     }
 }
 
