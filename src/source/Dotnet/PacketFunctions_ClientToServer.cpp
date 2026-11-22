@@ -2316,3 +2316,14 @@ void PacketFunctions_ClientToServer::SendResetNpcInfoRequest()
 
     dotnet_SendResetNpcInfoRequest(this->GetHandle());
 }
+
+void PacketFunctions_ClientToServer::SendClientIntegrityReport(const BYTE* build, uint32_t buildByteLength, const BYTE* programHash, uint32_t programHashByteLength)
+{
+    static const auto dotnet_SendClientIntegrityReport = LoadManagedSymbol<::SendClientIntegrityReport>("SendClientIntegrityReport");
+    if (!dotnet_SendClientIntegrityReport)
+    {
+        return;
+    }
+
+    dotnet_SendClientIntegrityReport(this->GetHandle(), build, buildByteLength, programHash, programHashByteLength);
+}

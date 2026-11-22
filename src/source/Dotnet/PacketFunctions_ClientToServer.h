@@ -2332,4 +2332,17 @@ public:
     /// Causes reaction on server side: The server answers with a ResetNpcStateResponse.
     /// </remarks>
     void SendResetNpcInfoRequest();
+
+    /// <summary>
+    /// Sends a ClientIntegrityReport to this connection.
+    /// </summary>
+    /// <param name="build">The build.</param>
+    /// <param name="buildByteLength">The length of <paramref name="build"/> in bytes.
+    /// <param name="programHash">The program hash.</param>
+    /// <param name="programHashByteLength">The length of <paramref name="programHash"/> in bytes.
+    /// <remarks>
+    /// Is sent by the client when: The client has started and the player logged in. It tells which build it is and a fingerprint of its program files.
+    /// Causes reaction on server side: The server records the report for the session. Nothing changes in the game.
+    /// </remarks>
+    void SendClientIntegrityReport(const BYTE* build, uint32_t buildByteLength, const BYTE* programHash, uint32_t programHashByteLength);
 };

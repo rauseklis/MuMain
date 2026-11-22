@@ -32,6 +32,7 @@
 #include "App/Platform/Windows/LegacyWindowMessage.h"
 #include "Scenes/SceneManager.h"
 #include "Network/Reconnect/ReconnectManager.h"
+#include "Network/Server/ClientIntegrity.h"
 #include "Network/IncomingPacketQueue.h"
 #include "Core/Time/FrameTimerScheduler.h"
 #include <SDL3/SDL.h>
@@ -151,6 +152,7 @@ void CheckHack()
 {
     if (!g_bGameServerConnected)
     {
+        ClientIntegrity::OnDisconnected();
         return;
     }
 
@@ -167,6 +169,7 @@ void CheckHack()
 
     const int dwTick = GetTickCount();
     SocketClient->ToGameServer()->SendPing(dwTick, attackSpeed);
+    ClientIntegrity::OnTick(LogIn == 2);
 
     if (!First)
     {
