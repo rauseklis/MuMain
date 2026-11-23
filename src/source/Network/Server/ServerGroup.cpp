@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "ServerGroup.h"
+#include "ServerDisplayNames.h"
 
 // cppcheck-suppress uninitMemberVar
 CServerGroup::CServerGroup()
@@ -35,7 +36,22 @@ void CServerGroup::Release()
 
 void CServerGroup::InsertServerInfo(CServerInfo* pServerInfo)
 {
-    m_listServerInfo.push_back(pServerInfo);
+    // Listed by display rank (not by arrival order of the server list), then numbered by position: the select menu
+    // finds the clicked server by that position (GetServerInfo).
+    const int rank = Network::ServerNames::ServerDisplayRank(pServerInfo->m_iIndex);
+    auto position = m_listServerInfo.begin();
+    while (position != m_listServerInfo.end() && Network::ServerNames::ServerDisplayRank((*position)->m_iIndex) <= rank)
+    {
+        ++position;
+    }
+
+    m_listServerInfo.insert(position, pServerInfo);
+
+    int sequence = 0;
+    for (CServerInfo* server : m_listServerInfo)
+    {
+        server->m_iSequence = sequence++;
+    }
 
     m_iterServerList = m_listServerInfo.begin();
 
