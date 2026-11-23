@@ -56,6 +56,20 @@ POINT UI::Items::Drag::ItemTopLeft(int pointerX, int pointerY, const POINT& pick
     return {pointerX - pickupOffset.x, pointerY - pickupOffset.y};
 }
 
+POINT UI::Items::Drag::RescaleOffset(const POINT& offset, float fromScaleX, float fromScaleY, float toScaleX,
+                                     float toScaleY)
+{
+    if (fromScaleX <= 0.0f || fromScaleY <= 0.0f || toScaleX <= 0.0f || toScaleY <= 0.0f)
+    {
+        return offset;
+    }
+
+    return {
+        static_cast<LONG>(std::lround(static_cast<float>(offset.x) * fromScaleX / toScaleX)),
+        static_cast<LONG>(std::lround(static_cast<float>(offset.y) * fromScaleY / toScaleY)),
+    };
+}
+
 bool UI::Items::Drag::ShouldConsumePanelPress(bool hasPickedItem, bool leftButtonPressed)
 {
     return hasPickedItem && leftButtonPressed;
@@ -87,6 +101,8 @@ SEASON3B::CNewUIPickedItem::CNewUIPickedItem()
     m_Pos.x = m_Pos.y = 0;
     m_Size.cx = m_Size.cy = 0;
     m_PickupOffset.x = m_PickupOffset.y = 0;
+    m_OffsetScaleX = m_OffsetScaleY = 1.0f;
+    m_PixelLeft = m_PixelTop = m_PixelRight = m_PixelBottom = 0.0f;
 }
 
 SEASON3B::CNewUIPickedItem::~CNewUIPickedItem()
@@ -119,6 +135,11 @@ bool SEASON3B::CNewUIPickedItem::Create(CNewUIItemMng* pNewItemMng, CNewUIInvent
                                                    MouseX, MouseY, hasGridAnchor);
     m_Pos = UI::Items::Drag::ItemTopLeft(MouseX, MouseY, m_PickupOffset);
 
+    const auto transform = UI::Scaling::GetActiveTransform();
+    m_OffsetScaleX = transform.scaleX;
+    m_OffsetScaleY = transform.scaleY;
+    UpdatePixelRect();
+
     return true;
 }
 
@@ -131,6 +152,24 @@ void SEASON3B::CNewUIPickedItem::Release()
     m_pSrcInventory = nullptr;
     m_bShow = true;
     m_PickupOffset.x = m_PickupOffset.y = 0;
+    m_OffsetScaleX = m_OffsetScaleY = 1.0f;
+    m_PixelLeft = m_PixelTop = m_PixelRight = m_PixelBottom = 0.0f;
+}
+
+POINT SEASON3B::CNewUIPickedItem::OffsetInActiveScale() const
+{
+    const auto transform = UI::Scaling::GetActiveTransform();
+    return UI::Items::Drag::RescaleOffset(m_PickupOffset, m_OffsetScaleX, m_OffsetScaleY, transform.scaleX,
+                                          transform.scaleY);
+}
+
+void SEASON3B::CNewUIPickedItem::UpdatePixelRect()
+{
+    const auto transform = UI::Scaling::GetActiveTransform();
+    m_PixelLeft = UI::Scaling::PositionX(transform, static_cast<float>(m_Pos.x));
+    m_PixelTop = UI::Scaling::PositionY(transform, static_cast<float>(m_Pos.y));
+    m_PixelRight = m_PixelLeft + UI::Scaling::SizeX(transform, static_cast<float>(m_Size.cx));
+    m_PixelBottom = m_PixelTop + UI::Scaling::SizeY(transform, static_cast<float>(m_Size.cy));
 }
 
 CNewUIInventoryCtrl* SEASON3B::CNewUIPickedItem::GetOwnerInventory() const
@@ -174,17 +213,20 @@ const SIZE& SEASON3B::CNewUIPickedItem::GetSize() const
     return m_Size;
 }
 
-const POINT& SEASON3B::CNewUIPickedItem::GetPickupOffset() const
+POINT SEASON3B::CNewUIPickedItem::GetPickupOffset() const
 {
-    return m_PickupOffset;
+    return OffsetInActiveScale();
 }
 
 void SEASON3B::CNewUIPickedItem::GetRect(RECT& rcBox)
 {
-    rcBox.left = m_Pos.x;
-    rcBox.top = m_Pos.y;
-    rcBox.right = rcBox.left + m_Size.cx;
-    rcBox.bottom = rcBox.top + m_Size.cy;
+    // Where the item is drawn, expressed in the scale of the window asking (it may differ from the window the item
+    // came from).
+    const auto transform = UI::Scaling::GetActiveTransform();
+    rcBox.left = static_cast<LONG>(std::lround(UI::Scaling::LogicalX(transform, m_PixelLeft)));
+    rcBox.top = static_cast<LONG>(std::lround(UI::Scaling::LogicalY(transform, m_PixelTop)));
+    rcBox.right = static_cast<LONG>(std::lround(UI::Scaling::LogicalX(transform, m_PixelRight)));
+    rcBox.bottom = static_cast<LONG>(std::lround(UI::Scaling::LogicalY(transform, m_PixelBottom)));
 }
 
 int SEASON3B::CNewUIPickedItem::GetSourceLinealPos()
@@ -205,7 +247,7 @@ bool SEASON3B::CNewUIPickedItem::GetTargetPos(CNewUIInventoryCtrl* pDest, int& i
 {
     if (pDest != nullptr)
     {
-        const POINT itemTopLeft = UI::Items::Drag::ItemTopLeft(MouseX, MouseY, m_PickupOffset);
+        const POINT itemTopLeft = UI::Items::Drag::ItemTopLeft(MouseX, MouseY, OffsetInActiveScale());
 
         return pDest->GetSquarePosAtPt(itemTopLeft.x, itemTopLeft.y, iTargetColumnX, iTargetRowY);
     }
@@ -249,7 +291,8 @@ void SEASON3B::CNewUIPickedItem::Render3D()
         const auto transform = UI::Scaling::GetActiveTransform();
         const int pointerX = static_cast<int>(std::floor(UI::Scaling::LogicalX(transform, g_fWindowMouseX)));
         const int pointerY = static_cast<int>(std::floor(UI::Scaling::LogicalY(transform, g_fWindowMouseY)));
-        m_Pos = UI::Items::Drag::ItemTopLeft(pointerX, pointerY, m_PickupOffset);
+        m_Pos = UI::Items::Drag::ItemTopLeft(pointerX, pointerY, OffsetInActiveScale());
+        UpdatePixelRect();
         RenderItem3D(m_Pos.x, m_Pos.y, m_Size.cx, m_Size.cy, m_pPickedItem->Type, m_pPickedItem->Level,
                      m_pPickedItem->ExcellentFlags, m_pPickedItem->AncientDiscriminator, true);
     }
