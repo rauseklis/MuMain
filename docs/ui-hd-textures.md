@@ -116,7 +116,7 @@ The stone window backdrop (`newui_msgbox_back`) is drawn with round corners by e
 ## Bottom HUD layout
 
 The hotkey slots, the orb bar and the menu buttons are one centred group (the original 640-wide layout) at any
-window size; only the experience bar spans the whole window. Earlier builds spread the three parts to the window edges.
+window size. The experience bar under it is exactly as wide as that group and lines up with its edges. Earlier builds spread the parts (and the experience bar) to the window edges.
 
 ## Choosing the model
 

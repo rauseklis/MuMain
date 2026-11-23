@@ -134,7 +134,7 @@ float UI::Scaling::BottomHudScale(int windowWidth, int windowHeight)
 }
 
 // The three HUD regions share one centred 640-wide group, so the bar stays contiguous like the original client at
-// any window width. Only the experience bar below stretches across the whole window.
+// any window width. The experience bar uses the same group, so it is exactly as wide as the interface above it.
 UI::Scaling::Transform UI::Scaling::BottomHudLeftTransform(int windowWidth, int windowHeight)
 {
     return BottomHudCenterTransform(windowWidth, windowHeight);
@@ -154,9 +154,7 @@ UI::Scaling::Transform UI::Scaling::BottomHudRightTransform(int windowWidth, int
 
 UI::Scaling::Transform UI::Scaling::BottomHudExperienceTransform(int windowWidth, int windowHeight)
 {
-    Transform transform = BottomHudTransform(windowWidth, windowHeight, 0.0f);
-    transform.scaleX = static_cast<float>(windowWidth) / kReferenceWidth;
-    return transform;
+    return BottomHudCenterTransform(windowWidth, windowHeight);
 }
 
 UI::Scaling::Transform UI::Scaling::DockLeftTransform(int windowWidth, int windowHeight)

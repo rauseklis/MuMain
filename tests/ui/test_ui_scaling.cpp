@@ -633,13 +633,17 @@ TEST_CASE("bottom HUD regional transforms round trip window positions [ui][scali
     CHECK(UI::Scaling::LogicalY(center, UI::Scaling::PositionY(center, 450.0f)) == doctest::Approx(450.0f));
 }
 
-TEST_CASE("experience transform spans the window with HUD vertical scale [ui][scaling]")
+TEST_CASE("experience transform matches the bottom HUD group [ui][scaling]")
 {
     const auto experience = UI::Scaling::BottomHudExperienceTransform(1920, 1200);
-    CHECK(experience.scaleX == doctest::Approx(3.0f));
-    CHECK(experience.scaleY == doctest::Approx(2.0f));
-    CHECK(UI::Scaling::PositionX(experience, 0.0f) == doctest::Approx(0.0f));
-    CHECK(UI::Scaling::PositionX(experience, 640.0f) == doctest::Approx(1920.0f));
+    const auto center = UI::Scaling::BottomHudCenterTransform(1920, 1200);
+    CHECK(experience.scaleX == doctest::Approx(center.scaleX));
+    CHECK(experience.scaleY == doctest::Approx(center.scaleY));
+    CHECK(experience.offsetX == doctest::Approx(center.offsetX));
+    CHECK(experience.offsetY == doctest::Approx(center.offsetY));
+    // Same left and right edge as the 640-wide interface, so the bar is as wide as the interface.
+    CHECK(UI::Scaling::PositionX(experience, 0.0f) == doctest::Approx(UI::Scaling::PositionX(center, 0.0f)));
+    CHECK(UI::Scaling::PositionX(experience, 640.0f) == doctest::Approx(UI::Scaling::PositionX(center, 640.0f)));
     CHECK(UI::Scaling::PositionY(experience, 480.0f) == doctest::Approx(1200.0f));
 }
 
