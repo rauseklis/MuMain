@@ -377,7 +377,7 @@
     <comment>legacy_id=1911</comment>
   </data>
   <data name="Text_92" xml:space="preserve">
-    <value>I've heard that the Abyss of Eye was found around Atlance, Lost Tower and Tarkan. Come back with the Abyss of Eye as soon as you find it.</value>
+    <value>I've heard that the Abyss of Eye was found around Atlans, Lost Tower and Tarkan. Come back with the Abyss of Eye as soon as you find it.</value>
     <comment>legacy_id=92</comment>
   </data>
   <data name="Answer_92_Slot_0" xml:space="preserve">
@@ -537,7 +537,7 @@
     <comment>legacy_id=2170</comment>
   </data>
   <data name="Text_118" xml:space="preserve">
-    <value>You must offer 3,000,000 zen to the Gods to sanctify this quest. Your zen is not enough</value>
+    <value>You must offer 3,000,000 Zen to the Gods to sanctify this quest. Your Zen is not enough</value>
     <comment>legacy_id=118</comment>
   </data>
   <data name="Answer_118_Slot_0" xml:space="preserve">

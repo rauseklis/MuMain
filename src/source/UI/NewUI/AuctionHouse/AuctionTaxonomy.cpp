@@ -20,7 +20,7 @@ namespace
         { 0, L"Pets" }, { 1, L"Mounts" }, { 2, L"Rings" }, { 3, L"Pendants" }, { 4, L"Eggs" }, { 5, L"Seals & Tickets" },
     };
     constexpr SubCategoryInfo JewelSubs[] = {
-        { 0, L"Jewels" }, { 1, L"Bundles" }, { 2, L"Refining stones" }, { 3, L"Seeds & Spheres" }, { 4, L"Fruits" },
+        {0, L"Jewels"}, {1, L"Bundles"}, {2, L"Refining Stones"}, {3, L"Seeds & Spheres"}, {4, L"Fruits"},
     };
     constexpr SubCategoryInfo ConsumableSubs[] = {
         { 0, L"Potions" }, { 1, L"Elixirs & Buffs" }, { 2, L"Boxes & Misc" },

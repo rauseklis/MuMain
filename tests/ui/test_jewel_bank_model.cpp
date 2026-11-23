@@ -81,7 +81,7 @@ TEST_CASE("a jewel's three bundles sit together on one page")
     CHECK(std::wstring(KindAt(KindOnPage(1, 14)).Name) == L"Creation Bundle x30");
     CHECK(std::wstring(KindAt(KindOnPage(2, 0)).Name) == L"Guardian Bundle x10");
     CHECK(std::wstring(KindAt(KindOnPage(2, 14)).Name) == L"Higher Refining Bundle x30");
-    CHECK(std::wstring(PageName(0)) == L"Jewels & fruits");
+    CHECK(std::wstring(PageName(0)) == L"Jewels & Fruits");
     CHECK(std::wstring(PageName(2)) == L"Bundles");
 }
 
