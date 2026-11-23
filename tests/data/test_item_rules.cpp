@@ -171,14 +171,19 @@ TEST_CASE("Item level variants have their own rules [data][items][rules]")
     CHECK(SellingBan(ITEM_BOX_OF_LUCK));
 
     // The Wizard's Ring is bound to the character on the server (OpenMU), so it
-    // can't be traded, stored or sold at any level; it can still be dropped.
+    // can't be traded or stored at any level. It can always be sold to an NPC
+    // (the only way to free its inventory slot) and it can still be dropped.
     for (int level : {0, 1, 2})
     {
-        CHECK(TradeBan(ITEM_WIZARDS_RING, {level}));
-        CHECK(StoreBan(ITEM_WIZARDS_RING, {level}));
-        CHECK(PersonalShopBan(ITEM_WIZARDS_RING, {level}));
-        CHECK(SellingBan(ITEM_WIZARDS_RING, {level}));
+        for (int durability : {0, 1, 30})
+        {
+            CHECK(TradeBan(ITEM_WIZARDS_RING, {level, false, false, durability}));
+            CHECK(StoreBan(ITEM_WIZARDS_RING, {level, false, false, durability}));
+            CHECK(PersonalShopBan(ITEM_WIZARDS_RING, {level, false, false, durability}));
+            CHECK_FALSE(SellingBan(ITEM_WIZARDS_RING, {level, false, false, durability}));
+        }
     }
+    CHECK_FALSE(SellingBan(ITEM_WIZARDS_RING, {0, true, false, 30}));
     CHECK_FALSE(DropBan(ITEM_WIZARDS_RING));
 
     // Remedy of Love +1 to +5 cannot be sold.
@@ -234,7 +239,8 @@ TEST_CASE("Valuable items ask for confirmation [data][items][rules]")
     CHECK(Valuable(ITEM_WING));
     CHECK_FALSE(Valuable(KrisType));
     CHECK(Valuable(KrisType, {7}));
-    CHECK(Valuable(ITEM_WIZARDS_RING));
+    CHECK(Valuable(ITEM_WIZARDS_RING, {0, false, false, 30}));
+    CHECK_FALSE(Valuable(ITEM_WIZARDS_RING, {0, false, false, 0}));
     CHECK_FALSE(Valuable(ITEM_WIZARDS_RING, {1}));
 
     // Rented items are not valuable while rented; rented pets only once

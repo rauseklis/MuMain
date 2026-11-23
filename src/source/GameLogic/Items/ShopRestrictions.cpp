@@ -51,11 +51,15 @@ namespace GameLogic::Items
             return false;
         }
 
-        // Rena +1 (Stone), Wizard's Ring +1 and +2, Remedy of Love +1 to +5,
-        // and a Wizard's Ring +0 while it is rented.
+        // Every Wizard's Ring can be sold to an NPC: it can't be traded or stored, so selling is the
+        // only way to free the inventory slot (a reset needs an empty inventory).
+        if (pItem->Type == ITEM_WIZARDS_RING)
+        {
+            return false;
+        }
+
+        // Rena +1 (Stone) and Remedy of Love +1 to +5.
         if ((pItem->Type == ITEM_RENA && Level == 1) ||
-            (pItem->Type == ITEM_WIZARDS_RING && (Level == 1 || Level == 2)) ||
-            (pItem->Type == ITEM_WIZARDS_RING && Level == 0 && pItem->bPeriodItem && !pItem->bExpiredPeriod) ||
             (pItem->Type == ITEM_REMEDY_OF_LOVE && Level >= 1 && Level <= 5))
         {
             return true;
