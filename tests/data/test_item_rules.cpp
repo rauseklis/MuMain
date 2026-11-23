@@ -171,23 +171,20 @@ TEST_CASE("Item level variants have their own rules [data][items][rules]")
     CHECK(SellingBan(ITEM_BOX_OF_LUCK));
 
     // The Wizard's Ring is bound to the character on the server (OpenMU), so it
-    // can't be traded, stored or sold at any level; it can still be dropped.
+    // can't be traded or stored at any level. It can always be sold to an NPC
+    // (the only way to free its inventory slot) and it can still be dropped.
     for (int level : {0, 1, 2})
     {
-        CHECK(TradeBan(ITEM_WIZARDS_RING, {level, false, false, 30}));
-        CHECK(StoreBan(ITEM_WIZARDS_RING, {level, false, false, 30}));
-        CHECK(PersonalShopBan(ITEM_WIZARDS_RING, {level, false, false, 30}));
-        CHECK(SellingBan(ITEM_WIZARDS_RING, {level, false, false, 30}));
+        for (int durability : {0, 1, 30})
+        {
+            CHECK(TradeBan(ITEM_WIZARDS_RING, {level, false, false, durability}));
+            CHECK(StoreBan(ITEM_WIZARDS_RING, {level, false, false, durability}));
+            CHECK(PersonalShopBan(ITEM_WIZARDS_RING, {level, false, false, durability}));
+            CHECK_FALSE(SellingBan(ITEM_WIZARDS_RING, {level, false, false, durability}));
+        }
     }
+    CHECK_FALSE(SellingBan(ITEM_WIZARDS_RING, {0, true, false, 30}));
     CHECK_FALSE(DropBan(ITEM_WIZARDS_RING));
-
-    // A Wizard's Ring +0 with no durability left can be sold and dropped, so it
-    // does not block an inventory slot. It still cannot be traded or stored.
-    CHECK_FALSE(SellingBan(ITEM_WIZARDS_RING, {0, false, false, 0}));
-    CHECK(SellingBan(ITEM_WIZARDS_RING, {0, false, false, 1}));
-    CHECK(SellingBan(ITEM_WIZARDS_RING, {1, false, false, 0}));
-    CHECK(TradeBan(ITEM_WIZARDS_RING, {0, false, false, 0}));
-    CHECK(StoreBan(ITEM_WIZARDS_RING, {0, false, false, 0}));
 
     // Remedy of Love +1 to +5 cannot be sold.
     CHECK(SellingBan(ITEM_REMEDY_OF_LOVE, {3}));
