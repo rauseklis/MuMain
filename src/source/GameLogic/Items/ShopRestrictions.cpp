@@ -51,6 +51,13 @@ namespace GameLogic::Items
             return false;
         }
 
+        // A Wizard's Ring +0 whose durability ran out can only be sold, otherwise it
+        // would stay in the inventory for good (the server accepts it, see SellItemToNpcAction).
+        if (pItem->Type == ITEM_WIZARDS_RING && Level == 0 && pItem->Durability == 0)
+        {
+            return false;
+        }
+
         // Rena +1 (Stone), Wizard's Ring +1 and +2, Remedy of Love +1 to +5,
         // and a Wizard's Ring +0 while it is rented.
         if ((pItem->Type == ITEM_RENA && Level == 1) ||
