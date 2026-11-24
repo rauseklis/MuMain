@@ -1515,10 +1515,10 @@ int InsideTest(float x, float y, float z, int n, float* v1, float* v2, float* v3
 
     int i;
     vec3_t* vtx[4];
-    vtx[0] = (vec3_t*)v1;
-    vtx[1] = (vec3_t*)v2;
-    vtx[2] = (vec3_t*)v3;
-    vtx[3] = (vec3_t*)v4;
+    vtx[0] = reinterpret_cast<vec3_t*>(v1);
+    vtx[1] = reinterpret_cast<vec3_t*>(v2);
+    vtx[2] = reinterpret_cast<vec3_t*>(v3);
+    vtx[3] = reinterpret_cast<vec3_t*>(v4);
 
     int j = n - 1;
     switch (flag)
