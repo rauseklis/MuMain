@@ -6293,7 +6293,15 @@ void ReceiveGetItem(std::span<const BYTE> ReceiveBuffer)
             GetItemName(pickedItem->Type, level, szItem);
 
             wchar_t szMessage[128];
-            mu_swprintf(szMessage, L"%ls %ls", szItem, I18N::Game::Obtained);
+            if (pickedItem->Type == ITEM_ZEN)
+            {
+                // Zen picked up as an item carries the amount in its level; word it like the Zen counter message.
+                mu_swprintf(szMessage, L"%d %ls %ls", level, I18N::Game::Zen, I18N::Game::Obtained);
+            }
+            else
+            {
+                mu_swprintf(szMessage, L"%ls %ls", szItem, I18N::Game::Obtained);
+            }
             g_pSystemLogBox->AddText(szMessage, SEASON3B::TYPE_SYSTEM_MESSAGE);
 
             int Type = pickedItem->Type;
