@@ -10,6 +10,7 @@
 #include "UI/NewUI/NewUISystem.h"
 #include "UI/NewUI/Dialogs/NewUICustomMessageBox.h"
 #include "Engine/Object/ZzzInventory.h"
+#include "Engine/Object/ZzzInterface.h"
 #include "GameLogic/Items/TradeRestrictions.h"
 
 #ifdef KJH_PBG_ADD_INGAMESHOP_SYSTEM
