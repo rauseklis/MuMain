@@ -195,9 +195,10 @@ The encoder is `src/source/Render/Textures/BlockCompression.h` (a small endpoint
 
 ## The top-left bar
 
-The bar in the top-left corner (map name, coordinates, MU Helper settings, MU Helper start/stop, Experience Hunter) is one
-compact 104 x 34 panel: the map name above, the coordinates and the three buttons below. A long map name is shortened
-with "...". It is drawn at the same width-to-height ratio as the art (it does not stretch with the window) and its
-edges are snapped to whole screen pixels. Its art is a single atlas, `Interface/TopLeftBar/TopLeftBar.OZT` with the
-`Interface@2x` and `Interface@4x` versions, made by `python tools/top_left_bar/make_top_left_bar.py`. Frame, readout and
-button positions are in `src/source/UI/NewUI/HUD/TopLeftBarLayout.h`; the script holds the same numbers.
+The bar in the top-left corner shows the map name, the coordinates and three buttons (MU Helper settings, MU Helper
+start/stop, Experience Hunter). It is the original bar (left end, stretched middle, right end with the button slots) at
+about three quarters of the original width. It is drawn at the same width-to-height ratio as the art (it does not stretch
+with the window) and its edges are snapped to whole screen pixels. A long map name is shortened with "...". The art is a
+single atlas, `Interface/TopLeftBar/TopLeftBar.OZT` with `Interface@2x` and `Interface@4x` versions, made from the original
+pictures by `python tools/top_left_bar/make_top_left_bar.py`. Positions are in `src/source/UI/NewUI/HUD/TopLeftBarLayout.h`;
+the script holds the same numbers.

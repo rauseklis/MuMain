@@ -4,27 +4,40 @@
 
 namespace Bar = UI::HUD::TopLeftBar;
 
-TEST_CASE("top-left bar: the buttons sit inside the frame without touching each other or the readout")
+TEST_CASE("top-left bar: the buttons sit inside the right piece and do not touch the text box")
 {
-    const Bar::Rect frame{0, 0, Bar::kFrameWidth, Bar::kFrameHeight};
     const Bar::Button buttons[] = {Bar::Button::Settings, Bar::Button::MuHelper, Bar::Button::ExperienceHunter};
 
-    int previousRight = Bar::kCoordinateRow.x + Bar::kCoordinateRow.width;
+    int previousRight = Bar::kTextBox.x + Bar::kTextBox.width;
     for (const Bar::Button button : buttons)
     {
         const Bar::Rect rect = Bar::ButtonRect(button);
-        CHECK(rect.x > previousRight);
-        CHECK(rect.x + rect.width < frame.width);
+        CHECK(rect.x >= previousRight);
+        CHECK(rect.x >= Bar::kRightPiece.x);
+        CHECK(rect.x + rect.width <= Bar::kRightPiece.x + Bar::kRightPiece.width);
         CHECK(rect.y >= 0);
-        CHECK(rect.y + rect.height < frame.height);
+        CHECK(rect.y + rect.height <= Bar::kRightPiece.height);
         previousRight = rect.x + rect.width;
     }
 }
 
-TEST_CASE("top-left bar: the bar is at most about half as wide as the old 217 pixel bar")
+TEST_CASE("top-left bar: the bar is clearly narrower than the old 217 pixel bar and the pieces add up")
 {
     constexpr int oldWidth = 217;
-    CHECK(Bar::kFrameWidth * 2 <= oldWidth + 2 * Bar::kMargin + 4);
+    CHECK(Bar::kFrameWidth * 5 <= oldWidth * 4);
+    CHECK(Bar::kMiddlePiece.x == Bar::kLeftPiece.x + Bar::kLeftPiece.width);
+    CHECK(Bar::kRightPiece.x == Bar::kMiddlePiece.x + Bar::kMiddlePiece.width);
+}
+
+TEST_CASE("top-left bar: the drawn bar and the clickable bar are the same shape")
+{
+    CHECK(Bar::BarContains(0, 0));
+    CHECK(Bar::BarContains(Bar::kFrameWidth - 1, Bar::kRightHeight - 1));
+    CHECK_FALSE(Bar::BarContains(Bar::kFrameWidth, 0));
+    CHECK_FALSE(Bar::BarContains(0, Bar::kFrameHeight));
+    // the right end is shorter than the left end and the middle
+    CHECK(Bar::BarContains(Bar::kLeftWidth, Bar::kFrameHeight - 1));
+    CHECK_FALSE(Bar::BarContains(Bar::kFrameWidth - 1, Bar::kRightHeight));
 }
 
 TEST_CASE("top-left bar: a click is inside a button exactly where the button is drawn")
@@ -49,10 +62,11 @@ TEST_CASE("top-left bar: every face of the atlas lies inside it and the faces do
         {
             const Bar::Rect rect = Bar::FaceRect(face, state);
             CHECK(rect.x >= 0);
-            CHECK(rect.y >= Bar::kFrameHeight);
+            CHECK(rect.y >= Bar::kRightSource.y + Bar::kRightSource.height);
             CHECK(rect.x + rect.width <= Bar::kAtlasSize);
             CHECK(rect.y + rect.height <= Bar::kAtlasSize);
-            CHECK(Bar::kFaceCell - rect.width >= 2); // an empty gutter against the neighbouring face
+            CHECK(Bar::kFaceStrideX - rect.width >= 2); // a gutter against the neighbouring face
+            CHECK(Bar::kFaceStrideY - rect.height >= 2);
         }
     }
 }
