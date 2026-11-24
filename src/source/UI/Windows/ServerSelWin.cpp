@@ -146,7 +146,7 @@ void CServerSelWin::SetPosition(int nXCoord, int nYCoord)
     m_aBtnDeco[0].SetPosition(m_aServerGroupBtn[1].GetXPos(), m_aServerGroupBtn[1].GetYPos());
     m_aBtnDeco[1].SetPosition(m_aServerGroupBtn[SSW_LEFT_SERVER_G_MAX + 1].GetXPos() + SERVER_GROUP_BTN_WIDTH, m_aServerGroupBtn[SSW_LEFT_SERVER_G_MAX + 1].GetYPos());
 
-    int a = m_aServerGroupBtn[1].GetXPos();
+    SetServerBtnPosition();
 }
 
 void CServerSelWin::SetServerBtnPosition()
@@ -156,7 +156,18 @@ void CServerSelWin::SetServerBtnPosition()
 
     int nServerBtnPosX = m_aServerGroupBtn[1].GetXPos() + m_aServerGroupBtn[0].GetWidth() + SSW_GAP_WIDTH;
 
-    int nServerBtnHeight = m_aServerBtn[0].GetHeight();
+    // The buttons are sprites measured in screen pixels, while the plates are drawn in 640x480 layout units. Size the
+    // buttons to the plates they sit under, so the hit area and the row pitch match the drawing at every UI scale.
+    const float scaleX = g_fScreenRate_x > 0.0f ? g_fScreenRate_x : 1.0f;
+    const float scaleY = g_fScreenRate_y > 0.0f ? g_fScreenRate_y : 1.0f;
+    const int nPlateWidth = static_cast<int>(SERVER_BTN_WIDTH * scaleX + 0.5f);
+    const int nPlateHeight = static_cast<int>(SERVER_PLATE_HEIGHT * scaleY + 0.5f);
+    for (int i = 0; i < SSW_SERVER_MAX; ++i)
+    {
+        m_aServerBtn[i].SetSize(nPlateWidth, nPlateHeight);
+    }
+
+    int nServerBtnHeight = static_cast<int>(SERVER_PLATE_PITCH * scaleY + 0.5f);
 
     int nLServerGBtnHeightSum = m_aServerGroupBtn[1].GetHeight() * 10;
 
