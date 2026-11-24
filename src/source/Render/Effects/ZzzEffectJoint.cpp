@@ -23,6 +23,7 @@
 #include "Render/Renderer/RenderUtils.h"
 #include "Render/Effects/TailScaling.h"
 #include "Render/Effects/JointOrbit.h"
+#include "Render/Effects/SkillEffectTiming.h"
 #include "Scenes/MainScene.h"
 #include "GameLogic/Items/ItemCategories.h"
 
@@ -3851,6 +3852,11 @@ void MoveJoint(JOINT* o, int iIndex)
             }
             else
             {
+                if (o->SubType == 26)
+                {
+                    const float targetAngle = CreateAngle2D(o->Position, o->TargetPosition);
+                    o->Angle[2] += Render::Effects::SkillTiming::HeadOnTurnNudge(o->Angle[2], targetAngle);
+                }
                 MoveHumming(o->Position, o->Angle, o->TargetPosition, 10.f);
             }
             if (!o->Collision && Distance <= o->Velocity * 2.f * FPS_ANIMATION_FACTOR)
