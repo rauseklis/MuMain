@@ -9,7 +9,7 @@
     <comment>legacy_id=0,18</comment>
   </data>
   <data name="WarningContinuedAttemptsAtHackingWill" xml:space="preserve">
-    <value>Warning!!! Continued attempts at hacking will result in a permanent account(%s) ban!!</value>
+    <value>Warning! Continued attempts at hacking will result in a permanent account(%s) ban!</value>
     <comment>legacy_id=1</comment>
   </data>
   <data name="FindHack file is damaged. Please reinstall MU client." xml:space="preserve">
@@ -45,7 +45,7 @@
     <comment>legacy_id=9</comment>
   </data>
   <data name="[error6] No.%d error!!! Findhack.zip needs to be installed in MU folder." xml:space="preserve">
-    <value>[error6] No.%d error!!! Findhack.zip needs to be installed in MU folder.</value>
+    <value>[error6] No.%d error! Findhack.zip needs to be installed in MU folder.</value>
     <comment>legacy_id=10</comment>
   </data>
   <data name="Data error" xml:space="preserve">
@@ -113,7 +113,7 @@
     <comment>legacy_id=27</comment>
   </data>
   <data name="Reserve : Job" xml:space="preserve">
-    <value>Reserve : Job</value>
+    <value>Reserve: Job</value>
     <comment>legacy_id=28,29</comment>
   </data>
   <data name="Lorencia" xml:space="preserve">
@@ -516,31 +516,31 @@
     <comment>legacy_id=125</comment>
   </data>
   <data name="C : Character Info" xml:space="preserve">
-    <value>C : Character Info</value>
+    <value>C: Character Info</value>
     <comment>legacy_id=126</comment>
   </data>
   <data name="I,V : Inventory" xml:space="preserve">
-    <value>I,V : Inventory</value>
+    <value>I, V: Inventory</value>
     <comment>legacy_id=127</comment>
   </data>
   <data name="P : Party Window" xml:space="preserve">
-    <value>P : Party Window</value>
+    <value>P: Party Window</value>
     <comment>legacy_id=128</comment>
   </data>
   <data name="G : Guild Window" xml:space="preserve">
-    <value>G : Guild Window</value>
+    <value>G: Guild Window</value>
     <comment>legacy_id=129</comment>
   </data>
   <data name="Q : Use Healing Potion" xml:space="preserve">
-    <value>Q : Use Healing Potion</value>
+    <value>Q: Use Healing Potion</value>
     <comment>legacy_id=130</comment>
   </data>
   <data name="W : Use Mana Potion" xml:space="preserve">
-    <value>W : Use Mana Potion</value>
+    <value>W: Use Mana Potion</value>
     <comment>legacy_id=131</comment>
   </data>
   <data name="E : Use Antidote" xml:space="preserve">
-    <value>E : Use Antidote</value>
+    <value>E: Use Antidote</value>
     <comment>legacy_id=132</comment>
   </data>
   <data name="Shift: Character lockup key" xml:space="preserve">
@@ -816,11 +816,11 @@
     <comment>legacy_id=200,1774,2654</comment>
   </data>
   <data name="Exp : %u/%u" xml:space="preserve">
-    <value>Exp : %u/%u</value>
+    <value>Exp: %u/%u</value>
     <comment>legacy_id=201</comment>
   </data>
   <data name="Strength : %d" xml:space="preserve">
-    <value>Strength : %d</value>
+    <value>Strength: %d</value>
     <comment>legacy_id=202</comment>
   </data>
   <data name="Dmg(rate): %d~%d (%d)" xml:space="preserve">
@@ -904,7 +904,7 @@
     <comment>legacy_id=223,3425,3453</comment>
   </data>
   <data name="Close (I,V)" xml:space="preserve">
-    <value>Close (I,V)</value>
+    <value>Close (I, V)</value>
     <comment>legacy_id=225</comment>
   </data>
   <data name="Trade" xml:space="preserve">
@@ -1052,11 +1052,11 @@
     <comment>legacy_id=261</comment>
   </data>
   <data name="You can enter Altans only after joining a party." xml:space="preserve">
-    <value>You can enter Altans only after joining a party.</value>
+    <value>You can enter Atlans only after joining a party.</value>
     <comment>legacy_id=262</comment>
   </data>
   <data name="You can enter Icarus only with wings, dinorant, fenrirr" xml:space="preserve">
-    <value>You can enter Icarus only with wings, dinorant, fenrirr</value>
+    <value>You can enter Icarus only with wings, a Dinorant or a Fenrir</value>
     <comment>legacy_id=263</comment>
   </data>
   <data name="/whisper off" xml:space="preserve">
@@ -1320,7 +1320,7 @@
     <comment>legacy_id=362</comment>
   </data>
   <data name="Inventory (I,V)" xml:space="preserve">
-    <value>Inventory (I,V)</value>
+    <value>Inventory (I, V)</value>
     <comment>legacy_id=363</comment>
   </data>
   <data name="Guild (G)" xml:space="preserve">
@@ -1596,7 +1596,7 @@
     <comment>legacy_id=423</comment>
   </data>
   <data name="You can not trade over 50 million Zen at once" xml:space="preserve">
-    <value>You can not trade over 50 million Zen at once</value>
+    <value>You cannot trade over 50 million Zen at once</value>
     <comment>legacy_id=424</comment>
   </data>
   <data name="Someone requests you to join their a party" xml:space="preserve">
@@ -1716,7 +1716,7 @@
     <comment>Login screen: warning under the remember-password checkbox.</comment>
   </data>
   <data name="LoginSavePasswordWarningTitle" xml:space="preserve">
-    <value>WARNING!!!</value>
+    <value>WARNING!</value>
     <comment>Remember-password confirmation dialog: header.</comment>
   </data>
   <data name="LoginSavePasswordWarningBody" xml:space="preserve">
@@ -1768,7 +1768,7 @@
     <comment>legacy_id=462</comment>
   </data>
   <data name="you can not move your account back to the previous server." xml:space="preserve">
-    <value>you can not move your account back to the previous server.</value>
+    <value>you cannot move your account back to the previous server.</value>
     <comment>legacy_id=463</comment>
   </data>
   <data name="2)After moving your account into the divided server," xml:space="preserve">
@@ -1784,7 +1784,7 @@
     <comment>legacy_id=466</comment>
   </data>
   <data name="when you login the divided server." xml:space="preserve">
-    <value>when you login the divided server.</value>
+    <value>when you log in to the divided server.</value>
     <comment>legacy_id=467</comment>
   </data>
   <data name="3)After moving your account into the divided server" xml:space="preserve">
@@ -1832,7 +1832,7 @@
     <comment>legacy_id=479</comment>
   </data>
   <data name="Tied!!!" xml:space="preserve">
-    <value>Tied!!!</value>
+    <value>Tied!</value>
     <comment>legacy_id=480</comment>
   </data>
   <data name="You are connected to the server" xml:space="preserve">
@@ -1948,7 +1948,7 @@
     <comment>legacy_id=509</comment>
   </data>
   <data name="Chracters over level 6 can join a guild." xml:space="preserve">
-    <value>Chracters over level 6 can join a guild.</value>
+    <value>Characters over level 6 can join a guild.</value>
     <comment>legacy_id=510</comment>
   </data>
   <data name="You have left the guild." xml:space="preserve">
@@ -1992,7 +1992,7 @@
     <comment>legacy_id=521</comment>
   </data>
   <data name="You can not declare a Guild War now." xml:space="preserve">
-    <value>You can not declare a Guild War now.</value>
+    <value>You cannot declare a Guild War now.</value>
     <comment>legacy_id=523</comment>
   </data>
   <data name="Only guild masters can declare a Guild War." xml:space="preserve">
@@ -2008,27 +2008,27 @@
     <comment>legacy_id=526</comment>
   </data>
   <data name="You have lost the Guild War!!!" xml:space="preserve">
-    <value>You have lost the Guild War!!!</value>
+    <value>You have lost the Guild War!</value>
     <comment>legacy_id=527</comment>
   </data>
   <data name="You have won the Guild War!!!" xml:space="preserve">
-    <value>You have won the Guild War!!!</value>
+    <value>You have won the Guild War!</value>
     <comment>legacy_id=528</comment>
   </data>
   <data name="You have won the Guild War!!!(Opposing guild master left)" xml:space="preserve">
-    <value>You have won the Guild War!!!(Opposing guild master left)</value>
+    <value>You have won the Guild War!(Opposing guild master left)</value>
     <comment>legacy_id=529</comment>
   </data>
   <data name="You have lost the Guild War!!!(Guild master left)" xml:space="preserve">
-    <value>You have lost the Guild War!!!(Guild master left)</value>
+    <value>You have lost the Guild War!(Guild master left)</value>
     <comment>legacy_id=530</comment>
   </data>
   <data name="You have won the Guild War!!!(Opposing guild disbanded)" xml:space="preserve">
-    <value>You have won the Guild War!!!(Opposing guild disbanded)</value>
+    <value>You have won the Guild War!(Opposing guild disbanded)</value>
     <comment>legacy_id=531</comment>
   </data>
   <data name="You have lost the Guild War!!!(Guild disbanded)" xml:space="preserve">
-    <value>You have lost the Guild War!!!(Guild disbanded)</value>
+    <value>You have lost the Guild War!(Guild disbanded)</value>
     <comment>legacy_id=532</comment>
   </data>
   <data name="A Battle Soccer has started with %s guild." xml:space="preserve">
@@ -2464,7 +2464,7 @@
     <comment>legacy_id=642</comment>
   </data>
   <data name="You can enter Devil Square now!!" xml:space="preserve">
-    <value>You can enter Devil Square now!!</value>
+    <value>You can enter Devil Square now!</value>
     <comment>legacy_id=643</comment>
   </data>
   <data name="Devil Square will open in %d minutes." xml:space="preserve">
@@ -2736,7 +2736,7 @@
     <comment>legacy_id=711</comment>
   </data>
   <data name="AfterTheRessurectionOfKundunSome" xml:space="preserve">
-    <value>After the ressurection of Kundun, some monsters have taken possession of what is called the Box of Heaven. If you find Rena in the box, bring it to the Golden Archer in front of Lorencia. It is said that he tells a story to those who bring 10 Renas.</value>
+    <value>After the resurrection of Kundun, some monsters have taken possession of what is called the Box of Heaven. If you find Rena in the box, bring it to the Golden Archer in front of Lorencia. It is said that he tells a story to those who bring 10 Renas.</value>
     <comment>legacy_id=712</comment>
   </data>
   <data name="YouVeBrought10RenaAs" xml:space="preserve">
@@ -2796,7 +2796,7 @@
     <comment>legacy_id=726</comment>
   </data>
   <data name="RenaIsATypeOfCoin" xml:space="preserve">
-    <value>'Rena' is a type of coin that used to be used in the world of Heaven eons ago. It can't be used in this world, but if you go to the 'Golden Archer' in Lorencia, he'll exhange it to Zen.</value>
+    <value>'Rena' is a type of coin that used to be used in the world of Heaven eons ago. It can't be used in this world, but if you go to the 'Golden Archer' in Lorencia, he'll exchange it to Zen.</value>
     <comment>legacy_id=727</comment>
   </data>
   <data name="Loren (New)" xml:space="preserve">
@@ -2856,7 +2856,7 @@
     <comment>legacy_id=741</comment>
   </data>
   <data name="Ignor opponent's defensive power by %d%%" xml:space="preserve">
-    <value>Ignor opponent's defensive power by %d%%</value>
+    <value>Ignore opponent's defensive power by %d%%</value>
     <comment>legacy_id=742</comment>
   </data>
   <data name="Max AG +%d increased" xml:space="preserve">
@@ -2920,7 +2920,7 @@
     <comment>legacy_id=757,758,759</comment>
   </data>
   <data name="ServerMigrationErrorPleaseContactA" xml:space="preserve">
-    <value>Server Migration Error : Please contact a customer service representative.</value>
+    <value>Server Migration Error: Please contact a customer service representative.</value>
     <comment>legacy_id=760</comment>
   </data>
   <data name="Error21TryRunningTheGameAgain" xml:space="preserve">
@@ -2936,7 +2936,7 @@
     <comment>legacy_id=763</comment>
   </data>
   <data name="[error24] An error has occured. Please reinstall the game." xml:space="preserve">
-    <value>[error24] An error has occured. Please reinstall the game.</value>
+    <value>[error24] An error has occurred. Please reinstall the game.</value>
     <comment>legacy_id=764</comment>
   </data>
   <data name="[error25] A hacking tool (%s) has been detected. The game will shut down." xml:space="preserve">
@@ -2964,7 +2964,7 @@
     <comment>legacy_id=770</comment>
   </data>
   <data name="[error31] An error has occured. Please restart the game." xml:space="preserve">
-    <value>[error31] An error has occured. Please restart the game.</value>
+    <value>[error31] An error has occurred. Please restart the game.</value>
     <comment>legacy_id=771</comment>
   </data>
   <data name="[error32] A game file has been corrupted." xml:space="preserve">
@@ -2972,7 +2972,7 @@
     <comment>legacy_id=772</comment>
   </data>
   <data name="Reserve : MFGS" xml:space="preserve">
-    <value>Reserve : MFGS</value>
+    <value>Reserve: MFGS</value>
     <comment>legacy_id=773,774,775,776,777,778,779</comment>
   </data>
   <data name="/Scissor" xml:space="preserve">
@@ -2992,55 +2992,55 @@
     <comment>legacy_id=783</comment>
   </data>
   <data name="Reserver : Emoticon" xml:space="preserve">
-    <value>Reserver : Emoticon</value>
+    <value>Reserve: Emoticon</value>
     <comment>legacy_id=784,785,786,787,788,789</comment>
   </data>
   <data name="[error1001] : Try restarting the game." xml:space="preserve">
-    <value>[error1001] : Try restarting the game.</value>
+    <value>[error1001]: Try restarting the game.</value>
     <comment>legacy_id=790</comment>
   </data>
   <data name="[error1002] : Can't connect to nProtect. Please restart the game." xml:space="preserve">
-    <value>[error1002] : Can't connect to nProtect. Please restart the game.</value>
+    <value>[error1002]: Can't connect to nProtect. Please restart the game.</value>
     <comment>legacy_id=791</comment>
   </data>
   <data name="Error1003DIfTheSameError" xml:space="preserve">
-    <value>[error1003-%d] : If the same error continues to occur, contact our customer support from our website at http://muonline.webzen.com with the error number and erl files in the GameGuard folder attached.</value>
+    <value>[error1003-%d]: If the same error continues to occur, contact our customer support from our website at http://muonline.webzen.com with the error number and erl files in the GameGuard folder attached.</value>
     <comment>legacy_id=792</comment>
   </data>
   <data name="[error1004] : A speed hack has been detected. The game will shut down." xml:space="preserve">
-    <value>[error1004] : A speed hack has been detected. The game will shut down.</value>
+    <value>[error1004]: A speed hack has been detected. The game will shut down.</value>
     <comment>legacy_id=793</comment>
   </data>
   <data name="[error1005] : Game hack (%d) detected. The game will shut down." xml:space="preserve">
-    <value>[error1005] : Game hack (%d) detected. The game will shut down.</value>
+    <value>[error1005]: Game hack (%d) detected. The game will shut down.</value>
     <comment>legacy_id=794</comment>
   </data>
   <data name="Error1006EitherYouHaveRunThe" xml:space="preserve">
-    <value>[error1006] : Either you have run the game multiple times or the GameGuard is already running. Please close the game and try restarting it.</value>
+    <value>[error1006]: Either you have run the game multiple times or the GameGuard is already running. Please close the game and try restarting it.</value>
     <comment>legacy_id=795</comment>
   </data>
   <data name="Error1007AnIllegalProgramHasBeen" xml:space="preserve">
-    <value>[error1007] : An illegal program has been detected. Please shut down unnecessary programs and restart the game.</value>
+    <value>[error1007]: An illegal program has been detected. Please shut down unnecessary programs and restart the game.</value>
     <comment>legacy_id=796</comment>
   </data>
   <data name="Error1008WindowSSystemFilesHave" xml:space="preserve">
-    <value>[error1008] : Window's system files have been partially corrupted. Try re installing the Internet Explorer(IE).</value>
+    <value>[error1008]: Windows system files have been partially corrupted. Try reinstalling the Internet Explorer(IE).</value>
     <comment>legacy_id=797</comment>
   </data>
   <data name="Error1009GameGuardHasFailedToRun" xml:space="preserve">
-    <value>[error1009] : GameGuard has failed to run. Try reinstalling the GameGuard setup file.</value>
+    <value>[error1009]: GameGuard has failed to run. Try reinstalling the GameGuard setup file.</value>
     <comment>legacy_id=798</comment>
   </data>
   <data name="[error1010] : The game or GameGuard has been altered." xml:space="preserve">
-    <value>[error1010] : The game or GameGuard has been altered.</value>
+    <value>[error1010]: The game or GameGuard has been altered.</value>
     <comment>legacy_id=799</comment>
   </data>
   <data name="Error1011DIfTheSameError" xml:space="preserve">
-    <value>[error1011-%d] : If the same error continues to occur, send an email to gameguard@inca.co.kr with the error number and erl files in the GameGuard folder attached.</value>
+    <value>[error1011-%d]: If the same error continues to occur, send an email to gameguard@inca.co.kr with the error number and erl files in the GameGuard folder attached.</value>
     <comment>legacy_id=800</comment>
   </data>
   <data name="Reserve : GameGuard" xml:space="preserve">
-    <value>Reserve : GameGuard</value>
+    <value>Reserve: GameGuard</value>
     <comment>legacy_id=801,802,803,804,805,806,807,808</comment>
   </data>
   <data name="Absolute Weapon of Archangel" xml:space="preserve">
@@ -3652,7 +3652,7 @@
     <comment>legacy_id=969</comment>
   </data>
   <data name="Ignore enemies defensive skill %d%%" xml:space="preserve">
-    <value>Ignore enemies defensive skill %d%%</value>
+    <value>Ignore enemies' defensive skill %d%%</value>
     <comment>legacy_id=970</comment>
   </data>
   <data name="%s Increase damage strength/%d" xml:space="preserve">
@@ -3932,7 +3932,7 @@
     <comment>legacy_id=1045</comment>
   </data>
   <data name="Letter has been sent (cost: %d zen)" xml:space="preserve">
-    <value>Letter has been sent (cost: %d zen)</value>
+    <value>Letter has been sent (cost: %d Zen)</value>
     <comment>legacy_id=1046</comment>
   </data>
   <data name="ID does not exist." xml:space="preserve">
@@ -4032,7 +4032,7 @@
     <comment>legacy_id=1070</comment>
   </data>
   <data name="Write letter (Cost: %d zen)" xml:space="preserve">
-    <value>Write letter (Cost: %d zen)</value>
+    <value>Write letter (Cost: %d Zen)</value>
     <comment>legacy_id=1071</comment>
   </data>
   <data name="%d letters are saved in your mailbox (Max: %d)" xml:space="preserve">
@@ -4272,7 +4272,7 @@
     <comment>legacy_id=1131</comment>
   </data>
   <data name="Selling price : %s zen" xml:space="preserve">
-    <value>Selling price : %s zen</value>
+    <value>Selling price: %s Zen</value>
     <comment>legacy_id=1132</comment>
   </data>
   <data name="Do you want to sell item at this price?" xml:space="preserve">
@@ -4284,7 +4284,7 @@
     <comment>legacy_id=1134</comment>
   </data>
   <data name="can only be done using zen." xml:space="preserve">
-    <value>can only be done using zen.</value>
+    <value>can only be done using Zen.</value>
     <comment>legacy_id=1135</comment>
   </data>
   <data name="/View store on" xml:space="preserve">
@@ -4320,7 +4320,7 @@
     <comment>legacy_id=1144</comment>
   </data>
   <data name="Feel the new Spirit of Guardian!!" xml:space="preserve">
-    <value>Feel the new Spirit of Guardian!!</value>
+    <value>Feel the new Spirit of Guardian!</value>
     <comment>legacy_id=1148</comment>
   </data>
   <data name="Can't be in Chaos Castle" xml:space="preserve">
@@ -4384,11 +4384,11 @@
     <comment>legacy_id=1166</comment>
   </data>
   <data name="Be a first Lord of the castle!!" xml:space="preserve">
-    <value>Be a first Lord of the castle!!</value>
+    <value>Be the first Lord of the castle!</value>
     <comment>legacy_id=1167</comment>
   </data>
   <data name="Join the castle party and get lots of prizes!!" xml:space="preserve">
-    <value>Join the castle party and get lots of prizes!!</value>
+    <value>Join the castle party and get lots of prizes!</value>
     <comment>legacy_id=1168</comment>
   </data>
   <data name="No pet" xml:space="preserve">
@@ -4636,11 +4636,11 @@
     <comment>legacy_id=1230</comment>
   </data>
   <data name="%s zen is lacking to recover life." xml:space="preserve">
-    <value>%s zen is lacking to recover life.</value>
+    <value>%s Zen is lacking to recover life.</value>
     <comment>legacy_id=1231</comment>
   </data>
   <data name="%s zen is required to recover life." xml:space="preserve">
-    <value>%s zen is required to recover life.</value>
+    <value>%s Zen is required to recover life.</value>
     <comment>legacy_id=1232</comment>
   </data>
   <data name="No %s." xml:space="preserve">
@@ -4792,7 +4792,7 @@
     <comment>legacy_id=1273</comment>
   </data>
   <data name="OriginatesFromSilverHunterANickname" xml:space="preserve">
-    <value>Originates from  'Silver Hunter', a nickname for Oswald, the greatest marksman on the entire continent. Always using silver arrowheads against his enemies, Oswald was a harbinger of death in the eyes of demons.</value>
+    <value>Originates from 'Silver Hunter', a nickname for Oswald, the greatest marksman on the entire continent. Always using silver arrowheads against his enemies, Oswald was a harbinger of death in the eyes of demons.</value>
     <comment>legacy_id=1274</comment>
   </data>
   <data name="OriginatesFromStormKnightANickname" xml:space="preserve">
@@ -5020,11 +5020,11 @@
     <comment>legacy_id=1337</comment>
   </data>
   <data name="Deposit zen" xml:space="preserve">
-    <value>Deposit zen</value>
+    <value>Deposit Zen</value>
     <comment>legacy_id=1338</comment>
   </data>
   <data name="Withdraw zen" xml:space="preserve">
-    <value>Withdraw zen</value>
+    <value>Withdraw Zen</value>
     <comment>legacy_id=1339</comment>
   </data>
   <data name="Withdrawal limit" xml:space="preserve">
@@ -5120,7 +5120,7 @@
     <comment>legacy_id=1363</comment>
   </data>
   <data name="All the items and zen in the guild vault will disappear" xml:space="preserve">
-    <value>All the items and zen in the guild vault will disappear</value>
+    <value>All the items and Zen in the guild vault will disappear</value>
     <comment>legacy_id=1364</comment>
   </data>
   <data name="Also the guild ranking information will disappear." xml:space="preserve">
@@ -5148,7 +5148,7 @@
     <comment>legacy_id=1370</comment>
   </data>
   <data name="X zen and N Jewel of Bless is" xml:space="preserve">
-    <value>X zen and N Jewel of Bless is</value>
+    <value>X Zen and N Jewel of Bless is</value>
     <comment>legacy_id=1371</comment>
   </data>
   <data name="Required" xml:space="preserve">
@@ -5608,7 +5608,7 @@
     <comment>legacy_id=1497</comment>
   </data>
   <data name="Are you really want to quit the Siege Wargare?" xml:space="preserve">
-    <value>Are you really want to quit the Siege Wargare?</value>
+    <value>Do you really want to quit the Siege Warfare?</value>
     <comment>legacy_id=1498</comment>
   </data>
   <data name="Shoot" xml:space="preserve">
@@ -5748,7 +5748,7 @@
     <comment>legacy_id=1533</comment>
   </data>
   <data name="untill %u-%u-%u %u : %u" xml:space="preserve">
-    <value>untill %u-%u-%u %u : %u</value>
+    <value>until %u-%u-%u %u : %u</value>
     <comment>legacy_id=1534</comment>
   </data>
   <data name="Siege period is over." xml:space="preserve">
@@ -5816,7 +5816,7 @@
     <comment>legacy_id=1552</comment>
   </data>
   <data name="%d Guardian jewel and %d zen are required." xml:space="preserve">
-    <value>%d Guardian jewel and %d zen are required.</value>
+    <value>%d Guardian jewel and %d Zen are required.</value>
     <comment>legacy_id=1553</comment>
   </data>
   <data name="Would you like to repair?" xml:space="preserve">
@@ -5840,15 +5840,15 @@
     <comment>legacy_id=1559</comment>
   </data>
   <data name="DUR : %d/%d" xml:space="preserve">
-    <value>DUR : %d/%d</value>
+    <value>DUR: %d/%d</value>
     <comment>legacy_id=1560</comment>
   </data>
   <data name="DP : %d" xml:space="preserve">
-    <value>DP : %d</value>
+    <value>DP: %d</value>
     <comment>legacy_id=1561</comment>
   </data>
   <data name="RR : %d%%" xml:space="preserve">
-    <value>RR : %d%%</value>
+    <value>RR: %d%%</value>
     <comment>legacy_id=1562</comment>
   </data>
   <data name="DUR +%d" xml:space="preserve">
@@ -5936,7 +5936,7 @@
     <comment>legacy_id=1583</comment>
   </data>
   <data name="Retaining zen of castle: %I64d" xml:space="preserve">
-    <value>Retaining zen of castle: %I64d</value>
+    <value>Retaining Zen of castle: %I64d</value>
     <comment>legacy_id=1584</comment>
   </data>
   <data name="Tax belongs to the castle" xml:space="preserve">
@@ -5992,7 +5992,7 @@
     <comment>legacy_id=1598</comment>
   </data>
   <data name="Entrance fee range: 0 ~ %s zen" xml:space="preserve">
-    <value>Entrance fee range: 0 ~ %s zen</value>
+    <value>Entrance fee range: 0 ~ %s Zen</value>
     <comment>legacy_id=1600</comment>
   </data>
   <data name="for setting" xml:space="preserve">
@@ -6000,7 +6000,7 @@
     <comment>legacy_id=1601</comment>
   </data>
   <data name="Entrance fee : %s Zen" xml:space="preserve">
-    <value>Entrance fee : %s Zen</value>
+    <value>Entrance fee: %s Zen</value>
     <comment>legacy_id=1602</comment>
   </data>
   <data name="Camp" xml:space="preserve">
@@ -6056,11 +6056,11 @@
     <comment>legacy_id=1616</comment>
   </data>
   <data name="%d zen is required." xml:space="preserve">
-    <value>%d zen is required.</value>
+    <value>%d Zen is required.</value>
     <comment>legacy_id=1617</comment>
   </data>
   <data name="(Increase unit:%s zen)" xml:space="preserve">
-    <value>(Increase unit:%s zen)</value>
+    <value>(Increase unit:%s Zen)</value>
     <comment>legacy_id=1618</comment>
   </data>
   <data name="Confirm" xml:space="preserve">
@@ -6076,7 +6076,7 @@
     <comment>legacy_id=1621</comment>
   </data>
   <data name="Required zen: %s(%s)" xml:space="preserve">
-    <value>Required zen: %s(%s)</value>
+    <value>Required Zen: %s(%s)</value>
     <comment>legacy_id=1622</comment>
   </data>
   <data name="Tax rate: %d%% (changed in real-time)" xml:space="preserve">
@@ -6100,7 +6100,7 @@
     <comment>legacy_id=1627</comment>
   </data>
   <data name="Insufficient zen for entering" xml:space="preserve">
-    <value>Insufficient zen for entering</value>
+    <value>Insufficient Zen for entering</value>
     <comment>legacy_id=1628</comment>
   </data>
   <data name="Approval from the lord of a castle is required" xml:space="preserve">
@@ -6132,7 +6132,7 @@
     <comment>legacy_id=1635</comment>
   </data>
   <data name="Required zen for potion: %s(%s)" xml:space="preserve">
-    <value>Required zen for potion: %s(%s)</value>
+    <value>Required Zen for potion: %s(%s)</value>
     <comment>legacy_id=1636</comment>
   </data>
   <data name="Alliance function will be restricted due to the Castle Siege." xml:space="preserve">
@@ -6408,7 +6408,7 @@
     <comment>legacy_id=1704</comment>
   </data>
   <data name="KingdomOfWizardsDescendantOfArka" xml:space="preserve">
-    <value>Kingdom of wizards, descendant of Arka. He has a inferior physical condition but has a enormous power and can command attacking spells freely.</value>
+    <value>Kingdom of wizards, descendant of Arka. He has an inferior physical condition but has an enormous power and can command attacking spells freely.</value>
     <comment>legacy_id=1705</comment>
   </data>
   <data name="KingdomOfKnightsDescendantOfLorencia" xml:space="preserve">
@@ -6540,7 +6540,7 @@
     <comment>legacy_id=1738,1900</comment>
   </data>
   <data name="Long gmae time may be harmful to your health" xml:space="preserve">
-    <value>Long gmae time may be harmful to your health</value>
+    <value>Long game time may be harmful to your health</value>
     <comment>legacy_id=1739</comment>
   </data>
   <data name="Like studying, you need rest after a certain time of game play." xml:space="preserve">
@@ -6768,7 +6768,7 @@
     <comment>legacy_id=1807</comment>
   </data>
   <data name="Combine %d (%d zen is required)" xml:space="preserve">
-    <value>Combine %d (%d zen is required)</value>
+    <value>Combine %d (%d Zen is required)</value>
     <comment>legacy_id=1808</comment>
   </data>
   <data name="Are you sure to combine %s x %d?" xml:space="preserve">
@@ -6776,7 +6776,7 @@
     <comment>legacy_id=1809</comment>
   </data>
   <data name="Combination cost: %d zen" xml:space="preserve">
-    <value>Combination cost: %d zen</value>
+    <value>Combination cost: %d Zen</value>
     <comment>legacy_id=1810</comment>
   </data>
   <data name="Zen is insufficient." xml:space="preserve">
@@ -6792,7 +6792,7 @@
     <comment>legacy_id=1813</comment>
   </data>
   <data name="Dissolving cost: %d zen" xml:space="preserve">
-    <value>Dissolving cost: %d zen</value>
+    <value>Dissolving cost: %d Zen</value>
     <comment>legacy_id=1814</comment>
   </data>
   <data name="Inventory space is insufficient." xml:space="preserve">
@@ -7356,7 +7356,7 @@
     <comment>legacy_id=1977</comment>
   </data>
   <data name="%s (Accumulated hour : %dseconds)" xml:space="preserve">
-    <value>%s (Accumulated hour : %dseconds)</value>
+    <value>%s (Accumulated time: %d seconds)</value>
     <comment>legacy_id=1980</comment>
   </data>
   <data name="Crown switch" xml:space="preserve">
@@ -7440,7 +7440,7 @@
     <comment>legacy_id=2023</comment>
   </data>
   <data name="This is not a event prize." xml:space="preserve">
-    <value>This is not a event prize.</value>
+    <value>This is not an event prize.</value>
     <comment>legacy_id=2024</comment>
   </data>
   <data name="Here's the Divine protection of the Goddess Arkneria..." xml:space="preserve">
@@ -7460,7 +7460,7 @@
     <comment>legacy_id=2036</comment>
   </data>
   <data name=" S D : %d / %d" xml:space="preserve">
-    <value> S D : %d / %d</value>
+    <value> S D: %d / %d</value>
     <comment>legacy_id=2037</comment>
   </data>
   <data name="SD potion" xml:space="preserve">
@@ -7560,7 +7560,7 @@
     <comment>legacy_id=2069</comment>
   </data>
   <data name="For example, you can not use Jewel of Harmony(%s) immediately..." xml:space="preserve">
-    <value>For example, you can not use Jewel of Harmony(%s) immediately...</value>
+    <value>For example, you cannot use Jewel of Harmony(%s) immediately...</value>
     <comment>legacy_id=2070</comment>
   </data>
   <data name="Getting through refining process" xml:space="preserve">
@@ -7568,7 +7568,7 @@
     <comment>legacy_id=2071</comment>
   </data>
   <data name="You can not use Jewel of Harmony in %s status" xml:space="preserve">
-    <value>You can not use Jewel of Harmony in %s status</value>
+    <value>You cannot use Jewel of Harmony in %s status</value>
     <comment>legacy_id=2072</comment>
   </data>
   <data name="But the %s Jewel of Harmony can give the new power to your weapon." xml:space="preserve">
@@ -7628,7 +7628,7 @@
     <comment>legacy_id=2086</comment>
   </data>
   <data name="Lacks %d zen" xml:space="preserve">
-    <value>Lacks %d zen</value>
+    <value>Lacks %d Zen</value>
     <comment>legacy_id=2087</comment>
   </data>
   <data name="For restoring reinforced item," xml:space="preserve">
@@ -7652,11 +7652,11 @@
     <comment>legacy_id=2093</comment>
   </data>
   <data name="Required zen : %d zen" xml:space="preserve">
-    <value>Required zen : %d zen</value>
+    <value>Required Zen: %d Zen</value>
     <comment>legacy_id=2094</comment>
   </data>
   <data name="of Jewel of Harmony, orignal" xml:space="preserve">
-    <value>of Jewel of Harmony, orignal</value>
+    <value>of Jewel of Harmony, original</value>
     <comment>legacy_id=2095</comment>
   </data>
   <data name="gemstone will give more power." xml:space="preserve">
@@ -7756,7 +7756,7 @@
     <comment>legacy_id=2153</comment>
   </data>
   <data name="Currently %d players are in battle with Maya's lefe hand." xml:space="preserve">
-    <value>Currently %d players are in battle with Maya's lefe hand.</value>
+    <value>Currently %d players are in battle with Maya's left hand.</value>
     <comment>legacy_id=2154</comment>
   </data>
   <data name="Currently %d players are in battle with Maya's right hand." xml:space="preserve">
@@ -7804,7 +7804,7 @@
     <comment>legacy_id=2165</comment>
   </data>
   <data name="NightmareHasLostTheControlOf2166" xml:space="preserve">
-    <value>Nightmare has lost the control of Maya's right hand. Currently there are %d surviors.</value>
+    <value>Nightmare has lost the control of Maya's right hand. Currently there are %d survivors.</value>
     <comment>legacy_id=2166</comment>
   </data>
   <data name="More power from %d players are needed." xml:space="preserve">
@@ -7844,7 +7844,7 @@
     <comment>legacy_id=2175</comment>
   </data>
   <data name="YouCanOnlyWarpRidingA" xml:space="preserve">
-    <value>You can only warp riding a Dynorant, Dark Horse, Fenrir or wearing the wings, cloak.</value>
+    <value>You can only warp while riding a Dinorant, Dark Horse or Fenrir, or while wearing wings or a cloak.</value>
     <comment>legacy_id=2176</comment>
   </data>
   <data name="Kanturu" xml:space="preserve">
@@ -7868,15 +7868,15 @@
     <comment>legacy_id=2181</comment>
   </data>
   <data name="MonsterBoss2182" xml:space="preserve">
-    <value>Monster : Boss</value>
+    <value>Monster: Boss</value>
     <comment>legacy_id=2182</comment>
   </data>
   <data name="Monster : %d" xml:space="preserve">
-    <value>Monster : %d</value>
+    <value>Monster: %d</value>
     <comment>legacy_id=2183</comment>
   </data>
   <data name="Attack sucess rate increase +%d" xml:space="preserve">
-    <value>Attack sucess rate increase +%d</value>
+    <value>Attack success rate increase +%d</value>
     <comment>legacy_id=2184</comment>
   </data>
   <data name="Additional Damage +%d" xml:space="preserve">
@@ -8024,11 +8024,11 @@
     <comment>legacy_id=2222</comment>
   </data>
   <data name="Warning2223" xml:space="preserve">
-    <value>!! Warning !!</value>
+    <value>! Warning !</value>
     <comment>legacy_id=2223</comment>
   </data>
   <data name="RefineryHasStartedRefineryIsA" xml:space="preserve">
-    <value>Refinery has started. Refinery is a part of process to change the item to Refining Stone to be reinforced. Refined item will be disapper, make sure to check the item.</value>
+    <value>Refinery has started. Refining is part of the process of turning an item into a Refining Stone for reinforcement. The refined item will disappear, so make sure to check the item first.</value>
     <comment>legacy_id=2224</comment>
   </data>
   <data name="VitalityD2225" xml:space="preserve">
@@ -8100,7 +8100,7 @@
     <comment>legacy_id=2241</comment>
   </data>
   <data name="ToBeatAgainstKundunMoreOrganizational" xml:space="preserve">
-    <value>To beat against Kundun, more organizational action will be needed, which means the guild is essesntial.</value>
+    <value>To beat against Kundun, more organizational action will be needed, which means the guild is essential.</value>
     <comment>legacy_id=2242</comment>
   </data>
   <data name="Christmas" xml:space="preserve">
@@ -8128,7 +8128,7 @@
     <comment>legacy_id=2248</comment>
   </data>
   <data name="Stonger effect has taken place." xml:space="preserve">
-    <value>Stonger effect has taken place.</value>
+    <value>Stronger effect has taken place.</value>
     <comment>legacy_id=2249</comment>
   </data>
   <data name="Increases the combination rate,but only up to the maximum rate." xml:space="preserve">
@@ -8296,7 +8296,7 @@
     <comment>legacy_id=2290</comment>
   </data>
   <data name="Price :" xml:space="preserve">
-    <value>Price :</value>
+    <value>Price:</value>
     <comment>legacy_id=2291</comment>
   </data>
   <data name="Purchase" xml:space="preserve">
@@ -8344,7 +8344,7 @@
     <comment>legacy_id=2304</comment>
   </data>
   <data name="Error Code :" xml:space="preserve">
-    <value>Error Code :</value>
+    <value>Error Code:</value>
     <comment>legacy_id=2305</comment>
   </data>
   <data name="More than 2 X 4 space in inventory is needed." xml:space="preserve">
@@ -9172,7 +9172,7 @@
     <comment>legacy_id=2580</comment>
   </data>
   <data name="Increses Excellent Damage by 20%%" xml:space="preserve">
-    <value>Increses Excellent Damage by 20%%</value>
+    <value>Increases Excellent Damage by 20%%</value>
     <comment>legacy_id=2581</comment>
   </data>
   <data name="Carrier" xml:space="preserve">
@@ -9480,11 +9480,11 @@
     <comment>legacy_id=2687</comment>
   </data>
   <data name="Duel Start!!" xml:space="preserve">
-    <value>Duel Start!!</value>
+    <value>Duel Start!</value>
     <comment>legacy_id=2688</comment>
   </data>
   <data name="Duel Finished. You will be warped back to the viallage in %d seconds." xml:space="preserve">
-    <value>Duel Finished. You will be warped back to the viallage in %d seconds.</value>
+    <value>Duel Finished. You will be warped back to the village in %d seconds.</value>
     <comment>legacy_id=2689</comment>
   </data>
   <data name="Duel Invite" xml:space="preserve">
@@ -9548,7 +9548,7 @@
     <comment>legacy_id=2706</comment>
   </data>
   <data name="Too many people in the colossum." xml:space="preserve">
-    <value>Too many people in the colossum.</value>
+    <value>Too many people in the colosseum.</value>
     <comment>legacy_id=2707</comment>
   </data>
   <data name="+10~+15 When upgrading level item please put it in combination window." xml:space="preserve">
@@ -9688,7 +9688,7 @@
     <comment>legacy_id=2745</comment>
   </data>
   <data name="Auto-collects zen around you." xml:space="preserve">
-    <value>Auto-collects zen around you.</value>
+    <value>Auto-collects Zen around you.</value>
     <comment>legacy_id=2746</comment>
   </data>
   <data name="EXP rate 50%% increase" xml:space="preserve">
@@ -10092,15 +10092,15 @@
     <comment>legacy_id=2882</comment>
   </data>
   <data name="My W Coin : %s" xml:space="preserve">
-    <value>My W Coin : %s</value>
+    <value>My W Coin: %s</value>
     <comment>legacy_id=2883</comment>
   </data>
   <data name="Goblin Points : %s" xml:space="preserve">
-    <value>Goblin Points : %s</value>
+    <value>Goblin Points: %s</value>
     <comment>legacy_id=2884</comment>
   </data>
   <data name="Bonus Points : %s" xml:space="preserve">
-    <value>Bonus Points : %s</value>
+    <value>Bonus Points: %s</value>
     <comment>legacy_id=2885</comment>
   </data>
   <data name="Use" xml:space="preserve">
@@ -10928,7 +10928,7 @@
     <comment>legacy_id=3116</comment>
   </data>
   <data name="TheGameClientIsLoadedOnly" xml:space="preserve">
-    <value>The game client is loaded only through the offical Website. Closing the application please try again.</value>
+    <value>The game client is loaded only through the official Website. Closing the application. Please try again.</value>
     <comment>legacy_id=3117</comment>
   </data>
   <data name="Please purchase 'gold channel ticket' to enter." xml:space="preserve">
@@ -11040,7 +11040,7 @@
     <comment>legacy_id=3144</comment>
   </data>
   <data name="My W Coin(P) : %s" xml:space="preserve">
-    <value>My W Coin(P) : %s</value>
+    <value>My W Coin(P): %s</value>
     <comment>legacy_id=3145</comment>
   </data>
   <data name="You need more %%s to purchase this item." xml:space="preserve">
@@ -11068,7 +11068,7 @@
     <comment>legacy_id=3151</comment>
   </data>
   <data name="LegitimateBearersOfTheKarutanRoyal" xml:space="preserve">
-    <value>Legitimate bearers of the Karutan Royal Knights and martial artists of great physical strength. They also help other party memgers by casting subsidiary buffs.</value>
+    <value>Legitimate bearers of the Karutan Royal Knights and martial artists of great physical strength. They also help other party members by casting subsidiary buffs.</value>
     <comment>legacy_id=3152</comment>
   </data>
   <data name="Killing Blow (Mana: %d)" xml:space="preserve">
@@ -11200,7 +11200,7 @@
     <comment>legacy_id=3276</comment>
   </data>
   <data name="Throw this iem on the ground to get money, jewel, or a ticket." xml:space="preserve">
-    <value>Throw this iem on the ground to get money, jewel, or a ticket.</value>
+    <value>Throw this item on the ground to get money, a jewel or a ticket.</value>
     <comment>legacy_id=3277</comment>
   </data>
   <data name="Enemy Gens Member x %lu/%lu" xml:space="preserve">
@@ -11304,7 +11304,7 @@
     <comment>legacy_id=3302</comment>
   </data>
   <data name="Unequippble items cannot be combined." xml:space="preserve">
-    <value>Unequippble items cannot be combined.</value>
+    <value>Unequippable items cannot be combined.</value>
     <comment>legacy_id=3303</comment>
   </data>
   <data name="Jewel used for reinforcing a Lucky Item." xml:space="preserve">
@@ -11780,7 +11780,7 @@
     <comment>legacy_id=3436</comment>
   </data>
   <data name="Score3438" xml:space="preserve">
-    <value>Score :</value>
+    <value>Score:</value>
     <comment>legacy_id=3438</comment>
   </data>
   <data name="People" xml:space="preserve">
@@ -12195,7 +12195,7 @@
     <comment>legacy_id=3581</comment>
   </data>
   <data name="CertainAmountOfZenIsSpent" xml:space="preserve">
-    <value>Certain amount of zen is spent every 5 minutes in implementing Official MU Helper</value>
+    <value>Certain amount of Zen is spent every 5 minutes in implementing Official MU Helper</value>
     <comment>legacy_id=3582</comment>
   </data>
   <data name="Spent Time %d Minute(s)/" xml:space="preserve">
@@ -12203,15 +12203,15 @@
     <comment>legacy_id=3583</comment>
   </data>
   <data name="Spent Time %d Minute(s)/ Spent Zen? %d Stage / Cost %d zen(s)" xml:space="preserve">
-    <value>Spent Time %d Minute(s)/ Spent Zen? %d Stage / Cost %d zen(s)</value>
+    <value>Spent Time %d Minute(s)/ Spent Zen? %d Stage / Cost %d Zen(s)</value>
     <comment>legacy_id=3584</comment>
   </data>
   <data name="Spent Time %d hour(s) %d Minute(s)/ Spent Zen  %d Stage / Cost %d zen(s)" xml:space="preserve">
-    <value>Spent Time %d hour(s) %d Minute(s)/ Spent Zen  %d Stage / Cost %d zen(s)</value>
+    <value>Spent Time %d hour(s) %d Minute(s)/ Spent Zen  %d Stage / Cost %d Zen(s)</value>
     <comment>legacy_id=3585</comment>
   </data>
   <data name="%d zen(s) have been spent in implementing Official MU Helper" xml:space="preserve">
-    <value>%d zen(s) have been spent in implementing Official MU Helper</value>
+    <value>%d Zen(s) have been spent in implementing Official MU Helper</value>
     <comment>legacy_id=3586</comment>
   </data>
   <data name="Zen is not sufficient to run Official MU Helper" xml:space="preserve">
@@ -12583,11 +12583,11 @@
     <comment>legacy_id=3696</comment>
   </data>
   <data name="DoYouWantToUpgradeThe" xml:space="preserve">
-    <value>Do you want to upgrade the level for the following Errtel? (Warning : Items may disappear.)</value>
+    <value>Do you want to upgrade the level for the following Errtel? (Warning: Items may disappear.)</value>
     <comment>legacy_id=3698</comment>
   </data>
   <data name="DoYouWantToUpgradeThe3700" xml:space="preserve">
-    <value>Do you want to upgrade the rank for the following Errtel? (Warning : Items may disappear.)</value>
+    <value>Do you want to upgrade the rank for the following Errtel? (Warning: Items may disappear.)</value>
     <comment>legacy_id=3700</comment>
   </data>
   <data name="There's not enough materials for item refinement/combination." xml:space="preserve">
@@ -12747,7 +12747,7 @@
     <comment>legacy_id=3750</comment>
   </data>
   <data name="You cannot restore a deleted character!!" xml:space="preserve">
-    <value>You cannot restore a deleted character!!</value>
+    <value>You cannot restore a deleted character!</value>
     <comment>legacy_id=3751</comment>
   </data>
   <data name="(General items and cash items are not recoverable)" xml:space="preserve">
@@ -12966,19 +12966,19 @@
     <value>Execute</value>
   </data>
   <data name="JJewelBankHotkey" xml:space="preserve">
-    <value>J : Jewel Bank</value>
+    <value>J: Jewel Bank</value>
   </data>
   <data name="AAuctionHouseHotkey" xml:space="preserve">
-    <value>A : Auction House</value>
+    <value>A: Auction House</value>
   </data>
   <data name="UMenuHotkey" xml:space="preserve">
-    <value>U : Menu (System, Help, Commands...)</value>
+    <value>U: Menu (System, Help, Commands...)</value>
   </data>
   <data name="SSkillTreeHotkey" xml:space="preserve">
-    <value>S : Skill Tree</value>
+    <value>S: Skill Tree</value>
   </data>
   <data name="ShiftRightClickQuickDropHotkey" xml:space="preserve">
-    <value>Shift + Right-click : Drop inventory item</value>
+    <value>Shift + Right-click: Drop inventory item</value>
   </data>
   <data name="YouWereKilledByPlayer" xml:space="preserve">
     <value>You were killed by %s</value>

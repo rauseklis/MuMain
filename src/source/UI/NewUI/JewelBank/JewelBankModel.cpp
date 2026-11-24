@@ -130,7 +130,7 @@ namespace JewelBank
 
     const wchar_t* PageName(int page)
     {
-        return page <= 0 ? L"Jewels & fruits" : L"Bundles";
+        return page <= 0 ? L"Jewels & Fruits" : L"Bundles";
     }
 
     void AppendRequestAmounts(const Amounts& amounts, uint8_t* destination)

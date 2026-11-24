@@ -110,7 +110,7 @@ CHARACTER* GMEmpireGuardian4::CreateMonster(int iType, int PosX, int PosY, int K
         OpenMonsterModel(MONSTER_MODEL_JERRY);
         pCharacter = CreateCharacter(Key, MODEL_JERRY, PosX, PosY);
         memset(pCharacter->ID, 0, sizeof(pCharacter->ID));
-        std::wstring(L"Jerry The Adviseru").copy(pCharacter->ID, 19);
+        std::wstring(L"Jerry the Adviser").copy(pCharacter->ID, 19);
         pCharacter->Object.Scale = 1.45f;
 
         m_bCurrentIsRage_Jerint = false;
