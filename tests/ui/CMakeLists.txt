@@ -168,3 +168,8 @@ mu_add_test(
     NAME top_left_bar_layout_tests
     SOURCES test_top_left_bar_layout.cpp
 )
+
+mu_add_test(
+    NAME exp_hunt_bar_layout_tests
+    SOURCES test_exp_hunt_bar_layout.cpp
+)

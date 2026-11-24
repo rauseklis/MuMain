@@ -4,6 +4,8 @@
 
 #include "UI/NewUI/NewUIManager.h"
 
+#include <string>
+
 namespace SEASON3B
 {
     class CNewUIExpHuntWindow : public CNewUIObj
@@ -26,21 +28,20 @@ namespace SEASON3B
     private:
         enum IMAGE_LIST
         {
-            IMAGE_EXPHUNT_CAP = BITMAP_EXPHUNT_BEGIN,
-            IMAGE_EXPHUNT_MIDDLE,
+            IMAGE_EXPHUNT_ATLAS = BITMAP_EXPHUNT_BEGIN,
         };
 
         void LoadImages();
         void UnloadImages();
 
-        static constexpr int WND_WIDTH = 220;
-        static constexpr int WND_HEIGHT = 20;
-        static constexpr int CAP_WIDTH = 18;
-        static constexpr int DEFAULT_X = REFERENCE_WIDTH - WND_WIDTH;
-        static constexpr int DEFAULT_Y = 0;
+        // Measures the text and sizes the bar to it; until the bar is dragged it stays in the top-right corner.
+        void RefreshLayout();
 
         CNewUIManager* m_pNewUIMng;
         POINT m_Pos;
+        std::wstring m_Text;
+        int m_iWidth;
+        bool m_bMoved;
         bool m_bDragging;
         int m_iDragGrabOffsetX;
         int m_iDragGrabOffsetY;
