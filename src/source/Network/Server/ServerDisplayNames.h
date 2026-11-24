@@ -11,6 +11,10 @@ namespace Network::ServerNames
     // true. Returns false for a number which has no label, so that the caller keeps the classic name.
     bool ServerLabel(const wchar_t* groupName, int serverNumberInGroup, wchar_t* label, size_t labelSize);
 
+    // Where the server is listed in the server select menu: a lower value is listed higher. Servers without an entry
+    // keep their number as position, after the ones that have one.
+    int ServerDisplayRank(int serverNumberInGroup);
+
     // Writes "[Inferno 500x]" into title when the server has a label; otherwise leaves title as it is.
     void FormatServerTitle(wchar_t* title, size_t titleSize, const wchar_t* groupName, int serverNumberInGroup);
 }
