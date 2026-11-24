@@ -328,6 +328,35 @@ TEST_CASE("inventory consumes picked-item presses before world input [ui][invent
     CHECK_FALSE(UI::Items::Drag::ShouldConsumePanelPress(false, true));
 }
 
+TEST_CASE("a held item keeps its cursor anchor when another window uses a different UI scale [ui][inventory]")
+{
+    // Picked up 30 px right and 20 px down inside a window drawn at scale 1.5 (45 and 30 screen pixels).
+    const POINT offset{30, 20};
+
+    const POINT sameScale = UI::Items::Drag::RescaleOffset(offset, 1.5f, 1.5f, 1.5f, 1.5f);
+    CHECK(sameScale.x == 30);
+    CHECK(sameScale.y == 20);
+
+    const POINT inSmallerWindow = UI::Items::Drag::RescaleOffset(offset, 1.5f, 1.5f, 1.0f, 1.0f);
+    CHECK(inSmallerWindow.x == 45);
+    CHECK(inSmallerWindow.y == 30);
+
+    const POINT inLargerWindow = UI::Items::Drag::RescaleOffset(offset, 1.5f, 1.5f, 3.0f, 3.0f);
+    CHECK(inLargerWindow.x == 15);
+    CHECK(inLargerWindow.y == 10);
+
+    const POINT badScale = UI::Items::Drag::RescaleOffset(offset, 1.5f, 1.5f, 0.0f, 0.0f);
+    CHECK(badScale.x == 30);
+    CHECK(badScale.y == 20);
+}
+
+TEST_CASE("a held item already sent to the merchant ignores further clicks [ui][inventory]")
+{
+    CHECK(UI::Items::Drag::IsHeldItemBeingSold(true, true));
+    CHECK_FALSE(UI::Items::Drag::IsHeldItemBeingSold(true, false));
+    CHECK_FALSE(UI::Items::Drag::IsHeldItemBeingSold(false, true));
+}
+
 TEST_CASE("store window consumes passive hover before world selection [ui][store]")
 {
     const int previousMouseX = MouseX;

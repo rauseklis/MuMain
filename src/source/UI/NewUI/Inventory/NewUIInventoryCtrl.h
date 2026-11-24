@@ -18,7 +18,12 @@ namespace UI::Items::Drag
     POINT PickupOffset(int itemLeft, int itemTop, int itemWidth, int itemHeight,
                        int pointerX, int pointerY, bool preserveAnchor);
     POINT ItemTopLeft(int pointerX, int pointerY, const POINT& pickupOffset);
+    // The pickup offset is measured in the UI scale of the window the item was picked up in. Windows use different
+    // scales, so it must be converted before it is used in another window's coordinates.
+    POINT RescaleOffset(const POINT& offset, float fromScaleX, float fromScaleY, float toScaleX, float toScaleY);
     bool ShouldConsumePanelPress(bool hasPickedItem, bool leftButtonPressed);
+    // A held item already sent to an NPC merchant waits for the answer; clicks must not move it meanwhile.
+    bool IsHeldItemBeingSold(bool hasPickedItem, bool sellPending);
 }
 
 namespace UI::Items::Grid
@@ -65,6 +70,17 @@ namespace SEASON3B
         POINT m_Pos;
         SIZE m_Size;
         POINT m_PickupOffset;
+        // UI scale (window pixels per logical unit) in which m_PickupOffset was measured.
+        float m_OffsetScaleX;
+        float m_OffsetScaleY;
+        // Where the item was last drawn, in window pixels: valid in every window's own scale.
+        float m_PixelLeft;
+        float m_PixelTop;
+        float m_PixelRight;
+        float m_PixelBottom;
+
+        POINT OffsetInActiveScale() const;
+        void UpdatePixelRect();
 
     public:
         CNewUIPickedItem();
@@ -80,7 +96,7 @@ namespace SEASON3B
 
         const POINT& GetPos() const;
         const SIZE& GetSize() const;
-        const POINT& GetPickupOffset() const;
+        POINT GetPickupOffset() const;
         void GetRect(RECT& rcBox);
 
         int GetSourceLinealPos();
