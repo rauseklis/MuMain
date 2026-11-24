@@ -1067,6 +1067,9 @@
     <value>/whisper on</value>
     <comment>legacy_id=265</comment>
   </data>
+  <data name="Maximum Zen in the storage" xml:space="preserve">
+    <value>Maximum Zen in the storage</value>
+  </data>
   <data name="Storage fee" xml:space="preserve">
     <value>Storage fee</value>
     <comment>legacy_id=266</comment>
