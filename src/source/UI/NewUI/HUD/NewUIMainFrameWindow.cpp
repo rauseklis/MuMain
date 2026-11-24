@@ -25,6 +25,7 @@
 #include "GameLogic/Skills/SkillManager.h"
 #include "UI/NewUI/HUD/Skills/SkillTooltip.h"
 #include "UI/Scaling/UITransform.h"
+#include "UI/NewUI/HUD/ExperienceBar.h"
 #include "Core/Time/CTimCheck.h"
 #include "GameLogic/Social/MonkSystem.h"
 #include "GameLogic/Items/ItemCategories.h"
@@ -51,9 +52,79 @@ namespace
     constexpr float kMenu3RightSourceX = 104.0f;
 }
 
+namespace ExpBarStyle
+{
+// The bar sits in the 640 wide interface group, in the 10 high strip under it (kExperienceTop).
+constexpr float kHudWidth = 640.0f;
+constexpr float kBarX = 4.0f;
+constexpr float kBarWidth = 620.0f; // ten segments of 62
+constexpr float kBarY = 473.0f;
+constexpr float kBarHeight = 4.0f;
+constexpr float kChannelX = 3.0f;
+constexpr float kChannelY = 472.0f;
+constexpr float kChannelWidth = 622.0f;
+constexpr float kChannelHeight = 6.0f;
+constexpr float kPlateX = 627.0f;
+constexpr float kPlateY = 471.0f;
+constexpr float kPlateWidth = 11.0f;
+constexpr float kPlateHeight = 8.0f;
+constexpr float kNumberScale = 0.74f;
+constexpr double kMaxFrameSeconds = 0.25;
+
+constexpr unsigned int kPlateBase = 0xFF0D0C0Bu;
+constexpr unsigned int kPlateHighlight = 0xFF3B352Cu;
+constexpr unsigned int kPlateShadow = 0xFF050403u;
+constexpr unsigned int kChannelEdge = 0xFF050403u;
+constexpr unsigned int kChannelTrough = 0xFF14110Du;
+constexpr unsigned int kChannelLip = 0xFF4A4236u;
+constexpr unsigned int kNumberPlateEdge = 0xFF4A4236u;
+constexpr unsigned int kNumberPlateFill = 0xFF080706u;
+constexpr unsigned int kTickOnTrough = 0xFF2A251Du;
+constexpr unsigned int kTickOnFill = 0x59000000u;
+
+constexpr int kFillRowCount = 4;
+// One refined gradient from a thin highlight on top to a deep base. Master levels use gold.
+constexpr unsigned int kFillRows[kFillRowCount] = {0xFFA6E89Au, 0xFF4DBA5Cu, 0xFF2F8F40u, 0xFF1F6A2Du};
+constexpr unsigned int kMasterFillRows[kFillRowCount] = {0xFFFFE9A0u, 0xFFE8B84Au, 0xFFB98322u, 0xFF855812u};
+} // namespace ExpBarStyle
+
+namespace
+{
+struct ExperienceState
+{
+    UI::Hud::ExperienceBar::Range range;
+    long long current = 0;
+    long long next = 0;
+    bool master = false;
+};
+
+ExperienceState ReadExperienceState()
+{
+    using namespace UI::Hud::ExperienceBar;
+
+    ExperienceState state;
+    if (gCharacterManager.IsMasterExperienceActive(CharacterAttribute->Class, CharacterAttribute->Level) == true)
+    {
+        state.master = true;
+        state.current = static_cast<long long>(Master_Level_Data.lMasterLevel_Experince);
+        state.next = static_cast<long long>(Master_Level_Data.lNext_MasterLevel_Experince);
+        state.range = MakeRange(MasterLevelStartExperience(Master_Level_Data.nMLevel), state.next);
+        return state;
+    }
+
+    state.current = static_cast<long long>(CharacterAttribute->Experience);
+    state.next = static_cast<long long>(CharacterAttribute->NextExperience);
+    state.range = MakeRange(NormalLevelStartExperience(CharacterAttribute->Level), state.next);
+    return state;
+}
+} // namespace
+
 SEASON3B::CNewUIMainFrameWindow::CNewUIMainFrameWindow()
 {
     m_bExpEffect = false;
+    m_dExpShown = 0.0;
+    m_bExpShownValid = false;
+    m_dwExpShownTick = 0;
     m_dwExpEffectTime = 0;
     m_dwPreExp = 0;
     m_dwGetExp = 0;
@@ -300,12 +371,83 @@ void SEASON3B::CNewUIMainFrameWindow::RenderRightFrame()
 
 void SEASON3B::CNewUIMainFrameWindow::RenderExperienceBackground()
 {
-    RenderImageStretch(IMAGE_MENU_1, 0.0f, kExperienceTop, 256.0f, kExperienceHeight,
-                       0.0f, kHudContentHeight, 256.0f, kExperienceHeight);
-    RenderImageStretch(IMAGE_MENU_2, 256.0f, kExperienceTop, 128.0f, kExperienceHeight,
-                       0.0f, kHudContentHeight, 128.0f, kExperienceHeight);
-    RenderImageStretch(IMAGE_MENU_3, 384.0f, kExperienceTop, 256.0f, kExperienceHeight,
-                       0.0f, kHudContentHeight, 256.0f, kExperienceHeight);
+    using namespace ExpBarStyle;
+
+    RenderColorQuadARGB(0.0f, kExperienceTop, kHudWidth, kExperienceHeight, kPlateBase);
+    RenderColorQuadARGB(0.0f, kExperienceTop, kHudWidth, 1.0f, kPlateHighlight);
+    RenderColorQuadARGB(0.0f, kExperienceTop + kExperienceHeight - 1.0f, kHudWidth, 1.0f, kPlateShadow);
+
+    RenderColorQuadARGB(kChannelX, kChannelY, kChannelWidth, kChannelHeight, kChannelEdge);
+    RenderColorQuadARGB(kBarX, kBarY, kBarWidth, kBarHeight, kChannelTrough);
+    RenderColorQuadARGB(kChannelX, kChannelY + kChannelHeight, kChannelWidth, 1.0f, kChannelLip);
+    RenderExperienceTicks(kTickOnTrough, kBarX + kBarWidth);
+
+    RenderColorQuadARGB(kPlateX, kPlateY, kPlateWidth, kPlateHeight, kNumberPlateEdge);
+    RenderColorQuadARGB(kPlateX + 1.0f, kPlateY + 1.0f, kPlateWidth - 2.0f, kPlateHeight - 2.0f, kNumberPlateFill);
+}
+
+// Draws the segment ticks that lie left of limitX.
+void SEASON3B::CNewUIMainFrameWindow::RenderExperienceTicks(unsigned int color, float limitX)
+{
+    using namespace ExpBarStyle;
+
+    const float segmentWidth = kBarWidth / static_cast<float>(UI::Hud::ExperienceBar::kSegments);
+    for (int tick = 1; tick < UI::Hud::ExperienceBar::kSegments; ++tick)
+    {
+        const float x = kBarX + segmentWidth * static_cast<float>(tick);
+        if (x >= limitX)
+            return;
+        RenderColorQuadARGB(x, kBarY, 1.0f, kBarHeight, color);
+    }
+}
+
+void SEASON3B::CNewUIMainFrameWindow::UpdateExperienceDisplay()
+{
+    if (CharacterAttribute == nullptr)
+        return;
+
+    const ExperienceState state = ReadExperienceState();
+    const double target = UI::Hud::ExperienceBar::Ratio(state.current, state.range);
+    const DWORD now = timeGetTime();
+    if (!m_bExpShownValid)
+    {
+        m_dExpShown = target;
+        m_bExpShownValid = true;
+    }
+    else
+    {
+        const double seconds =
+            std::min(static_cast<double>(now - m_dwExpShownTick) / 1000.0, ExpBarStyle::kMaxFrameSeconds);
+        m_dExpShown = UI::Hud::ExperienceBar::Advance(m_dExpShown, target, seconds);
+    }
+    m_dwExpShownTick = now;
+}
+
+void SEASON3B::CNewUIMainFrameWindow::RenderExperience()
+{
+    using namespace ExpBarStyle;
+
+    if (CharacterAttribute == nullptr)
+        return;
+
+    const ExperienceState state = ReadExperienceState();
+    const float fillWidth = UI::Hud::ExperienceBar::FillWidth(m_bExpShownValid ? m_dExpShown : 0.0, kBarWidth);
+    const unsigned int* rows = state.master ? kMasterFillRows : kFillRows;
+    for (int row = 0; fillWidth > 0.0f && row < kFillRowCount; ++row)
+    {
+        RenderColorQuadARGB(kBarX, kBarY + static_cast<float>(row), fillWidth, 1.0f, rows[row]);
+    }
+    RenderExperienceTicks(kTickOnFill, kBarX + fillWidth);
+
+    const int segment = UI::Hud::ExperienceBar::Segment(state.current, state.range);
+    SEASON3B::RenderNumber(kPlateX + kPlateWidth * 0.5f, kPlateY + 1.0f, segment, kNumberScale);
+
+    if (SEASON3B::CheckMouseIn(kChannelX, kChannelY, kChannelWidth, kChannelHeight) == true)
+    {
+        wchar_t strTipText[256];
+        mu_swprintf(strTipText, I18N::Game::EXPI64dI64d, state.current, state.next);
+        RenderTipText(280, 418, strTipText);
+    }
 }
 
 void SEASON3B::CNewUIMainFrameWindow::RenderLifeMana()
@@ -329,7 +471,7 @@ void SEASON3B::CNewUIMainFrameWindow::RenderLifeMana()
 
     if (wLifeMax > 0)
     {
-        if (wLife > 0 && (wLife / (float)wLifeMax) < 0.2f)
+        if (wLife > 0 && (wLife / static_cast<float>(wLifeMax)) < 0.2f)
         {
             PlayBuffer(SOUND_HEART);
         }
@@ -340,11 +482,11 @@ void SEASON3B::CNewUIMainFrameWindow::RenderLifeMana()
 
     if (wLifeMax > 0)
     {
-        fLife = (wLifeMax - wLife) / (float)wLifeMax;
+        fLife = (wLifeMax - wLife) / static_cast<float>(wLifeMax);
     }
     if (wManaMax > 0)
     {
-        fMana = (wManaMax - wMana) / (float)wManaMax;
+        fMana = (wManaMax - wMana) / static_cast<float>(wManaMax);
     }
 
     float width, height;
@@ -358,7 +500,7 @@ void SEASON3B::CNewUIMainFrameWindow::RenderLifeMana()
     width = 45.f;
     x = 158;
     height = 39.f;
-    y = (float)REFERENCE_HEIGHT - 48.f;
+    y = static_cast<float>(REFERENCE_HEIGHT) - 48.f;
 
     fY = y + (fLife * height);
     fH = height - (fLife * height);
@@ -378,14 +520,14 @@ void SEASON3B::CNewUIMainFrameWindow::RenderLifeMana()
     if (SEASON3B::CheckMouseIn(x, y, width, height) == true)
     {
         mu_swprintf(strTipText, I18N::Game::LifeDD, wLife, wLifeMax);
-        RenderTipText((int)x, (int)418, strTipText);
+        RenderTipText(static_cast<int>(x), 418, strTipText);
     }
 
     // mana
     width = 45.f;
     x = 256.f + 128.f + 53.f;
     height = 39.f;
-    y = (float)REFERENCE_HEIGHT - 48.f;
+    y = static_cast<float>(REFERENCE_HEIGHT) - 48.f;
 
     fY = y + (fMana * height);
     fH = height - (fMana * height);
@@ -398,7 +540,7 @@ void SEASON3B::CNewUIMainFrameWindow::RenderLifeMana()
     if (SEASON3B::CheckMouseIn(x, y, width, height) == true)
     {
         mu_swprintf(strTipText, I18N::Game::ManaDD359, wMana, wManaMax);
-        RenderTipText((int)x, (int)418, strTipText);
+        RenderTipText(static_cast<int>(x), 418, strTipText);
     }
 }
 
@@ -424,24 +566,25 @@ void SEASON3B::CNewUIMainFrameWindow::RenderGuageAG()
 
     if (dwMaxSkillMana > 0)
     {
-        fSkillMana = (dwMaxSkillMana - dwSkillMana) / (float)dwMaxSkillMana;
+        fSkillMana = (dwMaxSkillMana - dwSkillMana) / static_cast<float>(dwMaxSkillMana);
     }
 
     width = 16.f, height = 39.f;
-    x = 256 + 128 + 36; y = (float)REFERENCE_HEIGHT - 49.f;
+    x = 256 + 128 + 36;
+    y = static_cast<float>(REFERENCE_HEIGHT) - 49.f;
     fY = y + (fSkillMana * height);
     fH = height - (fSkillMana * height);
     fV = fSkillMana;
 
     RenderBitmap(IMAGE_GAUGE_AG, x, fY, width, fH, 0.f, fV * height / 64.f, width / 16.f, (1.0f - fV) * height / 64.f);
-    SEASON3B::RenderNumber(x + 10, REFERENCE_HEIGHT - 18, (int)dwSkillMana);
+    SEASON3B::RenderNumber(x + 10, REFERENCE_HEIGHT - 18, static_cast<int>(dwSkillMana));
 
     if (SEASON3B::CheckMouseIn(x, y, width, height) == true)
     {
         wchar_t strTipText[256];
 
         mu_swprintf(strTipText, I18N::Game::AGDD, dwSkillMana, dwMaxSkillMana);
-        RenderTipText((int)x - 20, (int)418, strTipText);
+        RenderTipText(static_cast<int>(x) - 20, 418, strTipText);
     }
 }
 
@@ -467,248 +610,27 @@ void SEASON3B::CNewUIMainFrameWindow::RenderGuageSD()
 
     if (wMaxShield > 0)
     {
-        fShield = (wMaxShield - wShield) / (float)wMaxShield;
+        fShield = (wMaxShield - wShield) / static_cast<float>(wMaxShield);
     }
 
     width = 16.f, height = 39.f;
-    x = 204; y = (float)REFERENCE_HEIGHT - 49.f;
+    x = 204;
+    y = static_cast<float>(REFERENCE_HEIGHT) - 49.f;
     fY = y + (fShield * height);
     fH = height - (fShield * height);
     fV = fShield;
 
     RenderBitmap(IMAGE_GAUGE_SD, x, fY, width, fH, 0.f, fV * height / 64.f, width / 16.f, (1.0f - fV) * height / 64.f);
-    SEASON3B::RenderNumber(x + 15, REFERENCE_HEIGHT - 18, (int)wShield);
+    SEASON3B::RenderNumber(x + 15, REFERENCE_HEIGHT - 18, static_cast<int>(wShield));
 
     height = 39.f;
-    y = (float)REFERENCE_HEIGHT - 10.f - 39.f;
+    y = static_cast<float>(REFERENCE_HEIGHT) - 10.f - 39.f;
     if (SEASON3B::CheckMouseIn(x, y, width, height) == true)
     {
         wchar_t strTipText[256];
 
         mu_swprintf(strTipText, I18N::Game::SDDD, wShield, wMaxShield);
-        RenderTipText((int)x - 20, (int)418, strTipText);
-    }
-}
-
-void SEASON3B::CNewUIMainFrameWindow::RenderExperience()
-{
-    __int64 wLevel;
-    __int64 dwNexExperience;
-    __int64 dwExperience;
-    double x, y, width, height;
-    const auto buildExpSegment = [](const double ratio, int& digit, double& fraction)
-    {
-        const double clampedRatio = std::clamp(ratio, 0.0, 1.0);
-        if (clampedRatio >= 1.0)
-        {
-            digit = 9;
-            fraction = 1.0;
-            return;
-        }
-
-        const double scaled = clampedRatio * 10.0;
-        digit = std::clamp(static_cast<int>(scaled), 0, 9);
-        fraction = scaled - static_cast<double>(static_cast<long long>(scaled));
-        fraction = std::clamp(fraction, 0.0, 1.0);
-    };
-
-    if (gCharacterManager.IsMasterExperienceActive(CharacterAttribute->Class, CharacterAttribute->Level) == true)
-    {
-        wLevel = (__int64)Master_Level_Data.nMLevel;
-        dwNexExperience = (__int64)Master_Level_Data.lNext_MasterLevel_Experince;
-        dwExperience = (__int64)Master_Level_Data.lMasterLevel_Experince;
-    }
-    else
-    {
-        wLevel = CharacterAttribute->Level;
-        dwNexExperience = CharacterAttribute->NextExperience;
-        dwExperience = CharacterAttribute->Experience;
-    }
-
-    if (gCharacterManager.IsMasterExperienceActive(CharacterAttribute->Class, CharacterAttribute->Level) == true)
-    {
-        x = 0; y = 470; width = 6; height = 4;
-
-        __int64 iTotalLevel = wLevel + 400;
-        __int64 iTOverLevel = iTotalLevel - 255;
-        __int64 iBaseExperience = 0;
-
-        __int64 iData_Master =	// A
-            (
-                (
-                    (__int64)9 + (__int64)iTotalLevel
-                    )
-                * (__int64)iTotalLevel
-                * (__int64)iTotalLevel
-                * (__int64)10
-                )
-            +
-            (
-                (
-                    (__int64)9 + (__int64)iTOverLevel
-                    )
-                * (__int64)iTOverLevel
-                * (__int64)iTOverLevel
-                * (__int64)1000
-                );
-        iBaseExperience = (iData_Master - (__int64)3892250000) / (__int64)2;	// B
-
-        const __int64 lowerBound = iBaseExperience;
-        __int64 upperBound = dwNexExperience;
-        if (upperBound < lowerBound)
-        {
-            upperBound = lowerBound;
-        }
-
-        const double fNeedExp = static_cast<double>(upperBound - lowerBound);
-        const double fClampedExp = std::clamp(static_cast<double>(dwExperience), static_cast<double>(lowerBound), static_cast<double>(upperBound));
-        const double fRatio = (fNeedExp > 0.0) ? std::clamp((fClampedExp - static_cast<double>(lowerBound)) / fNeedExp, 0.0, 1.0) : 0.0;
-        int iExp = 0;
-        double fProgress = 0.0;
-        buildExpSegment(fRatio, iExp, fProgress);
-
-        if (m_bExpEffect == true)
-        {
-            double fPreProgress = 0.f;
-            if (m_loPreExp < lowerBound)
-            {
-                x = 2.f; y = 473.f; width = fProgress * 629.f; height = 4.f;
-                RenderBitmap(IMAGE_MASTER_GAUGE_BAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-                RenderColorQuadARGB(x, y, width, height, 0x99FFFFFFu);
-            }
-            else
-            {
-                int iPreExpBarNum = 0;
-                if (fNeedExp > 0.f)
-                {
-                    const double fPreClampedExp = std::clamp(static_cast<double>(m_loPreExp), static_cast<double>(lowerBound), static_cast<double>(upperBound));
-                    const double fPreRatio = std::clamp((fPreClampedExp - static_cast<double>(lowerBound)) / fNeedExp, 0.0, 1.0);
-                    buildExpSegment(fPreRatio, iPreExpBarNum, fPreProgress);
-                }
-
-                if (iExp > iPreExpBarNum)
-                {
-                    x = 2.f; y = 473.f; width = fProgress * 629.f; height = 4.f;
-                    RenderBitmap(IMAGE_MASTER_GAUGE_BAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-                    RenderColorQuadARGB(x, y, width, height, 0x99FFFFFFu);
-                }
-                else
-                {
-                    double fGapProgress = fProgress - fPreProgress;
-                    fGapProgress = std::clamp(fGapProgress, 0.0, 1.0);
-                    x = 2.f; y = 473.f; width = (double)fPreProgress * (double)629.f; height = 4.f;
-                    RenderBitmap(IMAGE_MASTER_GAUGE_BAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-
-                    x += width; width = (double)fGapProgress * (double)629.f;
-                    RenderBitmap(IMAGE_MASTER_GAUGE_BAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-                    RenderColorQuadARGB(x, y, width, height, 0x99FFFFFFu);
-                }
-            }
-        }
-        else
-        {
-            x = 2.f; y = 473.f; width = fProgress * 629.f; height = 4.f;
-            RenderBitmap(IMAGE_MASTER_GAUGE_BAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-        }
-
-        x = 635.f; y = 469.f;
-        SEASON3B::RenderNumber(x, y, iExp);
-
-        x = 2.f; y = 473.f; width = 629.f; height = 4.f;
-        if (SEASON3B::CheckMouseIn(x, y, width, height) == true)
-        {
-            wchar_t strTipText[256];
-
-            mu_swprintf(strTipText, I18N::Game::EXPI64dI64d, dwExperience, dwNexExperience);
-            RenderTipText(280, 418, strTipText);
-        }
-    }
-    else
-    {
-        x = 0; y = 470; width = 6; height = 4;
-
-        __int64 iPriorLevel = wLevel - 1;
-        __int64 iPriorExperience = 0;
-
-        if (iPriorLevel > 0)
-        {
-            iPriorExperience = (9 + iPriorLevel) * iPriorLevel * iPriorLevel * 10;
-
-            if (iPriorLevel > 255)
-            {
-                const __int64 iLevelOverN = iPriorLevel - 255;
-                iPriorExperience += (9 + iLevelOverN) * iLevelOverN * iLevelOverN * 1000;
-            }
-        }
-
-        const __int64 lowerBound = iPriorExperience;
-        __int64 upperBound = dwNexExperience;
-        if (upperBound < lowerBound)
-        {
-            upperBound = lowerBound;
-        }
-
-        const double fNeedExp = static_cast<double>(upperBound - lowerBound);
-        const double fClampedExp = std::clamp(static_cast<double>(dwExperience), static_cast<double>(lowerBound), static_cast<double>(upperBound));
-        const double fRatio = (fNeedExp > 0.0) ? std::clamp((fClampedExp - static_cast<double>(lowerBound)) / fNeedExp, 0.0, 1.0) : 0.0;
-        int iExp = 0;
-        double fProgress = 0.0;
-        buildExpSegment(fRatio, iExp, fProgress);
-
-        if (m_bExpEffect == true)
-        {
-            double fPreProgress = 0.f;
-            if (m_dwPreExp < lowerBound)
-            {
-                x = 2.f; y = 473.f; width = fProgress * 629.f; height = 4.f;
-                RenderBitmap(IMAGE_GAUGE_EXBAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-                RenderColorQuadARGB(x, y, width, height, 0x66FFFFFFu);
-            }
-            else
-            {
-                int iPreExpBarNum = 0;
-                if (fNeedExp > 0.f)
-                {
-                    const double fPreClampedExp = std::clamp(static_cast<double>(m_dwPreExp), static_cast<double>(lowerBound), static_cast<double>(upperBound));
-                    const double fPreRatio = std::clamp((fPreClampedExp - static_cast<double>(lowerBound)) / fNeedExp, 0.0, 1.0);
-                    buildExpSegment(fPreRatio, iPreExpBarNum, fPreProgress);
-                }
-
-                if (iExp > iPreExpBarNum)
-                {
-                    x = 2.f; y = 473.f; width = fProgress * 629.f; height = 4.f;
-                    RenderBitmap(IMAGE_GAUGE_EXBAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-                    RenderColorQuadARGB(x, y, width, height, 0x66FFFFFFu);
-                }
-                else
-                {
-                    double fGapProgress = fProgress - fPreProgress;
-                    fGapProgress = std::clamp(fGapProgress, 0.0, 1.0);
-                    x = 2.f; y = 473.f; width = fPreProgress * 629.f; height = 4.f;
-                    RenderBitmap(IMAGE_GAUGE_EXBAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-                    x += width; width = fGapProgress * 629.f;
-                    RenderBitmap(IMAGE_GAUGE_EXBAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-                    RenderColorQuadARGB(x, y, width, height, 0x66FFFFFFu);
-                }
-            }
-        }
-        else
-        {
-            x = 2.f; y = 473.f; width = fProgress * 629.f; height = 4.f;
-            RenderBitmap(IMAGE_GAUGE_EXBAR, x, y, width, height, 0.f, 0.f, 6.f / 8.f, 4.f / 4.f);
-        }
-
-        x = 635.f; y = 469.f;
-        SEASON3B::RenderNumber(x, y, iExp);
-
-        x = 2.f; y = 473.f; width = 629.f; height = 4.f;
-        if (SEASON3B::CheckMouseIn(x, y, width, height) == true)
-        {
-            wchar_t strTipText[256];
-
-            mu_swprintf(strTipText, I18N::Game::EXPI64dI64d, dwExperience, dwNexExperience);
-            RenderTipText(280, 418, strTipText);
-        }
+        RenderTipText(static_cast<int>(x) - 20, 418, strTipText);
     }
 }
 
@@ -930,6 +852,8 @@ bool SEASON3B::CNewUIMainFrameWindow::UpdateKeyEvent()
 
 bool SEASON3B::CNewUIMainFrameWindow::Update()
 {
+    UpdateExperienceDisplay();
+
     if (m_bExpEffect == true)
     {
         if (timeGetTime() - m_dwExpEffectTime > 2000)
@@ -2628,7 +2552,7 @@ void SEASON3B::CNewUISkillList::RenderSkillDelay(int iIndex, float x, float y, f
 
         int iSkillMaxDelay = SkillAttribute[iSkillType].Delay;
 
-        auto fPersent = (float)(iSkillDelay / (float)iSkillMaxDelay);
+        auto fPersent = static_cast<float>(iSkillDelay / static_cast<float>(iSkillMaxDelay));
 
         EnableAlphaTest();
         float fdeltaH = height * fPersent;
@@ -2652,7 +2576,7 @@ void SEASON3B::CNewUISkillList::UI2DEffectCallback(LPVOID pClass, DWORD dwParamA
 {
     if (pClass)
     {
-        auto* pSkillList = (CNewUISkillList*)(pClass);
+        auto* pSkillList = static_cast<CNewUISkillList*>(pClass);
         pSkillList->RenderSkillInfo();
     }
 }

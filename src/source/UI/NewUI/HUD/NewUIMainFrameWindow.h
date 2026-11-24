@@ -247,6 +247,8 @@ namespace SEASON3B
         void RenderGuageAG();
         void RenderGuageSD();
         void RenderExperience();
+        void RenderExperienceTicks(unsigned int color, float limitX);
+        void UpdateExperienceDisplay();
         void RenderHotKeyItemCount();
         void RenderButtons();
         void RenderCharInfoButton();
@@ -262,6 +264,10 @@ namespace SEASON3B
         CNewUI3DRenderMng* m_pNewUI3DRenderMng;
 
         CNewUIItemHotKey m_ItemHotKey;
+
+        double m_dExpShown;
+        bool m_bExpShownValid;
+        DWORD m_dwExpShownTick;
 
         bool m_bExpEffect;
         DWORD m_dwExpEffectTime;
