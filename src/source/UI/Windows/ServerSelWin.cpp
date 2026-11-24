@@ -540,10 +540,13 @@ bool CServerSelWin::SelectServer(const wchar_t* groupName, int serverIndex)
 
 void CServerSelWin::RenderServerAccents()
 {
-    // 640x480 layout units, like the rest of the window. Cheap: one wash, four border lines and two texts per entry.
-    constexpr float PULSE_PERIOD_MS = 2600.0f;
+    // 640x480 layout units, like the rest of the window. The button keeps its own beveled frame art; the colour is a
+    // soft light inside it: a glow rising from the bottom edge, a bloom along the left and right edges and a polished
+    // highlight at the top. Cheap: eight quads and two texts per entry.
+    constexpr float PULSE_PERIOD_MS = 3200.0f;
     constexpr float TWO_PI = 6.2831853f;
-    constexpr float INSET = 3.0f;
+    constexpr float FRAME = 3.0f;
+    constexpr float BLOOM_WIDTH = 34.0f;
 
     const float pulse = 0.5f + 0.5f * std::sin(static_cast<float>(GetTickCount() % 100000u) * TWO_PI / PULSE_PERIOD_MS);
 
@@ -556,27 +559,39 @@ void CServerSelWin::RenderServerAccents()
         const bool hover = m_aServerBtn[i].CursorInObject() != FALSE;
         const bool pressed = hover && CInput::Instance().IsLBtnDn();
 
-        const float x = static_cast<float>(m_aServerBtn[i].GetXPos()) / g_fScreenRate_x;
-        const float y = static_cast<float>(m_aServerBtn[i].GetYPos()) / g_fScreenRate_y;
-        const float w = static_cast<float>(m_aServerBtn[i].GetWidth()) / g_fScreenRate_x;
-        const float h = static_cast<float>(m_aServerBtn[i].GetHeight()) / g_fScreenRate_y;
+        const float x = static_cast<float>(m_aServerBtn[i].GetXPos()) / g_fScreenRate_x + FRAME;
+        const float y = static_cast<float>(m_aServerBtn[i].GetYPos()) / g_fScreenRate_y + FRAME;
+        const float w = static_cast<float>(m_aServerBtn[i].GetWidth()) / g_fScreenRate_x - 2 * FRAME;
+        const float h = static_cast<float>(m_aServerBtn[i].GetHeight()) / g_fScreenRate_y - 2 * FRAME;
 
-        const unsigned int rgb = accent.glow & 0x00FFFFFFu;
-        const auto withAlpha = [rgb](float a) { return (static_cast<unsigned int>(a) << 24) | rgb; };
-
-        // A soft wash inside the frame and a thin border that breathe slowly; both stronger under the cursor.
-        const float wash = (hover ? 56.0f : 26.0f) + pulse * (hover ? 22.0f : 16.0f);
-        const float edge = (hover ? 170.0f : 95.0f) + pulse * 60.0f;
+        // Brighter under the cursor, dimmer while pressed; the pulse only moves the glow a little.
+        const float strength = (pressed ? 0.6f : (hover ? 1.5f : 1.0f)) * (0.88f + 0.24f * pulse);
+        const auto glow = [&accent](float alpha)
+        {
+            const float clamped = std::min(alpha, 255.0f);
+            return (static_cast<unsigned int>(clamped) << 24) | accent.glow;
+        };
+        const auto white = [](float alpha) { return (static_cast<unsigned int>(alpha) << 24) | 0x00FFF2DCu; };
 
         EnableAlphaTest();
-        RenderColorQuadARGB(x + INSET, y + INSET, w - 2 * INSET, h - 2 * INSET, withAlpha(wash));
-        RenderColorQuadARGB(x + INSET, y + INSET, w - 2 * INSET, 1.0f, withAlpha(edge));
-        RenderColorQuadARGB(x + INSET, y + h - INSET - 1, w - 2 * INSET, 1.0f, withAlpha(edge));
-        RenderColorQuadARGB(x + INSET, y + INSET, 1.0f, h - 2 * INSET, withAlpha(edge));
-        RenderColorQuadARGB(x + w - INSET - 1, y + INSET, 1.0f, h - 2 * INSET, withAlpha(edge));
+        // Glow rising from the bottom edge.
+        RenderColorGradientARGB(x, y, w, h, glow(8.0f * strength), glow(8.0f * strength), glow(120.0f * strength),
+                                glow(120.0f * strength));
+        // Bloom along the two side edges, fading towards the middle.
+        RenderColorGradientARGB(x, y, BLOOM_WIDTH, h, glow(80.0f * strength), glow(0.0f), glow(0.0f),
+                                glow(80.0f * strength));
+        RenderColorGradientARGB(x + w - BLOOM_WIDTH, y, BLOOM_WIDTH, h, glow(0.0f), glow(80.0f * strength),
+                                glow(80.0f * strength), glow(0.0f));
+        // Polished-metal gloss on the upper half.
+        RenderColorGradientARGB(x, y, w, h * 0.5f, white(30.0f), white(30.0f), white(0.0f), white(0.0f));
+        // A thin highlight bar under the top bevel, brightest in the middle.
+        RenderColorGradientARGB(x + 6.0f, y + 1.0f, (w - 12.0f) * 0.5f, 1.0f, white(0.0f), white(70.0f), white(70.0f),
+                                white(0.0f));
+        RenderColorGradientARGB(x + 6.0f + (w - 12.0f) * 0.5f, y + 1.0f, (w - 12.0f) * 0.5f, 1.0f, white(70.0f),
+                                white(0.0f), white(0.0f), white(70.0f));
         EndRenderColor();
 
-        // The label: the same font for every entry, centred in the button both ways, with a dark shadow.
+        // The label: the same font as the other buttons, centred in the frame both ways, with a soft shadow.
         g_pRenderText->SetFont(g_hFixFont);
         g_pRenderText->SetBgColor(0);
         const SIZE size =
@@ -584,10 +599,11 @@ void CServerSelWin::RenderServerAccents()
         const int textY = static_cast<int>(y + (h - static_cast<float>(size.cy)) * 0.5f) + (pressed ? 1 : 0);
         const int textX = static_cast<int>(x);
         const int textWidth = static_cast<int>(w);
+        const DWORD rgb = hover ? accent.textHover : accent.text;
 
-        g_pRenderText->SetTextColor(0xC0000000u);
+        g_pRenderText->SetTextColor(ARGB(150, 0, 0, 0));
         g_pRenderText->RenderText(textX + 1, textY + 1, m_aServerLabel[i].c_str(), textWidth, 0, RT3_SORT_CENTER);
-        g_pRenderText->SetTextColor(hover ? accent.textHover : accent.text);
+        g_pRenderText->SetTextColor(ARGB(255, (rgb >> 16) & 0xFFu, (rgb >> 8) & 0xFFu, rgb & 0xFFu));
         g_pRenderText->RenderText(textX, textY, m_aServerLabel[i].c_str(), textWidth, 0, RT3_SORT_CENTER);
     }
 }

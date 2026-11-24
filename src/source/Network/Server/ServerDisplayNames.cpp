@@ -19,10 +19,11 @@ namespace
     constexpr int SERVER_DISPLAY_RANKS[] = {2, 1};
     static_assert(std::size(SERVER_DISPLAY_RANKS) == std::size(SERVER_LABELS));
 
-    // The colours of each server, parallel to SERVER_LABELS: "Inferno 500x" burns deep red, "Ember 5x" glows orange.
+    // The colours of each server, parallel to SERVER_LABELS: "Inferno 500x" burns deep crimson, "Ember 5x" glows ember
+    // orange; both labels are warm and light.
     constexpr ServerAccent SERVER_ACCENTS[] = {
-        {0xFFE0301Eu, 0xFFFF8070u, 0xFFFFC0B0u},
-        {0xFFFF9A1Eu, 0xFFFFBE5Au, 0xFFFFE6A0u},
+        {0xD2191Eu, 0xFFD6C4u, 0xFFECE2u},
+        {0xFF7814u, 0xFFE2A0u, 0xFFF2D0u},
     };
     static_assert(std::size(SERVER_ACCENTS) == std::size(SERVER_LABELS));
 }

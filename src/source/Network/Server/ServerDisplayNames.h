@@ -15,8 +15,8 @@ namespace Network::ServerNames
     // keep their number as position, after the ones that have one.
     int ServerDisplayRank(int serverNumberInGroup);
 
-    // The colours a server entry is drawn with in the server select menu (0xAARRGGBB). `glow` tints the button and its
-    // border, `text` is the label colour and `textHover` the label colour under the cursor.
+    // The colours a server entry is drawn with in the server select menu (0xRRGGBB). `glow` is the colour of the soft
+    // light inside the button frame, `text` the label colour and `textHover` the label colour under the cursor.
     struct ServerAccent
     {
         unsigned int glow;
