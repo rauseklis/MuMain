@@ -34,6 +34,7 @@ protected:
     std::size_t m_textColorCount{0};
     DWORD m_textColor{0};
     float m_fTextAddYPos{0.0f};
+    bool m_bArtVisible{true};
 
 public:
     CButton();
@@ -58,6 +59,11 @@ public:
     bool IsEnable()
     {
         return m_bEnable;
+    }
+    // A button whose art is switched off still takes hover and clicks; its owner draws it.
+    void SetArtVisible(bool bVisible)
+    {
+        m_bArtVisible = bVisible;
     }
     void SetActive(bool bActive = true)
     {
