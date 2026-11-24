@@ -338,10 +338,10 @@ namespace
 
     constexpr int WINDOW_WIDTH = 190;
     constexpr int WINDOW_HEIGHT = 419;
-    constexpr int CLOSE_BUTTON_X_LOCAL = 73;
-    constexpr int CLOSE_BUTTON_Y_LOCAL = 391;
-    constexpr int CLOSE_BUTTON_WIDTH = 44;
-    constexpr int CLOSE_BUTTON_HEIGHT = 24;
+    constexpr int CLOSE_BUTTON_X_LOCAL = 76;
+    constexpr int CLOSE_BUTTON_Y_LOCAL = 393;
+    constexpr int CLOSE_BUTTON_WIDTH = 38;
+    constexpr int CLOSE_BUTTON_HEIGHT = 21;
     constexpr int CLOSE_BUTTON_SOURCE_WIDTH = 54;
     constexpr int CLOSE_BUTTON_SOURCE_HEIGHT = 30;
     constexpr int PAGER_Y_LOCAL = 375;
@@ -1058,7 +1058,7 @@ void SEASON3B::CNewUIOptionWindow::RenderButtons()
 {
     // CNewUIButton's ordinary renderer crops sprites when its destination is
     // smaller than the source. Draw the same state frame through the stretch
-    // helper so the 54x30 artwork scales cleanly to this compact 44x24 button.
+    // helper so the 54x30 artwork scales cleanly to this compact 38x21 button.
     int closeFrame = 0;
     if (m_BtnClose.GetBTState() == BUTTON_STATE_OVER)
         closeFrame = 1;
