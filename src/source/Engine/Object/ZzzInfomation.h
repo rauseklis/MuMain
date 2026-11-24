@@ -91,6 +91,8 @@ public:
     void CalulateMasterLevelNextExperience();
     void CalculateAll();
     void CalculateBasicState();
+    bool HasPlusThirteenSet() const;
+    bool HasPlusThirteenWeapon() const;
     void getAllAddStateOnlyExValues(int& iAddStrengthExValues, int& iAddDexterityExValues, int& iAddVitalityExValues,
                                     int& iAddEnergyExValues, int& iAddCharismaExValues);
 };
