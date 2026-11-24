@@ -230,3 +230,18 @@ TEST_CASE("Multi Shot's fan alternates sides, starting close to the aim")
     CHECK(MultiShotFanOffset(6) == 35.0f);
     CHECK(MultiShotFanOffset(4) == -35.0f);
 }
+
+TEST_CASE("Evil Spirit joints break the head-on first turn the same way")
+{
+    using Render::Effects::SkillTiming::HeadOnTurnNudge;
+    constexpr float cardinalAngles[] = {0.0f, 90.0f, 180.0f, 270.0f};
+    for (const float heading : cardinalAngles)
+    {
+        const float target = std::fmod(heading + 180.0f, 360.0f);
+        CHECK(HeadOnTurnNudge(heading, target) < 0.0f);
+        CHECK(HeadOnTurnNudge(heading, target + 0.0004f) < 0.0f);
+        CHECK(HeadOnTurnNudge(heading, std::fmod(target + 359.9996f, 360.0f)) < 0.0f);
+    }
+    CHECK(HeadOnTurnNudge(0.0f, 90.0f) == 0.0f);
+    CHECK(HeadOnTurnNudge(45.0f, 200.0f) == 0.0f);
+}

@@ -70,6 +70,25 @@ inline float CardinalAngle(int index)
     return static_cast<float>((index % 4) * 90);
 }
 
+// Evil Spirit's four joints start on top of the caster, so on the first frame the target lies exactly behind each
+// one (180 degrees off). Which way the joint then turns was decided by float noise, and 3 of the 4 spirits curled
+// the same way: the whole cast leaned to the right of the screen. This returns the fixed push (in degrees) that
+// makes every spirit break that tie the same way, so the four cardinal spirits are rotated copies of each other.
+constexpr float HeadOnTieTolerance = 1.0f;
+constexpr float HeadOnTieNudge = -1.0f;
+
+inline float HeadOnTurnNudge(float headingDegrees, float targetDegrees)
+{
+    constexpr float halfTurn = 180.0f;
+    constexpr float fullTurn = 360.0f;
+    float delta = std::fmod(targetDegrees - headingDegrees, fullTurn);
+    if (delta < 0.0f)
+    {
+        delta += fullTurn;
+    }
+    return std::fabs(delta - halfTurn) < HeadOnTieTolerance ? HeadOnTieNudge : 0.0f;
+}
+
 // Returns the number of legacy 25 Hz events due now, then advances the phase
 // by this rendered frame. Set phase to 1 for an event on the first update.
 inline int ReferenceEventsDue(float& phase, float frameFactor)
