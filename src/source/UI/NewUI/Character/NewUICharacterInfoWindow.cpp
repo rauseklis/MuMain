@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "Network/Server/ServerDisplayNames.h"
+#include "GameLogic/Items/PlusThirteenBonus.h"
 #include "UI/Chat/Chat.h"
 #include "UI/NewUI/Character/NewUICharacterInfoWindow.h"
 #include "UI/NewUI/NewUISystem.h"
@@ -1145,6 +1146,12 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
         CharacterMachine->CalculateAll();
         wVitality = CharacterAttribute->Vitality + CharacterAttribute->AddVitality;
         g_pRenderText->SetTextColor(100, 150, 255, 255);
+    }
+    else if (CharacterAttribute->AddVitality == GameLogic::Items::PlusThirteenSetVitality &&
+             CharacterMachine->HasPlusThirteenSet())
+    {
+        // Only the +13 set bonus is active: bright gold, so the raised number stands out from the plain yellow.
+        g_pRenderText->SetTextColor(255, 200, 40, 255);
     }
     else if (CharacterAttribute->AddVitality)
     {

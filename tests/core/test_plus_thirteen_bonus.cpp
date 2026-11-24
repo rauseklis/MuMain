@@ -64,3 +64,14 @@ TEST_CASE("Items in the wrong slot do not count")
     pieces[1].type = ITEM_PANTS + BoneSet;
     CHECK_FALSE(HasPlusThirteenSet(pieces));
 }
+
+TEST_CASE("Only a weapon of at least +13 gets the weapon bonus")
+{
+    using GameLogic::Items::IsPlusThirteenWeapon;
+    CHECK(IsPlusThirteenWeapon(ITEM_SWORD + 3, 13));
+    CHECK(IsPlusThirteenWeapon(ITEM_STAFF + 1, 15));
+    CHECK_FALSE(IsPlusThirteenWeapon(ITEM_SWORD + 3, 12));
+    CHECK_FALSE(IsPlusThirteenWeapon(ITEM_SHIELD + 1, 13));
+    CHECK_FALSE(IsPlusThirteenWeapon(ITEM_HELM + BoneSet, 13));
+    CHECK_FALSE(IsPlusThirteenWeapon(-1, 13));
+}

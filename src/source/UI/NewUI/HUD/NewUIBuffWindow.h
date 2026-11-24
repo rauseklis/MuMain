@@ -16,6 +16,7 @@ namespace SEASON3B
             IMAGE_BUFF_STATUS2,
             IMAGE_BUFF_STATUS3,
             IMAGE_BUFF_TOOLTIP_ORNAMENTS,
+            IMAGE_BUFF_PLUS13_ICONS,
         };
 
         enum BUFF_RENDER
@@ -55,8 +56,11 @@ namespace SEASON3B
         void RenderTwoHandedBonus(BUFF_RENDER renderstate, int index);
         bool HasPlusThirteenSetBonus() const;
         void RenderPlusThirteenSetBonus(BUFF_RENDER renderstate, int index);
-        void RenderBonusBadge(BUFF_RENDER renderstate, int index, const wchar_t* label, const wchar_t* const* lines,
-                              int lineCount);
+        bool HasPlusThirteenWeaponBonus() const;
+        void RenderPlusThirteenWeaponBonus(BUFF_RENDER renderstate, int index);
+        // A badge uses the scroll artwork with a label, or, with iconCell >= 0, its own cell of the +13 icon atlas.
+        void RenderBonusBadge(BUFF_RENDER renderstate, int index, const wchar_t* label, int iconCell,
+                              const wchar_t* const* lines, int lineCount);
         void RenderBuffIcon(eBuffState& eBuffType, float x, float y, float width, float height);
         void RenderBuffTooltip(eBuffClass& eBuffClassType, eBuffState& eBuffType, float x, float y);
         bool SetDisableRenderBuff(const eBuffState& _BuffState);

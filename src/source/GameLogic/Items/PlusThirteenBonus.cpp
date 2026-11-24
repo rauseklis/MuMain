@@ -29,4 +29,9 @@ bool HasPlusThirteenSet(const EquippedPiece (&pieces)[5])
 
     return true;
 }
+
+bool IsPlusThirteenWeapon(int type, int level)
+{
+    return type >= 0 && type / MAX_ITEM_INDEX < ITEM_GROUP_SHIELD && level >= PlusThirteenLevel;
+}
 } // namespace GameLogic::Items

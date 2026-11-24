@@ -44,8 +44,18 @@ namespace
     constexpr wchar_t PlusThirteenVitalityText[] = L"Vitality +100";
     constexpr wchar_t PlusThirteenIgnoreDefenceText[] = L"Ignore opponent's defence +5%";
     constexpr wchar_t PlusThirteenCondition[] = L"Active while a full +13 armor set of one kind is worn";
-    constexpr wchar_t PlusThirteenLabel[] = L"+13";
     constexpr int PlusThirteenTooltipLines = 4;
+    constexpr wchar_t PlusThirteenWeaponTitle[] = L"+13 weapon bonus";
+    constexpr wchar_t PlusThirteenWeaponChanceText[] = L"6% chance of a crimson strike";
+    constexpr wchar_t PlusThirteenWeaponDamageText[] = L"Deals 50% more than an excellent hit";
+    constexpr wchar_t PlusThirteenWeaponCondition[] = L"Active while a +13 weapon is equipped";
+    constexpr int PlusThirteenWeaponTooltipLines = 4;
+    // The +13 icon atlas: two 20 x 28 icons, 32 texels apart, in a 64 x 32 texture.
+    constexpr float PlusThirteenAtlasWidth = 64.0f;
+    constexpr float PlusThirteenAtlasHeight = 32.0f;
+    constexpr float PlusThirteenCellStride = 32.0f;
+    constexpr int PlusThirteenSetCell = 0;
+    constexpr int PlusThirteenWeaponCell = 1;
 };
 
 SEASON3B::CNewUIBuffWindow::CNewUIBuffWindow()
@@ -304,6 +314,15 @@ bool SEASON3B::CNewUIBuffWindow::UpdateMouseEvent()
         {
             return false;
         }
+        ++badgeIndex;
+    }
+    if (HasPlusThirteenWeaponBonus())
+    {
+        const POINT position = GetBuffPosition(badgeIndex);
+        if (SEASON3B::CheckMouseIn(position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT))
+        {
+            return false;
+        }
     }
     return true;
 }
@@ -388,25 +407,19 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffStatus(BUFF_RENDER renderstate)
     }
     const int twoHandedIndex = static_cast<int>(buffstate.size());
     RenderTwoHandedBonus(renderstate, twoHandedIndex);
-    RenderPlusThirteenSetBonus(renderstate, twoHandedIndex + (HasTwoHandedBonus() ? 1 : 0));
+    const int setIndex = twoHandedIndex + (HasTwoHandedBonus() ? 1 : 0);
+    RenderPlusThirteenSetBonus(renderstate, setIndex);
+    RenderPlusThirteenWeaponBonus(renderstate, setIndex + (HasPlusThirteenSetBonus() ? 1 : 0));
 }
 
 bool SEASON3B::CNewUIBuffWindow::HasPlusThirteenSetBonus() const
 {
-    if (!CharacterMachine)
-    {
-        return false;
-    }
+    return CharacterMachine && CharacterMachine->HasPlusThirteenSet();
+}
 
-    const int firstSlot = EQUIPMENT_HELM;
-    GameLogic::Items::EquippedPiece pieces[5];
-    for (int i = 0; i < 5; ++i)
-    {
-        const ITEM& item = CharacterMachine->Equipment[firstSlot + i];
-        pieces[i] = {item.Type, item.Level, item.Durability};
-    }
-
-    return GameLogic::Items::HasPlusThirteenSet(pieces);
+bool SEASON3B::CNewUIBuffWindow::HasPlusThirteenWeaponBonus() const
+{
+    return CharacterMachine && CharacterMachine->HasPlusThirteenWeapon();
 }
 
 bool SEASON3B::CNewUIBuffWindow::HasTwoHandedBonus() const
@@ -444,7 +457,7 @@ void SEASON3B::CNewUIBuffWindow::RenderTwoHandedBonus(BUFF_RENDER renderstate, i
 
     const wchar_t* lines[TwoHandedTooltipLines] = {TwoHandedBonusTitle, PhysicalBonusText, WizardryBonusText,
                                                    TwoHandedBonusCondition};
-    RenderBonusBadge(renderstate, index, TwoHandedBonusLabel, lines, TwoHandedTooltipLines);
+    RenderBonusBadge(renderstate, index, TwoHandedBonusLabel, -1, lines, TwoHandedTooltipLines);
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderPlusThirteenSetBonus(BUFF_RENDER renderstate, int index)
@@ -456,13 +469,33 @@ void SEASON3B::CNewUIBuffWindow::RenderPlusThirteenSetBonus(BUFF_RENDER renderst
 
     const wchar_t* lines[PlusThirteenTooltipLines] = {PlusThirteenTitle, PlusThirteenVitalityText,
                                                       PlusThirteenIgnoreDefenceText, PlusThirteenCondition};
-    RenderBonusBadge(renderstate, index, PlusThirteenLabel, lines, PlusThirteenTooltipLines);
+    RenderBonusBadge(renderstate, index, nullptr, PlusThirteenSetCell, lines, PlusThirteenTooltipLines);
+}
+
+void SEASON3B::CNewUIBuffWindow::RenderPlusThirteenWeaponBonus(BUFF_RENDER renderstate, int index)
+{
+    if (!HasPlusThirteenWeaponBonus())
+    {
+        return;
+    }
+
+    const wchar_t* lines[PlusThirteenWeaponTooltipLines] = {PlusThirteenWeaponTitle, PlusThirteenWeaponChanceText,
+                                                            PlusThirteenWeaponDamageText, PlusThirteenWeaponCondition};
+    RenderBonusBadge(renderstate, index, nullptr, PlusThirteenWeaponCell, lines, PlusThirteenWeaponTooltipLines);
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderBonusBadge(BUFF_RENDER renderstate, int index, const wchar_t* label,
-                                                  const wchar_t* const* lines, int lineCount)
+                                                  int iconCell, const wchar_t* const* lines, int lineCount)
 {
     const POINT position = GetBuffPosition(index);
+    if (renderstate == BUFF_RENDER_ICON && iconCell >= 0)
+    {
+        const float u = iconCell * PlusThirteenCellStride / PlusThirteenAtlasWidth;
+        RenderBitmap(IMAGE_BUFF_PLUS13_ICONS, position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT, u, 0.0f,
+                     BUFF_SOURCE_WIDTH / PlusThirteenAtlasWidth, BUFF_SOURCE_HEIGHT / PlusThirteenAtlasHeight);
+        return;
+    }
+
     if (renderstate == BUFF_RENDER_ICON)
     {
         eBuffState artwork = eBuff_Scroll_Strengthen;
@@ -593,10 +626,12 @@ void SEASON3B::CNewUIBuffWindow::LoadImages()
     LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon2.jpg", IMAGE_BUFF_STATUS2, GL_LINEAR);
     LoadBitmap(L"Interface\\BuffDetails\\newui_statusicon3.jpg", IMAGE_BUFF_STATUS3, GL_LINEAR);
     LoadBitmap(L"Interface\\BuffDetails\\tooltip_ornaments.tga", IMAGE_BUFF_TOOLTIP_ORNAMENTS, GL_LINEAR);
+    LoadBitmap(L"Interface\\BuffDetails\\plus13_icons.tga", IMAGE_BUFF_PLUS13_ICONS, GL_LINEAR);
 }
 
 void SEASON3B::CNewUIBuffWindow::UnloadImages()
 {
+    DeleteBitmap(IMAGE_BUFF_PLUS13_ICONS);
     DeleteBitmap(IMAGE_BUFF_TOOLTIP_ORNAMENTS);
     DeleteBitmap(IMAGE_BUFF_STATUS3);
     DeleteBitmap(IMAGE_BUFF_STATUS2);

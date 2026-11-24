@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "Engine/Object/ZzzInfomation.h"
 #include "I18N/All.h"
+#include "GameLogic/Items/PlusThirteenBonus.h"
 
 #include <codecvt>
 #include <sstream>
@@ -3468,8 +3469,39 @@ bool CHARACTER_MACHINE::IsZeroDurability()
     return  false;
 }
 
+bool CHARACTER_MACHINE::HasPlusThirteenSet() const
+{
+    GameLogic::Items::EquippedPiece pieces[5];
+    for (int i = 0; i < 5; ++i)
+    {
+        const ITEM& item = Equipment[EQUIPMENT_HELM + i];
+        pieces[i] = {item.Type, item.Level, item.Durability};
+    }
+
+    return GameLogic::Items::HasPlusThirteenSet(pieces);
+}
+
+bool CHARACTER_MACHINE::HasPlusThirteenWeapon() const
+{
+    for (const int slot : {EQUIPMENT_WEAPON_RIGHT, EQUIPMENT_WEAPON_LEFT})
+    {
+        const ITEM& item = Equipment[slot];
+        if (GameLogic::Items::IsPlusThirteenWeapon(item.Type, item.Level))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void CHARACTER_MACHINE::CalculateBasicState()
 {
+    if (HasPlusThirteenSet())
+    {
+        Character.AddVitality += static_cast<WORD>(GameLogic::Items::PlusThirteenSetVitality);
+    }
+
     if (g_isCharacterBuff((&Hero->Object), eBuff_SecretPotion1))
     {
         auto Item_data = g_pItemAddOptioninfo->GetItemAddOtioninfo(ITEM_ELIXIR_OF_STRENGTH);
