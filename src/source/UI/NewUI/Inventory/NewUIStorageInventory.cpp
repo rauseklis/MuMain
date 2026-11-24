@@ -63,13 +63,17 @@ bool CNewUIStorageInventory::Create(CNewUIManager* pNewUIMng, int x, int y)
     {
         m_abtn[i].ChangeButtonImgState(true, IMAGE_STORAGE_BTN_INSERT_ZEN + i);
         m_abtn[i].ChangeToolTipText(I18N::Game::LookupSlot(anToolTipText[i]), true);
+        m_abtn[i].SetSourceFrameSize(BOTTOM_BTN_SOURCE_WIDTH, BOTTOM_BTN_SOURCE_HEIGHT);
     }
 
     m_BtnExpand.ChangeButtonImgState(true, IMAGE_STORAGE_EXPAND_BTN, false);
     m_BtnExpand.ChangeToolTipText(&I18N::Game::OpeningAnExpandedVaultH, true);
+    m_BtnExpand.SetSourceFrameSize(BOTTOM_BTN_SOURCE_WIDTH, BOTTOM_BTN_SOURCE_HEIGHT);
 
     m_BtnVaultPrev.ChangeButtonImgState(true, IMAGE_STORAGE_VAULT_BTN_L, false);
     m_BtnVaultNext.ChangeButtonImgState(true, IMAGE_STORAGE_VAULT_BTN_R, false);
+    m_BtnVaultPrev.SetSourceFrameSize(VAULT_BTN_SOURCE_WIDTH, BOTTOM_BTN_SOURCE_HEIGHT);
+    m_BtnVaultNext.SetSourceFrameSize(VAULT_BTN_SOURCE_WIDTH, BOTTOM_BTN_SOURCE_HEIGHT);
 
     m_bLock = false;
     SetItemAutoMove(false);
@@ -102,14 +106,14 @@ void CNewUIStorageInventory::SetPos(int x, int y)
         m_pNewInventoryCtrl->SetPos(x + 15, y + 36);
     }
 
-    constexpr int xOffsetPerButton = 37;
-    constexpr int xFirstButton = 13;
     for (int i = BTN_INSERT_ZEN; i < MAX_BTN; ++i)
     {
-        m_abtn[i].ChangeButtonInfo(x + xFirstButton + i * xOffsetPerButton, y + 391, 36, 29);
+        m_abtn[i].ChangeButtonInfo(x + BOTTOM_BTN_FIRST_X + i * BOTTOM_BTN_STEP, y + BOTTOM_BTN_Y, BOTTOM_BTN_WIDTH,
+                                   BOTTOM_BTN_HEIGHT);
     }
 
-    m_BtnExpand.ChangeButtonInfo(x + xFirstButton + MAX_BTN * xOffsetPerButton, y + 391, 36, 29);
+    m_BtnExpand.ChangeButtonInfo(x + BOTTOM_BTN_FIRST_X + MAX_BTN * BOTTOM_BTN_STEP, y + BOTTOM_BTN_Y, BOTTOM_BTN_WIDTH,
+                                 BOTTOM_BTN_HEIGHT);
     m_BtnVaultPrev.ChangeButtonInfo(x + VAULT_BTN_PREV_X, y + VAULT_BTN_Y, VAULT_BTN_WIDTH, VAULT_BTN_HEIGHT);
     m_BtnVaultNext.ChangeButtonInfo(x + VAULT_BTN_NEXT_X, y + VAULT_BTN_Y, VAULT_BTN_WIDTH, VAULT_BTN_HEIGHT);
 }
@@ -242,14 +246,14 @@ void CNewUIStorageInventory::RenderText()
 
     const __int64 storageZen = CharacterMachine->StorageGold;
     ConvertGold64(storageZen, szTemp);
-    g_pRenderText->SetTextColor(getGoldColor((DWORD)std::min<__int64>(storageZen, 0xFFFFFFFF)));
+    g_pRenderText->SetTextColor(getGoldColor(static_cast<DWORD>(std::min<__int64>(storageZen, 0xFFFFFFFF))));
     g_pRenderText->RenderText(
         m_Pos.x + 168, m_Pos.y + 342 + 8, szTemp, 0, 0, RT3_WRITE_RIGHT_TO_LEFT);
 
     g_pRenderText->SetTextColor(240, 64, 64, 255);
     g_pRenderText->RenderText(m_Pos.x + 10 + 15, m_Pos.y + 342 + 29, I18N::Game::StorageFee);
 
-    __int64 iTotalLevel = (__int64)CharacterAttribute->Level + Master_Level_Data.nMLevel;
+    __int64 iTotalLevel = static_cast<__int64>(CharacterAttribute->Level) + Master_Level_Data.nMLevel;
 
     nTempZen = int(double(iTotalLevel) * double(iTotalLevel) * 0.04);
     nTempZen += m_bLock ? int(CharacterAttribute->Level) * 2 : 0;

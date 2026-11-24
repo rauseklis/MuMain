@@ -286,6 +286,11 @@ void SEASON3B::CNewUIButton::ChangeButtonInfo(int x, int y, int sx, int sy)
     SetSize(sx, sy);
 }
 
+void SEASON3B::CNewUIButton::SetSourceFrameSize(int sourceWidth, int sourceHeight)
+{
+    m_SourceFrameSize = {sourceWidth, sourceHeight};
+}
+
 void SEASON3B::CNewUIButton::SetNineSliceSkin(const UI::NineSlice::ButtonSkin* skin)
 {
     m_pSkin = skin;
@@ -384,12 +389,12 @@ void CNewUIButton::ChangeAlpha(unsigned char fAlpha, bool isfontalph)
 void CNewUIButton::ChangeAlpha(float fAlpha, bool isfontalph)
 {
     m_CurImgColor &= ~(0xff << 24);
-    m_CurImgColor |= (static_cast<unsigned char>((float)(0xff) * fAlpha) << 24);
+    m_CurImgColor |= (static_cast<unsigned char>(255.0f * fAlpha) << 24);
 
     if (isfontalph)
     {
         m_NameColor &= ~(0xff << 24);
-        m_NameColor |= (static_cast<unsigned char>((float)(0xff) * fAlpha) << 24);
+        m_NameColor |= (static_cast<unsigned char>(255.0f * fAlpha) << 24);
     }
 }
 
@@ -466,6 +471,13 @@ bool SEASON3B::CNewUIButton::Render(bool RendOption)
     if (m_pSkin != nullptr)
     {
         RenderSkinnedFrame();
+    }
+    else if (!m_ButtonInfo.empty() && m_SourceFrameSize.x > 0)
+    {
+        RenderImageStretch(
+            m_CurImgIndex, static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y), static_cast<float>(m_Size.x),
+            static_cast<float>(m_Size.y), 0.0f, static_cast<float>(m_CurImgState * m_SourceFrameSize.y),
+            static_cast<float>(m_SourceFrameSize.x), static_cast<float>(m_SourceFrameSize.y), m_CurImgColor);
     }
     else if (!m_ButtonInfo.empty())
     {
