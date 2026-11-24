@@ -532,7 +532,7 @@ void SEASON3B::CNewUIBuffWindow::RenderBonusBadge(BUFF_RENDER renderstate, int i
         }
     }
     UI::Buffs::Tooltip::Render(position.x + BUFF_IMG_WIDTH / 2, position.y + BUFF_IMG_WIDTH, count,
-                               IMAGE_BUFF_TOOLTIP_ORNAMENTS);
+                               IMAGE_BUFF_TOOLTIP_ORNAMENTS, false, true);
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, float y, float width, float height)
@@ -608,7 +608,7 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffTooltip(eBuffClass& eBuffClassType, e
         g_BuffStringTime(eBuffType, bufftime);
         UI::Buffs::Tooltip::Append(bufftime, TEXT_COLOR_PURPLE, false, count);
     }
-    UI::Buffs::Tooltip::Render(x, y, count, IMAGE_BUFF_TOOLTIP_ORNAMENTS);
+    UI::Buffs::Tooltip::Render(x, y, count, IMAGE_BUFF_TOOLTIP_ORNAMENTS, false, true);
 }
 
 float SEASON3B::CNewUIBuffWindow::GetLayerDepth()	//. 5.3f

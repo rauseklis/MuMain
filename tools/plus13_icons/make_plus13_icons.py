@@ -111,16 +111,14 @@ def rays(img, center, count, length, color, alpha, seed):
 
 
 def bevel(img):
-    """The standard buff-icon edge, one pixel wide. Measured on the game's own icons: dark on the left and bottom, light
-    on the top, light on the right with a thin darker outermost line (their sheets are cut from larger art)."""
+    """A plain one-pixel edge: light on the top, dark on the left, right and bottom, with nothing extra on any side."""
     e = SS
-    light, dark, rim = (206, 198, 184, 255), (10, 8, 16, 255), (96, 84, 80, 255)
+    light, dark = (206, 198, 184, 255), (10, 8, 16, 255)
     d = ImageDraw.Draw(img)
     d.rectangle((0, 0, e - 1, H - 1), fill=dark)
     d.rectangle((0, H - e, W - 1, H - 1), fill=dark)
     d.rectangle((0, 0, W - 1, e - 1), fill=light)
-    d.rectangle((W - e, 0, W - 1, H - e - 1), fill=light)
-    d.rectangle((W - 2, 0, W - 1, H - 1), fill=rim)
+    d.rectangle((W - e, 0, W - 1, H - 1), fill=dark)
     return img
 
 

@@ -42,6 +42,7 @@ namespace UI::Buffs::Tooltip
         constexpr unsigned int ShadowInner = 0x50000000;
         constexpr unsigned int BodyColor = 0xF2100D16;
         constexpr unsigned int HighlightColor = 0x0CFFE2A0;
+        constexpr unsigned int PlainBodyColor = 0xE6000000;
 
         bool IsDivider(int line)
         {
@@ -167,7 +168,7 @@ namespace UI::Buffs::Tooltip
         ++count;
     }
 
-    void Render(int anchorX, int anchorY, int count, int ornamentTexture, bool above)
+    void Render(int anchorX, int anchorY, int count, int ornamentTexture, bool above, bool plain)
     {
         if (count <= 0)
         {
@@ -190,18 +191,26 @@ namespace UI::Buffs::Tooltip
         const float top = above ? anchorY - height : static_cast<float>(anchorY);
         const float y = std::clamp(top, 0.f, std::max(0.f, REFERENCE_HEIGHT - height));
         EnableAlphaTest();
-        RenderBox(x, y, width, height);
-        EndRenderColor();
-        RenderBorder(ornamentTexture, x, y, width, height);
-        RenderCorners(ornamentTexture, x, y, width, height);
-        float lineY = y + PaddingY;
-        for (int line = 0; line < count; ++line)
+        if (plain)
         {
-            if (IsDivider(line))
+            RenderColorQuadARGB(x, y, width, height, PlainBodyColor);
+            EndRenderColor();
+        }
+        else
+        {
+            RenderBox(x, y, width, height);
+            EndRenderColor();
+            RenderBorder(ornamentTexture, x, y, width, height);
+            RenderCorners(ornamentTexture, x, y, width, height);
+            float lineY = y + PaddingY;
+            for (int line = 0; line < count; ++line)
             {
-                RenderRule(ornamentTexture, x, lineY + LineHeight(line) / 2.f, width);
+                if (IsDivider(line))
+                {
+                    RenderRule(ornamentTexture, x, lineY + LineHeight(line) / 2.f, width);
+                }
+                lineY += LineHeight(line);
             }
-            lineY += LineHeight(line);
         }
         RenderTipTextList(static_cast<int>(x + width / 2), static_cast<int>(y + PaddingY),
             count, 0, RT3_SORT_CENTER, STRP_NONE, FALSE);
