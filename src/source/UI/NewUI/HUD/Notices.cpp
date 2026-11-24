@@ -11,17 +11,26 @@
 
 namespace
 {
-    constexpr int MAX_NOTICE = 6;
-    // Ticks of the original 25 Hz game loop (12 seconds) until the oldest line is pushed up and off.
-    constexpr float NOTICE_LIFETIME = 300.f;
-    constexpr int NOTICE_TEXT_MAX = 256;
+// At most four lines, so the stack ends above the kill notice (UI::KillNotice, y = 72).
+constexpr int MAX_NOTICE = 4;
+// The stack hangs from the top centre of the screen. The old spot, mid-screen at y = 300, sat on top of every open
+// window (Auction House, shop, inventory, ...). Windows leave the strip above them free (the Auction House starts at
+// y = 25 of its panel) and the docked windows sit at the sides, so the first lines fit between and above them; the
+// plate keeps the text readable where a longer stack reaches a window title.
+constexpr int NOTICE_CENTER_X = 320;
+constexpr int NOTICE_TOP_Y = 2;
+constexpr int NOTICE_LINE_HEIGHT = 13;
+constexpr BYTE NOTICE_PLATE_ALPHA = 200;
+// Ticks of the original 25 Hz game loop (12 seconds) until the oldest line is pushed up and off.
+constexpr float NOTICE_LIFETIME = 300.f;
+constexpr int NOTICE_TEXT_MAX = 256;
 
-    struct Notice
-    {
-        wchar_t Text[NOTICE_TEXT_MAX];
-        int     LifeTime;
-        BYTE    Color;
-    };
+struct Notice
+{
+    wchar_t Text[NOTICE_TEXT_MAX];
+    int LifeTime;
+    BYTE Color;
+};
 
     int    s_count = 0;
     // A float: counting down by FPS_ANIMATION_FACTOR (below 1 at a high frame rate) into an int truncated every step
@@ -107,7 +116,7 @@ namespace UI::Notices
             Notice* n = &s_notices[i];
             if (n->Color == 0)
             {
-                g_pRenderText->SetBgColor(0, 0, 0, 128);
+                g_pRenderText->SetBgColor(0, 0, 0, NOTICE_PLATE_ALPHA);
                 if ((int)s_blinkPhase % 10 < 5)
                 {
                     g_pRenderText->SetTextColor(255, 200, 80, 128);
@@ -120,10 +129,11 @@ namespace UI::Notices
             else
             {
                 g_pRenderText->SetTextColor(100, 255, 200, 255);
-                g_pRenderText->SetBgColor(0, 0, 0, 128);
+                g_pRenderText->SetBgColor(0, 0, 0, NOTICE_PLATE_ALPHA);
             }
 
-            g_pRenderText->RenderText(320, 300 + i * 13, n->Text, 0, 0, RT3_WRITE_CENTER);
+            g_pRenderText->RenderText(NOTICE_CENTER_X, NOTICE_TOP_Y + i * NOTICE_LINE_HEIGHT, n->Text, 0, 0,
+                                      RT3_WRITE_CENTER);
         }
 
         s_blinkPhase += FPS_ANIMATION_FACTOR;
