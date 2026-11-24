@@ -1210,7 +1210,7 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     if (setVitality)
     {
         wchar_t strSetBonus[64];
-        mu_swprintf(strSetBonus, L"+%d Vitality Set Bonus", static_cast<int>(setVitality));
+        mu_swprintf(strSetBonus, L"+%d Vitality (Set Bonus)", static_cast<int>(setVitality));
         iY += 13;
         g_pRenderText->SetTextColor(230, 230, 0, 255);
         g_pRenderText->RenderText(m_Pos.x + 20, m_Pos.y + iY, strSetBonus);

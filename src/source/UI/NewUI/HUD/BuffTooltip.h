@@ -9,5 +9,6 @@ namespace UI::Buffs::Tooltip
     void AppendDivider(int& count);
     // ornamentTexture is the atlas built by tools/ui_hd/tooltip_ornaments.py (corner and gold rule).
     // With above set the tooltip ends at anchorY instead of starting there.
-    void Render(int anchorX, int anchorY, int count, int ornamentTexture, bool above = false);
+    // With plain set the box is the normal black game tooltip: no frame, corners or rule.
+    void Render(int anchorX, int anchorY, int count, int ornamentTexture, bool above = false, bool plain = false);
 }
