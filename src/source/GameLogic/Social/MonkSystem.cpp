@@ -972,6 +972,10 @@ void CMonkSystem::RenderRepeatedly(int _Key, OBJECT* pObj)
             break;
         case 6: Vector(0.7f, 0.4f, 1.0f, Light);
             break;
+        case 8:
+            scale = 50.f;
+            Vector(0.75f, 0.f, 0.1f, Light);
+            break;
         default: Vector(1.f, 1.f, 1.f, Light);
             break;
         }
