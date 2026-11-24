@@ -1,7 +1,7 @@
 """Generates the two +13 buff icons: the full-set bonus (golden crest) and the weapon bonus (crimson flame blade).
 
 Each icon is 20 x 28 pixels like every other buff icon and, like them, is full-bleed art with square corners and a thin
-bevelled edge: a dark outline one pixel wide with a light line along the top and left inside it. The art is drawn at 8x
+edge: a dark outline one pixel wide, even on all four sides. The art is drawn at 8x
 and reduced. Both icons sit in one atlas, 64 x 32 pixels, icon n starting at x = 32 * n (the rest stays transparent).
 
 Output (relative to the client repository root):
@@ -111,13 +111,13 @@ def rays(img, center, count, length, color, alpha, seed):
 
 
 def bevel(img):
-    """A plain one-pixel edge: light on the top, dark on the left, right and bottom, with nothing extra on any side."""
+    """A plain one-pixel dark edge, the same on all four sides: nothing lighter, nothing extra on any side."""
     e = SS
-    light, dark = (206, 198, 184, 255), (10, 8, 16, 255)
+    dark = (10, 8, 16, 255)
     d = ImageDraw.Draw(img)
     d.rectangle((0, 0, e - 1, H - 1), fill=dark)
     d.rectangle((0, H - e, W - 1, H - 1), fill=dark)
-    d.rectangle((0, 0, W - 1, e - 1), fill=light)
+    d.rectangle((0, 0, W - 1, e - 1), fill=dark)
     d.rectangle((W - e, 0, W - 1, H - 1), fill=dark)
     return img
 
