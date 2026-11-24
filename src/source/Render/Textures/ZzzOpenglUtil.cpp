@@ -1130,6 +1130,26 @@ void RenderColorQuadARGB(float x, float y, float Width, float Height, unsigned i
     mu::GetRenderer().RenderQuad2D(vertices, 0u);
 }
 
+void RenderColorGradientARGB(float x, float y, float Width, float Height, unsigned int topLeft, unsigned int topRight,
+                             unsigned int bottomRight, unsigned int bottomLeft)
+{
+    DisableTexture();
+
+    x = ConvertPositionX(x);
+    y = ConvertPositionY(y);
+    Width = ConvertX(Width);
+    Height = ConvertY(Height);
+    y = WindowHeight - y;
+
+    const mu::Vertex2D vertices[4] = {
+        {x, y, 0.0f, 0.0f, ArgbToAbgr(topLeft)},
+        {x, y - Height, 0.0f, 0.0f, ArgbToAbgr(bottomLeft)},
+        {x + Width, y - Height, 0.0f, 0.0f, ArgbToAbgr(bottomRight)},
+        {x + Width, y, 0.0f, 0.0f, ArgbToAbgr(topRight)},
+    };
+    mu::GetRenderer().RenderQuad2D(vertices, 0u);
+}
+
 void RenderColorLineARGB(float x1, float y1, float x2, float y2, float thickness, unsigned int argbColor)
 {
     DisableTexture();
@@ -1495,10 +1515,10 @@ int InsideTest(float x, float y, float z, int n, float* v1, float* v2, float* v3
 
     int i;
     vec3_t* vtx[4];
-    vtx[0] = (vec3_t*)v1;
-    vtx[1] = (vec3_t*)v2;
-    vtx[2] = (vec3_t*)v3;
-    vtx[3] = (vec3_t*)v4;
+    vtx[0] = reinterpret_cast<vec3_t*>(v1);
+    vtx[1] = reinterpret_cast<vec3_t*>(v2);
+    vtx[2] = reinterpret_cast<vec3_t*>(v3);
+    vtx[3] = reinterpret_cast<vec3_t*>(v4);
 
     int j = n - 1;
     switch (flag)
