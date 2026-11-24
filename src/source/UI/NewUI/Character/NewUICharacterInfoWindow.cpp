@@ -1135,7 +1135,11 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
 
     g_pRenderText->SetFont(g_hFontBold);
 
-    WORD wVitality = CharacterAttribute->Vitality + CharacterAttribute->AddVitality;
+    // The +13 set bonus is shown apart from the number, so it is easy to see.
+    const WORD setVitality =
+        CharacterMachine->HasPlusThirteenSet() ? static_cast<WORD>(GameLogic::Items::PlusThirteenSetVitality) : 0;
+    const WORD otherAddVitality = CharacterAttribute->AddVitality - setVitality;
+    WORD wVitality = CharacterAttribute->Vitality + otherAddVitality;
 
     if (g_isCharacterBuff((&Hero->Object), eBuff_SecretPotion3))
     {
@@ -1144,16 +1148,10 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     else if (g_isCharacterBuff((&Hero->Object), eBuff_Hp_up_Ourforces))
     {
         CharacterMachine->CalculateAll();
-        wVitality = CharacterAttribute->Vitality + CharacterAttribute->AddVitality;
+        wVitality = CharacterAttribute->Vitality + CharacterAttribute->AddVitality - setVitality;
         g_pRenderText->SetTextColor(100, 150, 255, 255);
     }
-    else if (CharacterAttribute->AddVitality == GameLogic::Items::PlusThirteenSetVitality &&
-             CharacterMachine->HasPlusThirteenSet())
-    {
-        // Only the +13 set bonus is active: bright gold, so the raised number stands out from the plain yellow.
-        g_pRenderText->SetTextColor(255, 200, 40, 255);
-    }
-    else if (CharacterAttribute->AddVitality)
+    else if (otherAddVitality)
     {
         g_pRenderText->SetTextColor(100, 150, 255, 255);
     }
@@ -1166,7 +1164,18 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     mu_swprintf(strVitality, L"%d", wVitality);
     g_pRenderText->SetBgColor(0);
     g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_VITALITY + 6, I18N::Game::Vitality, 74, 0, RT3_SORT_CENTER);
-    g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_VITALITY + 6, strVitality, 86, 0, RT3_SORT_CENTER);
+    if (setVitality)
+    {
+        wchar_t strSetVitality[16];
+        mu_swprintf(strSetVitality, L"+%d", static_cast<int>(setVitality));
+        g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_VITALITY + 6, strVitality, 52, 0, RT3_SORT_CENTER);
+        g_pRenderText->SetTextColor(230, 230, 0, 255);
+        g_pRenderText->RenderText(m_Pos.x + 138, m_Pos.y + HEIGHT_VITALITY + 6, strSetVitality, 34, 0, RT3_SORT_CENTER);
+    }
+    else
+    {
+        g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_VITALITY + 6, strVitality, 86, 0, RT3_SORT_CENTER);
+    }
 
     g_pRenderText->SetFont(g_hFont);
 
@@ -1208,6 +1217,15 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     g_pRenderText->SetBgColor(0);
     iY = HEIGHT_VITALITY + 24;
     g_pRenderText->RenderText(m_Pos.x + 20, m_Pos.y + iY, strVitality);
+
+    if (setVitality)
+    {
+        wchar_t strSetBonus[64];
+        mu_swprintf(strSetBonus, L"+%d Vitality from the +13 set", static_cast<int>(setVitality));
+        iY += 13;
+        g_pRenderText->SetTextColor(230, 230, 0, 255);
+        g_pRenderText->RenderText(m_Pos.x + 20, m_Pos.y + iY, strSetBonus);
+    }
 
     if (iBaseClass == CLASS_RAGEFIGHTER)
     {

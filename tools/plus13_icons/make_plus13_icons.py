@@ -1,21 +1,23 @@
-"""Generates the two +13 buff icons: the full-set bonus (golden shield) and the weapon bonus (crimson blade).
+"""Generates the two +13 buff icons: the full-set bonus (golden crest) and the weapon bonus (crimson flame blade).
 
-Each icon is 20 x 28 pixels like the other buff icons, drawn at 8x and reduced. Both sit in one atlas, 64 x 32 pixels,
-icon n starting at x = 32 * n (the part right of and below the icon stays transparent).
+Each icon is 20 x 28 pixels like every other buff icon and, like them, is full-bleed art with square corners and a thin
+bevelled edge: a dark outline one pixel wide with a light line along the top and left inside it. The art is drawn at 8x
+and reduced. Both icons sit in one atlas, 64 x 32 pixels, icon n starting at x = 32 * n (the rest stays transparent).
 
 Output (relative to the client repository root):
   src/bin/Data/Interface/BuffDetails/plus13_icons.OZT        64 x 32
   src/bin/Data/Interface@2x/BuffDetails/plus13_icons.png     128 x 64
   src/bin/Data/Interface@4x/BuffDetails/plus13_icons.png     256 x 128
-  tools/plus13_icons/plus13_preview.png                       the two icons enlarged on a dark buff-bar backdrop
+  tools/plus13_icons/plus13_preview.png                       the icons beside existing buff icons on the buff-bar backdrop
 
 Needs Pillow:  python tools/plus13_icons/make_plus13_icons.py
 """
 import math
 import os
+import random
 import struct
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SS = 8
@@ -26,184 +28,304 @@ def lerp(a, b, t):
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(len(a)))
 
 
-def vertical_gradient(size, top, bottom):
+def vgrad(size, stops):
+    """Vertical gradient through (position 0..1, colour) stops."""
     img = Image.new("RGBA", size)
     px = img.load()
     for y in range(size[1]):
-        c = lerp(top, bottom, y / max(1, size[1] - 1))
+        t = y / max(1, size[1] - 1)
+        for i in range(len(stops) - 1):
+            (t0, c0), (t1, c1) = stops[i], stops[i + 1]
+            if t0 <= t <= t1:
+                c = lerp(c0, c1, (t - t0) / max(1e-6, t1 - t0))
+                break
+        else:
+            c = stops[-1][1]
         for x in range(size[0]):
             px[x, y] = c
     return img
 
 
-def masked(fill, mask):
-    out = Image.new("RGBA", fill.size, (0, 0, 0, 0))
-    out.paste(fill, (0, 0), mask)
-    return out
+def hgrad(size, stops):
+    return vgrad((size[1], size[0]), stops).rotate(90, expand=True).transpose(Image.FLIP_LEFT_RIGHT)
 
 
-def glow(layer, radius, strength=1.0):
-    blurred = layer.filter(ImageFilter.GaussianBlur(radius))
+def radial(size, center, radius, inner, outer):
+    img = Image.new("RGBA", size)
+    px = img.load()
+    for y in range(size[1]):
+        for x in range(size[0]):
+            t = min(1.0, math.hypot(x - center[0], y - center[1]) / radius)
+            px[x, y] = lerp(inner, outer, t)
+    return img
+
+
+def layer():
+    return Image.new("RGBA", (W, H), (0, 0, 0, 0))
+
+
+def mask_of(draw_fn):
+    m = Image.new("L", (W, H), 0)
+    draw_fn(ImageDraw.Draw(m))
+    return m
+
+
+def fill(img, mask, source):
+    part = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    part.paste(source, (0, 0), mask)
+    return Image.alpha_composite(img, part)
+
+
+def glow(src, radius, strength=1.0):
+    blurred = src.filter(ImageFilter.GaussianBlur(radius))
     if strength != 1.0:
-        a = blurred.getchannel("A").point(lambda v: min(255, int(v * strength)))
-        blurred.putalpha(a)
+        blurred.putalpha(blurred.getchannel("A").point(lambda v: min(255, int(v * strength))))
     return blurred
 
 
-def font(size):
-    for name in ("georgiab.ttf", "timesbd.ttf", "arialbd.ttf", "DejaVuSerif-Bold.ttf"):
-        for base in (r"C:\Windows\Fonts", "/usr/share/fonts/truetype/dejavu"):
-            path = os.path.join(base, name)
-            if os.path.exists(path):
-                return ImageFont.truetype(path, size)
-    return ImageFont.load_default()
-
-
-def plate():
-    """Dark plate with a double gold frame, shared by both icons."""
-    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    mask = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, W - 1, H - 1), radius=22, fill=255)
-    back = vertical_gradient((W, H), (30, 26, 40, 255), (8, 6, 12, 255))
-    img.paste(back, (0, 0), mask)
-    return img, mask
-
-
-def frame(img, outer, inner):
+def spark(img, x, y, r, color=(255, 250, 220)):
+    """A four-point glint with a soft halo."""
+    halo = layer()
+    d = ImageDraw.Draw(halo)
+    d.ellipse((x - r * 0.5, y - r * 0.5, x + r * 0.5, y + r * 0.5), fill=color + (200,))
+    img = Image.alpha_composite(img, glow(halo, r * 0.7, 1.4))
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((0, 0, W - 1, H - 1), radius=22, outline=outer, width=9)
-    d.rounded_rectangle((10, 10, W - 11, H - 11), radius=14, outline=inner, width=3)
+    k = 0.16
+    d.polygon([(x, y - r), (x + r * k, y - r * k), (x + r, y), (x + r * k, y + r * k), (x, y + r),
+               (x - r * k, y + r * k), (x - r, y), (x - r * k, y - r * k)], fill=color + (255,))
+    return img
 
 
-def shield_points(cx, top, bottom, half):
+def rays(img, center, count, length, color, alpha, seed):
+    rng = random.Random(seed)
+    lay = layer()
+    d = ImageDraw.Draw(lay)
+    for i in range(count):
+        a = 2 * math.pi * i / count + rng.uniform(-0.08, 0.08)
+        spread = rng.uniform(0.035, 0.07)
+        ln = length * rng.uniform(0.75, 1.0)
+        d.polygon([center, (center[0] + ln * math.cos(a - spread), center[1] + ln * math.sin(a - spread)),
+                   (center[0] + ln * math.cos(a + spread), center[1] + ln * math.sin(a + spread))],
+                  fill=color + (alpha,))
+    return Image.alpha_composite(img, lay.filter(ImageFilter.GaussianBlur(3)))
+
+
+def bevel(img):
+    """The standard buff-icon edge, one pixel wide: light along the top and right, dark along the left and bottom."""
+    e = SS - 2
+    light, dark = (206, 198, 184, 255), (10, 8, 16, 255)
+    d = ImageDraw.Draw(img)
+    d.rectangle((0, 0, e - 1, H - 1), fill=dark)
+    d.rectangle((0, H - e, W - 1, H - 1), fill=dark)
+    d.rectangle((0, 0, W - 1, e - 1), fill=light)
+    d.rectangle((W - e, 0, W - 1, H - e - 1), fill=light)
+    return img
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# the +13 set: a golden armour crest
+# ---------------------------------------------------------------------------------------------------------------------
+def shield_outline(cx, top, bottom, half, grow=0):
     pts = []
-    # flat top with a small notch, straight shoulders, curved sides to a point
-    pts += [(cx - half, top), (cx - half * 0.35, top + 8), (cx, top), (cx + half * 0.35, top + 8), (cx + half, top)]
-    for i in range(1, 17):
-        t = i / 16
-        x = cx + half * math.cos(t * math.pi / 2) * (1 - 0.0 * t)
-        y = top + (bottom - top) * (t ** 1.35)
+    n = 24
+    for i in range(n + 1):  # right side from the shoulder down to the point
+        t = i / n
+        x = cx + (half + grow) * math.cos(t * math.pi / 2) ** 0.85
+        y = top - grow + (bottom - top + 2 * grow) * (t ** 1.45)
         pts.append((x, y))
-    for i in range(15, 0, -1):
-        t = i / 16
-        x = cx - half * math.cos(t * math.pi / 2)
-        y = top + (bottom - top) * (t ** 1.35)
+    for i in range(n, -1, -1):
+        t = i / n
+        x = cx - (half + grow) * math.cos(t * math.pi / 2) ** 0.85
+        y = top - grow + (bottom - top + 2 * grow) * (t ** 1.45)
         pts.append((x, y))
     return pts
 
 
-def number_layer(color, outline, size, center, text="13"):
-    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    f = font(size)
-    box = d.textbbox((0, 0), text, font=f)
-    x = center[0] - (box[0] + box[2]) / 2
-    y = center[1] - (box[1] + box[3]) / 2
-    d.text((x, y), text, font=f, fill=color, stroke_width=7, stroke_fill=outline)
-    return layer
-
-
 def set_icon():
-    img, mask = plate()
     cx = W // 2
-    # soft golden aura behind the shield
-    aura = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(aura).ellipse((14, 40, W - 14, H - 34), fill=(255, 190, 40, 200))
-    img = Image.alpha_composite(img, glow(aura, 26, 0.9))
+    img = radial((W, H), (cx, 104), 150, (176, 98, 22, 255), (14, 8, 16, 255))
+    img = rays(img, (cx, 104), 18, 190, (255, 214, 120), 70, 7)
 
-    pts = shield_points(cx, 34, H - 26, 62)
-    outer = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(outer).polygon(pts, fill=255)
-    gold = vertical_gradient((W, H), (255, 236, 150, 255), (176, 108, 18, 255))
-    img = Image.alpha_composite(img, masked(gold, outer))
+    # wings behind the shield
+    for sign in (-1, 1):
+        wing = layer()
+        d = ImageDraw.Draw(wing)
+        for k in range(5):
+            tip_y = 40 + k * 16
+            d.polygon([(cx + sign * 40, 78 + k * 7), (cx + sign * (84 - k * 3), tip_y),
+                       (cx + sign * (78 - k * 3), tip_y + 14), (cx + sign * 40, 92 + k * 7)],
+                      fill=lerp((255, 232, 150), (196, 130, 34), k / 4) + (255,))
+        img = Image.alpha_composite(img, glow(wing, 5, 0.9))
+        img = Image.alpha_composite(img, wing)
 
-    # inner field, darker with a faint vertical sheen
-    inner_pts = shield_points(cx, 50, H - 44, 46)
-    inner = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(inner).polygon(inner_pts, fill=255)
-    field = vertical_gradient((W, H), (132, 84, 22, 255), (52, 26, 8, 255))
-    img = Image.alpha_composite(img, masked(field, inner))
+    top, bottom, half = 56, 196, 56
+    # rim: dark outline, gold body with a bright upper-left sheen
+    img = fill(img, mask_of(lambda d: d.polygon(shield_outline(cx, top, bottom, half, 7), fill=255)),
+               Image.new("RGBA", (W, H), (30, 14, 4, 255)))
+    rim = vgrad((W, H), [(0, (255, 240, 170, 255)), (0.45, (226, 164, 44, 255)), (1, (120, 66, 12, 255))])
+    img = fill(img, mask_of(lambda d: d.polygon(shield_outline(cx, top, bottom, half, 4), fill=255)), rim)
+    img = fill(img, mask_of(lambda d: d.polygon(shield_outline(cx, top, bottom, half, -7), fill=255)),
+               Image.new("RGBA", (W, H), (60, 30, 8, 255)))
 
-    # rim highlight on the left edge
-    hi = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(hi).line([(cx - 60, 40), (cx - 54, 110)], fill=(255, 250, 220, 220), width=5)
-    img = Image.alpha_composite(img, hi.filter(ImageFilter.GaussianBlur(2)))
+    # field: deep red and midnight quarters with a gold cross
+    field = mask_of(lambda d: d.polygon(shield_outline(cx, top, bottom, half, -11), fill=255))
+    quarters = Image.new("RGBA", (W, H), (22, 20, 56, 255))
+    qd = ImageDraw.Draw(quarters)
+    qd.rectangle((0, 0, cx, 124), fill=(120, 18, 26, 255))
+    qd.rectangle((cx, 124, W, H), fill=(120, 18, 26, 255))
+    shade = hgrad((W, H), [(0, (255, 255, 255, 40)), (0.5, (0, 0, 0, 0)), (1, (0, 0, 0, 90))])
+    quarters = Image.alpha_composite(quarters, shade)
+    img = fill(img, field, quarters)
 
-    # glowing 13
-    num = number_layer((255, 246, 200, 255), (110, 56, 0, 255), 100, (cx, 122))
-    img = Image.alpha_composite(img, glow(num, 12, 1.6))
-    img = Image.alpha_composite(img, num)
+    gold = vgrad((W, H), [(0, (255, 236, 150, 255)), (0.5, (232, 172, 52, 255)), (1, (140, 80, 14, 255))])
+    cross = mask_of(lambda d: (d.rectangle((cx - 7, top, cx + 7, bottom), fill=255),
+                               d.rectangle((cx - half, 118, cx + half, 132), fill=255)))
+    img = fill(img, ImageChops.multiply(field, cross), gold)
+    # thin dark edge on the cross for depth
+    edge = ImageChops.subtract(cross.filter(ImageFilter.MaxFilter(5)), cross)
+    img = fill(img, ImageChops.multiply(field, edge), Image.new("RGBA", (W, H), (50, 24, 6, 255)))
 
-    # small crest star on top
+    # centre medallion with a ruby
     d = ImageDraw.Draw(img)
-    sx, sy, r = cx, 20, 10
-    star = []
-    for i in range(10):
-        a = -math.pi / 2 + i * math.pi / 5
-        rr = r if i % 2 == 0 else r * 0.42
-        star.append((sx + rr * math.cos(a), sy + rr * math.sin(a)))
-    d.polygon(star, fill=(255, 244, 190, 255))
+    d.ellipse((cx - 22, 125 - 22, cx + 22, 125 + 22), fill=(40, 18, 6, 255))
+    img = fill(img, mask_of(lambda dd: dd.ellipse((cx - 19, 106, cx + 19, 144), fill=255)), gold)
+    ruby = radial((W, H), (cx - 4, 119), 20, (255, 150, 150, 255), (150, 6, 24, 255))
+    img = fill(img, mask_of(lambda dd: dd.ellipse((cx - 13, 112, cx + 13, 138), fill=255)), ruby)
+    img = spark(img, cx - 5, 119, 7)
 
-    frame(img, (214, 160, 40, 255), (92, 58, 12, 255))
-    img.putalpha(ImageChops.multiply(img.getchannel("A"), mask))
-    return img
+    # rivets along the rim
+    d = ImageDraw.Draw(img)
+    for t in (0.06, 0.2, 0.36, 0.55, 0.74):
+        y = top + (bottom - top) * t
+        x = cx + (half - 1) * math.cos(t * math.pi / 2) ** 0.85
+        for sx in (x, 2 * cx - x):
+            d.ellipse((sx - 3, y - 3, sx + 3, y + 3), fill=(255, 244, 190, 255), outline=(90, 48, 8, 255))
+
+    # crown above the shield
+    crown = layer()
+    cd = ImageDraw.Draw(crown)
+    base = 54
+    cd.polygon([(cx - 30, base), (cx - 34, base - 26), (cx - 16, base - 12), (cx, base - 34), (cx + 16, base - 12),
+                (cx + 34, base - 26), (cx + 30, base)], fill=(255, 255, 255, 255))
+    crown_mask = crown.getchannel("A")
+    ring = ImageChops.subtract(crown_mask.filter(ImageFilter.MaxFilter(7)), crown_mask)
+    img = fill(img, ring, Image.new("RGBA", (W, H), (50, 24, 6, 255)))
+    img = fill(img, crown_mask, gold)
+    d = ImageDraw.Draw(img)
+    for gx, gy, col in ((cx - 34, base - 26, (120, 220, 255)), (cx, base - 34, (255, 80, 90)), (cx + 34, base - 26, (120, 220, 255))):
+        d.ellipse((gx - 5, gy - 5, gx + 5, gy + 5), fill=col + (255,), outline=(50, 24, 6, 255))
+    d.rectangle((cx - 28, base - 8, cx + 28, base - 2), fill=(176, 108, 22, 255))
+
+    # glints
+    img = spark(img, cx - 36, 70, 11)
+    img = spark(img, cx + 30, 160, 8)
+    img = spark(img, cx + 50, 40, 6)
+    return bevel(img)
 
 
-def flame(layer, cx, base_y, height, width, color):
-    d = ImageDraw.Draw(layer)
-    d.polygon([(cx - width, base_y), (cx - width * 0.55, base_y - height * 0.55), (cx - width * 0.2, base_y - height * 0.42),
-               (cx, base_y - height), (cx + width * 0.25, base_y - height * 0.5), (cx + width * 0.6, base_y - height * 0.6),
-               (cx + width, base_y)], fill=color)
+# ---------------------------------------------------------------------------------------------------------------------
+# the +13 weapon: a crimson blade in flames
+# ---------------------------------------------------------------------------------------------------------------------
+def flame_tongue(cx, base_y, height, width, sway):
+    pts = [(cx - width, base_y)]
+    n = 10
+    for i in range(1, n):
+        t = i / n
+        pts.append((cx - width * (1 - t) ** 0.8 + sway * math.sin(t * 3.4) * t * width, base_y - height * t))
+    pts.append((cx + sway * width * 0.5, base_y - height))
+    for i in range(n - 1, 0, -1):
+        t = i / n
+        pts.append((cx + width * (1 - t) ** 0.8 + sway * math.sin(t * 3.4 + 0.8) * t * width, base_y - height * t))
+    pts.append((cx + width, base_y))
+    return pts
 
 
 def weapon_icon():
-    img, mask = plate()
     cx = W // 2
+    img = radial((W, H), (cx, 150), 170, (150, 22, 20, 255), (14, 4, 10, 255))
+    img = rays(img, (cx, 130), 16, 200, (255, 120, 60), 55, 11)
 
-    # fire behind the blade
-    fire = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    flame(fire, cx - 30, H - 24, 150, 44, (190, 20, 20, 235))
-    flame(fire, cx + 28, H - 24, 170, 46, (210, 40, 16, 235))
-    flame(fire, cx, H - 20, 130, 36, (255, 120, 20, 235))
-    flame(fire, cx, H - 20, 70, 20, (255, 214, 90, 240))
-    img = Image.alpha_composite(img, glow(fire, 9, 1.4))
-    img = Image.alpha_composite(img, fire.filter(ImageFilter.GaussianBlur(1.5)))
+    # three layers of flame, dark red to white-yellow
+    for seed, (col, hs, ws) in enumerate((((120, 10, 14), 1.0, 1.0), ((226, 60, 18), 0.82, 0.8),
+                                           ((255, 168, 40), 0.6, 0.55), ((255, 236, 150), 0.38, 0.3))):
+        fl = layer()
+        d = ImageDraw.Draw(fl)
+        rng = random.Random(seed + 3)
+        for off, hh in ((-52, 100), (-30, 128), (-8, 104), (14, 132), (36, 104), (56, 96)):
+            d.polygon(flame_tongue(cx + off, H - 8, hh * hs * rng.uniform(0.9, 1.05), 26 * ws, rng.uniform(-0.6, 0.6)),
+                      fill=col + (240,))
+        img = Image.alpha_composite(img, glow(fl, 4, 1.2))
+        img = Image.alpha_composite(img, fl.filter(ImageFilter.GaussianBlur(1)))
 
-    # blade: vertical, point up, slightly diagonal
-    blade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    bd = ImageDraw.Draw(blade)
-    pts = [(cx + 6, 14), (cx + 18, 34), (cx + 18, 126), (cx - 14, 126), (cx - 14, 34)]
-    pts = [(x - 6 + (126 - y) * 0.0, y) for x, y in pts]
-    bd.polygon(pts, fill=(226, 70, 70, 255))
-    # lit edge and dark fuller
-    bd.polygon([(cx + 6, 14), (cx + 12, 34), (cx + 12, 126), (cx + 2, 126), (cx + 2, 34)], fill=(255, 200, 180, 255))
-    bd.polygon([(cx - 8, 36), (cx - 1, 36), (cx - 1, 124), (cx - 8, 124)], fill=(120, 14, 22, 255))
-    img = Image.alpha_composite(img, glow(blade, 7, 1.2))
-    img = Image.alpha_composite(img, blade)
+    # the sword is drawn upright on its own layer and tilted
+    sw = layer()
+    d = ImageDraw.Draw(sw)
+    tip, guard_y, grip_y = 16, 130, 176
+    left, right = cx - 21, cx + 21
+    blade = [(cx, tip), (right, tip + 34), (right, guard_y), (left, guard_y), (left, tip + 34)]
+    blade_mask = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(blade_mask).polygon(blade, fill=255)
+    # dark outline
+    ol = blade_mask.filter(ImageFilter.MaxFilter(9))
+    sw = fill(sw, ol, Image.new("RGBA", (W, H), (30, 4, 10, 255)))
+    steel = hgrad((W, H), [(0, (255, 240, 232, 255)), (0.5, (246, 104, 100, 255)), (0.51, (190, 36, 54, 255)), (1, (120, 16, 36, 255))])
+    steel = Image.alpha_composite(steel, vgrad((W, H), [(0, (255, 255, 255, 70)), (0.6, (0, 0, 0, 0)), (1, (0, 0, 0, 60))]))
+    sw = fill(sw, blade_mask, steel)
+    d = ImageDraw.Draw(sw)
+    d.line([(cx, tip + 6), (cx, guard_y - 6)], fill=(70, 4, 18, 255), width=6)   # fuller
+    d.line([(cx - 3, tip + 38), (cx - 3, guard_y - 10)], fill=(255, 190, 170, 200), width=2)
+    # glowing runes in the fuller
+    runes = layer()
+    rd = ImageDraw.Draw(runes)
+    ry = tip + 48
+    glyphs = [((-5, 0), (5, 0), (0, 10)), ((-5, 0), (0, 10), (5, 0), (0, 0)), ((0, -2), (0, 10), (-5, 4), (5, 4))]
+    k = 0
+    while ry < guard_y - 18:
+        g = glyphs[k % 3]
+        rd.line([(cx + x, ry + y) for x, y in g], fill=(255, 200, 70, 255), width=3)
+        ry += 17
+        k += 1
+    sw = Image.alpha_composite(sw, glow(runes, 5, 1.8))
+    sw = Image.alpha_composite(sw, runes)
 
-    # gold crossguard + grip + pommel
-    gd = ImageDraw.Draw(img)
-    gd.rounded_rectangle((cx - 48, 124, cx + 36, 140), radius=6, fill=(236, 186, 60, 255), outline=(120, 74, 10, 255), width=3)
-    gd.rectangle((cx - 9, 140, cx + 3, 154), fill=(110, 40, 30, 255), outline=(60, 22, 14, 255), width=2)
-    gd.ellipse((cx - 14, 152, cx + 8, 168), fill=(236, 186, 60, 255), outline=(120, 74, 10, 255), width=3)
+    # guard with curved quillons, wrapped grip, jewelled pommel
+    gold = vgrad((W, H), [(0, (255, 238, 160, 255)), (0.5, (226, 160, 40, 255)), (1, (120, 66, 12, 255))])
+    guard = mask_of(lambda dd: (dd.polygon([(cx - 52, guard_y - 6), (cx - 34, guard_y - 14), (cx - 12, guard_y - 6),
+                                            (cx + 12, guard_y - 6), (cx + 34, guard_y - 14), (cx + 52, guard_y - 6),
+                                            (cx + 40, guard_y + 8), (cx + 16, guard_y + 14), (cx - 16, guard_y + 14),
+                                            (cx - 40, guard_y + 8)], fill=255)))
+    sw = fill(sw, guard.filter(ImageFilter.MaxFilter(7)), Image.new("RGBA", (W, H), (40, 20, 4, 255)))
+    sw = fill(sw, guard, gold)
+    d = ImageDraw.Draw(sw)
+    d.ellipse((cx - 7, guard_y - 4, cx + 7, guard_y + 10), fill=(220, 20, 50, 255), outline=(60, 10, 10, 255), width=2)
+    d.rectangle((cx - 8, guard_y + 12, cx + 8, grip_y), fill=(70, 22, 22, 255), outline=(30, 8, 8, 255), width=2)
+    for yy in range(guard_y + 16, grip_y, 9):
+        d.line([(cx - 8, yy), (cx + 8, yy - 6)], fill=(208, 160, 60, 255), width=3)
+    d.ellipse((cx - 12, grip_y - 2, cx + 12, grip_y + 22), fill=(230, 160, 40, 255), outline=(60, 30, 6, 255), width=3)
+    d.ellipse((cx - 5, grip_y + 4, cx + 5, grip_y + 14), fill=(255, 90, 110, 255))
 
-    # glowing 13 across the lower half
-    num = number_layer((255, 236, 210, 255), (96, 8, 14, 255), 80, (cx - 3, 188))
-    img = Image.alpha_composite(img, glow(num, 11, 1.7))
-    img = Image.alpha_composite(img, num)
+    sw = sw.rotate(-9, resample=Image.BICUBIC, center=(cx, 150))
+    halo = fill(layer(), ImageChops.multiply(sw.getchannel('A').filter(ImageFilter.MaxFilter(15)), Image.new('L', (W, H), 255)), Image.new('RGBA', (W, H), (255, 190, 120, 255)))
+    img = Image.alpha_composite(img, glow(halo, 9, 0.75))
+    img = Image.alpha_composite(img, glow(sw, 8, 0.8))
+    img = Image.alpha_composite(img, sw)
 
-    frame(img, (190, 40, 40, 255), (240, 180, 70, 255))
-    img.putalpha(ImageChops.multiply(img.getchannel("A"), mask))
-    return img
+    # embers and a glint on the tip
+    rng = random.Random(5)
+    d = ImageDraw.Draw(img)
+    for _ in range(26):
+        x, y, r = rng.randint(14, W - 14), rng.randint(30, H - 30), rng.randint(2, 4)
+        d.ellipse((x - r, y - r, x + r, y + r), fill=(255, rng.randint(150, 230), 70, 255))
+    img = spark(img, cx + 30, 30, 12)
+    return bevel(img)
 
 
+# ---------------------------------------------------------------------------------------------------------------------
 def atlas(scale):
-    """The atlas at 1x/2x/4x; the drawn icons are reduced from the 8x masters."""
     icons = [set_icon(), weapon_icon()]
     sheet = Image.new("RGBA", (64 * scale, 32 * scale), (0, 0, 0, 0))
     for n, icon in enumerate(icons):
-        small = icon.resize((20 * scale, 28 * scale), Image.LANCZOS)
-        sheet.paste(small, (32 * scale * n, 0))
+        sheet.paste(icon.resize((20 * scale, 28 * scale), Image.LANCZOS), (32 * scale * n, 0))
     return sheet
 
 
@@ -223,25 +345,41 @@ def png_to_ozt(image, destination):
         f.write(bytes(8) + b"TRUEVISION-XFILE.\x00")
 
 
+def preview(master, small, data):
+    """The two icons next to existing buff icons (same sheets the game uses), enlarged, on the buff bar backdrop."""
+    sheet = Image.open(os.path.join(data, "Interface@4x", "BuffDetails", "newui_statusicon.png")).convert("RGBA")
+    sheet2 = Image.open(os.path.join(data, "Interface@4x", "BuffDetails", "newui_statusicon2.png")).convert("RGBA")
+    cw, ch = 80, 112
+
+    def existing(img, i):
+        return img.crop(((i % 10) * cw, (i // 10) * ch, (i % 10) * cw + cw, (i // 10) * ch + ch))
+
+    others = [existing(sheet, 27), existing(sheet2, 9), existing(sheet, 5), existing(sheet, 2)]
+    mine = [master.crop((32 * 4 * n, 0, 32 * 4 * n + cw, ch)) for n in range(2)]
+    row = others + mine
+    big = Image.new("RGBA", (len(row) * 110 + 20, 150), (36, 38, 46, 255))
+    for i, ic in enumerate(row):
+        big.alpha_composite(ic, (20 + i * 110, 20))
+    # the same row at real size (x1, and x3 enlarged) so the game look is judged at its true scale
+    strip = Image.new("RGBA", (len(row) * 24 + 8, 36), (36, 38, 46, 255))
+    for i, ic in enumerate(row):
+        strip.alpha_composite(ic.resize((15, 21), Image.LANCZOS), (8 + i * 24, 8))
+    strip = strip.resize((strip.width * 5, strip.height * 5), Image.NEAREST)
+    out = Image.new("RGBA", (max(big.width, strip.width), big.height + strip.height), (36, 38, 46, 255))
+    out.alpha_composite(big, (0, 0))
+    out.alpha_composite(strip, (0, big.height))
+    return out
+
+
 def main():
     data = os.path.join(REPO, "src", "bin", "Data")
     os.makedirs(os.path.join(data, "Interface@2x", "BuffDetails"), exist_ok=True)
     os.makedirs(os.path.join(data, "Interface@4x", "BuffDetails"), exist_ok=True)
     png_to_ozt(atlas(1), os.path.join(data, "Interface", "BuffDetails", "plus13_icons.OZT"))
     atlas(2).save(os.path.join(data, "Interface@2x", "BuffDetails", "plus13_icons.png"))
-    atlas(4).save(os.path.join(data, "Interface@4x", "BuffDetails", "plus13_icons.png"))
-
     master = atlas(4)
-    backdrop = Image.new("RGBA", (2 * 140 + 30, 170), (38, 40, 48, 255))
-    for n in range(2):
-        icon = master.crop((32 * 4 * n, 0, 32 * 4 * n + 80, 112))
-        backdrop.alpha_composite(icon.resize((100, 140), Image.LANCZOS), (20 + n * 150, 15))
-    small = atlas(1)
-    for n in range(2):
-        tile = small.crop((32 * n, 0, 32 * n + 20, 28))
-        backdrop.alpha_composite(tile, (125 + n * 150, 70))
-    backdrop = backdrop.resize((backdrop.width * 2, backdrop.height * 2), Image.NEAREST)
-    backdrop.save(os.path.join(REPO, "tools", "plus13_icons", "plus13_preview.png"))
+    master.save(os.path.join(data, "Interface@4x", "BuffDetails", "plus13_icons.png"))
+    preview(master, atlas(1), data).save(os.path.join(REPO, "tools", "plus13_icons", "plus13_preview.png"))
     print("wrote the +13 icon atlas")
 
 

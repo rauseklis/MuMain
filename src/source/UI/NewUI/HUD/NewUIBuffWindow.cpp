@@ -518,17 +518,16 @@ void SEASON3B::CNewUIBuffWindow::RenderBonusBadge(BUFF_RENDER renderstate, int i
         return;
     }
 
-    int count = 0;
-    for (int line = 0; line < lineCount; ++line)
+    // The standard tooltip box of the game: black, with the title in blue and the plain text in white.
+    const int shown = std::min(lineCount, 50);
+    for (int line = 0; line < shown; ++line)
     {
-        UI::Buffs::Tooltip::Append(lines[line], line == 0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE, line == 0, count);
-        if (line == 0)
-        {
-            UI::Buffs::Tooltip::AppendDivider(count);
-        }
+        mu_swprintf(TextList[line], L"%ls", lines[line]);
+        TextListColor[line] = line == 0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE;
+        TextBold[line] = line == 0;
     }
-    UI::Buffs::Tooltip::Render(position.x + BUFF_IMG_WIDTH / 2,
-        position.y + BUFF_IMG_HEIGHT + BUFF_IMG_SPACE, count, IMAGE_BUFF_TOOLTIP_ORNAMENTS);
+    RenderTipTextList(position.x + static_cast<int>(BUFF_IMG_WIDTH) / 2,
+                      position.y + static_cast<int>(BUFF_IMG_HEIGHT) + BUFF_IMG_SPACE, shown, 0, RT3_SORT_LEFT);
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, float y, float width, float height)
