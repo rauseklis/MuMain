@@ -12120,6 +12120,33 @@ void CreateCharacterPointer(CHARACTER* c, int Type, unsigned char PositionX, uns
     }
 }
 
+// A player announced again while still alive (a teleport inside view) keeps its
+// slot, and the packet that follows re-creates its mount and pets. Whatever the
+// slot already owns must go first, or the old and the new one are both drawn
+// until the old one is cleaned up.
+static void RemoveStaleAttachments(CHARACTER* c, OBJECT* o)
+{
+    int staleMounts = 0;
+    for (int j = 0; j < MAX_MOUNTS; j++)
+    {
+        const OBJECT* mount = &Mounts[j];
+        if (mount->Live && mount->Owner == o)
+        {
+            ++staleMounts;
+        }
+    }
+
+    DeleteMount(o);
+    ThePetProcess().DeletePet(c, -1, true);
+    DeleteCloth(c, o);
+
+    if (staleMounts > 0)
+    {
+        g_ErrorReport.Write(L"[teleport] player key %d re-announced while alive: removed %d old mount(s)\r\n", c->Key,
+                            staleMounts);
+    }
+}
+
 CHARACTER* CreateCharacter(int Key, int Type, unsigned char PositionX, unsigned char PositionY, float Rotation)
 {
     for (int i = 0; i < MAX_CHARACTERS_CLIENT; i++)
@@ -12128,6 +12155,7 @@ CHARACTER* CreateCharacter(int Key, int Type, unsigned char PositionX, unsigned 
         OBJECT* o = &c->Object;
         if (o->Live && c->Key == Key)
         {
+            RemoveStaleAttachments(c, o);
             CreateCharacterPointer(c, Type, PositionX, PositionY, Rotation);
             g_CharacterClearBuff(o);
             return c;
