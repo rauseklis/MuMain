@@ -10850,11 +10850,7 @@ void ReceiveOtherPlayerGensInfluenceViewport(const BYTE* ReceiveBuffer)
         c->GensContributionPoints = Data2->m_nContributionPoint;
         if (::IsStrifeMap(gMapManager.WorldActive))
         {
-            vec3_t vTemp = {0.f, 0.f, 0.f};
-            if (Hero->m_byGensInfluence == c->m_byGensInfluence)
-                CreateEffect(BITMAP_OUR_INFLUENCE_GROUND, c->Object.Position, vTemp, vTemp, 0, &c->Object);
-            else
-                CreateEffect(BITMAP_ENEMY_INFLUENCE_GROUND, c->Object.Position, vTemp, vTemp, 0, &c->Object);
+            CreateGensInfluenceGroundEffect(&c->Object, Hero->m_byGensInfluence == c->m_byGensInfluence);
         }
         nOffset += sizeof(PMSG_GENS_MEMBER_VIEWPORT_INFO);
     }

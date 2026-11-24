@@ -11558,6 +11558,7 @@ void ClearCharacters(int Key)
         if (o->Live && c->Key != Key)
         {
             o->Live = false;
+            DeleteGensInfluenceGroundEffects(o);
 
             BoneManager::UnregisterBone(c);
 
@@ -11584,6 +11585,7 @@ void DeleteCharacter(int Key)
         if (o->Live && c->Key == Key)
         {
             o->Live = false;
+            DeleteGensInfluenceGroundEffects(o);
 
             BoneManager::UnregisterBone(c);
 
@@ -11604,6 +11606,7 @@ void DeleteCharacter(int Key)
 void DeleteCharacter(CHARACTER* c, OBJECT* o)
 {
     o->Live = false;
+    DeleteGensInfluenceGroundEffects(o);
 
     BoneManager::UnregisterBone(c);
 
