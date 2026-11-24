@@ -3,10 +3,13 @@
 //*****************************************************************************
 #pragma once
 
+#include <string>
+
 #include "UI/Widgets/Win.h"
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/GaugeBar.h"
 #include "UI/Widgets/WinEx.h"
+#include "Network/Server/ServerDisplayNames.h"
 
 #define SSW_SERVER_G_MAX 21
 #define SSW_SERVER_MAX 16
@@ -33,6 +36,11 @@ protected:
     CButton m_aServerGroupBtn[SSW_SERVER_G_MAX];
     CButton m_aServerBtn[SSW_SERVER_MAX];
     CGaugeBar m_aServerGauge[SSW_SERVER_MAX];
+    // Servers with their own colours draw their label themselves (see RenderServerAccents); the others leave it to
+    // the button.
+    std::wstring m_aServerLabel[SSW_SERVER_MAX];
+    Network::ServerNames::ServerAccent m_aServerAccent[SSW_SERVER_MAX];
+    bool m_aServerHasAccent[SSW_SERVER_MAX];
     CSprite m_aBtnDeco[2];
     CSprite m_aArrowDeco[2];
     CWinEx m_winDescription;
@@ -67,6 +75,9 @@ protected:
     // Asks the connect server for the game server behind this entry and
     // remembers the choice. Shared by the click path and SelectServer().
     bool ConnectToServer(CServerInfo* pServerInfo);
+
+    // Tint, border and centred label of the servers that have their own colours.
+    void RenderServerAccents();
 
     void PreRelease();
     void SetServerBtnPosition();

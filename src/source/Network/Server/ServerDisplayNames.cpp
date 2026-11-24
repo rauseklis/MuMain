@@ -18,6 +18,13 @@ namespace
     // The position in the server select menu, parallel to SERVER_LABELS: "Ember 5x" is listed above "Inferno 500x".
     constexpr int SERVER_DISPLAY_RANKS[] = {2, 1};
     static_assert(std::size(SERVER_DISPLAY_RANKS) == std::size(SERVER_LABELS));
+
+    // The colours of each server, parallel to SERVER_LABELS: "Inferno 500x" burns deep red, "Ember 5x" glows orange.
+    constexpr ServerAccent SERVER_ACCENTS[] = {
+        {0xFFE0301Eu, 0xFFFF8070u, 0xFFFFC0B0u},
+        {0xFFFF9A1Eu, 0xFFFFBE5Au, 0xFFFFE6A0u},
+    };
+    static_assert(std::size(SERVER_ACCENTS) == std::size(SERVER_LABELS));
 }
 
 const wchar_t* GroupName(const wchar_t* nameInFile)
@@ -46,6 +53,17 @@ int ServerDisplayRank(int serverNumberInGroup)
     }
 
     return knownServers + serverNumberInGroup;
+}
+
+bool ServerAccentColors(int serverNumberInGroup, ServerAccent& accent)
+{
+    if (serverNumberInGroup < 1 || serverNumberInGroup > static_cast<int>(std::size(SERVER_ACCENTS)))
+    {
+        return false;
+    }
+
+    accent = SERVER_ACCENTS[serverNumberInGroup - 1];
+    return true;
 }
 
 void FormatServerTitle(wchar_t* title, size_t titleSize, const wchar_t* groupName, int serverNumberInGroup)
