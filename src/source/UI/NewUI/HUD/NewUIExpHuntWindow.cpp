@@ -5,17 +5,31 @@
 #include "GameLogic/ExpHunt/ExpHuntTracker.h"
 #include "Render/Textures/ZzzTexture.h"
 #include "UI/Legacy/UIControls.h"
+#include "UI/NewUI/HUD/ExpHuntBarLayout.h"
+#include "UI/Scaling/UITransform.h"
 
+#include <algorithm>
 #include <string>
 
 namespace SEASON3B
 {
     namespace
     {
-        constexpr float CAP_SOURCE_WIDTH = 22.f;
-        constexpr float CAP_SOURCE_HEIGHT = 25.f;
-        constexpr float TEXTURE_SIZE = 32.f;
-        constexpr int TEXT_TOP_OFFSET = 3;
+    namespace Bar = UI::HUD::ExpHuntBar;
+
+    // The widest line the bar must hold without clipping: the largest value the server can report.
+    constexpr wchar_t kWidestText[] = L"Experience Hunter: 9,999,999,999 / min";
+
+    // Draws a piece of the atlas so that its edges fall on whole screen pixels and the texture is sampled exactly
+    // (no half-texel inset), which keeps the art as sharp as it was drawn.
+    void RenderAtlasRect(int image, const Bar::Rect& destination, const Bar::Rect& source)
+    {
+        const UI::HUD::TopLeftBar::SnappedRect snapped = UI::HUD::TopLeftBar::SnapRect(
+            destination, g_fScreenRate_x, g_fScreenRate_y, g_fScreenOffset_x, g_fScreenOffset_y);
+        RenderImage(image, snapped.x, snapped.y, snapped.width, snapped.height, Bar::AtlasUv(source.x),
+                    Bar::AtlasUv(source.y), Bar::AtlasUv(source.width), Bar::AtlasUv(source.height),
+                    RGBA(255, 255, 255, 255));
+    }
 
         std::wstring FormatExpRate(double ratePerMinute)
         {
@@ -37,7 +51,7 @@ namespace SEASON3B
     }
 
     CNewUIExpHuntWindow::CNewUIExpHuntWindow()
-        : m_pNewUIMng(nullptr), m_Pos{ 0, 0 }, m_bDragging(false),
+        : m_pNewUIMng(nullptr), m_Pos{0, 0}, m_iWidth(Bar::kMinWidth), m_bMoved(false), m_bDragging(false),
           m_iDragGrabOffsetX(0), m_iDragGrabOffsetY(0)
     {
     }
@@ -64,8 +78,8 @@ namespace SEASON3B
 
     void CNewUIExpHuntWindow::ResetToDefaultPosition()
     {
-        m_Pos.x = DEFAULT_X;
-        m_Pos.y = DEFAULT_Y;
+        m_bMoved = false;
+        m_Pos.y = 0;
         m_bDragging = false;
         m_iDragGrabOffsetX = 0;
         m_iDragGrabOffsetY = 0;
@@ -83,19 +97,18 @@ namespace SEASON3B
 
     void CNewUIExpHuntWindow::LoadImages()
     {
-        LoadBitmap(L"Interface\\Minimap_positionA.tga", IMAGE_EXPHUNT_CAP, GL_LINEAR);
-        LoadBitmap(L"Interface\\Minimap_positionB.tga", IMAGE_EXPHUNT_MIDDLE, GL_LINEAR);
+        LoadBitmap(L"Interface\\ExpHuntBar\\ExpHuntBar.tga", IMAGE_EXPHUNT_ATLAS, GL_LINEAR);
     }
 
     void CNewUIExpHuntWindow::UnloadImages()
     {
-        DeleteBitmap(IMAGE_EXPHUNT_CAP);
-        DeleteBitmap(IMAGE_EXPHUNT_MIDDLE);
+        DeleteBitmap(IMAGE_EXPHUNT_ATLAS);
     }
 
     bool CNewUIExpHuntWindow::UpdateMouseEvent()
     {
-        const bool hovering = CheckMouseIn(m_Pos.x, m_Pos.y, WND_WIDTH, WND_HEIGHT);
+        RefreshLayout();
+        const bool hovering = CheckMouseIn(m_Pos.x, m_Pos.y, m_iWidth, Bar::kHitHeight);
 
         if (!m_bDragging && hovering && IsPress(VK_LBUTTON))
         {
@@ -116,6 +129,7 @@ namespace SEASON3B
                 return false;
             }
 
+            m_bMoved = true;
             m_Pos.x = MouseX - m_iDragGrabOffsetX;
             m_Pos.y = MouseY - m_iDragGrabOffsetY;
 
@@ -135,35 +149,47 @@ namespace SEASON3B
         return true;
     }
 
+    // The text decides the width: the bar is as wide as the longest line it has to hold (never narrower than the widest
+    // value the server can report) so nothing is clipped or touches the ends.
+    void CNewUIExpHuntWindow::RefreshLayout()
+    {
+        m_Text = FormatExpRate(GameLogic::ExpHunt::GetRatePerMinute());
+
+        g_pRenderText->SetFont(g_hFontBold);
+        const int current = g_pRenderText->MeasureText(m_Text.c_str(), static_cast<int>(m_Text.size())).cx;
+        const int widest = g_pRenderText->MeasureText(kWidestText, static_cast<int>(wcslen(kWidestText))).cx;
+        g_pRenderText->SetFont(g_hFont);
+
+        m_iWidth = Bar::BarWidth(std::max(current, widest));
+
+        if (!m_bMoved)
+        {
+            const auto bounds = UI::Scaling::FloatingWorkspaceBounds(WindowWidth, WindowHeight);
+            m_Pos.x = bounds.width - m_iWidth;
+        }
+    }
+
     bool CNewUIExpHuntWindow::Render()
     {
+        RefreshLayout();
         EnableAlphaTest();
 
-        const float middleWidth = static_cast<float>(WND_WIDTH - (CAP_WIDTH * 2));
-        const float capU = 0.5f / TEXTURE_SIZE;
-        const float capV = 0.5f / TEXTURE_SIZE;
-        const float capUWidth = (CAP_SOURCE_WIDTH - 1.f) / TEXTURE_SIZE;
-        const float capVHeight = (CAP_SOURCE_HEIGHT - 1.f) / TEXTURE_SIZE;
-
-        RenderImage(IMAGE_EXPHUNT_CAP, static_cast<float>(m_Pos.x), static_cast<float>(m_Pos.y),
-            static_cast<float>(CAP_WIDTH), static_cast<float>(WND_HEIGHT),
-            capU, capV, capUWidth, capVHeight);
-
-        RenderImage(IMAGE_EXPHUNT_MIDDLE, static_cast<float>(m_Pos.x + CAP_WIDTH), static_cast<float>(m_Pos.y),
-            middleWidth, static_cast<float>(WND_HEIGHT), 0.1f, 0.f, 22.4f / 32.f, 25.f / 32.f);
-
-        const float rightCapU = capU + capUWidth;
-        RenderImage(IMAGE_EXPHUNT_CAP, static_cast<float>(m_Pos.x + WND_WIDTH - CAP_WIDTH),
-            static_cast<float>(m_Pos.y), static_cast<float>(CAP_WIDTH), static_cast<float>(WND_HEIGHT),
-            rightCapU, capV, -capUWidth, capVHeight);
-
-        const std::wstring text = FormatExpRate(GameLogic::ExpHunt::GetRatePerMinute());
+        const auto draw = [this](const Bar::Rect& piece, const Bar::Rect& source)
+        {
+            RenderAtlasRect(IMAGE_EXPHUNT_ATLAS,
+                            Bar::Rect{m_Pos.x + piece.x, m_Pos.y + piece.y, piece.width, piece.height}, source);
+        };
+        draw(Bar::LeftPiece(), Bar::kLeftSource);
+        draw(Bar::MiddlePiece(m_iWidth), Bar::kMiddleSource);
+        draw(Bar::RightPiece(m_iWidth), Bar::kRightSource);
 
         g_pRenderText->SetFont(g_hFontBold);
         g_pRenderText->SetBgColor(0);
         g_pRenderText->SetTextColor(255, 220, 120, 255);
-        g_pRenderText->RenderText(m_Pos.x + CAP_WIDTH, m_Pos.y + TEXT_TOP_OFFSET, text.c_str(),
-            static_cast<int>(middleWidth), 0, RT3_SORT_CENTER);
+        const Bar::Rect box = Bar::TextBox(m_iWidth);
+        const int textHeight = g_pRenderText->MeasureText(m_Text.c_str(), static_cast<int>(m_Text.size())).cy;
+        g_pRenderText->RenderText(m_Pos.x + box.x, m_Pos.y + Bar::kTextCentreY - textHeight / 2, m_Text.c_str(),
+                                  box.width, 0, RT3_SORT_CENTER);
         g_pRenderText->SetFont(g_hFont);
 
         DisableAlphaBlend();

@@ -202,3 +202,13 @@ with the window) and its edges are snapped to whole screen pixels. A long map na
 single atlas, `Interface/TopLeftBar/TopLeftBar.OZT` with `Interface@2x` and `Interface@4x` versions, made from the original
 pictures by `python tools/top_left_bar/make_top_left_bar.py`. Positions are in `src/source/UI/NewUI/HUD/TopLeftBarLayout.h`;
 the script holds the same numbers.
+
+## The Experience Hunter bar
+
+The "Experience Hunter: ... / min" bar at the top of the screen is the original bar (two mirrored ends and a stretched
+middle) at about three quarters of its height. Its width follows the text: it is as wide as the longest line it has to hold
+(never narrower than "Experience Hunter: 9,999,999,999 / min"), so a large value does not clip or touch the ends. Until it is
+dragged it sits in the top-right corner. It keeps its proportions at any window size (uniform scale) and its edges are
+snapped to whole screen pixels. The art is a small atlas, `Interface/ExpHuntBar/ExpHuntBar.OZT` with `Interface@2x` and
+`Interface@4x` versions, made from the original pictures by `python tools/exp_hunt_bar/make_exp_hunt_bar.py`. Sizes are in
+`src/source/UI/NewUI/HUD/ExpHuntBarLayout.h`; the script holds the same numbers.

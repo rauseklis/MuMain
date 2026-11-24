@@ -59,6 +59,13 @@ src/bin/Data/Items/**/*.tmp
 !src/bin/Data/Interface@4x/
 !src/bin/Data/Interface@4x/TopLeftBar/
 !src/bin/Data/Interface@4x/TopLeftBar/**
+# Experience Hunter bar atlas (1x, 2x and 4x).
+!src/bin/Data/Interface/ExpHuntBar/
+!src/bin/Data/Interface/ExpHuntBar/**
+!src/bin/Data/Interface@2x/ExpHuntBar/
+!src/bin/Data/Interface@2x/ExpHuntBar/**
+!src/bin/Data/Interface@4x/ExpHuntBar/
+!src/bin/Data/Interface@4x/ExpHuntBar/**
 **/obj/
 *.user
 *.suo

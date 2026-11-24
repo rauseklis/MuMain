@@ -20,6 +20,8 @@ UI::Scaling::LayoutMode UI::Layout::ForInterface(std::uint32_t interfaceKey)
     case INTERFACE_FRIEND:
     // The top-left bar keeps its proportions: the Hud mode stretches width and height by different factors.
     case INTERFACE_HERO_POSITION_INFO:
+    // Likewise the Experience Hunter bar, which sits in the top-right corner of the workspace.
+    case INTERFACE_EXPHUNT:
         return LayoutMode::FloatingWorkspace;
 
     case INTERFACE_CHATINPUTBOX:
@@ -45,7 +47,6 @@ UI::Scaling::LayoutMode UI::Layout::ForInterface(std::uint32_t interfaceKey)
     case INTERFACE_HOTKEY:
     case INTERFACE_SYSTEMLOGWINDOW:
     case INTERFACE_CURSEDTEMPLE_GAMESYSTEM:
-    case INTERFACE_EXPHUNT:
         return LayoutMode::Hud;
 
     case INTERFACE_SKILL_LIST:
