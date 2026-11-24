@@ -46,11 +46,20 @@ namespace SEASON3B
         static constexpr float STORAGE_HEIGHT = 429.0f;
 
         // The switch buttons sit in the row of the round Zen / lock buttons (same top and height).
-        static constexpr int VAULT_BTN_PREV_X = 127;
-        static constexpr int VAULT_BTN_NEXT_X = 152;
-        static constexpr int VAULT_BTN_Y = 391;
-        static constexpr int VAULT_BTN_WIDTH = 24;
-        static constexpr int VAULT_BTN_HEIGHT = 29;
+        // The bottom buttons are drawn about a third smaller than their 36x29 and 24x29 pictures.
+        static constexpr int BOTTOM_BTN_SOURCE_WIDTH = 36;
+        static constexpr int BOTTOM_BTN_SOURCE_HEIGHT = 29;
+        static constexpr int BOTTOM_BTN_Y = 395;
+        static constexpr int BOTTOM_BTN_WIDTH = 25;
+        static constexpr int BOTTOM_BTN_HEIGHT = 20;
+        static constexpr int BOTTOM_BTN_FIRST_X = 13;
+        static constexpr int BOTTOM_BTN_STEP = 28;
+        static constexpr int VAULT_BTN_SOURCE_WIDTH = 24;
+        static constexpr int VAULT_BTN_PREV_X = 137;
+        static constexpr int VAULT_BTN_NEXT_X = 155;
+        static constexpr int VAULT_BTN_Y = BOTTOM_BTN_Y;
+        static constexpr int VAULT_BTN_WIDTH = 16;
+        static constexpr int VAULT_BTN_HEIGHT = BOTTOM_BTN_HEIGHT;
 
         // The most Zen the storage holds (the server's MaximumVaultMoney), shown as a tooltip on the Zen box.
         static constexpr __int64 MAX_STORAGE_ZEN = 1'000'000'000'000LL;

@@ -247,7 +247,6 @@ namespace SEASON3B
         void RenderGuageAG();
         void RenderGuageSD();
         void RenderExperience();
-        void RenderExperienceTicks(unsigned int color, float limitX);
         void UpdateExperienceDisplay();
         void RenderHotKeyItemCount();
         void RenderButtons();

@@ -131,6 +131,9 @@ namespace SEASON3B
             bool overflg = false, bool isimgwidth = false);
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
         void ChangeButtonInfo(int x, int y, int sx, int sy);
+        // Draws the button picture scaled to its size instead of cropping it: one frame of the picture is
+        // sourceWidth x sourceHeight texels, frames stacked from the top. 0 keeps the classic 1:1 drawing.
+        void SetSourceFrameSize(int sourceWidth, int sourceHeight);
 
         // Draws the button's frame from a nine-slice skin (corners fixed, edges stretched) tinted by its
         // hover/pressed/locked state, instead of blitting its registered sprite 1:1. The skin outlives the
@@ -207,6 +210,7 @@ namespace SEASON3B
 
         int						m_CurImgIndex;
         int						m_CurImgState;
+        POINT m_SourceFrameSize = {0, 0};
 
         WORD					m_ImgWidth;
         WORD					m_ImgHeight;

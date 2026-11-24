@@ -79,13 +79,12 @@ constexpr unsigned int kChannelTrough = 0xFF14110Du;
 constexpr unsigned int kChannelLip = 0xFF4A4236u;
 constexpr unsigned int kNumberPlateEdge = 0xFF4A4236u;
 constexpr unsigned int kNumberPlateFill = 0xFF080706u;
-constexpr unsigned int kTickOnTrough = 0xFF2A251Du;
-constexpr unsigned int kTickOnFill = 0x59000000u;
 
-constexpr int kFillRowCount = 4;
-// One refined gradient from a thin highlight on top to a deep base. Master levels use gold.
-constexpr unsigned int kFillRows[kFillRowCount] = {0xFFA6E89Au, 0xFF4DBA5Cu, 0xFF2F8F40u, 0xFF1F6A2Du};
-constexpr unsigned int kMasterFillRows[kFillRowCount] = {0xFFFFE9A0u, 0xFFE8B84Au, 0xFFB98322u, 0xFF855812u};
+// One smooth vertical gradient, light on top to deep at the bottom. Master levels use gold.
+constexpr unsigned int kFillTop = 0xFF6BCB78u;
+constexpr unsigned int kFillBottom = 0xFF1F6A2Du;
+constexpr unsigned int kMasterFillTop = 0xFFF0C95Cu;
+constexpr unsigned int kMasterFillBottom = 0xFF855812u;
 } // namespace ExpBarStyle
 
 namespace
@@ -380,25 +379,9 @@ void SEASON3B::CNewUIMainFrameWindow::RenderExperienceBackground()
     RenderColorQuadARGB(kChannelX, kChannelY, kChannelWidth, kChannelHeight, kChannelEdge);
     RenderColorQuadARGB(kBarX, kBarY, kBarWidth, kBarHeight, kChannelTrough);
     RenderColorQuadARGB(kChannelX, kChannelY + kChannelHeight, kChannelWidth, 1.0f, kChannelLip);
-    RenderExperienceTicks(kTickOnTrough, kBarX + kBarWidth);
 
     RenderColorQuadARGB(kPlateX, kPlateY, kPlateWidth, kPlateHeight, kNumberPlateEdge);
     RenderColorQuadARGB(kPlateX + 1.0f, kPlateY + 1.0f, kPlateWidth - 2.0f, kPlateHeight - 2.0f, kNumberPlateFill);
-}
-
-// Draws the segment ticks that lie left of limitX.
-void SEASON3B::CNewUIMainFrameWindow::RenderExperienceTicks(unsigned int color, float limitX)
-{
-    using namespace ExpBarStyle;
-
-    const float segmentWidth = kBarWidth / static_cast<float>(UI::Hud::ExperienceBar::kSegments);
-    for (int tick = 1; tick < UI::Hud::ExperienceBar::kSegments; ++tick)
-    {
-        const float x = kBarX + segmentWidth * static_cast<float>(tick);
-        if (x >= limitX)
-            return;
-        RenderColorQuadARGB(x, kBarY, 1.0f, kBarHeight, color);
-    }
 }
 
 void SEASON3B::CNewUIMainFrameWindow::UpdateExperienceDisplay()
@@ -432,12 +415,12 @@ void SEASON3B::CNewUIMainFrameWindow::RenderExperience()
 
     const ExperienceState state = ReadExperienceState();
     const float fillWidth = UI::Hud::ExperienceBar::FillWidth(m_bExpShownValid ? m_dExpShown : 0.0, kBarWidth);
-    const unsigned int* rows = state.master ? kMasterFillRows : kFillRows;
-    for (int row = 0; fillWidth > 0.0f && row < kFillRowCount; ++row)
+    if (fillWidth > 0.0f)
     {
-        RenderColorQuadARGB(kBarX, kBarY + static_cast<float>(row), fillWidth, 1.0f, rows[row]);
+        const unsigned int top = state.master ? kMasterFillTop : kFillTop;
+        const unsigned int bottom = state.master ? kMasterFillBottom : kFillBottom;
+        RenderColorGradientARGB(kBarX, kBarY, fillWidth, kBarHeight, top, top, bottom, bottom);
     }
-    RenderExperienceTicks(kTickOnFill, kBarX + fillWidth);
 
     const int segment = UI::Hud::ExperienceBar::Segment(state.current, state.range);
     SEASON3B::RenderNumber(kPlateX + kPlateWidth * 0.5f, kPlateY + 1.0f, segment, kNumberScale);
