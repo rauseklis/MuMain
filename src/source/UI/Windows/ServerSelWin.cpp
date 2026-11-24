@@ -3,6 +3,9 @@
 //*****************************************************************************
 
 #include "stdafx.h"
+#include <algorithm>
+#include <cmath>
+#include <iterator>
 #include "ServerSelWin.h"
 #include "Core/Input/Input.h"
 #include "UI/Legacy/UIMng.h"
@@ -30,6 +33,7 @@ using namespace SEASON3A;
 
 CServerSelWin::CServerSelWin()
 {
+    std::fill(std::begin(m_aServerHasAccent), std::end(m_aServerHasAccent), false);
 }
 
 CServerSelWin::~CServerSelWin()
@@ -272,7 +276,17 @@ void CServerSelWin::UpdateDisplay()
     int icntServer = 0;
     while (m_pSelectServerGroup->GetNext(pServerInfo))
     {
-        m_aServerBtn[icntServer].SetText(pServerInfo->m_bName, adwServerBtnClr[pServerInfo->m_byNonPvP]);
+        m_aServerHasAccent[icntServer] =
+            Network::ServerNames::ServerAccentColors(pServerInfo->m_iIndex, m_aServerAccent[icntServer]);
+        if (m_aServerHasAccent[icntServer])
+        {
+            m_aServerLabel[icntServer] = pServerInfo->m_bName;
+            m_aServerBtn[icntServer].SetText(L"", adwServerBtnClr[pServerInfo->m_byNonPvP]);
+        }
+        else
+        {
+            m_aServerBtn[icntServer].SetText(pServerInfo->m_bName, adwServerBtnClr[pServerInfo->m_byNonPvP]);
+        }
         m_aServerGauge[icntServer].SetValue(pServerInfo->m_iPercent, 100);
         icntServer++;
     }
@@ -524,6 +538,60 @@ bool CServerSelWin::SelectServer(const wchar_t* groupName, int serverIndex)
     return ConnectToServer(pServerInfo);
 }
 
+void CServerSelWin::RenderServerAccents()
+{
+    // 640x480 layout units, like the rest of the window. Cheap: one wash, four border lines and two texts per entry.
+    constexpr float PULSE_PERIOD_MS = 2600.0f;
+    constexpr float TWO_PI = 6.2831853f;
+    constexpr float INSET = 3.0f;
+
+    const float pulse = 0.5f + 0.5f * std::sin(static_cast<float>(GetTickCount() % 100000u) * TWO_PI / PULSE_PERIOD_MS);
+
+    for (int i = 0; i < m_icntServer; ++i)
+    {
+        if (!m_aServerHasAccent[i] || !m_aServerBtn[i].IsShow())
+            continue;
+
+        const Network::ServerNames::ServerAccent& accent = m_aServerAccent[i];
+        const bool hover = m_aServerBtn[i].CursorInObject() != FALSE;
+        const bool pressed = hover && CInput::Instance().IsLBtnDn();
+
+        const float x = static_cast<float>(m_aServerBtn[i].GetXPos()) / g_fScreenRate_x;
+        const float y = static_cast<float>(m_aServerBtn[i].GetYPos()) / g_fScreenRate_y;
+        const float w = static_cast<float>(m_aServerBtn[i].GetWidth()) / g_fScreenRate_x;
+        const float h = static_cast<float>(m_aServerBtn[i].GetHeight()) / g_fScreenRate_y;
+
+        const unsigned int rgb = accent.glow & 0x00FFFFFFu;
+        const auto withAlpha = [rgb](float a) { return (static_cast<unsigned int>(a) << 24) | rgb; };
+
+        // A soft wash inside the frame and a thin border that breathe slowly; both stronger under the cursor.
+        const float wash = (hover ? 56.0f : 26.0f) + pulse * (hover ? 22.0f : 16.0f);
+        const float edge = (hover ? 170.0f : 95.0f) + pulse * 60.0f;
+
+        EnableAlphaTest();
+        RenderColorQuadARGB(x + INSET, y + INSET, w - 2 * INSET, h - 2 * INSET, withAlpha(wash));
+        RenderColorQuadARGB(x + INSET, y + INSET, w - 2 * INSET, 1.0f, withAlpha(edge));
+        RenderColorQuadARGB(x + INSET, y + h - INSET - 1, w - 2 * INSET, 1.0f, withAlpha(edge));
+        RenderColorQuadARGB(x + INSET, y + INSET, 1.0f, h - 2 * INSET, withAlpha(edge));
+        RenderColorQuadARGB(x + w - INSET - 1, y + INSET, 1.0f, h - 2 * INSET, withAlpha(edge));
+        EndRenderColor();
+
+        // The label: the same font for every entry, centred in the button both ways, with a dark shadow.
+        g_pRenderText->SetFont(g_hFixFont);
+        g_pRenderText->SetBgColor(0);
+        const SIZE size =
+            g_pRenderText->MeasureText(m_aServerLabel[i].c_str(), static_cast<int>(m_aServerLabel[i].length()));
+        const int textY = static_cast<int>(y + (h - static_cast<float>(size.cy)) * 0.5f) + (pressed ? 1 : 0);
+        const int textX = static_cast<int>(x);
+        const int textWidth = static_cast<int>(w);
+
+        g_pRenderText->SetTextColor(0xC0000000u);
+        g_pRenderText->RenderText(textX + 1, textY + 1, m_aServerLabel[i].c_str(), textWidth, 0, RT3_SORT_CENTER);
+        g_pRenderText->SetTextColor(hover ? accent.textHover : accent.text);
+        g_pRenderText->RenderText(textX, textY, m_aServerLabel[i].c_str(), textWidth, 0, RT3_SORT_CENTER);
+    }
+}
+
 void CServerSelWin::RenderControls()
 {
     int i = 0;
@@ -533,6 +601,7 @@ void CServerSelWin::RenderControls()
     g_pRenderText->SetBgColor(0);
 
     CWin::RenderButtons();
+    RenderServerAccents();
 
     if (m_pSelectServerGroup != NULL)
     {

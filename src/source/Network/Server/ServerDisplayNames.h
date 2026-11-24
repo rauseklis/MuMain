@@ -15,6 +15,19 @@ namespace Network::ServerNames
     // keep their number as position, after the ones that have one.
     int ServerDisplayRank(int serverNumberInGroup);
 
+    // The colours a server entry is drawn with in the server select menu (0xAARRGGBB). `glow` tints the button and its
+    // border, `text` is the label colour and `textHover` the label colour under the cursor.
+    struct ServerAccent
+    {
+        unsigned int glow;
+        unsigned int text;
+        unsigned int textHover;
+    };
+
+    // Fills accent and returns true for a server which has its own colours; returns false for the others, which are
+    // drawn like any other button.
+    bool ServerAccentColors(int serverNumberInGroup, ServerAccent& accent);
+
     // Writes "[Inferno 500x]" into title when the server has a label; otherwise leaves title as it is.
     void FormatServerTitle(wchar_t* title, size_t titleSize, const wchar_t* groupName, int serverNumberInGroup);
 }
