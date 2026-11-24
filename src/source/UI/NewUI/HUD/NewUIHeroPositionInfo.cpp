@@ -13,6 +13,47 @@
 
 using namespace SEASON3B;
 
+namespace
+{
+namespace Bar = UI::HUD::TopLeftBar;
+
+constexpr int kTextBufferLength = 64;
+const DWORD kNameColor = RGBA(236, 231, 217, 255);
+const DWORD kCoordinateColor = RGBA(255, 208, 128, 255);
+const DWORD kWhite = RGBA(255, 255, 255, 255);
+constexpr wchar_t kEllipsis[] = L"...";
+constexpr size_t kEllipsisLength = 3;
+
+Bar::Rect ScreenRect(const Bar::Rect& local, const POINT& origin)
+{
+    return Bar::Offset(local, origin.x, origin.y);
+}
+
+// Shortens `text` with "..." until it is at most `maxWidth` logical pixels wide in the font that is currently set.
+void FitText(wchar_t* text, int maxWidth)
+{
+    size_t length = wcslen(text);
+    while (length > 1 && g_pRenderText->MeasureText(text, static_cast<int>(length)).cx > maxWidth)
+    {
+        --length;
+        if (length > kEllipsisLength)
+        {
+            wmemcpy(text + length - kEllipsisLength, kEllipsis, kEllipsisLength);
+        }
+        text[length] = L'\0';
+    }
+}
+
+// Draws `text` centred inside `box` (logical pixels), both ways, using the font that is currently set.
+void RenderCentredText(const wchar_t* text, const Bar::Rect& box, DWORD color)
+{
+    const SIZE size = g_pRenderText->MeasureText(text, static_cast<int>(wcslen(text)));
+    const int top = box.y + (box.height - size.cy) / 2;
+    g_pRenderText->SetTextColor(color);
+    g_pRenderText->RenderText(box.x, top, text, box.width, 0, RT3_SORT_CENTER);
+}
+} // namespace
+
 CNewUIHeroPositionInfo::CNewUIHeroPositionInfo()
 {
     m_pNewUIMng = NULL;
@@ -35,95 +76,14 @@ bool CNewUIHeroPositionInfo::Create(CNewUIManager* pNewUIMng, int x, int y)
     m_pNewUIMng = pNewUIMng;
     m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_HERO_POSITION_INFO, this);
 
-    WidenX = (HERO_POSITION_INFO_BASEB_WINDOW_WIDTH + (HERO_POSITION_INFO_BASEB_WINDOW_WIDTH * 0.2f));
-    if (WindowWidth > 800)
-    {
-        WidenX = (HERO_POSITION_INFO_BASEB_WINDOW_WIDTH + (HERO_POSITION_INFO_BASEB_WINDOW_WIDTH * 0.4f));
-    }
-
-    SetPos(x, y);
+    SetPos(x + Bar::kMargin, y + Bar::kMargin);
     LoadImages();
+    PlaceButtons();
 
-    SetButtonInfo(
-        &m_BtnConfig,
-        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 3,
-        x + WidenX + 41,
-        y,
-        18,
-        13,
-        1,
-        0,
-        1,
-        1u,
-        nullptr,
-        &I18N::Game::OfficialMUHelperSetting,
-        0);
-
-    SetButtonInfo(
-        &m_BtnStart,
-        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 4,
-        x + WidenX + 59,
-        y,
-        18,
-        13,
-        1,
-        0,
-        1,
-        1u,
-        nullptr,
-        &I18N::Game::StartOfficialMUHelper,
-        0);
-
-    SetButtonInfo(
-        &m_BtnStop,
-        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 5,
-        x + WidenX + 59,
-        y,
-        18,
-        13,
-        1,
-        0,
-        1,
-        1u,
-        nullptr,
-        &I18N::Game::StopOfficialMUHelper,
-        0);
-
-    SetButtonInfo(
-        &m_BtnExpHuntStart,
-        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 6,
-        x + WidenX + 77,
-        y,
-        18,
-        13,
-        1,
-        0,
-        1,
-        1u,
-        nullptr,
-        &I18N::Game::ExperienceHunter,
-        0);
-
-    SetButtonInfo(
-        &m_BtnExpHuntStop,
-        IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 7,
-        x + WidenX + 77,
-        y,
-        18,
-        13,
-        1,
-        0,
-        1,
-        1u,
-        nullptr,
-        &I18N::Game::ExperienceHunter,
-        0);
-
-    MoveTextTipPos(&m_BtnConfig, -20, 9);
-    MoveTextTipPos(&m_BtnStart, -20, 9);
-    MoveTextTipPos(&m_BtnStop, -20, 9);
-    MoveTextTipPos(&m_BtnExpHuntStart, -20, 9);
-    MoveTextTipPos(&m_BtnExpHuntStop, -20, 9);
+    m_BtnConfig.ChangeToolTipText(&I18N::Game::OfficialMUHelperSetting, false);
+    m_BtnStart.ChangeToolTipText(&I18N::Game::StartOfficialMUHelper, false);
+    m_BtnStop.ChangeToolTipText(&I18N::Game::StopOfficialMUHelper, false);
+    m_BtnExpHunt.ChangeToolTipText(&I18N::Game::ExperienceHunter, false);
 
     Show(true);
 
@@ -145,6 +105,21 @@ void CNewUIHeroPositionInfo::SetPos(int x, int y)
 {
     m_Pos.x = x;
     m_Pos.y = y;
+    PlaceButtons();
+}
+
+// The start and stop buttons share one spot; only one of them is shown and clicked at a time.
+void CNewUIHeroPositionInfo::PlaceButtons()
+{
+    const auto place = [this](CNewUIButton& button, Bar::Button which)
+    {
+        const Bar::Rect rect = ScreenRect(Bar::ButtonRect(which), m_Pos);
+        button.ChangeButtonInfo(rect.x, rect.y, rect.width, rect.height);
+    };
+    place(m_BtnConfig, Bar::Button::Settings);
+    place(m_BtnStart, Bar::Button::MuHelper);
+    place(m_BtnStop, Bar::Button::MuHelper);
+    place(m_BtnExpHunt, Bar::Button::ExperienceHunter);
 }
 
 bool CNewUIHeroPositionInfo::BtnProcess()
@@ -156,7 +131,8 @@ bool CNewUIHeroPositionInfo::BtnProcess()
         return true;
     }
 
-    if (m_BtnStart.UpdateMouseEvent())
+    CNewUIButton& helperButton = MUHelper::g_MuHelper.IsActive() ? m_BtnStop : m_BtnStart;
+    if (helperButton.UpdateMouseEvent())
     {
         MUHelper::g_MuHelper.Toggle();
 
@@ -174,8 +150,7 @@ bool CNewUIHeroPositionInfo::BtnProcess()
 
 bool CNewUIHeroPositionInfo::ProcessExpHuntButton()
 {
-    CNewUIButton& button = GameLogic::ExpHunt::IsActive() ? m_BtnExpHuntStop : m_BtnExpHuntStart;
-    if (!button.UpdateMouseEvent())
+    if (!m_BtnExpHunt.UpdateMouseEvent())
     {
         return false;
     }
@@ -192,9 +167,7 @@ bool CNewUIHeroPositionInfo::UpdateMouseEvent()
         return false;
     }
 
-    int Width = HERO_POSITION_INFO_BASEA_WINDOW_WIDTH + WidenX + 91;
-
-    if (CheckMouseIn(m_Pos.x, m_Pos.y, Width, HERO_POSITION_INFO_BASE_WINDOW_HEIGHT))
+    if (CheckMouseIn(m_Pos.x, m_Pos.y, Bar::kFrameWidth, Bar::kFrameHeight))
     {
         return false;
     }
@@ -218,32 +191,68 @@ bool CNewUIHeroPositionInfo::Update()
     return true;
 }
 
-bool CNewUIHeroPositionInfo::Render()
+// Draws a piece of the atlas so that its edges fall on whole screen pixels and the texture is sampled exactly
+// (no half-texel inset), which keeps the art as sharp as it was drawn.
+void CNewUIHeroPositionInfo::RenderAtlasRect(const Bar::Rect& destination, const Bar::Rect& source)
 {
-    wchar_t szText[255] = {};
+    const Bar::SnappedRect snapped =
+        Bar::SnapRect(destination, g_fScreenRate_x, g_fScreenRate_y, g_fScreenOffset_x, g_fScreenOffset_y);
+    RenderImage(IMAGE_HERO_POSITION_INFO_ATLAS, snapped.x, snapped.y, snapped.width, snapped.height,
+                Bar::AtlasUv(source.x), Bar::AtlasUv(source.y), Bar::AtlasUv(source.width), Bar::AtlasUv(source.height),
+                kWhite);
+}
 
-    EnableAlphaTest();
+void CNewUIHeroPositionInfo::RenderFrame()
+{
+    RenderAtlasRect(Bar::Rect{m_Pos.x, m_Pos.y, Bar::kFrameWidth, Bar::kFrameHeight},
+                    Bar::Rect{0, 0, Bar::kFrameWidth, Bar::kFrameHeight});
+}
+
+void CNewUIHeroPositionInfo::RenderButtonFace(CNewUIButton& button, Bar::Button which, Bar::Face face)
+{
+    const BUTTON_STATE state = button.GetBTState();
+    const Bar::ButtonState faceState = state == BUTTON_STATE_DOWN   ? Bar::ButtonState::Down
+                                       : state == BUTTON_STATE_OVER ? Bar::ButtonState::Over
+                                                                    : Bar::ButtonState::Up;
+    RenderAtlasRect(ScreenRect(Bar::ButtonRect(which), m_Pos), Bar::FaceRect(face, faceState));
+}
+
+void CNewUIHeroPositionInfo::RenderTexts()
+{
+    wchar_t name[kTextBufferLength] = {};
+    wchar_t coordinates[kTextBufferLength] = {};
+    mu_swprintf(name, L"%ls", gMapManager.GetMapName(gMapManager.WorldActive));
+    mu_swprintf(coordinates, L"%d , %d", m_CurHeroPosition.x, m_CurHeroPosition.y);
 
     g_pRenderText->SetFont(g_hFont);
-    g_pRenderText->SetTextColor(255, 255, 255, 255);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
 
-    // All three pieces map the texture exactly (no half-texel inset): the plain 4-argument RenderImage stretches rows 0.5..h-0.5
-    // over the quad, which put the left end and the right end 0.5 to 1 pixel off the middle piece and made the bar's lines step.
-    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW, m_Pos.x, m_Pos.y, float(HERO_POSITION_INFO_BASEA_WINDOW_WIDTH), float(HERO_POSITION_INFO_BASE_WINDOW_HEIGHT), 0.f, 0.f, HERO_POSITION_INFO_BASEA_WINDOW_WIDTH / 32.f, HERO_POSITION_INFO_BASE_WINDOW_HEIGHT / 32.f);
+    const Bar::Rect nameRow = ScreenRect(Bar::kNameRow, m_Pos);
+    FitText(name, nameRow.width - 2 * Bar::kNameTextInset);
+    RenderCentredText(name, nameRow, kNameColor);
+    RenderCentredText(coordinates, ScreenRect(Bar::kCoordinateRow, m_Pos), kCoordinateColor);
+}
 
-    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 1, m_Pos.x + HERO_POSITION_INFO_BASEA_WINDOW_WIDTH, m_Pos.y, float(WidenX), float(HERO_POSITION_INFO_BASE_WINDOW_HEIGHT), 0.1f, 0.f, 22.4f / 32.f, 25.f / 32.f);
+bool CNewUIHeroPositionInfo::Render()
+{
+    EnableAlphaTest();
 
-    RenderImage(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2, m_Pos.x + HERO_POSITION_INFO_BASEA_WINDOW_WIDTH + WidenX, m_Pos.y, 91.f, 20.f, 0.f, 0.f, 91.f / 128.f, 20.f / 32.f);
-    //--
+    RenderFrame();
+
+    const bool helperRunning = MUHelper::g_MuHelper.IsActive();
+    const bool experienceHunting = GameLogic::ExpHunt::IsActive();
+    RenderButtonFace(m_BtnConfig, Bar::Button::Settings, Bar::Face::Settings);
+    RenderButtonFace(helperRunning ? m_BtnStop : m_BtnStart, Bar::Button::MuHelper,
+                     helperRunning ? Bar::Face::MuHelperStop : Bar::Face::MuHelperStart);
+    RenderButtonFace(m_BtnExpHunt, Bar::Button::ExperienceHunter,
+                     experienceHunting ? Bar::Face::ExperienceOn : Bar::Face::ExperienceOff);
+
+    RenderTexts();
+
+    // The buttons draw only their tooltip (they have no image of their own).
     m_BtnConfig.Render();
-
-    MUHelper::g_MuHelper.IsActive() ? m_BtnStop.Render() : m_BtnStart.Render();
-    GameLogic::ExpHunt::IsActive() ? m_BtnExpHuntStop.Render() : m_BtnExpHuntStart.Render();
-    //--
-    mu_swprintf(szText, L"%ls (%d , %d)", gMapManager.GetMapName(gMapManager.WorldActive), m_CurHeroPosition.x, m_CurHeroPosition.y);
-
-    g_pRenderText->RenderText(m_Pos.x + 10, m_Pos.y + 5, szText, WidenX + 20, 13 - 4, RT3_SORT_CENTER);
+    (helperRunning ? m_BtnStop : m_BtnStart).Render();
+    m_BtnExpHunt.Render();
 
     DisableAlphaBlend();
     return true;
@@ -270,40 +279,10 @@ void CNewUIHeroPositionInfo::SetCurHeroPosition(int x, int y)
 
 void CNewUIHeroPositionInfo::LoadImages()
 {
-    LoadBitmap(L"Interface\\Minimap_positionA.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW, GL_LINEAR);
-    LoadBitmap(L"Interface\\Minimap_positionB.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 1, GL_LINEAR);
-    LoadBitmap(L"Interface\\MacroUI\\Minimap_positionC_ExpHunt.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 2, GL_LINEAR);
-    LoadBitmap(L"Interface\\MacroUI\\MacroUI_Setup.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 3, GL_LINEAR);
-    LoadBitmap(L"Interface\\MacroUI\\MacroUI_Start.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 4, GL_LINEAR);
-    LoadBitmap(L"Interface\\MacroUI\\MacroUI_Stop.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 5, GL_LINEAR);
-    LoadBitmap(L"Interface\\MacroUI\\MacroUI_ExpHuntStart.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 6, GL_LINEAR);
-    LoadBitmap(L"Interface\\MacroUI\\MacroUI_ExpHuntStop.tga", IMAGE_HERO_POSITION_INFO_BASE_WINDOW + 7, GL_LINEAR);
+    LoadBitmap(L"Interface\\TopLeftBar\\TopLeftBar.tga", IMAGE_HERO_POSITION_INFO_ATLAS, GL_LINEAR);
 }
 
 void CNewUIHeroPositionInfo::UnloadImages()
 {
-    constexpr int ImageCount = 8;
-    for (int offset = 0; offset < ImageCount; ++offset)
-    {
-        DeleteBitmap(IMAGE_HERO_POSITION_INFO_BASE_WINDOW + offset);
-    }
-}
-
-void CNewUIHeroPositionInfo::SetButtonInfo(CNewUIButton* m_Btn, int imgindex, int x, int y, int sx, int sy, bool overflg, bool isimgwidth, bool bClickEffect, bool MoveTxt, const wchar_t* const* btnameSlot, const wchar_t* const* tooltipSlot, bool istoppos)
-{
-    m_Btn->ChangeButtonImgState(1, imgindex, overflg, isimgwidth, bClickEffect);
-    m_Btn->ChangeButtonInfo(x, y, sx, sy);
-
-    if (btnameSlot != nullptr) m_Btn->ChangeText(btnameSlot);
-    if (tooltipSlot != nullptr) m_Btn->ChangeToolTipText(tooltipSlot, istoppos);
-
-    if (MoveTxt)
-    {
-        m_Btn->MoveTextPos(0, -1);
-    }
-}
-
-void CNewUIHeroPositionInfo::MoveTextTipPos(CNewUIButton* m_Btn, int iX, int iY)
-{
-    m_Btn->MoveTextTipPos(iX, iY);
+    DeleteBitmap(IMAGE_HERO_POSITION_INFO_ATLAS);
 }

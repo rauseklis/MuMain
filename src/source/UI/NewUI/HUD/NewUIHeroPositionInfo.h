@@ -8,6 +8,7 @@
 
 #include "UI/NewUI/NewUIBase.h"
 #include "UI/NewUI/NewUIManager.h"
+#include "UI/NewUI/HUD/TopLeftBarLayout.h"
 #include "UI/NewUI/Widgets/NewUIButton.h"
 
 namespace SEASON3B
@@ -17,24 +18,19 @@ namespace SEASON3B
     public:
         enum IMAGE_LIST
         {
-            IMAGE_HERO_POSITION_INFO_BASE_WINDOW = BITMAP_HERO_POSITION_INFO_BEGIN,		// newui_position02.tga			(70, 25)
+            IMAGE_HERO_POSITION_INFO_ATLAS = BITMAP_HERO_POSITION_INFO_BEGIN, // TopLeftBar.tga (128, 128)
         };
-    private:
-        static constexpr float HERO_POSITION_INFO_BASEA_WINDOW_WIDTH = 22.0f;
-        static constexpr float HERO_POSITION_INFO_BASE_WINDOW_HEIGHT = 25.0f;
-        static constexpr float HERO_POSITION_INFO_BASEB_WINDOW_WIDTH = 80.0f;
-        static constexpr float HERO_POSITION_INFO_BASEC_WINDOW_WIDTH = 22.0f;
 
     private:
-        int              WidenX;
         CNewUIManager* m_pNewUIMng;
         POINT            m_Pos;
         POINT            m_CurHeroPosition;
+        // The buttons only keep the hit area, hover/pressed state and tooltip; the faces are drawn from the atlas.
         CNewUIButton     m_BtnConfig;
         CNewUIButton     m_BtnStart;
         CNewUIButton     m_BtnStop;
-        CNewUIButton     m_BtnExpHuntStart;
-        CNewUIButton     m_BtnExpHuntStop;
+        CNewUIButton m_BtnExpHunt;
+
     public:
         CNewUIHeroPositionInfo();
         virtual ~CNewUIHeroPositionInfo();
@@ -57,11 +53,13 @@ namespace SEASON3B
         void ClosingProcess();
 
         void SetCurHeroPosition(int x, int y);
-        void MoveTextTipPos(CNewUIButton* m_Btn, int iX, int iY);
-        // Slots — see CNewUIButton::ChangeText(const wchar_t* const*).
-        void SetButtonInfo(CNewUIButton* m_Btn, int imgindex, int x, int y, int sx, int sy, bool overflg, bool isimgwidth, bool bClickEffect, bool MoveTxt, const wchar_t* const* btnameSlot, const wchar_t* const* tooltipSlot, bool istoppos);
     private:
         bool ProcessExpHuntButton();
+        void PlaceButtons();
+        void RenderFrame();
+        void RenderTexts();
+        void RenderButtonFace(CNewUIButton& button, UI::HUD::TopLeftBar::Button which, UI::HUD::TopLeftBar::Face face);
+        void RenderAtlasRect(const UI::HUD::TopLeftBar::Rect& destination, const UI::HUD::TopLeftBar::Rect& source);
         void LoadImages();
         void UnloadImages();
     };
