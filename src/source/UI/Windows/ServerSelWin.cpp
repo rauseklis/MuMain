@@ -532,8 +532,10 @@ void CServerSelWin::RenderServerPlates()
     constexpr float CELL_HEIGHT = 48.0f;
     constexpr float SHADOW_ROOM = 4.0f;
     constexpr float PLATE_TOP = 1.0f;
-    constexpr float COLUMN_STEP = 0.5f;
-    constexpr float ROW_STEP = 0.25f;
+    // The engine pads every texture up to a power of two with the picture in the top-left corner, so the 2 x 4 cells
+    // (416 x 192) sit in a 512 x 256 texture and a cell is not half or a quarter of it.
+    constexpr float COLUMN_STEP = CELL_WIDTH / 512.0f;
+    constexpr float ROW_STEP = CELL_HEIGHT / 256.0f;
     constexpr int ROW_HOVER = 1;
     constexpr int ROW_PRESSED = 2;
     constexpr int ROW_RUNES = 3;
