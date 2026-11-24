@@ -31,6 +31,7 @@ private:
         SERVER_BTN_WIDTH = 200,
         SERVER_BTN_HEIGHT = 26,
         SERVER_PLATE_HEIGHT = 42,
+        SERVER_PLATE_PITCH = 50,
     };
 
 protected:
