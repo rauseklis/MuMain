@@ -163,3 +163,8 @@ add_test(
     NAME cherry_blossom_recipes
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_cherry_blossom_recipes.py"
 )
+
+mu_add_test(
+    NAME top_left_bar_layout_tests
+    SOURCES test_top_left_bar_layout.cpp
+)

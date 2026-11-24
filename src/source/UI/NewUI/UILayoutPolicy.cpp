@@ -18,6 +18,8 @@ UI::Scaling::LayoutMode UI::Layout::ForInterface(std::uint32_t interfaceKey)
         return LayoutMode::DockLeft;
 
     case INTERFACE_FRIEND:
+    // The top-left bar keeps its proportions: the Hud mode stretches width and height by different factors.
+    case INTERFACE_HERO_POSITION_INFO:
         return LayoutMode::FloatingWorkspace;
 
     case INTERFACE_CHATINPUTBOX:
@@ -28,7 +30,6 @@ UI::Scaling::LayoutMode UI::Layout::ForInterface(std::uint32_t interfaceKey)
     case INTERFACE_CHAOSCASTLE_TIME:
     case INTERFACE_BATTLE_SOCCER_SCORE:
     case INTERFACE_SLIDEWINDOW:
-    case INTERFACE_HERO_POSITION_INFO:
     case INTERFACE_DUEL_WINDOW:
     case INTERFACE_CRYWOLF:
     case INTERFACE_SIEGEWARFARE:
