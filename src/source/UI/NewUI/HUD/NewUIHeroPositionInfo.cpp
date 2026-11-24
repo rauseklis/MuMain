@@ -18,8 +18,7 @@ namespace
 namespace Bar = UI::HUD::TopLeftBar;
 
 constexpr int kTextBufferLength = 64;
-const DWORD kNameColor = RGBA(236, 231, 217, 255);
-const DWORD kCoordinateColor = RGBA(255, 208, 128, 255);
+const DWORD kTextColor = RGBA(255, 255, 255, 255);
 const DWORD kWhite = RGBA(255, 255, 255, 255);
 constexpr wchar_t kEllipsis[] = L"...";
 constexpr size_t kEllipsisLength = 3;
@@ -167,7 +166,10 @@ bool CNewUIHeroPositionInfo::UpdateMouseEvent()
         return false;
     }
 
-    if (CheckMouseIn(m_Pos.x, m_Pos.y, Bar::kFrameWidth, Bar::kFrameHeight))
+    const Bar::Rect body = ScreenRect(Bar::Rect{0, 0, Bar::kLeftWidth + Bar::kMiddleWidth, Bar::kFrameHeight}, m_Pos);
+    const Bar::Rect right = ScreenRect(Bar::kRightPiece, m_Pos);
+    if (CheckMouseIn(body.x, body.y, body.width, body.height) ||
+        CheckMouseIn(right.x, right.y, right.width, right.height))
     {
         return false;
     }
@@ -204,8 +206,9 @@ void CNewUIHeroPositionInfo::RenderAtlasRect(const Bar::Rect& destination, const
 
 void CNewUIHeroPositionInfo::RenderFrame()
 {
-    RenderAtlasRect(Bar::Rect{m_Pos.x, m_Pos.y, Bar::kFrameWidth, Bar::kFrameHeight},
-                    Bar::Rect{0, 0, Bar::kFrameWidth, Bar::kFrameHeight});
+    RenderAtlasRect(ScreenRect(Bar::kLeftPiece, m_Pos), Bar::kLeftSource);
+    RenderAtlasRect(ScreenRect(Bar::kMiddlePiece, m_Pos), Bar::kMiddleSource);
+    RenderAtlasRect(ScreenRect(Bar::kRightPiece, m_Pos), Bar::kRightSource);
 }
 
 void CNewUIHeroPositionInfo::RenderButtonFace(CNewUIButton& button, Bar::Button which, Bar::Face face)
@@ -219,18 +222,16 @@ void CNewUIHeroPositionInfo::RenderButtonFace(CNewUIButton& button, Bar::Button 
 
 void CNewUIHeroPositionInfo::RenderTexts()
 {
-    wchar_t name[kTextBufferLength] = {};
-    wchar_t coordinates[kTextBufferLength] = {};
-    mu_swprintf(name, L"%ls", gMapManager.GetMapName(gMapManager.WorldActive));
-    mu_swprintf(coordinates, L"%d , %d", m_CurHeroPosition.x, m_CurHeroPosition.y);
+    wchar_t text[kTextBufferLength] = {};
+    mu_swprintf(text, L"%ls (%d , %d)", gMapManager.GetMapName(gMapManager.WorldActive), m_CurHeroPosition.x,
+                m_CurHeroPosition.y);
 
     g_pRenderText->SetFont(g_hFont);
     g_pRenderText->SetBgColor(0, 0, 0, 0);
 
-    const Bar::Rect nameRow = ScreenRect(Bar::kNameRow, m_Pos);
-    FitText(name, nameRow.width - 2 * Bar::kNameTextInset);
-    RenderCentredText(name, nameRow, kNameColor);
-    RenderCentredText(coordinates, ScreenRect(Bar::kCoordinateRow, m_Pos), kCoordinateColor);
+    const Bar::Rect box = ScreenRect(Bar::kTextBox, m_Pos);
+    FitText(text, box.width - 2 * Bar::kTextInset);
+    RenderCentredText(text, box, kTextColor);
 }
 
 bool CNewUIHeroPositionInfo::Render()

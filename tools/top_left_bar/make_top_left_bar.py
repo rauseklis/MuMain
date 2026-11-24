@@ -1,206 +1,103 @@
-"""Generates the top-left HUD bar art: the compact frame (map name above, coordinates and three buttons below) and the
-button faces, all in one atlas so the bar is a single texture.
+"""Builds the top-left bar atlas from the ORIGINAL bar art, scaled down: the left end, the middle, the right end with the three
+button slots, and the button faces. Nothing is redrawn or added; the pieces are the original pictures resampled (with
+premultiplied alpha, so no dark fringes) to their smaller size.
 
-Logical layout of the atlas, 128 x 128 (the size the client sees; every coordinate below is a logical pixel):
-  frame          (0, 0)  104 x 34
-  button faces   cell (col, row) at x = 16 * col, y = 40 + 16 * row, each 14 x 14, with a 2 px empty gutter around it
-                 col 0 up, col 1 hover, col 2 pressed
-                 row 0 MU Helper settings (wrench), 1 MU Helper start (play), 2 MU Helper stop (pause, lit),
-                 3 Experience Hunter off (XP), 4 Experience Hunter on (XP, lit)
+Logical layout of the atlas, 128 x 128 (the size the client sees; every number is a logical pixel):
+  left end      (0, 0)    18 x 20
+  middle        (24, 0)   22 x 20      stretched to the bar's width by the client
+  right end     (0, 26)   74 x 16
+  button faces  x = 16 * state, y = 48 + 12 * row, each 14 x 10 (state 0 up, 1 hover, 2 pressed;
+                row 0 MU Helper settings, 1 start, 2 stop, 3 Experience Hunter off, 4 on)
+Each piece has two extra pixels around it that repeat its edge pixels, so scaling never blends in a neighbour.
 The numbers are shared with src/source/UI/NewUI/HUD/TopLeftBarLayout.h; change both together.
 
-The art is drawn at 8x and reduced; every straight edge sits on a whole logical pixel, so the 1x texture is as crisp as
-the 2x and 4x ones.
-
 Output (relative to the client repository root):
-  src/bin/Data/Interface/TopLeftBar/TopLeftBar.OZT           128 x 128
-  src/bin/Data/Interface@2x/TopLeftBar/TopLeftBar.png        256 x 256
-  src/bin/Data/Interface@4x/TopLeftBar/TopLeftBar.png        512 x 512
+  src/bin/Data/Interface/TopLeftBar/TopLeftBar.OZT         128 x 128
+  src/bin/Data/Interface@2x/TopLeftBar/TopLeftBar.png      256 x 256
+  src/bin/Data/Interface@4x/TopLeftBar/TopLeftBar.png      512 x 512
 
-Needs Pillow:  python tools/top_left_bar/make_top_left_bar.py
+The sources are the @2x PNGs of the original bar art in src/bin/Data/Interface@2x (Minimap_positionA/B, MacroUI/*).
+Needs Pillow.
 """
 import os
 import struct
+import sys
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-SS = 8
 ATLAS = 128
-FRAME_W, FRAME_H = 104, 34
-BTN = 14
-CELL = 16
-BTN_ORIGIN_Y = 40
-NAME_ROW_BOTTOM = 16  # y of the etched divider
-INSET = (4, 18, 50, 32)  # coordinate readout: x0, y0, x1, y1
-BUTTON_X = (54, 70, 86)  # only used by the preview; the client positions the buttons from the layout header
+GUTTER = 2
+MASTER = 4  # master scale; the 2x and 1x files are reduced from it
 
-INK = (6, 6, 8, 255)
-SILVER_HI = (190, 190, 198, 255)
-SILVER = (140, 140, 148, 255)
-SILVER_LO = (78, 78, 86, 255)
-STEEL_TOP = (46, 46, 52, 255)
-STEEL_BOT = (22, 22, 26, 255)
-AMBER = (255, 168, 54, 255)
-AMBER_HI = (255, 214, 120, 255)
-AMBER_LO = (150, 78, 14, 255)
+LEFT = (0, 0, 18, 20)
+MIDDLE = (24, 0, 22, 20)
+RIGHT = (0, 26, 74, 16)
+FACE_W, FACE_H = 14, 10
+FACE_STRIDE_X, FACE_STRIDE_Y, FACE_ORIGIN_Y = 16, 12, 48
+SOURCE_SCALE = 2  # the originals are 2x PNGs
 
 
-def lerp(a, b, t):
-    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(len(a)))
+def resize_premultiplied(img, size):
+    """LANCZOS resize without colour bleeding from transparent pixels."""
+    src = img.convert("RGBA")
+    pre = Image.new("RGBA", src.size)
+    px, sp0 = pre.load(), src.load()
+    for y in range(src.height):
+        for x in range(src.width):
+            sr, sg, sb, sa = sp0[x, y]
+            px[x, y] = (sr * sa // 255, sg * sa // 255, sb * sa // 255, sa)
+    small = pre.resize(size, Image.LANCZOS)
+    sp = small.load()
+    for y in range(small.height):
+        for x in range(small.width):
+            pr, pg, pb, pa = sp[x, y]
+            if pa:
+                sp[x, y] = (min(255, pr * 255 // pa), min(255, pg * 255 // pa), min(255, pb * 255 // pa), pa)
+            else:
+                sp[x, y] = (0, 0, 0, 0)
+    return small
 
 
-class Canvas:
-    """RGBA canvas addressed in logical pixels; everything is drawn at SS times the size."""
-
-    def __init__(self, w, h):
-        self.img = Image.new("RGBA", (w * SS, h * SS), (0, 0, 0, 0))
-        self.d = ImageDraw.Draw(self.img)
-
-    def rect(self, x0, y0, x1, y1, fill):
-        self.d.rectangle((x0 * SS, y0 * SS, x1 * SS - 1, y1 * SS - 1), fill=fill)
-
-    def vgrad(self, x0, y0, x1, y1, top, bottom):
-        rows = (y1 - y0) * SS
-        for i in range(rows):
-            c = lerp(top, bottom, i / max(1, rows - 1))
-            self.d.rectangle((x0 * SS, y0 * SS + i, x1 * SS - 1, y0 * SS + i), fill=c)
-
-    def poly(self, pts, fill):
-        self.d.polygon([(x * SS, y * SS) for x, y in pts], fill=fill)
-
-    def line(self, pts, fill, width):
-        self.d.line([(x * SS, y * SS) for x, y in pts], fill=fill, width=int(width * SS), joint="curve")
-
-    def ellipse(self, x0, y0, x1, y1, fill):
-        self.d.ellipse((x0 * SS, y0 * SS, x1 * SS - 1, y1 * SS - 1), fill=fill)
-
-    def arc(self, box, start, end, fill, width):
-        x0, y0, x1, y1 = box
-        self.d.arc((x0 * SS, y0 * SS, x1 * SS, y1 * SS), start, end, fill=fill, width=int(width * SS))
+def paste_piece(master, piece, x, y, w, h):
+    """Paste `piece` (already w*MASTER x h*MASTER) at logical (x, y) and repeat its edge pixels into the gutter."""
+    ox, oy = x * MASTER, y * MASTER
+    g = GUTTER * MASTER
+    master.paste(piece, (ox, oy))
+    pw, ph = piece.size
+    left = piece.crop((0, 0, 1, ph)).resize((g, ph))
+    right = piece.crop((pw - 1, 0, pw, ph)).resize((g, ph))
+    master.paste(left, (ox - g, oy))
+    master.paste(right, (ox + pw, oy))
+    row = master.crop((ox - g, oy, ox + pw + g, oy + ph))
+    top = row.crop((0, 0, row.width, 1)).resize((row.width, g))
+    bottom = row.crop((0, ph - 1, row.width, ph)).resize((row.width, g))
+    master.paste(top, (ox - g, oy - g))
+    master.paste(bottom, (ox - g, oy + ph))
 
 
-def bevel_box(c, x0, y0, x1, y1, top, bottom, hi, lo, outline=INK, inverted=False):
-    """Outlined box with a one pixel bevel: light on the top/left, dark on the bottom/right (swapped when inverted)."""
-    light, dark = (lo, hi) if inverted else (hi, lo)
-    c.rect(x0, y0, x1, y1, outline)
-    c.vgrad(x0 + 1, y0 + 1, x1 - 1, y1 - 1, top, bottom)
-    c.rect(x0 + 1, y0 + 1, x1 - 1, y0 + 2, light)  # top edge
-    c.rect(x0 + 1, y0 + 1, x0 + 2, y1 - 1, light)  # left edge
-    c.rect(x0 + 1, y1 - 2, x1 - 1, y1 - 1, dark)  # bottom edge
-    c.rect(x1 - 2, y0 + 1, x1 - 1, y1 - 1, dark)  # right edge
-
-
-def curl(c, x, y, flip_x, flip_y, colour=SILVER):
-    """A small scroll ornament in the corner at (x, y), curling inwards."""
-    sx = -1 if flip_x else 1
-    sy = -1 if flip_y else 1
-
-    def pt(px, py):
-        return (x + sx * px, y + sy * py)
-
-    c.line([pt(1.0, 6.0), pt(1.0, 3.0), pt(2.0, 1.5), pt(4.0, 1.0), pt(6.0, 1.0)], colour, 0.9)
-    c.line([pt(2.5, 4.5), pt(2.6, 3.4), pt(3.6, 2.8)], colour, 0.7)
-    cx, cy = pt(3.8, 3.8)
-    c.ellipse(cx - 0.55, cy - 0.55, cx + 0.55, cy + 0.55, SILVER_HI)
-
-
-def draw_frame():
-    c = Canvas(FRAME_W, FRAME_H)
-    bevel_box(c, 0, 0, FRAME_W, FRAME_H, STEEL_TOP, STEEL_BOT, SILVER, SILVER_LO)
-    # inner soft shadow under the top bevel and a second hairline for the "plate" feel
-    c.rect(3, 3, FRAME_W - 3, 4, (12, 12, 15, 255))
-    c.rect(3, FRAME_H - 4, FRAME_W - 3, FRAME_H - 3, (34, 34, 40, 255))
-    # corner ornaments
-    curl(c, 3.0, 3.0, False, False)
-    curl(c, FRAME_W - 3.0, 3.0, True, False)
-    # etched divider between the name row and the readout row, with a small centre diamond
-    mid = FRAME_W / 2
-    c.rect(9, NAME_ROW_BOTTOM, FRAME_W - 9, NAME_ROW_BOTTOM + 1, INK)
-    c.rect(9, NAME_ROW_BOTTOM + 1, FRAME_W - 9, NAME_ROW_BOTTOM + 2, (70, 70, 78, 255))
-    c.poly([(mid - 2.5, NAME_ROW_BOTTOM + 0.5), (mid, NAME_ROW_BOTTOM - 1.5), (mid + 2.5, NAME_ROW_BOTTOM + 0.5),
-            (mid, NAME_ROW_BOTTOM + 2.5)], AMBER)
-    c.poly([(mid - 1.2, NAME_ROW_BOTTOM + 0.5), (mid, NAME_ROW_BOTTOM - 0.5), (mid + 1.2, NAME_ROW_BOTTOM + 0.5),
-            (mid, NAME_ROW_BOTTOM + 1.5)], AMBER_HI)
-    # recessed coordinate readout
-    x0, y0, x1, y1 = INSET
-    bevel_box(c, x0, y0, x1, y1, (8, 8, 10, 255), (14, 14, 17, 255), (4, 4, 6, 255), (62, 62, 70, 255), inverted=False)
-    return c.img
-
-
-def glyph_wrench(c, ox, oy, colour, shade):
-    """A wrench along the diagonal, drawn on its own layer and rotated onto the plate."""
-    layer = Canvas(14, 14)
-    layer.rect(5.6, 4, 8.4, 12, colour)  # handle
-    layer.ellipse(3.6, 0.8, 10.4, 7.6, colour)  # head
-    layer.rect(6.0, 0.0, 8.0, 3.8, (0, 0, 0, 0))  # jaw opening
-    layer.rect(6.6, 4.4, 7.4, 11.4, shade)
-    layer.ellipse(5.8, 11.0, 8.2, 13.4, colour)
-    rot = layer.img.rotate(-45, resample=Image.BICUBIC, center=(7 * SS, 7 * SS))
-    c.img.alpha_composite(rot, (int(ox * SS), int(oy * SS)))
-
-
-def glyph_play(c, ox, oy, fill, hi):
-    pts = [(ox + 4.5, oy + 3.0), (ox + 10.5, oy + 7.0), (ox + 4.5, oy + 11.0)]
-    c.poly(pts, fill)
-    c.poly([(ox + 4.5, oy + 3.0), (ox + 10.5, oy + 7.0), (ox + 9.0, oy + 7.0), (ox + 4.5, oy + 5.0)], hi)
-
-
-def glyph_pause(c, ox, oy, fill, hi):
-    for bx in (4.0, 8.0):
-        c.rect(ox + bx, oy + 3.0, ox + bx + 2.0, oy + 11.0, fill)
-        c.rect(ox + bx, oy + 3.0, ox + bx + 0.8, oy + 11.0, hi)
-
-
-def glyph_xp(c, ox, oy, fill, shadow):
-    font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", int(7.6 * SS))
-    for dx, dy, col in ((0.0, 0.7, shadow), (0.0, 0.0, fill)):
-        c.d.text(((ox + 7.0 + dx) * SS, (oy + 7.0 + dy) * SS), "XP", font=font, fill=col, anchor="mm")
-
-
-PLATE = {
-    "up": ((58, 58, 66, 255), (28, 28, 33, 255)),
-    "over": ((86, 80, 78, 255), (44, 38, 36, 255)),
-    "down": ((18, 18, 22, 255), (30, 30, 36, 255)),
-}
-PLATE_LIT = {
-    "up": ((96, 60, 20, 255), (46, 26, 8, 255)),
-    "over": ((128, 82, 28, 255), (64, 36, 10, 255)),
-    "down": ((34, 20, 6, 255), (58, 34, 10, 255)),
-}
-
-
-def draw_button(c, ox, oy, row, state):
-    lit = row in (2, 4)
-    top, bottom = (PLATE_LIT if lit else PLATE)[state]
-    edge_hi = AMBER_HI if lit else SILVER_HI
-    edge_lo = AMBER_LO if lit else SILVER_LO
-    if state == "over":
-        edge_hi = (255, 236, 190, 255) if lit else (225, 225, 232, 255)
-    bevel_box(c, ox, oy, ox + BTN, oy + BTN, top, bottom, edge_hi, edge_lo, inverted=(state == "down"))
-    nudge = 1 if state == "down" else 0
-    gx, gy = ox + 0 + nudge * 0.5, oy + nudge * 0.5
-    gold = (255, 200, 90, 255)
-    silver = (206, 206, 214, 255)
-    if row == 0:
-        glyph_wrench(c, gx, gy, silver, (120, 120, 130, 255))
-    elif row == 1:
-        glyph_play(c, gx, gy, AMBER, AMBER_HI)
-    elif row == 2:
-        glyph_pause(c, gx, gy, AMBER_HI, (255, 244, 214, 255))
-    elif row == 3:
-        glyph_xp(c, gx, gy, (176, 176, 186, 255), INK)
-    else:
-        glyph_xp(c, gx, gy, gold, (60, 28, 4, 255))
-
-
-def build_master():
-    atlas = Canvas(ATLAS, ATLAS)
-    atlas.img.alpha_composite(draw_frame(), (0, 0))
-    for row in range(5):
-        for col, state in enumerate(("up", "over", "down")):
-            draw_button(atlas, CELL * col, BTN_ORIGIN_Y + CELL * row, row, state)
-    return atlas.img
+def build_master(source):
+    master = Image.new("RGBA", (ATLAS * MASTER, ATLAS * MASTER), (0, 0, 0, 0))
+    left = Image.open(os.path.join(source, "Minimap_positionA.png"))
+    middle = Image.open(os.path.join(source, "Minimap_positionB.png"))
+    right = Image.open(os.path.join(source, "MacroUI", "Minimap_positionC_ExpHunt.png"))
+    # The original draws the left end 22 x 25 and the middle 26 x 25 (only the top 25 of the texture are art), the right end
+    # 91 x 20.
+    pieces = (
+        (left.crop((0, 0, 22 * SOURCE_SCALE, 25 * SOURCE_SCALE)), LEFT),
+        (middle.crop((0, 0, 26 * SOURCE_SCALE, 25 * SOURCE_SCALE)), MIDDLE),
+        (right.crop((0, 0, 91 * SOURCE_SCALE, 20 * SOURCE_SCALE)), RIGHT),
+    )
+    for image, (x, y, w, h) in pieces:
+        paste_piece(master, resize_premultiplied(image, (w * MASTER, h * MASTER)), x, y, w, h)
+    names = ("Setup", "Start", "Stop", "ExpHuntStart", "ExpHuntStop")
+    for row, name in enumerate(names):
+        sheet = Image.open(os.path.join(source, "MacroUI", "MacroUI_%s.png" % name))
+        for state in range(3):
+            face = sheet.crop((0, state * 13 * SOURCE_SCALE, 18 * SOURCE_SCALE, (state + 1) * 13 * SOURCE_SCALE))
+            small = resize_premultiplied(face, (FACE_W * MASTER, FACE_H * MASTER))
+            paste_piece(master, small, state * FACE_STRIDE_X, FACE_ORIGIN_Y + row * FACE_STRIDE_Y, FACE_W, FACE_H)
+    return master
 
 
 def png_to_ozt(image, destination):
@@ -221,10 +118,12 @@ def png_to_ozt(image, destination):
 
 def main():
     data = os.path.join(REPO, "src", "bin", "Data")
-    master = build_master()
+    source = sys.argv[1] if len(sys.argv) > 1 else os.path.join(data, "Interface@2x")
+    master = build_master(source)
     for scale, folder in ((1, "Interface"), (2, "Interface@2x"), (4, "Interface@4x")):
         os.makedirs(os.path.join(data, folder, "TopLeftBar"), exist_ok=True)
-        image = master.resize((ATLAS * scale, ATLAS * scale), Image.LANCZOS)
+        size = ATLAS * scale
+        image = master if scale == MASTER else master.resize((size, size), Image.LANCZOS)
         if scale == 1:
             png_to_ozt(image, os.path.join(data, folder, "TopLeftBar", "TopLeftBar.OZT"))
         else:
