@@ -125,6 +125,12 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME test_plus_thirteen_bonus
+    SOURCES test_plus_thirteen_bonus.cpp
+    LINK_LIBS MuClient
+)
+
+mu_add_test(
     NAME test_buff_details
     SOURCES test_buff_details.cpp
         ${CMAKE_SOURCE_DIR}/src/source/GameLogic/Buffs/BuffDetails.cpp

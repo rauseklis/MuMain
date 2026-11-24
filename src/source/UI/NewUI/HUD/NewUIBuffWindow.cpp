@@ -12,6 +12,7 @@
 #include "UI/Legacy/UIControls.h"
 #include "UI/NewUI/Dialogs/NewUICommonMessageBox.h"
 #include "GameLogic/Items/TwoHandedWeaponBonus.h"
+#include "GameLogic/Items/PlusThirteenBonus.h"
 #include "GameLogic/Buffs/BuffDetails.h"
 #include "Network/Server/BuffDetailsProtocol.h"
 #include "UI/NewUI/HUD/BuffTooltip.h"
@@ -39,6 +40,12 @@ namespace
     constexpr wchar_t TwoHandedBonusCondition[] = L"Active while a two-handed weapon is equipped";
     constexpr wchar_t TwoHandedBonusLabel[] = L"2H";
     constexpr int TwoHandedTooltipLines = 4;
+    constexpr wchar_t PlusThirteenTitle[] = L"+13 set bonus";
+    constexpr wchar_t PlusThirteenVitalityText[] = L"Vitality +100";
+    constexpr wchar_t PlusThirteenIgnoreDefenceText[] = L"Ignore opponent's defence +5%";
+    constexpr wchar_t PlusThirteenCondition[] = L"Active while a full +13 armor set of one kind is worn";
+    constexpr wchar_t PlusThirteenLabel[] = L"+13";
+    constexpr int PlusThirteenTooltipLines = 4;
 };
 
 SEASON3B::CNewUIBuffWindow::CNewUIBuffWindow()
@@ -280,9 +287,19 @@ bool SEASON3B::CNewUIBuffWindow::UpdateMouseEvent()
             ++buffheightcount;
         }
     }
+    int badgeIndex = static_cast<int>(buffstate.size());
     if (HasTwoHandedBonus())
     {
-        const POINT position = GetBuffPosition(static_cast<int>(buffstate.size()));
+        const POINT position = GetBuffPosition(badgeIndex);
+        if (SEASON3B::CheckMouseIn(position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT))
+        {
+            return false;
+        }
+        ++badgeIndex;
+    }
+    if (HasPlusThirteenSetBonus())
+    {
+        const POINT position = GetBuffPosition(badgeIndex);
         if (SEASON3B::CheckMouseIn(position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT))
         {
             return false;
@@ -369,7 +386,27 @@ void SEASON3B::CNewUIBuffWindow::RenderBuffStatus(BUFF_RENDER renderstate)
             ++buffheightcount;
         }
     }
-    RenderTwoHandedBonus(renderstate, static_cast<int>(buffstate.size()));
+    const int twoHandedIndex = static_cast<int>(buffstate.size());
+    RenderTwoHandedBonus(renderstate, twoHandedIndex);
+    RenderPlusThirteenSetBonus(renderstate, twoHandedIndex + (HasTwoHandedBonus() ? 1 : 0));
+}
+
+bool SEASON3B::CNewUIBuffWindow::HasPlusThirteenSetBonus() const
+{
+    if (!CharacterMachine)
+    {
+        return false;
+    }
+
+    const int firstSlot = EQUIPMENT_HELM;
+    GameLogic::Items::EquippedPiece pieces[5];
+    for (int i = 0; i < 5; ++i)
+    {
+        const ITEM& item = CharacterMachine->Equipment[firstSlot + i];
+        pieces[i] = {item.Type, item.Level, item.Durability};
+    }
+
+    return GameLogic::Items::HasPlusThirteenSet(pieces);
 }
 
 bool SEASON3B::CNewUIBuffWindow::HasTwoHandedBonus() const
@@ -405,6 +442,26 @@ void SEASON3B::CNewUIBuffWindow::RenderTwoHandedBonus(BUFF_RENDER renderstate, i
         return;
     }
 
+    const wchar_t* lines[TwoHandedTooltipLines] = {TwoHandedBonusTitle, PhysicalBonusText, WizardryBonusText,
+                                                   TwoHandedBonusCondition};
+    RenderBonusBadge(renderstate, index, TwoHandedBonusLabel, lines, TwoHandedTooltipLines);
+}
+
+void SEASON3B::CNewUIBuffWindow::RenderPlusThirteenSetBonus(BUFF_RENDER renderstate, int index)
+{
+    if (!HasPlusThirteenSetBonus())
+    {
+        return;
+    }
+
+    const wchar_t* lines[PlusThirteenTooltipLines] = {PlusThirteenTitle, PlusThirteenVitalityText,
+                                                      PlusThirteenIgnoreDefenceText, PlusThirteenCondition};
+    RenderBonusBadge(renderstate, index, PlusThirteenLabel, lines, PlusThirteenTooltipLines);
+}
+
+void SEASON3B::CNewUIBuffWindow::RenderBonusBadge(BUFF_RENDER renderstate, int index, const wchar_t* label,
+                                                  const wchar_t* const* lines, int lineCount)
+{
     const POINT position = GetBuffPosition(index);
     if (renderstate == BUFF_RENDER_ICON)
     {
@@ -415,8 +472,8 @@ void SEASON3B::CNewUIBuffWindow::RenderTwoHandedBonus(BUFF_RENDER renderstate, i
         g_pRenderText->SetFont(g_hFontBold);
         g_pRenderText->SetTextColor(255, 255, 255, 255);
         g_pRenderText->SetBgColor(0, 0, 0, 180);
-        g_pRenderText->RenderText(position.x, position.y + BUFF_IMG_HEIGHT / 2,
-            TwoHandedBonusLabel, BUFF_IMG_WIDTH, 0, RT3_SORT_CENTER);
+        g_pRenderText->RenderText(position.x, position.y + BUFF_IMG_HEIGHT / 2, label, BUFF_IMG_WIDTH, 0,
+                                  RT3_SORT_CENTER);
         g_pRenderText->SetTextColor(textColor);
         g_pRenderText->SetBgColor(backgroundColor);
         g_pRenderText->SetFont(g_hFont);
@@ -428,11 +485,8 @@ void SEASON3B::CNewUIBuffWindow::RenderTwoHandedBonus(BUFF_RENDER renderstate, i
         return;
     }
 
-    const wchar_t* lines[TwoHandedTooltipLines] = {
-        TwoHandedBonusTitle, PhysicalBonusText, WizardryBonusText, TwoHandedBonusCondition
-    };
     int count = 0;
-    for (int line = 0; line < TwoHandedTooltipLines; ++line)
+    for (int line = 0; line < lineCount; ++line)
     {
         UI::Buffs::Tooltip::Append(lines[line], line == 0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE, line == 0, count);
         if (line == 0)

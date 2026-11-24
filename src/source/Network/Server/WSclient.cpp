@@ -3514,6 +3514,10 @@ void ReceiveAttackDamage(CHARACTER* c, OBJECT* o, const bool success, const int 
             case 6: //	DT_DOT
                 Vector(0.7f, 0.4f, 1.0f, Light);
                 break;
+            case 8: //	DT_PLUS_THIRTEEN (strike of a +13 weapon)
+                scale = 50.f;
+                Vector(0.75f, 0.f, 0.1f, Light);
+                break;
             default:
                 Vector(1.f, 1.f, 1.f, Light);
                 break;

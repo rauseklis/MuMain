@@ -53,6 +53,10 @@ namespace SEASON3B
         bool HasTwoHandedBonus() const;
         POINT GetBuffPosition(int index) const;
         void RenderTwoHandedBonus(BUFF_RENDER renderstate, int index);
+        bool HasPlusThirteenSetBonus() const;
+        void RenderPlusThirteenSetBonus(BUFF_RENDER renderstate, int index);
+        void RenderBonusBadge(BUFF_RENDER renderstate, int index, const wchar_t* label, const wchar_t* const* lines,
+                              int lineCount);
         void RenderBuffIcon(eBuffState& eBuffType, float x, float y, float width, float height);
         void RenderBuffTooltip(eBuffClass& eBuffClassType, eBuffState& eBuffType, float x, float y);
         bool SetDisableRenderBuff(const eBuffState& _BuffState);
