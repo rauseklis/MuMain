@@ -10148,6 +10148,22 @@ void RenderEffectShadows()
     }
 }
 
+// A character's ring follows its object, so the object must never carry two of them, and the ring must not
+// outlive the character: the next one to take the slot would inherit it.
+void DeleteGensInfluenceGroundEffects(OBJECT* owner)
+{
+    DeleteEffect(BITMAP_OUR_INFLUENCE_GROUND, owner, 0);
+    DeleteEffect(BITMAP_ENEMY_INFLUENCE_GROUND, owner, 0);
+}
+
+void CreateGensInfluenceGroundEffect(OBJECT* owner, bool sameInfluenceAsHero)
+{
+    DeleteGensInfluenceGroundEffects(owner);
+    vec3_t vTemp = {0.f, 0.f, 0.f};
+    const int type = sameInfluenceAsHero ? BITMAP_OUR_INFLUENCE_GROUND : BITMAP_ENEMY_INFLUENCE_GROUND;
+    CreateEffect(type, owner->Position, vTemp, vTemp, 0, owner);
+}
+
 void CreateMyGensInfluenceGroundEffect()
 {
     DeleteEffect(BITMAP_OUR_INFLUENCE_GROUND, &Hero->Object, 0);

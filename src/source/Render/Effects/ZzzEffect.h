@@ -129,6 +129,8 @@ void MoveParticle(OBJECT* o, vec3_t angle);
 
 #ifdef ASG_ADD_INFLUENCE_GROUND_EFFECT
 void CreateMyGensInfluenceGroundEffect();
+void CreateGensInfluenceGroundEffect(OBJECT* owner, bool sameInfluenceAsHero);
+void DeleteGensInfluenceGroundEffects(OBJECT* owner);
 #endif // ASG_ADD_INFLUENCE_GROUND_EFFECT
 
 #endif // __ZZZ_EFFECT_H__
