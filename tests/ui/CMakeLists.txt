@@ -52,6 +52,13 @@ mu_add_test(
 )
 
 mu_add_test(
+    NAME experience_bar_tests
+    SOURCES
+        test_experience_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/source/UI/NewUI/HUD/ExperienceBar.cpp
+)
+
+mu_add_test(
     NAME monster_health_bar_tests
     SOURCES
         test_monster_health_bar.cpp
