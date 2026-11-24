@@ -1164,18 +1164,7 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     mu_swprintf(strVitality, L"%d", wVitality);
     g_pRenderText->SetBgColor(0);
     g_pRenderText->RenderText(m_Pos.x + 12, m_Pos.y + HEIGHT_VITALITY + 6, I18N::Game::Vitality, 74, 0, RT3_SORT_CENTER);
-    if (setVitality)
-    {
-        wchar_t strSetVitality[16];
-        mu_swprintf(strSetVitality, L"+%d", static_cast<int>(setVitality));
-        g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_VITALITY + 6, strVitality, 52, 0, RT3_SORT_CENTER);
-        g_pRenderText->SetTextColor(230, 230, 0, 255);
-        g_pRenderText->RenderText(m_Pos.x + 138, m_Pos.y + HEIGHT_VITALITY + 6, strSetVitality, 34, 0, RT3_SORT_CENTER);
-    }
-    else
-    {
-        g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_VITALITY + 6, strVitality, 86, 0, RT3_SORT_CENTER);
-    }
+    g_pRenderText->RenderText(m_Pos.x + 86, m_Pos.y + HEIGHT_VITALITY + 6, strVitality, 86, 0, RT3_SORT_CENTER);
 
     g_pRenderText->SetFont(g_hFont);
 
@@ -1221,7 +1210,7 @@ void SEASON3B::CNewUICharacterInfoWindow::RenderAttribute()
     if (setVitality)
     {
         wchar_t strSetBonus[64];
-        mu_swprintf(strSetBonus, L"+%d Vitality from the +13 set", static_cast<int>(setVitality));
+        mu_swprintf(strSetBonus, L"+%d Vitality Set Bonus", static_cast<int>(setVitality));
         iY += 13;
         g_pRenderText->SetTextColor(230, 230, 0, 255);
         g_pRenderText->RenderText(m_Pos.x + 20, m_Pos.y + iY, strSetBonus);

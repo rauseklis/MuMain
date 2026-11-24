@@ -5,9 +5,9 @@ bevelled edge: a dark outline one pixel wide with a light line along the top and
 and reduced. Both icons sit in one atlas, 64 x 32 pixels, icon n starting at x = 32 * n (the rest stays transparent).
 
 Output (relative to the client repository root):
-  src/bin/Data/Interface/BuffDetails/plus13_icons.OZT        64 x 32
-  src/bin/Data/Interface@2x/BuffDetails/plus13_icons.png     128 x 64
-  src/bin/Data/Interface@4x/BuffDetails/plus13_icons.png     256 x 128
+  src/bin/Data/Interface/BuffDetails/plus13_icons.OZT        64 x 64
+  src/bin/Data/Interface@2x/BuffDetails/plus13_icons.png     128 x 128
+  src/bin/Data/Interface@4x/BuffDetails/plus13_icons.png     256 x 256
   tools/plus13_icons/plus13_preview.png                       the icons beside existing buff icons on the buff-bar backdrop
 
 Needs Pillow:  python tools/plus13_icons/make_plus13_icons.py
@@ -111,14 +111,16 @@ def rays(img, center, count, length, color, alpha, seed):
 
 
 def bevel(img):
-    """The standard buff-icon edge, one pixel wide: light along the top and right, dark along the left and bottom."""
-    e = SS - 2
-    light, dark = (206, 198, 184, 255), (10, 8, 16, 255)
+    """The standard buff-icon edge, one pixel wide. Measured on the game's own icons: dark on the left and bottom, light
+    on the top, light on the right with a thin darker outermost line (their sheets are cut from larger art)."""
+    e = SS
+    light, dark, rim = (206, 198, 184, 255), (10, 8, 16, 255), (96, 84, 80, 255)
     d = ImageDraw.Draw(img)
     d.rectangle((0, 0, e - 1, H - 1), fill=dark)
     d.rectangle((0, H - e, W - 1, H - 1), fill=dark)
     d.rectangle((0, 0, W - 1, e - 1), fill=light)
     d.rectangle((W - e, 0, W - 1, H - e - 1), fill=light)
+    d.rectangle((W - 2, 0, W - 1, H - 1), fill=rim)
     return img
 
 
@@ -321,11 +323,34 @@ def weapon_icon():
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+CELL = 32      # texels between two icons
+PAD = 4        # empty-free border around an icon inside its cell: the icon's own edge colours are repeated there, so
+               # the texture filter never mixes the icon edge with a neighbour or with transparent texels
+ATLAS_W, ATLAS_H = 64, 64
+
+
 def atlas(scale):
+    """The atlas at 1x/2x/4x. Icon n sits at (CELL * n + PAD, PAD); its cell is filled with the repeated edge pixels."""
     icons = [set_icon(), weapon_icon()]
-    sheet = Image.new("RGBA", (64 * scale, 32 * scale), (0, 0, 0, 0))
+    sheet = Image.new("RGBA", (ATLAS_W * scale, ATLAS_H * scale), (0, 0, 0, 0))
+    iw, ih = 20 * scale, 28 * scale
     for n, icon in enumerate(icons):
-        sheet.paste(icon.resize((20 * scale, 28 * scale), Image.LANCZOS), (32 * scale * n, 0))
+        small = icon.resize((iw, ih), Image.LANCZOS)
+        x0, y0 = (CELL * n + PAD) * scale, PAD * scale
+        cell_w, cell_h = CELL * scale, ATLAS_H * scale
+        cx0 = CELL * n * scale
+        padded = Image.new("RGBA", (cell_w, cell_h))
+        # repeat the outermost rows and columns of the icon over the cell
+        padded.paste(small, (x0 - cx0, y0))
+        left = small.crop((0, 0, 1, ih)).resize((x0 - cx0, ih))
+        right = small.crop((iw - 1, 0, iw, ih)).resize((cell_w - (x0 - cx0) - iw, ih))
+        padded.paste(left, (0, y0))
+        padded.paste(right, (x0 - cx0 + iw, y0))
+        top = padded.crop((0, y0, cell_w, y0 + 1)).resize((cell_w, y0))
+        bottom = padded.crop((0, y0 + ih - 1, cell_w, y0 + ih)).resize((cell_w, cell_h - y0 - ih))
+        padded.paste(top, (0, 0))
+        padded.paste(bottom, (0, y0 + ih))
+        sheet.paste(padded, (cx0, 0))
     return sheet
 
 
@@ -355,7 +380,7 @@ def preview(master, small, data):
         return img.crop(((i % 10) * cw, (i // 10) * ch, (i % 10) * cw + cw, (i // 10) * ch + ch))
 
     others = [existing(sheet, 27), existing(sheet2, 9), existing(sheet, 5), existing(sheet, 2)]
-    mine = [master.crop((32 * 4 * n, 0, 32 * 4 * n + cw, ch)) for n in range(2)]
+    mine = [master.crop(((CELL * n + PAD) * 4, PAD * 4, (CELL * n + PAD) * 4 + cw, PAD * 4 + ch)) for n in range(2)]
     row = others + mine
     big = Image.new("RGBA", (len(row) * 110 + 20, 150), (36, 38, 46, 255))
     for i, ic in enumerate(row):

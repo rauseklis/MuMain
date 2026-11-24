@@ -50,10 +50,12 @@ namespace
     constexpr wchar_t PlusThirteenWeaponDamageText[] = L"Deals 50% more than an excellent hit";
     constexpr wchar_t PlusThirteenWeaponCondition[] = L"Active while a +13 weapon is equipped";
     constexpr int PlusThirteenWeaponTooltipLines = 4;
-    // The +13 icon atlas: two 20 x 28 icons, 32 texels apart, in a 64 x 32 texture.
+    // The +13 icon atlas: two 20 x 28 icons in a 64 x 64 texture, 32 texels apart, each 4 texels in from the corner of
+    // its cell; the cell around an icon repeats the icon's edge pixels so filtering never blends in a neighbour.
     constexpr float PlusThirteenAtlasWidth = 64.0f;
-    constexpr float PlusThirteenAtlasHeight = 32.0f;
+    constexpr float PlusThirteenAtlasHeight = 64.0f;
     constexpr float PlusThirteenCellStride = 32.0f;
+    constexpr float PlusThirteenCellInset = 4.0f;
     constexpr int PlusThirteenSetCell = 0;
     constexpr int PlusThirteenWeaponCell = 1;
 };
@@ -490,8 +492,9 @@ void SEASON3B::CNewUIBuffWindow::RenderBonusBadge(BUFF_RENDER renderstate, int i
     const POINT position = GetBuffPosition(index);
     if (renderstate == BUFF_RENDER_ICON && iconCell >= 0)
     {
-        const float u = iconCell * PlusThirteenCellStride / PlusThirteenAtlasWidth;
-        RenderBitmap(IMAGE_BUFF_PLUS13_ICONS, position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT, u, 0.0f,
+        const float u = (iconCell * PlusThirteenCellStride + PlusThirteenCellInset) / PlusThirteenAtlasWidth;
+        const float v = PlusThirteenCellInset / PlusThirteenAtlasHeight;
+        RenderBitmap(IMAGE_BUFF_PLUS13_ICONS, position.x, position.y, BUFF_IMG_WIDTH, BUFF_IMG_HEIGHT, u, v,
                      BUFF_SOURCE_WIDTH / PlusThirteenAtlasWidth, BUFF_SOURCE_HEIGHT / PlusThirteenAtlasHeight);
         return;
     }
@@ -518,16 +521,18 @@ void SEASON3B::CNewUIBuffWindow::RenderBonusBadge(BUFF_RENDER renderstate, int i
         return;
     }
 
-    // The standard tooltip box of the game: black, with the title in blue and the plain text in white.
-    const int shown = std::min(lineCount, 50);
-    for (int line = 0; line < shown; ++line)
+    // The same tooltip as every other buff: ornamented frame, blue title, rule, plain text, at the same anchor.
+    int count = 0;
+    for (int line = 0; line < lineCount; ++line)
     {
-        mu_swprintf(TextList[line], L"%ls", lines[line]);
-        TextListColor[line] = line == 0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE;
-        TextBold[line] = line == 0;
+        UI::Buffs::Tooltip::Append(lines[line], line == 0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE, line == 0, count);
+        if (line == 0)
+        {
+            UI::Buffs::Tooltip::AppendDivider(count);
+        }
     }
-    RenderTipTextList(position.x + static_cast<int>(BUFF_IMG_WIDTH) / 2,
-                      position.y + static_cast<int>(BUFF_IMG_HEIGHT) + BUFF_IMG_SPACE, shown, 0, RT3_SORT_LEFT);
+    UI::Buffs::Tooltip::Render(position.x + BUFF_IMG_WIDTH / 2, position.y + BUFF_IMG_WIDTH, count,
+                               IMAGE_BUFF_TOOLTIP_ORNAMENTS);
 }
 
 void SEASON3B::CNewUIBuffWindow::RenderBuffIcon(eBuffState& eBuffType, float x, float y, float width, float height)
