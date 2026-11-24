@@ -33,7 +33,7 @@ using namespace SEASON3A;
 
 CServerSelWin::CServerSelWin()
 {
-    std::fill(std::begin(m_aServerHasAccent), std::end(m_aServerHasAccent), false);
+    std::fill(std::begin(m_aServerHasPlate), std::end(m_aServerHasPlate), false);
 }
 
 CServerSelWin::~CServerSelWin()
@@ -56,7 +56,9 @@ void CServerSelWin::Create()
 
     for (i = 0; i < SSW_SERVER_MAX; ++i)
     {
-        m_aServerBtn[i].Create(SERVER_BTN_WIDTH, SERVER_BTN_HEIGHT, BITMAP_LOG_IN + 1, 3, 2, 1);
+        // The entry is drawn by RenderServerPlates; the button only takes the hover and the clicks.
+        m_aServerBtn[i].Create(SERVER_BTN_WIDTH, SERVER_PLATE_HEIGHT, BITMAP_LOG_IN + 1, 1);
+        m_aServerBtn[i].SetArtVisible(false);
         CWin::RegisterButton(&m_aServerBtn[i]);
         m_aServerGauge[i].Create(160, 4, BITMAP_LOG_IN + 2);
     }
@@ -201,14 +203,6 @@ void CServerSelWin::UpdateDisplay()
         CLRDW_BR_GRAY, CLRDW_BR_GRAY, CLRDW_WHITE, 0
     };
 
-    DWORD adwServerBtnClr[4][4] =
-    {
-        { CLRDW_BR_GRAY, CLRDW_BR_GRAY, CLRDW_WHITE, 0 },
-        { CLRDW_YELLOW, CLRDW_YELLOW, CLRDW_BR_YELLOW, 0 },
-        { CLRDW_ORANGE, CLRDW_ORANGE, CLRDW_BR_ORANGE, 0 },
-        { CLRDW_ORANGE, CLRDW_ORANGE, CLRDW_BR_ORANGE, 0 },
-    };
-
     m_icntServerGroup = g_ServerListManager->GetServerGroupSize();
 
     if (m_icntServerGroup < 1)
@@ -276,18 +270,10 @@ void CServerSelWin::UpdateDisplay()
     int icntServer = 0;
     while (m_pSelectServerGroup->GetNext(pServerInfo))
     {
-        m_aServerHasAccent[icntServer] =
-            Network::ServerNames::ServerAccentColors(pServerInfo->m_iIndex, m_aServerAccent[icntServer]);
-        if (m_aServerHasAccent[icntServer])
-        {
-            m_aServerLabel[icntServer] = pServerInfo->m_bName;
-            m_aServerBtn[icntServer].SetText(L"", adwServerBtnClr[pServerInfo->m_byNonPvP]);
-        }
-        else
-        {
-            m_aServerBtn[icntServer].SetText(pServerInfo->m_bName, adwServerBtnClr[pServerInfo->m_byNonPvP]);
-        }
-        m_aServerGauge[icntServer].SetValue(pServerInfo->m_iPercent, 100);
+        m_aServerHasPlate[icntServer] =
+            Network::ServerNames::ServerPlateStyle(pServerInfo->m_iIndex, m_aServerPlate[icntServer]);
+        m_aServerLabel[icntServer] = pServerInfo->m_bName;
+        m_aServerLoad[icntServer] = pServerInfo->m_iPercent;
         icntServer++;
     }
 
@@ -538,73 +524,96 @@ bool CServerSelWin::SelectServer(const wchar_t* groupName, int serverIndex)
     return ConnectToServer(pServerInfo);
 }
 
-void CServerSelWin::RenderServerAccents()
+void CServerSelWin::RenderServerPlates()
 {
-    // 640x480 layout units, like the rest of the window. The button keeps its own beveled frame art; the colour is a
-    // soft light inside it: a glow rising from the bottom edge, a bloom along the left and right edges and a polished
-    // highlight at the top. Cheap: eight quads and two texts per entry.
-    constexpr float PULSE_PERIOD_MS = 3200.0f;
+    // 640x480 layout units, like the rest of the window. One cell of the atlas is the 200 x 40 plate with 4 units of
+    // shadow room around it; the plate sits one unit below the top of its 42 units high slot.
+    constexpr float CELL_WIDTH = 208.0f;
+    constexpr float CELL_HEIGHT = 48.0f;
+    constexpr float SHADOW_ROOM = 4.0f;
+    constexpr float PLATE_TOP = 1.0f;
+    constexpr float COLUMN_STEP = 0.5f;
+    constexpr float ROW_STEP = 0.25f;
+    constexpr int ROW_HOVER = 1;
+    constexpr int ROW_PRESSED = 2;
+    constexpr int ROW_RUNES = 3;
+    constexpr float PULSE_PERIOD_MS = 2800.0f;
     constexpr float TWO_PI = 6.2831853f;
-    constexpr float FRAME = 3.0f;
-    constexpr float BLOOM_WIDTH = 34.0f;
+    constexpr int SPARKS = 4;
 
-    const float pulse = 0.5f + 0.5f * std::sin(static_cast<float>(GetTickCount() % 100000u) * TWO_PI / PULSE_PERIOD_MS);
+    const DWORD tick = GetTickCount();
+    const float pulse = 0.5f + 0.5f * std::sin(static_cast<float>(tick % 100000u) * TWO_PI / PULSE_PERIOD_MS);
 
     for (int i = 0; i < m_icntServer; ++i)
     {
-        if (!m_aServerHasAccent[i] || !m_aServerBtn[i].IsShow())
+        if (!m_aServerBtn[i].IsShow())
             continue;
 
-        const Network::ServerNames::ServerAccent& accent = m_aServerAccent[i];
         const bool hover = m_aServerBtn[i].CursorInObject() != FALSE;
         const bool pressed = hover && CInput::Instance().IsLBtnDn();
+        const float x = static_cast<float>(m_aServerBtn[i].GetXPos()) / g_fScreenRate_x;
+        const float y = static_cast<float>(m_aServerBtn[i].GetYPos()) / g_fScreenRate_y;
+        const float w = static_cast<float>(m_aServerBtn[i].GetWidth()) / g_fScreenRate_x;
 
-        const float x = static_cast<float>(m_aServerBtn[i].GetXPos()) / g_fScreenRate_x + FRAME;
-        const float y = static_cast<float>(m_aServerBtn[i].GetYPos()) / g_fScreenRate_y + FRAME;
-        const float w = static_cast<float>(m_aServerBtn[i].GetWidth()) / g_fScreenRate_x - 2 * FRAME;
-        const float h = static_cast<float>(m_aServerBtn[i].GetHeight()) / g_fScreenRate_y - 2 * FRAME;
-
-        // Brighter under the cursor, dimmer while pressed; the pulse only moves the glow a little.
-        const float strength = (pressed ? 0.6f : (hover ? 1.5f : 1.0f)) * (0.88f + 0.24f * pulse);
-        const auto glow = [&accent](float alpha)
+        if (m_aServerHasPlate[i])
         {
-            const float clamped = std::min(alpha, 255.0f);
-            return (static_cast<unsigned int>(clamped) << 24) | accent.glow;
-        };
-        const auto white = [](float alpha) { return (static_cast<unsigned int>(alpha) << 24) | 0x00FFF2DCu; };
+            const Network::ServerNames::ServerPlate& plate = m_aServerPlate[i];
+            const float u = static_cast<float>(plate.column) * COLUMN_STEP;
+            const int row = pressed ? ROW_PRESSED : (hover ? ROW_HOVER : 0);
+            const float left = x - SHADOW_ROOM;
+            const float top = y + PLATE_TOP - SHADOW_ROOM;
 
-        EnableAlphaTest();
-        // Glow rising from the bottom edge.
-        RenderColorGradientARGB(x, y, w, h, glow(8.0f * strength), glow(8.0f * strength), glow(120.0f * strength),
-                                glow(120.0f * strength));
-        // Bloom along the two side edges, fading towards the middle.
-        RenderColorGradientARGB(x, y, BLOOM_WIDTH, h, glow(80.0f * strength), glow(0.0f), glow(0.0f),
-                                glow(80.0f * strength));
-        RenderColorGradientARGB(x + w - BLOOM_WIDTH, y, BLOOM_WIDTH, h, glow(0.0f), glow(80.0f * strength),
-                                glow(80.0f * strength), glow(0.0f));
-        // Polished-metal gloss on the upper half.
-        RenderColorGradientARGB(x, y, w, h * 0.5f, white(30.0f), white(30.0f), white(0.0f), white(0.0f));
-        // A thin highlight bar under the top bevel, brightest in the middle.
-        RenderColorGradientARGB(x + 6.0f, y + 1.0f, (w - 12.0f) * 0.5f, 1.0f, white(0.0f), white(70.0f), white(70.0f),
-                                white(0.0f));
-        RenderColorGradientARGB(x + 6.0f + (w - 12.0f) * 0.5f, y + 1.0f, (w - 12.0f) * 0.5f, 1.0f, white(70.0f),
-                                white(0.0f), white(0.0f), white(70.0f));
-        EndRenderColor();
+            EnableAlphaTest();
+            RenderBitmap(BITMAP_LOG_IN + 15, left, top, CELL_WIDTH, CELL_HEIGHT, u, static_cast<float>(row) * ROW_STEP,
+                         COLUMN_STEP, ROW_STEP);
 
-        // The label: the same font as the other buttons, centred in the frame both ways, with a soft shadow.
-        g_pRenderText->SetFont(g_hFixFont);
-        g_pRenderText->SetBgColor(0);
-        const SIZE size =
-            g_pRenderText->MeasureText(m_aServerLabel[i].c_str(), static_cast<int>(m_aServerLabel[i].length()));
-        const int textY = static_cast<int>(y + (h - static_cast<float>(size.cy)) * 0.5f) + (pressed ? 1 : 0);
-        const int textX = static_cast<int>(x);
-        const int textWidth = static_cast<int>(w);
-        const DWORD rgb = hover ? accent.textHover : accent.text;
+            // The runes and the rim light breathe over the plate; brighter under the cursor, fainter when pressed.
+            const float runeAlpha = pressed ? 0.12f : (hover ? 0.45f + 0.4f * pulse : 0.15f + 0.55f * pulse);
+            const unsigned int runeColor = (static_cast<unsigned int>(runeAlpha * 255.0f) << 24) | 0x00FFFFFFu;
+            RenderColorBitmap(BITMAP_LOG_IN + 15, left, top, CELL_WIDTH, CELL_HEIGHT, u,
+                              static_cast<float>(ROW_RUNES) * ROW_STEP, COLUMN_STEP, ROW_STEP, runeColor);
 
-        g_pRenderText->SetTextColor(ARGB(150, 0, 0, 0));
-        g_pRenderText->RenderText(textX + 1, textY + 1, m_aServerLabel[i].c_str(), textWidth, 0, RT3_SORT_CENTER);
-        g_pRenderText->SetTextColor(ARGB(255, (rgb >> 16) & 0xFFu, (rgb >> 8) & 0xFFu, rgb & 0xFFu));
-        g_pRenderText->RenderText(textX, textY, m_aServerLabel[i].c_str(), textWidth, 0, RT3_SORT_CENTER);
+            // A few sparks rising from the lower edge.
+            const unsigned int sparkRgb = plate.glow & 0x00FFFFFFu;
+            for (int k = 0; k < SPARKS; ++k)
+            {
+                const float period = 2300.0f + 610.0f * static_cast<float>(k);
+                const float phase =
+                    std::fmod(static_cast<float>(tick % 200000u) / period + 0.27f * static_cast<float>(k), 1.0f);
+                const float sx =
+                    x + 52.0f + 34.0f * static_cast<float>(k) + 3.0f * std::sin(phase * TWO_PI + static_cast<float>(k));
+                const float sy = y + PLATE_TOP + 34.0f - phase * 26.0f;
+                const float fade = std::sin(phase * 3.1415927f);
+                RenderColorQuadARGB(sx, sy, 1.3f, 1.3f,
+                                    (static_cast<unsigned int>(fade * (hover ? 235.0f : 170.0f)) << 24) | sparkRgb);
+            }
+            EndRenderColor();
+        }
+        else
+        {
+            // A server without plate art: a plain dark plate with its name.
+            EnableAlphaTest();
+            RenderColorQuadARGB(x, y + PLATE_TOP, w, 40.0f, hover ? 0xD0302C28u : 0xD0181614u);
+            EndRenderColor();
+            g_pRenderText->SetFont(g_hFixFont);
+            g_pRenderText->SetBgColor(0);
+            g_pRenderText->SetTextColor(CLRDW_BR_GRAY);
+            g_pRenderText->RenderText(static_cast<int>(x), static_cast<int>(y + 15.0f), m_aServerLabel[i].c_str(),
+                                      static_cast<int>(w), 0, RT3_SORT_CENTER);
+        }
+
+        // The load of the server fills the lower rune line from the left; nothing while the server is empty.
+        const int load = std::min(m_aServerLoad[i], 100);
+        if (load > 0)
+        {
+            const float barX = x + 14.0f;
+            const float barWidth = w - 28.0f;
+            const unsigned int barRgb = load < 50 ? 0x6EDC78u : (load < 85 ? 0xF0BE46u : 0xE6463Cu);
+            EnableAlphaTest();
+            RenderColorQuadARGB(barX, y + PLATE_TOP + 37.1f, barWidth * static_cast<float>(load) / 100.0f, 1.0f,
+                                0xE6000000u | barRgb);
+            EndRenderColor();
+        }
     }
 }
 
@@ -617,15 +626,10 @@ void CServerSelWin::RenderControls()
     g_pRenderText->SetBgColor(0);
 
     CWin::RenderButtons();
-    RenderServerAccents();
+    RenderServerPlates();
 
     if (m_pSelectServerGroup != NULL)
     {
-        for (i = 0; i < m_icntServer; i++)
-        {
-            m_aServerGauge[i].Render();
-        }
-
         if (m_pSelectServerGroup->m_bPvPServer == true)
         {
             g_pRenderText->SetTextColor(ARGB(255, 255, 255, 255));

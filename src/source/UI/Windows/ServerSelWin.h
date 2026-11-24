@@ -28,19 +28,20 @@ private:
     {
         SERVER_GROUP_BTN_WIDTH = 108,
         SERVER_GROUP_BTN_HEIGHT = 26,
-        SERVER_BTN_WIDTH = 193,
+        SERVER_BTN_WIDTH = 200,
         SERVER_BTN_HEIGHT = 26,
+        SERVER_PLATE_HEIGHT = 42,
     };
 
 protected:
     CButton m_aServerGroupBtn[SSW_SERVER_G_MAX];
     CButton m_aServerBtn[SSW_SERVER_MAX];
     CGaugeBar m_aServerGauge[SSW_SERVER_MAX];
-    // Servers with their own colours draw their label themselves (see RenderServerAccents); the others leave it to
-    // the button.
+    // What each server entry draws: its name, its plate (see ServerNames::ServerPlateStyle) and its load in percent.
     std::wstring m_aServerLabel[SSW_SERVER_MAX];
-    Network::ServerNames::ServerAccent m_aServerAccent[SSW_SERVER_MAX];
-    bool m_aServerHasAccent[SSW_SERVER_MAX];
+    Network::ServerNames::ServerPlate m_aServerPlate[SSW_SERVER_MAX];
+    bool m_aServerHasPlate[SSW_SERVER_MAX];
+    int m_aServerLoad[SSW_SERVER_MAX];
     CSprite m_aBtnDeco[2];
     CSprite m_aArrowDeco[2];
     CWinEx m_winDescription;
@@ -76,8 +77,8 @@ protected:
     // remembers the choice. Shared by the click path and SelectServer().
     bool ConnectToServer(CServerInfo* pServerInfo);
 
-    // Tint, border and centred label of the servers that have their own colours.
-    void RenderServerAccents();
+    // The plate, its pulsing runes, rising sparks and load bar of every server entry.
+    void RenderServerPlates();
 
     void PreRelease();
     void SetServerBtnPosition();

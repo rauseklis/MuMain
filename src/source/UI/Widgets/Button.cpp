@@ -177,7 +177,7 @@ void CButton::Update()
 // cppcheck-suppress duplInheritedMember
 void CButton::Render()
 {
-    if (!CSprite::m_bShow)
+    if (!CSprite::m_bShow || !m_bArtVisible)
     {
         return;
     }
