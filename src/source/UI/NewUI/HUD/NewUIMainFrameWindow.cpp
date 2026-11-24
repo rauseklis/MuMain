@@ -85,6 +85,22 @@ constexpr unsigned int kFillTop = 0xFF6BCB78u;
 constexpr unsigned int kFillBottom = 0xFF1F6A2Du;
 constexpr unsigned int kMasterFillTop = 0xFFF0C95Cu;
 constexpr unsigned int kMasterFillBottom = 0xFF855812u;
+
+// Light touches on top of the smooth fill: a thin highlight on its top row and a bright leading edge.
+constexpr unsigned int kFillHighlight = 0xFFA3DFABu;
+constexpr unsigned int kMasterFillHighlight = 0xFFF6DD9Au;
+constexpr unsigned int kFillTipTop = 0xFFAEE2B5u;
+constexpr unsigned int kFillTipBottom = 0xFF578F62u;
+constexpr unsigned int kMasterFillTipTop = 0xFFF7E1A5u;
+constexpr unsigned int kMasterFillTipBottom = 0xFFA3824Du;
+
+// Nine thin dividers split the bar into its ten sections. Darker over the fill, lighter over the empty part.
+constexpr float kTickWidth = 1.0f;
+constexpr unsigned int kTickOnFillTop = 0xFF2D5532u;
+constexpr unsigned int kTickOnFillBottom = 0xFF0D2D13u;
+constexpr unsigned int kTickOnMasterFillTop = 0xFF655527u;
+constexpr unsigned int kTickOnMasterFillBottom = 0xFF382508u;
+constexpr unsigned int kTickEmpty = 0xFF2E2921u;
 } // namespace ExpBarStyle
 
 namespace
@@ -419,7 +435,33 @@ void SEASON3B::CNewUIMainFrameWindow::RenderExperience()
     {
         const unsigned int top = state.master ? kMasterFillTop : kFillTop;
         const unsigned int bottom = state.master ? kMasterFillBottom : kFillBottom;
-        RenderColorGradientARGB(kBarX, kBarY, fillWidth, kBarHeight, top, top, bottom, bottom);
+        const unsigned int highlight = state.master ? kMasterFillHighlight : kFillHighlight;
+        RenderColorGradientARGB(kBarX, kBarY + 1.0f, fillWidth, kBarHeight - 1.0f, top, top, bottom, bottom);
+        RenderColorQuadARGB(kBarX, kBarY, fillWidth, 1.0f, highlight);
+
+        if (fillWidth >= kTickWidth)
+        {
+            const unsigned int tipTop = state.master ? kMasterFillTipTop : kFillTipTop;
+            const unsigned int tipBottom = state.master ? kMasterFillTipBottom : kFillTipBottom;
+            RenderColorGradientARGB(kBarX + fillWidth - kTickWidth, kBarY, kTickWidth, kBarHeight, tipTop, tipTop,
+                                    tipBottom, tipBottom);
+        }
+    }
+
+    const float segmentWidth = kBarWidth / static_cast<float>(UI::Hud::ExperienceBar::kSegments);
+    for (int i = 1; i < UI::Hud::ExperienceBar::kSegments; ++i)
+    {
+        const float tickX = kBarX + segmentWidth * static_cast<float>(i);
+        if (tickX < kBarX + fillWidth - kTickWidth)
+        {
+            const unsigned int tickTop = state.master ? kTickOnMasterFillTop : kTickOnFillTop;
+            const unsigned int tickBottom = state.master ? kTickOnMasterFillBottom : kTickOnFillBottom;
+            RenderColorGradientARGB(tickX, kBarY, kTickWidth, kBarHeight, tickTop, tickTop, tickBottom, tickBottom);
+        }
+        else
+        {
+            RenderColorQuadARGB(tickX, kBarY, kTickWidth, kBarHeight, kTickEmpty);
+        }
     }
 
     const int segment = UI::Hud::ExperienceBar::Segment(state.current, state.range);
