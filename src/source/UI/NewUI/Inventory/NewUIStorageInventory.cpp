@@ -10,6 +10,7 @@
 #include "UI/NewUI/NewUISystem.h"
 #include "UI/NewUI/Dialogs/NewUICustomMessageBox.h"
 #include "Engine/Object/ZzzInventory.h"
+#include "Engine/Object/ZzzInterface.h"
 #include "GameLogic/Items/TradeRestrictions.h"
 
 #ifdef KJH_PBG_ADD_INGAMESHOP_SYSTEM
@@ -67,6 +68,9 @@ bool CNewUIStorageInventory::Create(CNewUIManager* pNewUIMng, int x, int y)
     m_BtnExpand.ChangeButtonImgState(true, IMAGE_STORAGE_EXPAND_BTN, false);
     m_BtnExpand.ChangeToolTipText(&I18N::Game::OpeningAnExpandedVaultH, true);
 
+    m_BtnVaultPrev.ChangeButtonImgState(true, IMAGE_STORAGE_VAULT_BTN_L, false);
+    m_BtnVaultNext.ChangeButtonImgState(true, IMAGE_STORAGE_VAULT_BTN_R, false);
+
     m_bLock = false;
     SetItemAutoMove(false);
     InitBackupItemInfo();
@@ -106,6 +110,8 @@ void CNewUIStorageInventory::SetPos(int x, int y)
     }
 
     m_BtnExpand.ChangeButtonInfo(x + xFirstButton + MAX_BTN * xOffsetPerButton, y + 391, 36, 29);
+    m_BtnVaultPrev.ChangeButtonInfo(x + VAULT_BTN_PREV_X, y + VAULT_BTN_Y, VAULT_BTN_WIDTH, VAULT_BTN_HEIGHT);
+    m_BtnVaultNext.ChangeButtonInfo(x + VAULT_BTN_NEXT_X, y + VAULT_BTN_Y, VAULT_BTN_WIDTH, VAULT_BTN_HEIGHT);
 }
 
 bool CNewUIStorageInventory::UpdateMouseEvent()
@@ -115,7 +121,7 @@ bool CNewUIStorageInventory::UpdateMouseEvent()
 
     ProcessInventoryCtrl();
 
-    if (ProcessVaultArrows())
+    if (ProcessVaultButtons())
         return false;
 
     if (ProcessBtns())
@@ -187,7 +193,8 @@ bool CNewUIStorageInventory::Render()
         m_BtnExpand.Render();
     }
 
-    RenderVaultArrows();
+    RenderVaultButtons();
+    RenderMaxZenTip();
 
     DisableAlphaBlend();
 
@@ -204,7 +211,8 @@ void CNewUIStorageInventory::RenderBackImage()
     RenderImage(IMAGE_STORAGE_RIGHT, x + STORAGE_WIDTH - 21, y + 64, 21.f, 320.f);
     RenderImage(IMAGE_STORAGE_BOTTOM, x, y + STORAGE_HEIGHT - 45, STORAGE_WIDTH, 45.f);
 
-    RenderImage(IMAGE_STORAGE_MONEY, x + 10, y + 342, 170.f, 46.f);
+    RenderImage(IMAGE_STORAGE_MONEY, x + ZEN_BOX_X, y + ZEN_BOX_Y, static_cast<float>(ZEN_BOX_WIDTH),
+                static_cast<float>(ZEN_BOX_HEIGHT));
 }
 
 void CNewUIStorageInventory::RenderText()
@@ -281,10 +289,14 @@ void CNewUIStorageInventory::LoadImages()
     LoadBitmap(L"Interface\\newui_item_money3.tga", IMAGE_STORAGE_MONEY, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_vault_arrow_L.tga", IMAGE_STORAGE_VAULT_ARROW_L, GL_LINEAR);
     LoadBitmap(L"Interface\\newui_vault_arrow_R.tga", IMAGE_STORAGE_VAULT_ARROW_R, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_vault_btn_L.tga", IMAGE_STORAGE_VAULT_BTN_L, GL_LINEAR);
+    LoadBitmap(L"Interface\\newui_vault_btn_R.tga", IMAGE_STORAGE_VAULT_BTN_R, GL_LINEAR);
 }
 
 void CNewUIStorageInventory::UnloadImages()
 {
+    DeleteBitmap(IMAGE_STORAGE_VAULT_BTN_R);
+    DeleteBitmap(IMAGE_STORAGE_VAULT_BTN_L);
     DeleteBitmap(IMAGE_STORAGE_VAULT_ARROW_R);
     DeleteBitmap(IMAGE_STORAGE_VAULT_ARROW_L);
     DeleteBitmap(IMAGE_STORAGE_MONEY);
@@ -541,57 +553,49 @@ bool CNewUIStorageInventory::ProcessBtns()
     return false;
 }
 
-bool CNewUIStorageInventory::IsMouseOnVaultArrow(bool bNext) const
-{
-    const int x = m_Pos.x + (bNext ? VAULT_ARROW_NEXT_X : VAULT_ARROW_PREV_X);
-    return CheckMouseIn(x, m_Pos.y + VAULT_ARROW_Y, VAULT_ARROW_WIDTH, VAULT_ARROW_HEIGHT);
-}
-
-void CNewUIStorageInventory::RenderVaultArrows()
+void CNewUIStorageInventory::RenderVaultButtons()
 {
     if (m_nVaultCount <= 1)
         return;
 
-    for (int i = 0; i < 2; ++i)
-    {
-        const bool bNext = (i == 1);
-        const bool bOver = IsMouseOnVaultArrow(bNext);
-        const DWORD color = bOver ? RGBA(255, 255, 255, 255) : RGBA(205, 205, 205, 255);
-        RenderImage(bNext ? IMAGE_STORAGE_VAULT_ARROW_R : IMAGE_STORAGE_VAULT_ARROW_L,
-            static_cast<float>(m_Pos.x + (bNext ? VAULT_ARROW_NEXT_X : VAULT_ARROW_PREV_X)),
-            static_cast<float>(m_Pos.y + VAULT_ARROW_Y),
-            static_cast<float>(VAULT_ARROW_WIDTH), static_cast<float>(VAULT_ARROW_HEIGHT),
-            0.0f, 0.0f, color);
-    }
+    m_BtnVaultPrev.Render();
+    m_BtnVaultNext.Render();
 }
 
-bool CNewUIStorageInventory::ProcessVaultArrows()
+void CNewUIStorageInventory::RenderMaxZenTip() const
+{
+    if (!CheckMouseIn(m_Pos.x + ZEN_BOX_X, m_Pos.y + ZEN_BOX_Y, ZEN_BOX_WIDTH, ZEN_BOX_HEIGHT))
+        return;
+
+    wchar_t szMax[64];
+    ConvertGold64(MAX_STORAGE_ZEN, szMax);
+    wchar_t szTip[128];
+    mu_swprintf(szTip, L"%ls: %ls", I18N::Game::MaximumZenInTheStorage, szMax);
+    RenderTipText(m_Pos.x + ZEN_BOX_X, m_Pos.y + ZEN_BOX_Y - 18, szTip);
+}
+
+bool CNewUIStorageInventory::ProcessVaultButtons()
 {
     if (m_nVaultCount <= 1)
         return false;
 
-    for (int i = 0; i < 2; ++i)
+    const bool bPrev = m_BtnVaultPrev.UpdateMouseEvent();
+    const bool bNext = !bPrev && m_BtnVaultNext.UpdateMouseEvent();
+    if (!bPrev && !bNext)
+        return false;
+
+    // Switching while an item of the current vault is held would drop it into another vault.
+    const DWORD now = GetTickCount();
+    if (!EquipmentItem && !m_bItemAutoMove && now - m_dwLastVaultSwitchRequest >= VAULT_SWITCH_COOLDOWN_MS)
     {
-        const bool bNext = (i == 1);
-        if (!IsMouseOnVaultArrow(bNext) || !IsRelease(VK_LBUTTON))
-            continue;
-
-        // Switching while an item of the current vault is held would drop it into another vault.
-        const DWORD now = GetTickCount();
-        if (!EquipmentItem && !m_bItemAutoMove && now - m_dwLastVaultSwitchRequest >= VAULT_SWITCH_COOLDOWN_MS)
-        {
-            m_dwLastVaultSwitchRequest = now;
-            const int target = bNext
-                ? (m_nVaultNumber % m_nVaultCount) + 1
-                : ((m_nVaultNumber + m_nVaultCount - 2) % m_nVaultCount) + 1;
-            PlayBuffer(SOUND_CLICK01);
-            SocketClient->ToGameServer()->SendVaultSwitchRequest(static_cast<BYTE>(target));
-        }
-
-        return true;
+        m_dwLastVaultSwitchRequest = now;
+        const int target =
+            bNext ? (m_nVaultNumber % m_nVaultCount) + 1 : ((m_nVaultNumber + m_nVaultCount - 2) % m_nVaultCount) + 1;
+        PlayBuffer(SOUND_CLICK01);
+        SocketClient->ToGameServer()->SendVaultSwitchRequest(static_cast<BYTE>(target));
     }
 
-    return false;
+    return true;
 }
 
 void CNewUIStorageInventory::ProcessToReceiveVaultSwitched(int nVaultNumber, int nVaultCount)

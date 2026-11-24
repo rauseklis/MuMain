@@ -20,7 +20,7 @@ namespace SEASON3B
     public:
         enum IMAGE_LIST
         {
-            IMAGE_STORAGE_BACK = CNewUIMessageBoxMng::IMAGE_MSGBOX_BACK,	// Reference
+            IMAGE_STORAGE_BACK = CNewUIMessageBoxMng::IMAGE_MSGBOX_BACK, // Reference
             IMAGE_STORAGE_TOP = CNewUIMyInventory::IMAGE_INVENTORY_BACK_TOP,
             IMAGE_STORAGE_LEFT = CNewUIMyInventory::IMAGE_INVENTORY_BACK_LEFT,
             IMAGE_STORAGE_RIGHT = CNewUIMyInventory::IMAGE_INVENTORY_BACK_RIGHT,
@@ -36,17 +36,28 @@ namespace SEASON3B
 
             IMAGE_STORAGE_VAULT_ARROW_L = BITMAP_INTERFACE_NEW_STORAGE_BEGIN + 5,
             IMAGE_STORAGE_VAULT_ARROW_R = BITMAP_INTERFACE_NEW_STORAGE_BEGIN + 6,
+
+            IMAGE_STORAGE_VAULT_BTN_L = BITMAP_INTERFACE_NEW_STORAGE_BEGIN + 7,
+            IMAGE_STORAGE_VAULT_BTN_R = BITMAP_INTERFACE_NEW_STORAGE_BEGIN + 8,
         };
 
     private:
         static constexpr float STORAGE_WIDTH = 190.0f;
         static constexpr float STORAGE_HEIGHT = 429.0f;
 
-        static constexpr int VAULT_ARROW_PREV_X = 128;
-        static constexpr int VAULT_ARROW_NEXT_X = 152;
-        static constexpr int VAULT_ARROW_Y = 399;
-        static constexpr int VAULT_ARROW_WIDTH = 20;
-        static constexpr int VAULT_ARROW_HEIGHT = 14;
+        // The switch buttons sit in the row of the round Zen / lock buttons (same top and height).
+        static constexpr int VAULT_BTN_PREV_X = 127;
+        static constexpr int VAULT_BTN_NEXT_X = 152;
+        static constexpr int VAULT_BTN_Y = 391;
+        static constexpr int VAULT_BTN_WIDTH = 24;
+        static constexpr int VAULT_BTN_HEIGHT = 29;
+
+        // The most Zen the storage holds (the server's MaximumVaultMoney), shown as a tooltip on the Zen box.
+        static constexpr __int64 MAX_STORAGE_ZEN = 1'000'000'000'000LL;
+        static constexpr int ZEN_BOX_X = 10;
+        static constexpr int ZEN_BOX_Y = 342;
+        static constexpr int ZEN_BOX_WIDTH = 170;
+        static constexpr int ZEN_BOX_HEIGHT = 46;
         static constexpr DWORD VAULT_SWITCH_COOLDOWN_MS = 250;
 
         enum STORAGE_BUTTON
@@ -61,6 +72,8 @@ namespace SEASON3B
         POINT					m_Pos;
         CNewUIButton			m_abtn[MAX_BTN];
         CNewUIButton			m_BtnExpand;
+        CNewUIButton m_BtnVaultPrev;
+        CNewUIButton m_BtnVaultNext;
         CNewUIInventoryCtrl* m_pNewInventoryCtrl;
 
         bool					m_bLock;
@@ -127,9 +140,9 @@ namespace SEASON3B
 
         void RenderBackImage();
         void RenderText();
-        void RenderVaultArrows();
-        bool ProcessVaultArrows();
-        bool IsMouseOnVaultArrow(bool bNext) const;
+        void RenderVaultButtons();
+        bool ProcessVaultButtons();
+        void RenderMaxZenTip() const;
 
         void ChangeLockBtnImage();
         void DeleteAllItems();
