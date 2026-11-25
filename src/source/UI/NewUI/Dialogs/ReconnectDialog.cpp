@@ -58,7 +58,9 @@ namespace
     constexpr float CANCEL_W = 32.0f;
     constexpr float CANCEL_H = 18.0f;
     constexpr float CANCEL_X = PANEL_X + (PANEL_W - CANCEL_W) / 2.0f;
-    constexpr float CANCEL_Y = PANEL_Y + PANEL_H - CANCEL_H - 6.0f;
+    // Centred in the gap between the progress trough and the decorative bottom border: about 7 units under the
+    // trough and 13 above the bottom of the panel.
+    constexpr float CANCEL_Y = PANEL_Y + 91.0f;
 
     // The cancel button texture stacks three 30px states in a 64x128 sheet.
     constexpr float BTN_SHEET_W = 64.0f;
