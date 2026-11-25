@@ -156,18 +156,14 @@ void CServerSelWin::SetServerBtnPosition()
 
     int nServerBtnPosX = m_aServerGroupBtn[1].GetXPos() + m_aServerGroupBtn[0].GetWidth() + SSW_GAP_WIDTH;
 
-    // The buttons are sprites measured in screen pixels, while the plates are drawn in 640x480 layout units. Size the
-    // buttons to the plates they sit under, so the hit area and the row pitch match the drawing at every UI scale.
-    const float scaleX = g_fScreenRate_x > 0.0f ? g_fScreenRate_x : 1.0f;
-    const float scaleY = g_fScreenRate_y > 0.0f ? g_fScreenRate_y : 1.0f;
-    const int nPlateWidth = static_cast<int>(SERVER_BTN_WIDTH * scaleX + 0.5f);
-    const int nPlateHeight = static_cast<int>(SERVER_PLATE_HEIGHT * scaleY + 0.5f);
+    // The buttons are sprites measured in screen pixels, like the original server buttons (193 pixels wide at every
+    // UI scale). Each one is as tall as its plate, and the rows keep a small gap.
     for (int i = 0; i < SSW_SERVER_MAX; ++i)
     {
-        m_aServerBtn[i].SetSize(nPlateWidth, nPlateHeight);
+        m_aServerBtn[i].SetSize(SERVER_BTN_WIDTH, SERVER_PLATE_HEIGHT);
     }
 
-    int nServerBtnHeight = static_cast<int>(SERVER_PLATE_PITCH * scaleY + 0.5f);
+    int nServerBtnHeight = SERVER_PLATE_PITCH;
 
     int nLServerGBtnHeightSum = m_aServerGroupBtn[1].GetHeight() * 10;
 
@@ -537,8 +533,9 @@ bool CServerSelWin::SelectServer(const wchar_t* groupName, int serverIndex)
 
 void CServerSelWin::RenderServerPlates()
 {
-    // 640x480 layout units, like the rest of the window. One cell of the atlas is the 200 x 40 plate with 4 units of
-    // shadow room around it; the plate sits one unit below the top of its 42 units high slot.
+    // One cell of the atlas is the 200 x 40 plate with 4 units of shadow room around it; the plate sits one unit below
+    // the top of its button. The art is drawn at the size of the original server button, 193 screen pixels wide, so an
+    // art unit is 193 / 200 pixels; the renderer wants 640x480 layout units, hence the division by the UI scale.
     constexpr float CELL_WIDTH = 208.0f;
     constexpr float CELL_HEIGHT = 48.0f;
     constexpr float SHADOW_ROOM = 4.0f;
@@ -552,7 +549,11 @@ void CServerSelWin::RenderServerPlates()
     constexpr int ROW_RUNES = 3;
     constexpr float PULSE_PERIOD_MS = 2800.0f;
     constexpr float TWO_PI = 6.2831853f;
-    constexpr int SPARKS = 4;
+
+    constexpr float ART_WIDTH = 200.0f;
+    const float pixelsPerArtUnit = static_cast<float>(SERVER_BTN_WIDTH) / ART_WIDTH;
+    const float ux = pixelsPerArtUnit / (g_fScreenRate_x > 0.0f ? g_fScreenRate_x : 1.0f);
+    const float uy = pixelsPerArtUnit / (g_fScreenRate_y > 0.0f ? g_fScreenRate_y : 1.0f);
 
     const DWORD tick = GetTickCount();
     const float pulse = 0.5f + 0.5f * std::sin(static_cast<float>(tick % 100000u) * TWO_PI / PULSE_PERIOD_MS);
@@ -573,45 +574,33 @@ void CServerSelWin::RenderServerPlates()
             const Network::ServerNames::ServerPlate& plate = m_aServerPlate[i];
             const float u = static_cast<float>(plate.column) * COLUMN_STEP;
             const int row = pressed ? ROW_PRESSED : (hover ? ROW_HOVER : 0);
-            const float left = x - SHADOW_ROOM;
-            const float top = y + PLATE_TOP - SHADOW_ROOM;
+            const float left = x - SHADOW_ROOM * ux;
+            const float top = y + (PLATE_TOP - SHADOW_ROOM) * uy;
+            const float cellWidth = CELL_WIDTH * ux;
+            const float cellHeight = CELL_HEIGHT * uy;
 
             EnableAlphaTest();
-            RenderBitmap(BITMAP_LOG_IN + 15, left, top, CELL_WIDTH, CELL_HEIGHT, u, static_cast<float>(row) * ROW_STEP,
+            RenderBitmap(BITMAP_LOG_IN + 15, left, top, cellWidth, cellHeight, u, static_cast<float>(row) * ROW_STEP,
                          COLUMN_STEP, ROW_STEP);
 
             // The runes and the rim light breathe over the plate; brighter under the cursor, fainter when pressed.
             const float runeAlpha = pressed ? 0.12f : (hover ? 0.45f + 0.4f * pulse : 0.15f + 0.55f * pulse);
             const unsigned int runeColor = (static_cast<unsigned int>(runeAlpha * 255.0f) << 24) | 0x00FFFFFFu;
-            RenderColorBitmap(BITMAP_LOG_IN + 15, left, top, CELL_WIDTH, CELL_HEIGHT, u,
+            RenderColorBitmap(BITMAP_LOG_IN + 15, left, top, cellWidth, cellHeight, u,
                               static_cast<float>(ROW_RUNES) * ROW_STEP, COLUMN_STEP, ROW_STEP, runeColor);
 
-            // A few sparks rising from the lower edge.
-            const unsigned int sparkRgb = plate.glow & 0x00FFFFFFu;
-            for (int k = 0; k < SPARKS; ++k)
-            {
-                const float period = 2300.0f + 610.0f * static_cast<float>(k);
-                const float phase =
-                    std::fmod(static_cast<float>(tick % 200000u) / period + 0.27f * static_cast<float>(k), 1.0f);
-                const float sx =
-                    x + 52.0f + 34.0f * static_cast<float>(k) + 3.0f * std::sin(phase * TWO_PI + static_cast<float>(k));
-                const float sy = y + PLATE_TOP + 34.0f - phase * 26.0f;
-                const float fade = std::sin(phase * 3.1415927f);
-                RenderColorQuadARGB(sx, sy, 1.3f, 1.3f,
-                                    (static_cast<unsigned int>(fade * (hover ? 235.0f : 170.0f)) << 24) | sparkRgb);
-            }
             EndRenderColor();
         }
         else
         {
             // A server without plate art: a plain dark plate with its name.
             EnableAlphaTest();
-            RenderColorQuadARGB(x, y + PLATE_TOP, w, 40.0f, hover ? 0xD0302C28u : 0xD0181614u);
+            RenderColorQuadARGB(x, y + PLATE_TOP * uy, w, 40.0f * uy, hover ? 0xD0302C28u : 0xD0181614u);
             EndRenderColor();
             g_pRenderText->SetFont(g_hFixFont);
             g_pRenderText->SetBgColor(0);
             g_pRenderText->SetTextColor(CLRDW_BR_GRAY);
-            g_pRenderText->RenderText(static_cast<int>(x), static_cast<int>(y + 15.0f), m_aServerLabel[i].c_str(),
+            g_pRenderText->RenderText(static_cast<int>(x), static_cast<int>(y + 15.0f * uy), m_aServerLabel[i].c_str(),
                                       static_cast<int>(w), 0, RT3_SORT_CENTER);
         }
 
@@ -619,11 +608,11 @@ void CServerSelWin::RenderServerPlates()
         const int load = std::min(m_aServerLoad[i], 100);
         if (load > 0)
         {
-            const float barX = x + 14.0f;
-            const float barWidth = w - 28.0f;
+            const float barX = x + 14.0f * ux;
+            const float barWidth = w - 28.0f * ux;
             const unsigned int barRgb = load < 50 ? 0x6EDC78u : (load < 85 ? 0xF0BE46u : 0xE6463Cu);
             EnableAlphaTest();
-            RenderColorQuadARGB(barX, y + PLATE_TOP + 37.1f, barWidth * static_cast<float>(load) / 100.0f, 1.0f,
+            RenderColorQuadARGB(barX, y + (PLATE_TOP + 37.1f) * uy, barWidth * static_cast<float>(load) / 100.0f, uy,
                                 0xE6000000u | barRgb);
             EndRenderColor();
         }
