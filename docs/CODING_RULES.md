@@ -126,3 +126,7 @@ the pattern accretes consistently.
   - **String formatting in inner loops** - cache or pre-build where possible.
 - When existing hot-path code is wasteful on a path you're touching, fix it or file a follow-up. Don't add new abstractions that slow it further without justification.
 - "Hot path" is judged by call frequency and N, not by code prominence. A render function called 60×/sec for 50 visible objects is hot. A config reader called once at boot is not.
+
+## 13. Windows Builds Only
+
+This project only ships Windows. Never enable, add or re-enable a Linux or macOS build job in `.github/workflows/`. Those jobs stay switched off with `if: false`; the Quality Gates job runs `scripts/check-windows-only-ci.sh` and fails the PR if one is turned on.

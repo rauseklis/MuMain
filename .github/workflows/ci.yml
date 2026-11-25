@@ -37,6 +37,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Windows-only build rule
+        run: bash scripts/check-windows-only-ci.sh
+
       - name: Test ambient object render lifecycle
         run: |
           g++ -std=c++20 -Itests/third_party/doctest -Isrc/source \
