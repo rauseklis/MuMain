@@ -383,25 +383,16 @@ bool SEASON3B::CNewUICommonMessageBox::Create(DWORD dwType, const type_string& s
     return true;
 }
 
-namespace
-{
-// The compact button is centred vertically in the space of the classic 54x30 button.
-float CompactButtonOffsetY()
-{
-    return (SEASON3B::MSGBOX_BTN_HEIGHT - SEASON3B::MSGBOX_COMPACT_BTN_HEIGHT) / 2.0f;
-}
-} // namespace
-
 void SEASON3B::CNewUICommonMessageBox::SetPos(int x, int y)
 {
     CNewUIMessageBoxBase::SetPos(x, y);
 
     float fx, fy;
-    fx = GetPos().x + (((GetSize().cx / 2) - MSGBOX_COMPACT_BTN_WIDTH) / 2);
-    fy = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) + CompactButtonOffsetY();
+    fx = GetPos().x + (((GetSize().cx / 2) - MSGBOX_BTN_WIDTH) / 2);
+    fy = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
     m_BtnOk.SetPos(fx, fy);
-    fx = GetPos().x + (GetSize().cx / 2) + (((GetSize().cx / 2) - MSGBOX_COMPACT_BTN_WIDTH) / 2);
-    fy = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) + CompactButtonOffsetY();
+    fx = GetPos().x + (GetSize().cx / 2) + (((GetSize().cx / 2) - MSGBOX_BTN_WIDTH) / 2);
+    fy = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
     m_BtnCancel.SetPos(fx, fy);
 }
 
@@ -432,10 +423,10 @@ void SEASON3B::CNewUICommonMessageBox::SetButtonInfo()
     switch (m_dwType)
     {
     case MSGBOX_COMMON_TYPE_OK:
-        x = GetPos().x + (GetSize().cx / 2) - (MSGBOX_COMPACT_BTN_WIDTH / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) + CompactButtonOffsetY();
-        width = MSGBOX_COMPACT_BTN_WIDTH;
-        height = MSGBOX_COMPACT_BTN_HEIGHT;
+        x = GetPos().x + (GetSize().cx / 2) - (MSGBOX_BTN_WIDTH / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
+        width = MSGBOX_BTN_WIDTH;
+        height = MSGBOX_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM
@@ -443,20 +434,20 @@ void SEASON3B::CNewUICommonMessageBox::SetButtonInfo()
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
         break;
     case MSGBOX_COMMON_TYPE_OKCANCEL:
-        x = GetPos().x + (((GetSize().cx / 2) - MSGBOX_COMPACT_BTN_WIDTH) / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) + CompactButtonOffsetY();
-        width = MSGBOX_COMPACT_BTN_WIDTH;
-        height = MSGBOX_COMPACT_BTN_HEIGHT;
+        x = GetPos().x + (((GetSize().cx / 2) - MSGBOX_BTN_WIDTH) / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
+        width = MSGBOX_BTN_WIDTH;
+        height = MSGBOX_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnOk.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_OK, x, y, width, height);
 #endif // KJH_ADD_INGAMESHOP_UI_SYSTEM
 
-        x = GetPos().x + (GetSize().cx / 2) + (((GetSize().cx / 2) - MSGBOX_COMPACT_BTN_WIDTH) / 2);
-        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK) + CompactButtonOffsetY();
-        width = MSGBOX_COMPACT_BTN_WIDTH;
-        height = MSGBOX_COMPACT_BTN_HEIGHT;
+        x = GetPos().x + (GetSize().cx / 2) + (((GetSize().cx / 2) - MSGBOX_BTN_WIDTH) / 2);
+        y = GetPos().y + GetSize().cy - (MSGBOX_BTN_HEIGHT + MSGBOX_BTN_BOTTOM_BLANK);
+        width = MSGBOX_BTN_WIDTH;
+        height = MSGBOX_BTN_HEIGHT;
 #ifdef KJH_ADD_INGAMESHOP_UI_SYSTEM
         m_BtnCancel.SetInfo(CNewUIMessageBoxMng::IMAGE_MSGBOX_BTN_CANCEL, x, y, width, height, CNewUIMessageBoxButton::MSGBOX_BTN_SIZE_OK);
 #else // KJH_ADD_INGAMESHOP_UI_SYSTEM

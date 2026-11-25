@@ -105,7 +105,7 @@ CHAT_AND_GEMS = [
 ]
 
 MESSAGE_BOX_BUTTONS = [
-    "newui_button_cancel.OZT", "newui_button_ok.OZT", "newui_button_close.OZT",
+    "newui_button_close.OZT",
 ]
 
 GROUPS = {
