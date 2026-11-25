@@ -1801,7 +1801,8 @@ void CNewUIMuHelper::RenderSkillIcon(int skill, float x, float y, float width, f
 
     if (skill >= AT_SKILL_MASTER_BEGIN)
     {
-        RenderImage(BITMAP_INTERFACE_MASTER_BEGIN + 2, x, y, width, height, (20.f / 512.f) * (Skill_Icon % 25), ((28.f / 512.f) * ((Skill_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
+        RenderImage(BITMAP_INTERFACE_MASTER_BEGIN, x, y, width, height, (20.f / 512.f) * (Skill_Icon % 25),
+                    ((28.f / 512.f) * ((Skill_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
     }
     else if (iTextureIndex != 0)
     {
@@ -1975,7 +1976,7 @@ bool CNewUIMuHelperSkillList::Render()
     float iconOffsetY = (boxHeight - iconHeight) / 2.f;
 
     // x position relative to the position of mu helper window
-    float startX = (float)REFERENCE_WIDTH - 190.f - 32.f;
+    float startX = static_cast<float>(REFERENCE_WIDTH) - 190.f - 32.f;
     // y position relative to the skill/buff selection in mu helper window
     float startY = m_bFilterByAttackSkills ? 171.f : 293.f;
 
@@ -2185,7 +2186,8 @@ void CNewUIMuHelperSkillList::RenderSkillIcon(int iSkillType, float x, float y, 
 
     if (iSkillType >= AT_SKILL_MASTER_BEGIN)
     {
-        RenderImage(BITMAP_INTERFACE_MASTER_BEGIN + 2, x, y, width, height, (20.f / 512.f) * (Skill_Icon % 25), ((28.f / 512.f) * ((Skill_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
+        RenderImage(BITMAP_INTERFACE_MASTER_BEGIN, x, y, width, height, (20.f / 512.f) * (Skill_Icon % 25),
+                    ((28.f / 512.f) * ((Skill_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
     }
     else if (iTextureId != 0)
     {
@@ -2315,7 +2317,7 @@ void CNewUIMuHelperSkillList::UI2DEffectCallback(LPVOID pClass, DWORD dwParamA, 
 {
     if (pClass)
     {
-        auto* pSkillList = (CNewUIMuHelperSkillList*)(pClass);
+        auto* pSkillList = static_cast<CNewUIMuHelperSkillList*>(pClass);
         pSkillList->RenderSkillInfo();
     }
 }
@@ -2772,7 +2774,7 @@ bool CNewUIMuHelperExt::UpdateMouseEvent()
             else
             {
                 float fValue = (10.f * x) / 124.f;
-                m_iCurrentPotionThreshold = (int)fValue + 1;
+                m_iCurrentPotionThreshold = static_cast<int>(fValue) + 1;
             }
         }
     }
@@ -2809,7 +2811,7 @@ bool CNewUIMuHelperExt::UpdateMouseEvent()
                 else
                 {
                     float fValue = (10.f * x) / 124.f;
-                    m_iCurrentHealThreshold = (int)fValue + 1;
+                    m_iCurrentHealThreshold = static_cast<int>(fValue) + 1;
                 }
             }
         }
@@ -2846,7 +2848,7 @@ bool CNewUIMuHelperExt::UpdateMouseEvent()
                 else
                 {
                     float fValue = (10.f * x) / 124.f;
-                    m_iCurrentPartyHealThreshold = (int)fValue + 1;
+                    m_iCurrentPartyHealThreshold = static_cast<int>(fValue) + 1;
                 }
             }
         }
