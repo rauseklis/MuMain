@@ -18,6 +18,9 @@ struct ArenaWarriorLook
     float scale;
 };
 
+// The owner found the Arena Warriors too big: every one is drawn 20% smaller. This only changes how the model is drawn.
+constexpr float ARENA_WARRIOR_SIZE_FACTOR = 0.8f;
+
 // One row per monster: the armour set named in its name and the weapons the owner chose. A "2 X" weapon is one in
 // each hand. Mace of the King is item 2:22.
 constexpr ArenaWarriorLook ARENA_WARRIOR_LOOKS[] = {
@@ -82,7 +85,7 @@ CHARACTER* CreateArenaWarrior(EMonsterType type, int key, int positionX, int pos
         CHARACTER* c = CreateCharacter(key, MODEL_PLAYER, positionX, positionY);
         Dress(c, look);
         SetCharacterScale(c);
-        c->Object.Scale *= look.scale;
+        c->Object.Scale *= look.scale * ARENA_WARRIOR_SIZE_FACTOR;
         c->Blood = true;
         return c;
     }
