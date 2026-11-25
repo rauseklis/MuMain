@@ -75,7 +75,7 @@ bool CNewUIHeroPositionInfo::Create(CNewUIManager* pNewUIMng, int x, int y)
     m_pNewUIMng = pNewUIMng;
     m_pNewUIMng->AddUIObj(SEASON3B::INTERFACE_HERO_POSITION_INFO, this);
 
-    SetPos(x + Bar::kMargin, y + Bar::kMargin);
+    SetPos(x, y);
     LoadImages();
     PlaceButtons();
 

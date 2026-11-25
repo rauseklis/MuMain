@@ -26,8 +26,6 @@ struct SnappedRect
     float height;
 };
 
-inline constexpr int kMargin = 2;
-
 // The bar is the original three pieces, scaled down: a left end, a middle that is stretched, and a right end with the
 // three button slots. The left end and the middle are taller than the right end, as in the original.
 inline constexpr int kLeftWidth = 18;
