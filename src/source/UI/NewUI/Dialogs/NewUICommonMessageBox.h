@@ -47,9 +47,6 @@ namespace SEASON3B
     static constexpr float MSGBOX_BTN_WIDTH = 54.0f;
     static constexpr float MSGBOX_BTN_HEIGHT = 30.0f;
     static constexpr float MSGBOX_BTN_BOTTOM_BLANK = 20.0f;
-    // OK and Cancel of the common message boxes are drawn smaller than the classic 54x30.
-    static constexpr float MSGBOX_COMPACT_BTN_WIDTH = 42.0f;
-    static constexpr float MSGBOX_COMPACT_BTN_HEIGHT = 23.0f;
 
     static constexpr float MSGBOX_BTN_EMPTY_SMALL_WIDTH = 64.0f;
     static constexpr float MSGBOX_BTN_EMPTY_WIDTH = 108.0f;
