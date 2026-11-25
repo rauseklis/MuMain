@@ -15,16 +15,9 @@ namespace Network::ServerNames
     // keep their number as position, after the ones that have one.
     int ServerDisplayRank(int serverNumberInGroup);
 
-    // How a server entry is drawn in the server select menu: its column in the plate atlas
-    // (Data\Interface\server_plates) and the colour (0xRRGGBB) of its sparks.
-    struct ServerPlate
-    {
-        int column;
-        unsigned int glow;
-    };
-
-    // Fills plate and returns true for a server which has plate art; returns false for the others.
-    bool ServerPlateStyle(int serverNumberInGroup, ServerPlate& plate);
+    // Writes the text of the server's button in the server select menu ("Ember - 5x") and returns true; returns false
+    // for a number which has no label, so that the caller keeps the classic name.
+    bool ServerButtonLabel(int serverNumberInGroup, wchar_t* label, size_t labelSize);
 
     // Writes "[Inferno 500x]" into title when the server has a label; otherwise leaves title as it is.
     void FormatServerTitle(wchar_t* title, size_t titleSize, const wchar_t* groupName, int serverNumberInGroup);

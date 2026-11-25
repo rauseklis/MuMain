@@ -3830,7 +3830,6 @@ void OpenLogoSceneData()
     ::LoadBitmap(L"Interface\\server_ex01.tga", BITMAP_LOG_IN + 12);
     ::LoadBitmap(L"Interface\\server_ex02.jpg", BITMAP_LOG_IN + 13, GL_NEAREST, GL_REPEAT);
     ::LoadBitmap(L"Interface\\cr_mu_lo.tga", BITMAP_LOG_IN + 14, GL_LINEAR);
-    ::LoadBitmap(L"Interface\\server_plates.tga", BITMAP_LOG_IN + 15, GL_LINEAR);
 }
 
 void ReleaseLogoSceneData()

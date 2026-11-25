@@ -3,13 +3,10 @@
 //*****************************************************************************
 #pragma once
 
-#include <string>
-
 #include "UI/Widgets/Win.h"
 #include "UI/Widgets/Button.h"
 #include "UI/Widgets/GaugeBar.h"
 #include "UI/Widgets/WinEx.h"
-#include "Network/Server/ServerDisplayNames.h"
 
 #define SSW_SERVER_G_MAX 21
 #define SSW_SERVER_MAX 16
@@ -30,19 +27,12 @@ private:
         SERVER_GROUP_BTN_HEIGHT = 26,
         SERVER_BTN_WIDTH = 193,
         SERVER_BTN_HEIGHT = 26,
-        SERVER_PLATE_HEIGHT = 39,
-        SERVER_PLATE_PITCH = 46,
     };
 
 protected:
     CButton m_aServerGroupBtn[SSW_SERVER_G_MAX];
     CButton m_aServerBtn[SSW_SERVER_MAX];
     CGaugeBar m_aServerGauge[SSW_SERVER_MAX];
-    // What each server entry draws: its name, its plate (see ServerNames::ServerPlateStyle) and its load in percent.
-    std::wstring m_aServerLabel[SSW_SERVER_MAX];
-    Network::ServerNames::ServerPlate m_aServerPlate[SSW_SERVER_MAX];
-    bool m_aServerHasPlate[SSW_SERVER_MAX];
-    int m_aServerLoad[SSW_SERVER_MAX];
     CSprite m_aBtnDeco[2];
     CSprite m_aArrowDeco[2];
     CWinEx m_winDescription;
@@ -77,9 +67,6 @@ protected:
     // Asks the connect server for the game server behind this entry and
     // remembers the choice. Shared by the click path and SelectServer().
     bool ConnectToServer(CServerInfo* pServerInfo);
-
-    // The plate, its pulsing runes, rising sparks and load bar of every server entry.
-    void RenderServerPlates();
 
     void PreRelease();
     void SetServerBtnPosition();

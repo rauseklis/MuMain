@@ -19,13 +19,9 @@ namespace
     constexpr int SERVER_DISPLAY_RANKS[] = {2, 1};
     static_assert(std::size(SERVER_DISPLAY_RANKS) == std::size(SERVER_LABELS));
 
-    // The plate of each server, parallel to SERVER_LABELS: "Inferno 500x" is column 1 of the atlas, "Ember 5x" column
-    // 0.
-    constexpr ServerPlate SERVER_PLATES[] = {
-        {1, 0xFF603Cu},
-        {0, 0xFFAA3Cu},
-    };
-    static_assert(std::size(SERVER_PLATES) == std::size(SERVER_LABELS));
+    // The text of the buttons in the server select menu, parallel to SERVER_LABELS.
+    constexpr const wchar_t* SERVER_BUTTON_LABELS[] = {L"Inferno - 500x", L"Ember - 5x"};
+    static_assert(std::size(SERVER_BUTTON_LABELS) == std::size(SERVER_LABELS));
 }
 
 const wchar_t* GroupName(const wchar_t* nameInFile)
@@ -56,14 +52,14 @@ int ServerDisplayRank(int serverNumberInGroup)
     return knownServers + serverNumberInGroup;
 }
 
-bool ServerPlateStyle(int serverNumberInGroup, ServerPlate& plate)
+bool ServerButtonLabel(int serverNumberInGroup, wchar_t* label, size_t labelSize)
 {
-    if (serverNumberInGroup < 1 || serverNumberInGroup > static_cast<int>(std::size(SERVER_PLATES)))
+    if (serverNumberInGroup < 1 || serverNumberInGroup > static_cast<int>(std::size(SERVER_BUTTON_LABELS)))
     {
         return false;
     }
 
-    plate = SERVER_PLATES[serverNumberInGroup - 1];
+    swprintf(label, labelSize, L"%ls", SERVER_BUTTON_LABELS[serverNumberInGroup - 1]);
     return true;
 }
 
