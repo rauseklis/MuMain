@@ -52,8 +52,11 @@ namespace
     constexpr float PROG_BAR_X = PROG_X + PROG_BAR_INSET;
     constexpr float PROG_BAR_Y = PROG_Y + PROG_BAR_INSET;
 
-    constexpr float CANCEL_W = 54.0f;        // native cancel button size
-    constexpr float CANCEL_H = 30.0f;
+    // One row of the button sheet is 54x30; the button is drawn about 40% smaller than that.
+    constexpr float CANCEL_SRC_W = 54.0f;
+    constexpr float CANCEL_SRC_H = 30.0f;
+    constexpr float CANCEL_W = 32.0f;
+    constexpr float CANCEL_H = 18.0f;
     constexpr float CANCEL_X = PANEL_X + (PANEL_W - CANCEL_W) / 2.0f;
     constexpr float CANCEL_Y = PANEL_Y + PANEL_H - CANCEL_H - 6.0f;
 
@@ -196,9 +199,9 @@ namespace
         }
 
         // Cancel button: pick the normal / hover row from the button sheet.
-        const float sv = cancelHovered ? (CANCEL_H / BTN_SHEET_H) : 0.0f;
-        SEASON3B::RenderImage(MsgBox::IMAGE_MSGBOX_BTN_CANCEL, CANCEL_X, CANCEL_Y, CANCEL_W, CANCEL_H,
-            0.0f, sv, CANCEL_W / BTN_SHEET_W, CANCEL_H / BTN_SHEET_H);
+        const float sv = cancelHovered ? (CANCEL_SRC_H / BTN_SHEET_H) : 0.0f;
+        SEASON3B::RenderImage(MsgBox::IMAGE_MSGBOX_BTN_CANCEL, CANCEL_X, CANCEL_Y, CANCEL_W, CANCEL_H, 0.0f, sv,
+                              CANCEL_SRC_W / BTN_SHEET_W, CANCEL_SRC_H / BTN_SHEET_H);
 
         DrawStatusTexts();
     }
@@ -224,7 +227,7 @@ namespace
         EndRenderColor();  // restore texturing for the glyphs
 
         DrawStatusTexts();
-        DrawCenteredText(CANCEL_X, CANCEL_Y + 8.0f, CANCEL_W, g_hFont, I18N::Game::Cancel);
+        DrawCenteredText(CANCEL_X, CANCEL_Y + 3.0f, CANCEL_W, g_hFont, I18N::Game::Cancel);
     }
 }
 
