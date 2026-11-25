@@ -2507,11 +2507,13 @@ void SEASON3B::CNewUISkillList::RenderSkillIcon(int iIndex, float x, float y, fl
     {
         if (bCantSkill)
         {
-            RenderImage(BITMAP_INTERFACE_MASTER_BEGIN + 3, x, y, width, height, (20.f / 512.f) * (Skill_Icon % 25), ((28.f / 512.f) * ((Skill_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
+            RenderImage(BITMAP_INTERFACE_MASTER_BEGIN + 1, x, y, width, height, (20.f / 512.f) * (Skill_Icon % 25),
+                        ((28.f / 512.f) * ((Skill_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
         }
         else
         {
-            RenderImage(BITMAP_INTERFACE_MASTER_BEGIN + 2, x, y, width, height, (20.f / 512.f)* (Skill_Icon % 25), ((28.f / 512.f)* ((Skill_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
+            RenderImage(BITMAP_INTERFACE_MASTER_BEGIN, x, y, width, height, (20.f / 512.f) * (Skill_Icon % 25),
+                        ((28.f / 512.f) * ((Skill_Icon / 25))), 20.f / 512.f, 28.f / 512.f);
         }
     }
     else
