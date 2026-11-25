@@ -28,10 +28,10 @@ private:
     {
         SERVER_GROUP_BTN_WIDTH = 108,
         SERVER_GROUP_BTN_HEIGHT = 26,
-        SERVER_BTN_WIDTH = 200,
+        SERVER_BTN_WIDTH = 193,
         SERVER_BTN_HEIGHT = 26,
-        SERVER_PLATE_HEIGHT = 42,
-        SERVER_PLATE_PITCH = 50,
+        SERVER_PLATE_HEIGHT = 39,
+        SERVER_PLATE_PITCH = 46,
     };
 
 protected:

@@ -260,6 +260,7 @@ def downscale(im, factor):
 
 PW, PH = 200, 40     # the plate, in 1x pixels
 M = 4                # shadow room around it
+CORNER = 7.0         # corner radius of the plate
 CW, CH = PW + 2 * M, PH + 2 * M
 
 THEMES = {
@@ -362,9 +363,15 @@ def rivet(base, cx, cy, r, col_hi=(255, 236, 170), col_lo=(120, 78, 20)):
     H.putalpha(hi.point(lambda v: int(v * 0.8)))
     over(base, H)
 
-def hex_pts(x0, y0, x1, y1, tip):
-    cy = (y0 + y1) / 2
-    return [(x0 + tip, y0), (x1 - tip, y0), (x1, cy), (x1 - tip, y1), (x0 + tip, y1), (x0, cy)]
+def round_pts(x0, y0, x1, y1, radius, steps=28):
+    """A rectangle with softly rounded corners as a polygon; the 8x supersampling makes the corners crisp."""
+    r = max(radius, 0.01)
+    pts = []
+    for cx, cy, a0 in ((x1 - r, y0 + r, -90), (x1 - r, y1 - r, 0), (x0 + r, y1 - r, 90), (x0 + r, y0 + r, 180)):
+        for i in range(steps + 1):
+            a = math.radians(a0 + 90.0 * i / steps)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
 
 def glyph_row(base, x, y, col, n=6, seed=2):
     rnd = random.Random(seed)
@@ -406,14 +413,9 @@ def rune_layer(kind):
     th = THEMES[kind]
     size = (CW * SS, CH * SS)
     img = Image.new('RGBA', size, (0, 0, 0, 0))
-    tip = 11.0
-    lp = hex_pts(M + 3.6, M + 3.4, M + PW - 3.6, M + PH - 3.4, tip - 1.6)
+    lp = round_pts(M + 3.6, M + 3.4, M + PW - 3.6, M + PH - 3.4, CORNER - 3.5)
     line = stroke_path(img, lp, 0.8, th['glow2'] + (255,))
     over(img, line)
-    cx, cy = M + 26, M + 20
-    hp = [(cx + 17.0 * math.cos(math.radians(a)), cy + 15.5 * math.sin(math.radians(a))) for a in range(0, 360, 60)]
-    over(img, stroke_path(img, hp, 0.9, th['glow2'] + (255,)))
-    glyph_row(img, M + PW - 31, M + 20, th['glow2'] + (255,), n=3, seed=(2 if kind == 'ember' else 5))
     add_glow(img, img.copy(), 1.4, 1.0)
     return img
 
@@ -423,9 +425,8 @@ def plate_c(kind, lvl=1.0, seed=5):
     th = THEMES[kind]
     size = (CW * SS, CH * SS)
     img = Image.new('RGBA', size, (0, 0, 0, 0))
-    tip = 11.0
     ox0, oy0, ox1, oy1 = M, M, M + PW, M + PH
-    outer = poly_mask(size, hex_pts(ox0, oy0, ox1, oy1, tip))
+    outer = poly_mask(size, round_pts(ox0, oy0, ox1, oy1, CORNER))
     sh = ImageChops.offset(outer, 0, int(1.0 * SS)).filter(ImageFilter.GaussianBlur(1.6 * SS))
     S = Image.new('RGBA', size, (0, 0, 0, 0))
     S.putalpha(sh.point(lambda v: int(v * 0.9)))
@@ -437,11 +438,10 @@ def plate_c(kind, lvl=1.0, seed=5):
     bevel(img, outer, light=(255, 255, 255), dark=(0, 0, 0), depth=0.9, a_light=170, a_dark=200)
 
     # obsidian
-    om = poly_mask(size, hex_pts(ox0 + 1.4, oy0 + 1.4, ox1 - 1.4, oy1 - 1.4, tip - 0.4))
+    om = poly_mask(size, round_pts(ox0 + 1.4, oy0 + 1.4, ox1 - 1.4, oy1 - 1.4, CORNER - 1.4))
     ob = tint_noise((16, 16, 22), grain(size, 7, seed), size)
     ob.alpha_composite(vgrad(size, [(0, (255, 255, 255, 34)), (0.45, (0, 0, 0, 0)), (1, (0, 0, 0, 120))]))
     ob.alpha_composite(radial(size, M + 100, M + PH + 4, 130, 28, th['glow'] + (int(105 * lvl),), 1.3))
-    ob.alpha_composite(radial(size, M + 26, M + 20, 44, 30, th['glow'] + (int(110 * lvl),), 1.5))
     yy, xx = np.mgrid[0:size[1], 0:size[0]].astype(np.float32)
     for off, wd, k in ((0.28, 0.035, 46), (0.34, 0.012, 60), (0.78, 0.05, 26)):
         band = np.exp(-(((xx / size[0]) - off - (yy / size[1]) * 0.18) / wd) ** 2) * k
@@ -453,31 +453,12 @@ def plate_c(kind, lvl=1.0, seed=5):
     inner_shadow(img, om, 1.4, 220)
 
     # glowing rune line inset
-    lp = hex_pts(ox0 + 3.6, oy0 + 3.4, ox1 - 3.6, oy1 - 3.4, tip - 1.6)
+    lp = round_pts(ox0 + 3.6, oy0 + 3.4, ox1 - 3.6, oy1 - 3.4, CORNER - 3.5)
     line = stroke_path(img, lp, 0.8, th['glow2'] + (int(235 * min(1.0, lvl)),))
     over(img, line)
     add_glow(img, line, 1.5, 0.95 * lvl)
-    for px, py in ((ox0 + tip + 1, oy0 + 3.4), (ox1 - tip - 1, oy0 + 3.4), (ox0 + tip + 1, oy1 - 3.4),
-                   (ox1 - tip - 1, oy1 - 3.4)):
-        rivet(img, px, py, 1.1, (255, 255, 255), (120, 124, 134))
-
-    # crest in a hexagon frame
-    cx, cy = M + 26, M + 20
-    hp = [(cx + 17.0 * math.cos(math.radians(a)), cy + 15.5 * math.sin(math.radians(a))) for a in range(0, 360, 60)]
-    emm = poly_mask(size, hp)
-    over(img, masked(vgrad(size, [(0, (12, 8, 8, 255)), (1, tuple(int(c * 0.3) for c in th['panel']) + (255,))]), emm))
-    over(img, masked(radial(size, cx, cy + 4, 16, 16, th['glow'] + (int(225 * lvl),), 1.2), emm))
-    ln = stroke_path(img, hp, 0.9, th['glow2'] + (255,))
-    over(img, ln)
-    add_glow(img, ln, 1.4, 1.0 * lvl)
-    inner_shadow(img, emm, 1.0, 200)
-    if kind == 'ember':
-        crest_ember(img, cx, cy - 1.4, 1.0, th['glow'])
-    else:
-        crest_inferno(img, cx, cy + 0.6, 0.94, th['glow'])
 
     title(img, kind, lvl, M + 100)
-    glyph_row(img, M + PW - 31, M + 20, th['glow2'] + (int(200 * min(lvl, 1.3)),), n=3, seed=(2 if kind == 'ember' else 5))
     return img
 
 
