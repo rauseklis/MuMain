@@ -41,6 +41,12 @@
 .PARAMETER Force
     Install even if the same build is already installed.
 
+.PARAMETER PruneDryRun
+    Only log which installed `Data` and `fonts` files would be removed because the project no longer has them; delete nothing.
+
+.PARAMETER NoPrune
+    Do not remove installed `Data` and `fonts` files that were removed from the project (see Sync-GameData).
+
 .EXAMPLE
     .\scripts\update-live-client.ps1 -Target "C:\Users\rause\OneDrive\Desktop\OpenMU Live Client"
 
@@ -56,7 +62,9 @@ param(
     [string]$RunId,
     [string]$DataSource,
     [string]$LocalBuild,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$PruneDryRun,
+    [switch]$NoPrune
 )
 
 $ErrorActionPreference = 'Stop'
@@ -82,8 +90,13 @@ function Update-Clone {
     }
 }
 
-# Copies new and changed game data from the clone into the client folder. Nothing is deleted, nothing newer is overwritten.
+# Copies new and changed game data from the clone into the client folder. Nothing newer is overwritten.
+# Files the project removed are pruned from the install, but only files this script itself installed earlier: the list of
+# what it installed is kept in $Target\.managed-game-data.txt, so a file the owner added by hand is never deleted.
+# The first run after this feature only writes the list. -PruneDryRun logs what would go; -NoPrune skips the clean-up.
 function Sync-GameData {
+    $manifestPath = Join-Path $Target '.managed-game-data.txt'
+    $current = [System.Collections.Generic.List[string]]::new()
     foreach ($folder in 'Data', 'fonts') {
         $from = Join-Path $DataSource $folder
         if (-not (Test-Path -LiteralPath $from)) {
@@ -93,7 +106,30 @@ function Sync-GameData {
         Write-Step "Syncing $folder from $DataSource (new and changed files only)"
         & robocopy $from (Join-Path $Target $folder) /E /XO /NFL /NDL /NJH /NJS /NP | Out-Null
         if ($LASTEXITCODE -ge 8) { throw "Copying $folder failed (robocopy code $LASTEXITCODE)." }
+        $fromFull = (Resolve-Path -LiteralPath $from).Path.TrimEnd([char]92)
+        foreach ($file in Get-ChildItem -LiteralPath $from -Recurse -File -Force) {
+            $current.Add($folder + $file.FullName.Substring($fromFull.Length))
+        }
     }
+    if ($current.Count -eq 0) { return }   # nothing known about the project's files: never prune, never rewrite the list
+    if (-not $NoPrune) {
+        $previous = if (Test-Path -LiteralPath $manifestPath) { @(Get-Content -LiteralPath $manifestPath) } else { @() }
+        $keep = [System.Collections.Generic.HashSet[string]]::new([string[]]$current, [System.StringComparer]::OrdinalIgnoreCase)
+        $stale = @($previous | Where-Object { $_ -and -not $keep.Contains($_) })
+        if ($stale.Count -gt 500) {
+            Write-Warning "Not pruning: $($stale.Count) files look removed (more than 500), which is more likely a wrong data source. Nothing was deleted."
+            return
+        }
+        foreach ($rel in $stale) {
+            if ($rel -notmatch '^(Data|fonts)[\\/]' -or $rel -match '\.\.') { continue }   # only inside Data and fonts
+            $path = Join-Path $Target $rel
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+            if ($PruneDryRun) { Write-Step "Would remove (no longer in the project): $rel"; continue }
+            Remove-Item -LiteralPath $path -Force
+            Write-Step "Removed (no longer in the project): $rel"
+        }
+    }
+    if (-not $PruneDryRun) { Set-Content -LiteralPath $manifestPath -Value $current -Encoding UTF8 }
 }
 
 function Invoke-Gh([string[]]$arguments) {
@@ -121,7 +157,7 @@ if ($running) { throw "The game is running from $Target (Main.exe, process $($ru
 if ($LocalBuild) {
     $LocalBuild = (Resolve-Path -LiteralPath $LocalBuild).Path
     if (-not (Test-Path -LiteralPath (Join-Path $LocalBuild 'Main.exe'))) { throw "No Main.exe in $LocalBuild. Build the client first (scripts\build-client-windows.cmd)." }
-    Write-Step "Installing the local build $LocalBuild into $Target (your config.ini is kept; Data and fonts are synced, never deleted)"
+    Write-Step "Installing the local build $LocalBuild into $Target (your config.ini is kept; Data and fonts are synced; files the project removed are pruned, see -PruneDryRun)"
     & robocopy $LocalBuild $Target /E /XD Data fonts /XF config.ini /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed with code $LASTEXITCODE." }
     Sync-GameData
@@ -217,7 +253,7 @@ try {
     try { & tar -xzf $archive.Name -C 'files' } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $extract 'Main.exe'))) { throw 'Unpacking failed: no Main.exe in the bundle.' }
 
-    Write-Step "Installing into $Target (your config.ini is kept; Data and fonts are synced, never deleted)"
+    Write-Step "Installing into $Target (your config.ini is kept; Data and fonts are synced; files the project removed are pruned, see -PruneDryRun)"
     & robocopy $extract $Target /E /XD Data fonts /XF config.ini /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed with code $LASTEXITCODE." }
 
