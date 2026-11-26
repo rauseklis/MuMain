@@ -2060,6 +2060,30 @@ namespace Render::Effects::Behaviors
                 CreateJointFpsChecked(BITMAP_JOINT_THUNDER, vPos, pTargetObj->Position, pTargetObj->Angle, 0, pTargetObj, 10.f, -1, 0, 0, -1, vLight);
             }
 
+            if (o->AttackPoint[0] == 0)
+            {
+                // Diagnostic, once per effect: where the lightning starts and ends, and how many
+                // thunder joints are alive and drawn, to tell "nothing created" from "created but not drawn".
+                o->AttackPoint[0] = 1;
+                int liveJoints = 0;
+                int drawnJoints = 0;
+                for (int j = 0; j < MAX_JOINTS; j++)
+                {
+                    if (Joints[j].Live && Joints[j].Type == BITMAP_JOINT_THUNDER)
+                    {
+                        ++liveJoints;
+                        if (Joints[j].NumTails > 0)
+                        {
+                            ++drawnJoints;
+                        }
+                    }
+                }
+                g_ErrorReport.Write(L"[chain-lightning] effect %d: from (%.0f,%.0f,%.0f) to (%.0f,%.0f,%.0f), thunder "
+                                    L"joints alive %d, with tails %d\r\n",
+                                    o->SubType, vPos[0], vPos[1], vPos[2], pTargetObj->Position[0],
+                                    pTargetObj->Position[1], pTargetObj->Position[2], liveJoints, drawnJoints);
+            }
+
             if ((int)o->LifeTime == 15)
             {
                 int iNumBones = pTargetModel->NumBones;

@@ -5259,6 +5259,15 @@ BOOL ReceiveMagicContinue(const BYTE* ReceiveBuffer, int Size, BOOL bEncrypted)
 
     sc->Skill = MagicNumber;
 
+    // Diagnostic: a Summoner skill reached the client, and from whom.
+    if ((MagicNumber >= AT_SKILL_ALICE_DRAINLIFE && MagicNumber <= AT_SKILL_ALICE_ENERVATION) ||
+        MagicNumber == AT_SKILL_ALICE_CHAINLIGHTNING_STR || MagicNumber == AT_SKILL_ALICE_DRAINLIFE_STR)
+    {
+        g_ErrorReport.Write(L"[summoner] skill %d from key %d (%s), action before %d\r\n",
+                            static_cast<int>(MagicNumber), Key, sc == Hero ? L"hero" : L"other",
+                            static_cast<int>(so->CurrentAction));
+    }
+
     if (MagicNumber == AT_SKILL_PLASMA_STORM_FENRIR)
         sc->m_iFenrirSkillTarget = FindCharacterIndex(Key);
 
