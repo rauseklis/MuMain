@@ -2006,6 +2006,9 @@ namespace Render::Effects::Behaviors
             if (pSourceObj == NULL || pSourceObj->Live == false
                 || pTargetObj == NULL || pTargetObj->Live == false || (pTargetChar->Dead > 0) == true)
             {
+                g_ErrorReport.Write(L"[chain-lightning] effect %d ended at once: source %s, target %s\r\n", o->SubType,
+                                    (pSourceObj != NULL && pSourceObj->Live) ? L"ok" : L"gone",
+                                    (pTargetObj->Live && pTargetChar->Dead == 0) ? L"ok" : L"gone or dead");
                 o->LifeTime = 0;
                 o->Live = false;
                 break;
