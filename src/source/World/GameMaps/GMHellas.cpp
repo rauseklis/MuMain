@@ -42,6 +42,14 @@ static  const int g_iKalimaLevel[14][2] = { { 40, 999 }, { 131, 999 }, { 181, 99
 
 #define KUNDUN_ZONE NUM_HELLAS
 
+// The Kalima waterfalls and glows are fire and lava (post-apocalyptic look), tinted by light colour.
+static constexpr float EMBER_LIGHT_RED = 1.f;
+static constexpr float EMBER_LIGHT_GREEN = 0.45f;
+static constexpr float EMBER_LIGHT_BLUE = 0.12f;
+static constexpr float LAVA_FOAM_RED = 1.f;
+static constexpr float LAVA_FOAM_GREEN = 0.5f;
+static constexpr float LAVA_FOAM_BLUE = 0.15f;
+
 bool CreateWaterTerrain(int)
 {
     DeleteWaterTerrain();
@@ -327,7 +335,7 @@ bool MoveHellasObjectSetting(int& objCount, int object)
     {
         vec3_t Position, Light;
 
-        Vector(0.3f, 0.8f, 1.f, Light);
+        Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, Light);
 
         Position[0] = Hero->Object.Position[0] + rand() % 800 - 400.f;
         Position[1] = Hero->Object.Position[1] + rand() % 800 - 400.f;
@@ -428,7 +436,7 @@ bool RenderHellasVisual(OBJECT* o, BMD* b)
     case 12:
         Luminosity = sinf(WorldTime * 0.001f) * 0.3f + 0.7f;
 
-        Vector(0.6f, 0.6f, 1.f, Light);
+        Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, Light);
         Vector(0.f, 0.f, 0.f, p);
         b->TransformPosition(BoneTransform[5], p, Position);
         CreateSprite(BITMAP_LIGHT, Position, Luminosity + 0.2f, Light, o);
@@ -442,19 +450,19 @@ bool RenderHellasVisual(OBJECT* o, BMD* b)
         CheckGrass(o);
         Luminosity = sinf(WorldTime * 0.001f) * 0.3f + 0.7f;
 
-        Vector(0.6f, 0.6f, 1.f, Light);
+        Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, Light);
         Vector(0.f, 0.f, 0.f, p);
         b->TransformPosition(BoneTransform[5], p, Position);
         CreateSprite(BITMAP_LIGHT, Position, Luminosity + 0.2f, Light, o);
         o->Position[2] = RequestTerrainHeight(o->Position[0], o->Position[1]);
         break;
     case 35:
-        Vector(0.3f, 0.6f, 1.f, Light);
+        Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, Light);
         CreateParticleFpsChecked(BITMAP_LIGHT, o->Position, o->Angle, Light, 6, 1.f, o);
         o->HiddenMesh = -2;
         break;
     case 36:
-        Vector(1.f, 1.f, 1.f, Light);
+        Vector(LAVA_FOAM_RED, LAVA_FOAM_GREEN, LAVA_FOAM_BLUE, Light);
         CreateParticleFpsChecked(BITMAP_TRUE_BLUE, o->Position, o->Angle, Light, 0);
 
         o->Scale = 0.5f;
@@ -462,13 +470,13 @@ bool RenderHellasVisual(OBJECT* o, BMD* b)
         break;
 
     case 37:
-        Vector(1.f, 1.f, 1.f, Light);
+        Vector(LAVA_FOAM_RED, LAVA_FOAM_GREEN, LAVA_FOAM_BLUE, Light);
         CreateParticleFpsChecked(BITMAP_WATERFALL_5, o->Position, o->Angle, Light, 0);
         o->Scale = 0.5f;
         PlayBuffer(SOUND_KALIMA_WATER_FALL);
         break;
     case 38:
-        Vector(1.f, 1.f, 1.f, Light);
+        Vector(LAVA_FOAM_RED, LAVA_FOAM_GREEN, LAVA_FOAM_BLUE, Light);
         if (rand_fps_check(2))
         {
             CreateParticle(BITMAP_WATERFALL_1, o->Position, o->Angle, Light, 0);
@@ -477,12 +485,12 @@ bool RenderHellasVisual(OBJECT* o, BMD* b)
         o->Scale = 0.5f;
         break;
     case 39:
-        Vector(1.f, 1.f, 1.f, Light);
+        Vector(LAVA_FOAM_RED, LAVA_FOAM_GREEN, LAVA_FOAM_BLUE, Light);
         CreateParticleFpsChecked(BITMAP_WATERFALL_3 + (rand() % 2), o->Position, o->Angle, Light, 0);
         o->Scale = 0.5f;
         break;
     case 40:
-        Vector(1.f, 1.f, 1.f, Light);
+        Vector(LAVA_FOAM_RED, LAVA_FOAM_GREEN, LAVA_FOAM_BLUE, Light);
         if (rand_fps_check(4))
         {
             CreateParticle(BITMAP_WATERFALL_2, o->Position, o->Angle, Light, 0);
