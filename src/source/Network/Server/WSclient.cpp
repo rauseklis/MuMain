@@ -5671,6 +5671,12 @@ void ReceiveChainMagic(const BYTE* ReceiveBuffer)
     OBJECT* pSourceObject = &pSourceChar->Object;
     OBJECT* pTempObject = nullptr;
 
+    // Diagnostic: one line per cast, so a missing Chain Lightning effect can be traced
+    // to the packet (source not found), the targets, or the effect itself.
+    g_ErrorReport.Write(L"[chain-lightning] packet: source key %d %s, %d target(s)\r\n",
+                        static_cast<int>(pPacketData->wUserIndex), pSourceObject->Live ? L"found" : L"NOT FOUND",
+                        static_cast<int>(pPacketData->byCount));
+
     // SetAction(pSourceObject, PLAYER_SKILL_CHAIN_LIGHTNING);
 
     switch (pSourceChar->Helper.Type)
@@ -5699,6 +5705,11 @@ void ReceiveChainMagic(const BYTE* ReceiveBuffer)
         auto pPacketData2 = (LPPRECEIVE_CHAIN_MAGIC_OBJECT)(ReceiveBuffer + iOffset);
         CHARACTER* pTargetChar = &CharactersClient[FindCharacterIndex(pPacketData2->wTargetIndex)];
         OBJECT* pTargetObject = &pTargetChar->Object;
+
+        g_ErrorReport.Write(
+            L"[chain-lightning]   target %d key %d: %s\r\n", i, static_cast<int>(pPacketData2->wTargetIndex),
+            pTargetObject->Live ? (pTempObject != pTargetObject ? L"effect created" : L"same as previous, skipped")
+                                : L"NOT FOUND");
 
         if (pTempObject != pTargetObject && pTargetObject != nullptr && pTargetObject->Live == true)
         {
