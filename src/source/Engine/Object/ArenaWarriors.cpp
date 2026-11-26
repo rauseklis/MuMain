@@ -15,38 +15,42 @@ struct ArenaWarriorLook
     int weaponRight;
     int weaponLeft; // shield, or the bow of an archer
     int itemLevel;  // every piece and weapon is +0 (no item glow)
-    float scale;
+    float height;   // measured height of the dressed model in its idle pose, in model units (see below)
 };
 
-// The owner found the Arena Warriors too big: every one is drawn 20% smaller. This only changes how the model is drawn.
-constexpr float ARENA_WARRIOR_SIZE_FACTOR = 0.8f;
+// Every Arena Warrior is drawn the same height. The armour sets differ in size (a Phoenix helmet stands about 15%
+// higher than a Brass one), so each look carries the height of its own models, measured from the BMD files (the
+// highest point of helmet or armour in the first frame of the idle animation), and the scale is the target divided by
+// that height. 170 is about 20% below the height of the typical warrior before this was changed. This only changes
+// how the model is drawn.
+constexpr float ARENA_WARRIOR_TARGET_HEIGHT = 170.0f;
 
 // One row per monster: the armour set named in its name and the weapons the owner chose. A "2 X" weapon is one in
 // each hand. Mace of the King is item 2:22.
 constexpr ArenaWarriorLook ARENA_WARRIOR_LOOKS[] = {
     {MONSTER_ARENA_SCALE_WARRIOR, MODEL_SCALE_HELM, MODEL_SCALE_ARMOR, MODEL_SCALE_PANTS, MODEL_SCALE_GLOVES,
-     MODEL_SCALE_BOOTS, MODEL_GREAT_SCYTHE, -1, 0, 1.0f},
+     MODEL_SCALE_BOOTS, MODEL_GREAT_SCYTHE, -1, 0, 182.0f},
     {MONSTER_ARENA_BRASS_WARRIOR, MODEL_BRASS_HELM, MODEL_BRASS_ARMOR, MODEL_BRASS_PANTS, MODEL_BRASS_GLOVES,
-     MODEL_BRASS_BOOTS, MODEL_BLADE, MODEL_BLADE, 0, 1.0f},
+     MODEL_BRASS_BOOTS, MODEL_BLADE, MODEL_BLADE, 0, 179.0f},
     {MONSTER_ARENA_PLATE_WARRIOR, MODEL_PLATE_HELM, MODEL_PLATE_ARMOR, MODEL_PLATE_PANTS, MODEL_PLATE_GLOVES,
-     MODEL_PLATE_BOOTS, MODEL_BATTLE_SCEPTER, MODEL_BATTLE_SCEPTER, 0, 1.05f},
+     MODEL_PLATE_BOOTS, MODEL_BATTLE_SCEPTER, MODEL_BATTLE_SCEPTER, 0, 179.0f},
     {MONSTER_ARENA_RED_DRAGON_WARRIOR, MODEL_DRAGON_HELM, MODEL_DRAGON_ARMOR, MODEL_DRAGON_PANTS, MODEL_DRAGON_GLOVES,
-     MODEL_DRAGON_BOOTS, MODEL_DOUBLE_BLADE, MODEL_DOUBLE_BLADE, 0, 1.1f},
+     MODEL_DRAGON_BOOTS, MODEL_DOUBLE_BLADE, MODEL_DOUBLE_BLADE, 0, 183.0f},
     {MONSTER_ARENA_BLACK_DRAGON_KNIGHT, MODEL_BLACK_DRAGON_HELM, MODEL_BLACK_DRAGON_ARMOR, MODEL_BLACK_DRAGON_PANTS,
-     MODEL_BLACK_DRAGON_GLOVES, MODEL_BLACK_DRAGON_BOOTS, MODEL_KNIGHT_BLADE, MODEL_KNIGHT_BLADE, 0, 1.1f},
+     MODEL_BLACK_DRAGON_GLOVES, MODEL_BLACK_DRAGON_BOOTS, MODEL_KNIGHT_BLADE, MODEL_KNIGHT_BLADE, 0, 196.0f},
     {MONSTER_ARENA_PHOENIX_KNIGHT, MODEL_DARK_PHOENIX_HELM, MODEL_DARK_PHOENIX_ARMOR, MODEL_DARK_PHOENIX_PANTS,
-     MODEL_DARK_PHOENIX_GLOVES, MODEL_DARK_PHOENIX_BOOTS, MODEL_LORD_SCEPTER, MODEL_LORD_SCEPTER, 0, 1.2f},
+     MODEL_DARK_PHOENIX_GLOVES, MODEL_DARK_PHOENIX_BOOTS, MODEL_LORD_SCEPTER, MODEL_LORD_SCEPTER, 0, 207.0f},
     {MONSTER_ARENA_GUARDIAN_ELF, MODEL_GUARDIAN_HELM, MODEL_GUARDIAN_ARMOR, MODEL_GUARDIAN_PANTS, MODEL_GUARDIAN_GLOVES,
-     MODEL_GUARDIAN_BOOTS, MODEL_AQUAGOLD_CROSSBOW, -1, 0, 1.0f},
+     MODEL_GUARDIAN_BOOTS, MODEL_AQUAGOLD_CROSSBOW, -1, 0, 197.0f},
     {MONSTER_ARENA_SPHINX_WIZZARD, MODEL_SPHINX_MASK, MODEL_SPHINX_ARMOR, MODEL_SPHINX_PANTS, MODEL_SPHINX_GLOVES,
-     MODEL_SPHINX_BOOTS, MODEL_SERPENT_STAFF, -1, 0, 1.0f},
+     MODEL_SPHINX_BOOTS, MODEL_SERPENT_STAFF, -1, 0, 198.0f},
     {MONSTER_ARENA_SOUL_WIZZARD, MODEL_DARK_SOUL_HELM, MODEL_DARK_SOUL_ARMOR, MODEL_DARK_SOUL_PANTS,
-     MODEL_DARK_SOUL_GLOVES, MODEL_DARK_SOUL_BOOTS, MODEL_DRAGON_SOUL_STAFF, -1, 0, 1.05f},
+     MODEL_DARK_SOUL_GLOVES, MODEL_DARK_SOUL_BOOTS, MODEL_DRAGON_SOUL_STAFF, -1, 0, 209.0f},
     {MONSTER_ARENA_GREAT_DRAGON_WARRIOR, MODEL_GREAT_DRAGON_HELM, MODEL_GREAT_DRAGON_ARMOR, MODEL_GREAT_DRAGON_PANTS,
-     MODEL_GREAT_DRAGON_GLOVES, MODEL_GREAT_DRAGON_BOOTS, MODEL_MACE + 22, MODEL_MACE + 22, 0, 1.2f},
+     MODEL_GREAT_DRAGON_GLOVES, MODEL_GREAT_DRAGON_BOOTS, MODEL_MACE + 22, MODEL_MACE + 22, 0, 196.0f},
     {MONSTER_ARENA_DRAGON_KNIGHT_WARRIOR, MODEL_DRAGON_KNIGHT_HELM, MODEL_DRAGON_KNIGHT_ARMOR,
      MODEL_DRAGON_KNIGHT_PANTS, MODEL_DRAGON_KNIGHT_GLOVES, MODEL_DRAGON_KNIGHT_BOOTS, MODEL_KNIGHT_BLADE,
-     MODEL_KNIGHT_BLADE, 0, 1.3f},
+     MODEL_KNIGHT_BLADE, 0, 201.0f},
 };
 
 void WearPiece(CHARACTER* c, int part, int model, int itemLevel)
@@ -85,7 +89,7 @@ CHARACTER* CreateArenaWarrior(EMonsterType type, int key, int positionX, int pos
         CHARACTER* c = CreateCharacter(key, MODEL_PLAYER, positionX, positionY);
         Dress(c, look);
         SetCharacterScale(c);
-        c->Object.Scale *= look.scale * ARENA_WARRIOR_SIZE_FACTOR;
+        c->Object.Scale *= ARENA_WARRIOR_TARGET_HEIGHT / look.height;
         c->Blood = true;
         return c;
     }
