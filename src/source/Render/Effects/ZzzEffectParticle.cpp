@@ -15,6 +15,7 @@
 #include "Audio/DSPlaySound.h"
 #include "Network/Server/WSclient.h"
 #include "World/MapInfra/MapManager.h"
+#include "World/GameMaps/GMHellas.h"
 #include "UI/NewUI/NewUISystem.h"
 #include "Render/Renderer/MuRenderer.h"
 #include "Render/Effects/ParticleDrawOrder.h"
@@ -3833,6 +3834,7 @@ int CreateParticle(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Su
             }
             break;
             }
+            TintKalimaWaterfallParticle(o);
             return i;
         }
     }
