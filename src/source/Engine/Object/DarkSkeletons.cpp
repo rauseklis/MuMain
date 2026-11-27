@@ -2,6 +2,7 @@
 #include "Engine/Object/DarkSkeletons.h"
 #include "Engine/Object/ZzzCharacter.h"
 #include "Render/Effects/ZzzEffect.h"
+#include "Render/Models/ZzzBMD.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
 
 namespace
@@ -38,6 +39,17 @@ constexpr int SPARK_PITCH_MIN = 150;
 constexpr int SPARK_PITCH_RANGE = 60;
 constexpr int SPARK_YAW_RANGE = 360;
 
+// Flames on the body while alive: the fire of the burning arms of the Kalima Schriker (BITMAP_FIRE + 1, subtype 1)
+// on FLAMES_PER_FRAME random bones every frame at the original 25 FPS.
+constexpr int FLAMES_PER_FRAME = 3;
+constexpr float FLAME_SCALE = 1.2f;
+// Dying: sparks fly off DEATH_SPARKS_PER_FRAME random bones from the death until the body has faded out; while it
+// fades, it also glitters away like a dying Kalima monster (BITMAP_BUBBLE, subtype 2, with its sound).
+constexpr int DEATH_SPARKS_PER_FRAME = 2;
+constexpr int GLITTER_REFERENCE_FRAMES = 3;
+// The bones of the body of the player model (the ones above belong to wings and weapons), as the Nova death uses.
+constexpr int BODY_BONES = 32;
+
 const DarkSkeletonLook* FindLook(int monsterIndex)
 {
     for (const DarkSkeletonLook& look : DARK_SKELETON_LOOKS)
@@ -49,6 +61,34 @@ const DarkSkeletonLook* FindLook(int monsterIndex)
     }
 
     return nullptr;
+}
+
+// The position of a random body bone, or false when the bones of the object aren't known yet.
+bool RandomBonePosition(OBJECT* o, vec3_t position)
+{
+    BMD* b = &Models[o->Type];
+    const int bones = std::min(BODY_BONES, static_cast<int>(b->NumBones));
+    if (o->BoneTransform == nullptr || bones <= 0)
+    {
+        return false;
+    }
+
+    vec3_t offset;
+    Vector(0.f, 0.f, 0.f, offset);
+    b->TransformPosition(o->BoneTransform[rand() % bones], offset, position, true);
+    return true;
+}
+
+void CreateSparkAt(vec3_t position)
+{
+    vec3_t angle;
+    Vector(static_cast<float>(SPARK_PITCH_MIN + rand() % SPARK_PITCH_RANGE), 0.f,
+           static_cast<float>(rand() % SPARK_YAW_RANGE), angle);
+
+    vec3_t light;
+    Vector(1.f, 1.f, 1.f, light);
+    CreateJoint(BITMAP_JOINT_SPARK, position, position, angle);
+    CreateParticle(BITMAP_SPARK, position, angle, light);
 }
 
 void CreateSpark(const OBJECT* o)
@@ -113,5 +153,49 @@ void CreateDarkSkeletonFootSparks(CHARACTER* c, OBJECT* o)
     for (int i = 0; i < SPARKS_PER_BURST; ++i)
     {
         CreateSpark(o);
+    }
+}
+
+void CreateDarkSkeletonFlames(CHARACTER* c, OBJECT* o)
+{
+    if (!IsDarkSkeleton(c->MonsterIndex))
+    {
+        return;
+    }
+
+    vec3_t position;
+    if (c->Dead <= 0)
+    {
+        vec3_t light;
+        Vector(1.f, 0.9f, 0.9f, light);
+        for (int i = 0; i < FLAMES_PER_FRAME; ++i)
+        {
+            if (RandomBonePosition(o, position))
+            {
+                CreateParticleFpsChecked(BITMAP_FIRE + 1, position, o->Angle, light, 1, FLAME_SCALE);
+            }
+        }
+
+        return;
+    }
+
+    if (!rand_fps_check(1))
+    {
+        return;
+    }
+
+    for (int i = 0; i < DEATH_SPARKS_PER_FRAME; ++i)
+    {
+        if (RandomBonePosition(o, position))
+        {
+            CreateSparkAt(position);
+        }
+    }
+
+    if (o->Alpha < 1.f && rand_fps_check(GLITTER_REFERENCE_FRAMES) && RandomBonePosition(o, position))
+    {
+        vec3_t light;
+        Vector(1.f, 1.f, 1.f, light);
+        CreateParticle(BITMAP_BUBBLE, position, o->Angle, light, 2);
     }
 }
