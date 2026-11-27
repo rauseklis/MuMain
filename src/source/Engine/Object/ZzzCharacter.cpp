@@ -1474,6 +1474,7 @@ void SetPlayerDie(CHARACTER* c)
     {
         if (o->SubType >= MODEL_SKELETON1 && o->SubType <= MODEL_SKELETON3)
         {
+            CreateDarkSkeletonFallApartEmbers(c);
             o->Live = false;
             CreateEffect(MODEL_BONE1, o->Position, o->Angle, o->Light);
             for (int j = 0; j < 10; j++)
@@ -5620,6 +5621,8 @@ void MoveCharacterVisual(CHARACTER* c, OBJECT* o)
     // left by MovePath() in ZzzAI.cpp -- see UpdateVisualArrivalCatchup().
     UpdateVisualArrivalCatchup(c);
     CreateDarkSkeletonFootSparks(c, o);
+    CreateDarkSkeletonFlames(c, o);
+    CreateDarkSkeletonDeathEmbers(c, o);
 
     BMD* b = &Models[o->Type];
     if (b->NumActions == 0)
@@ -6510,6 +6513,7 @@ void MoveCharactersClient()
     {
         MoveCharacterClient(&CharactersClient[i]);
     }
+    MoveDarkSkeletonAfterglows();
     UpdateCharactersAnimationParallel(std::span<CHARACTER>(CharactersClient, MAX_CHARACTERS_CLIENT));
     MoveBlurs();
 }
@@ -9285,6 +9289,7 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
     if (IsDarkSkeleton(c->MonsterIndex))
     {
         DarkenDarkSkeletonLight(c->Light);
+        RenderDarkSkeletonGlow(c, o);
     }
 
     if (o->Type == MODEL_DARK_PHEONIX_SHIELD)
