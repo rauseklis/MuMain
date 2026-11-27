@@ -16,8 +16,8 @@ A daily invasion event on both servers. On the Ember 5x server (game server 1) t
 
 ## Game masters
 
-- `/startdark` starts the invasion right away (about 3 seconds after the command). It refuses when the invasion is already
-  running or on a server where it is not enabled.
+- `/startdark` starts the invasion right away (about 3 seconds after the command), only on the server where it is
+  typed. It refuses when the invasion is already running or on a server where it is not enabled.
 - `/stopdark` ends the invasion right away, only on the server where it is typed: the remaining monsters disappear, the
   light comes back and the end message is shown. During the three-second announcement it stops before any monster appears.
 
