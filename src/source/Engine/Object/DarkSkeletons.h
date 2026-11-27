@@ -1,8 +1,8 @@
 #pragma once
 
-// The dark skeletons (monsters 1111-1112): the Death Bone skeleton drawn 20% bigger and much darker, with sparks under
-// its feet while it walks. Dark Skeleton carries a Gorgon Staff, Dark Reaper a Rune Blade. The server decides which
-// skill their attacks show (Evil Spirit, Hellfire).
+// The dark skeletons (monsters 1111-1113): the Death Bone skeleton drawn bigger and much darker. Dark Skeleton (Gorgon
+// Staff) and Dark Reaper (Rune Blade) are 20% bigger and have sparks under their feet while they walk; Dark Mage (Skull
+// Staff) is 10% bigger, without sparks. The server decides which skill their attacks show (Evil Spirit, Hellfire, Flame).
 
 struct CHARACTER;
 struct OBJECT;
@@ -16,5 +16,5 @@ bool IsDarkSkeleton(int monsterIndex);
 /// Darkens the light a dark skeleton is drawn with; it still follows the light of the terrain (day, night, torches).
 void DarkenDarkSkeletonLight(vec3_t light);
 
-/// Creates the sparks under the feet of a walking dark skeleton. Does nothing for other characters.
+/// Creates the sparks under the feet of a walking dark skeleton which has them. Does nothing for other characters.
 void CreateDarkSkeletonFootSparks(CHARACTER* c, OBJECT* o);

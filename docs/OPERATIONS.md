@@ -260,14 +260,18 @@ are not sent to the server more often. Skill and buff timers set in seconds are 
 1.25 s each). After updating, compare 10 seconds of helper attacks with 10 seconds of holding the mouse on the same
 monsters: the hit count should be about the same.
 
-## Dark skeletons (monsters 1111 and 1112)
+## Dark skeletons (monsters 1111 to 1113)
 
-Two custom monsters built on the Death Bone skeleton, drawn 20% bigger (scale 0.96 instead of 0.8, the weapon grows
-with the hand), much darker (a quarter of the terrain light, so they still follow day and night) and with sparks under
-their feet while they walk. Dark Skeleton (1111) carries a Gorgon Staff and its attacks are shown as Evil Spirit; Dark
-Reaper (1112) carries a Rune Blade and its attacks are shown as Hellfire. The skill is only the look: each attack
-hits its one target like a normal monster attack. Both have level 100, 10 000 health and 100 damage, defense, attack
-rate and defense rate; the monster scaling of each server is applied on top. For testing one of each spawns in Devias:
-Dark Skeleton at 221/81 (respawn 10 s), Dark Reaper at 222/85 (respawn 20 s). The server adds them with update 181
-(`AddDarkSkeletonMonsters`). After updating, check in Devias: size, darkness, sparks while walking, the weapon in
-the hand, the Evil Spirit and Hellfire effects on attack, and the names above them.
+Three custom monsters built on the Death Bone skeleton, drawn bigger (the weapon grows with the hand) and much darker
+(a quarter of the terrain light, so they still follow day and night). The skill is only the look: each attack hits its
+one target like a normal monster attack. All have level 100; the monster scaling of each server (health, attack rate)
+is applied on top of the values below. For testing one of each spawns in Devias.
+
+| Monster | Look | Attack shown as | Values (database) | Devias test spawn | Drops (one box per kill, nothing else) |
+|---|---|---|---|---|---|
+| Dark Skeleton (1111) | 20% bigger, sparks while walking, Gorgon Staff | Evil Spirit | 25 000 health, damage/defense/defense rate 100, attack rate 300, range 3, a hit every 2 s | 221/81, respawn 10 s | Box of Heaven 45%, Firecracker 45%, Pink Chocolate Box 10% |
+| Dark Reaper (1112) | 20% bigger, sparks while walking, Rune Blade | Hellfire | 50 000 health, damage/defense 300, attack/defense rate 1000, range 2, a hit every 2 s | 222/85, respawn 20 s | Box of Heaven 45%, Star of the Sacred Birth 45%, Blue Chocolate Box 10% |
+| Dark Mage (1113) | 10% bigger, no sparks, Skull Staff | Flame | 10 000 health, everything else 100, range 4, a hit every 2 s | 223/83, respawn 10 s | Silver Medal, Gold Medal, Box of Heaven, Firecracker, Heart of Love, 20% each |
+
+The server adds them with updates 181 and 184 and sets values and drops with updates 182 to 184. After updating, check
+in Devias: size, darkness, sparks while walking, the weapon in the hand, the attack effects, and the names above them.

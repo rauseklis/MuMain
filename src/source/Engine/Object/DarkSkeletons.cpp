@@ -9,18 +9,20 @@ namespace
 struct DarkSkeletonLook
 {
     EMonsterType monster;
-    int weapon; // right hand; the left hand stays empty
+    int weapon;        // right hand; the left hand stays empty
+    float sizeFactor;  // the size compared to the Death Bone skeleton
+    bool sparks;       // sparks under the feet while walking
 };
 
+// The Death Bone skeleton (monster 56) is drawn at 0.8. Dark Skeleton and Dark Reaper are 20% bigger, Dark Mage 10%.
+// The weapon is attached to the hand, so it grows with the body.
 constexpr DarkSkeletonLook DARK_SKELETON_LOOKS[] = {
-    {MONSTER_DARK_SKELETON, MODEL_GORGON_STAFF},
-    {MONSTER_DARK_REAPER, MODEL_RUNE_BLADE},
+    {MONSTER_DARK_SKELETON, MODEL_GORGON_STAFF, 1.2f, true},
+    {MONSTER_DARK_REAPER, MODEL_RUNE_BLADE, 1.2f, true},
+    {MONSTER_DARK_MAGE, MODEL_SKULL_STAFF, 1.1f, false},
 };
 
-// The Death Bone skeleton (monster 56) is drawn at 0.8; the dark skeletons are 20% bigger. The weapon is attached to
-// the hand, so it grows with the body.
 constexpr float DEATH_BONE_SCALE = 0.8f;
-constexpr float DARK_SKELETON_SIZE_FACTOR = 1.2f;
 
 // The light of the terrain is multiplied by this: the bones look nearly black but stay visible at night.
 constexpr float DARK_SKELETON_LIGHT_FACTOR = 0.25f;
@@ -77,7 +79,7 @@ CHARACTER* CreateDarkSkeleton(EMonsterType type, int key, int positionX, int pos
 
     CHARACTER* c = CreateCharacter(key, MODEL_PLAYER, positionX, positionY);
     c->Object.SubType = MODEL_SKELETON1;
-    c->Object.Scale = DEATH_BONE_SCALE * DARK_SKELETON_SIZE_FACTOR;
+    c->Object.Scale = DEATH_BONE_SCALE * look->sizeFactor;
     c->Weapon[0].Type = look->weapon;
     c->Weapon[0].Level = 0;
     c->Weapon[1].Type = -1;
@@ -97,7 +99,8 @@ void DarkenDarkSkeletonLight(vec3_t light)
 
 void CreateDarkSkeletonFootSparks(CHARACTER* c, OBJECT* o)
 {
-    if (!IsDarkSkeleton(c->MonsterIndex) || c->Dead > 0 || !c->Movement)
+    const DarkSkeletonLook* look = FindLook(c->MonsterIndex);
+    if (look == nullptr || !look->sparks || c->Dead > 0 || !c->Movement)
     {
         return;
     }
