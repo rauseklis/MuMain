@@ -4,6 +4,9 @@
 #include "Render/Effects/ZzzEffect.h"
 #include "Render/Models/ZzzBMD.h"
 #include "Render/Textures/ZzzOpenglUtil.h"
+#include "Core/Time/FrameTiming.h"
+
+#include <vector>
 
 namespace
 {
@@ -61,8 +64,25 @@ constexpr float FLAME_SCALE = 1.2f;
 constexpr int DEATH_EMBERS_PER_FRAME = 12;
 constexpr int DEATH_EMBER_BURST = 80;
 constexpr int DEATH_EMBER_SPREAD = 20;
+// After falling apart, the place keeps glowing: AFTERGLOW_FRAMES frames (at the original 25 FPS) of ember sparks
+// rising from where the body was, AFTERGLOW_EMBERS_PER_FRAME at first, fewer and fewer until it dies down. They come
+// from a box AFTERGLOW_SPREAD units wide and AFTERGLOW_HEIGHT units high (at the size of the Death Bone skeleton).
+constexpr float AFTERGLOW_FRAMES = 75.f;
+constexpr int AFTERGLOW_EMBERS_PER_FRAME = 8;
+constexpr int AFTERGLOW_SPREAD = 50;
+constexpr int AFTERGLOW_HEIGHT = 180;
+
 // The bones of the body of the player model (the ones above belong to wings and weapons), as the Nova death uses.
 constexpr int BODY_BONES = 32;
+
+struct Afterglow
+{
+    vec3_t position;
+    float scale;
+    float framesLeft;
+};
+
+std::vector<Afterglow> g_afterglows;
 
 const DarkSkeletonLook* FindLook(int monsterIndex)
 {
@@ -260,4 +280,34 @@ void CreateDarkSkeletonFallApartEmbers(CHARACTER* c)
     {
         CreateBodyEmber(&c->Object, false);
     }
+
+    Afterglow afterglow{};
+    VectorCopy(c->Object.Position, afterglow.position);
+    afterglow.scale = c->Object.Scale / DEATH_BONE_SCALE;
+    afterglow.framesLeft = AFTERGLOW_FRAMES;
+    g_afterglows.push_back(afterglow);
+}
+
+void MoveDarkSkeletonAfterglows()
+{
+    vec3_t angle, light, position;
+    Vector(0.f, 0.f, 0.f, angle);
+    SetEmberLight(light);
+    for (Afterglow& afterglow : g_afterglows)
+    {
+        // Fewer and fewer sparks while it dies down.
+        const int embers = static_cast<int>(AFTERGLOW_EMBERS_PER_FRAME * afterglow.framesLeft / AFTERGLOW_FRAMES) + 1;
+        const float spread = AFTERGLOW_SPREAD * afterglow.scale;
+        for (int i = 0; i < embers; ++i)
+        {
+            position[0] = afterglow.position[0] + (static_cast<float>(rand() % 200) / 100.f - 1.f) * spread;
+            position[1] = afterglow.position[1] + (static_cast<float>(rand() % 200) / 100.f - 1.f) * spread;
+            position[2] = afterglow.position[2] + static_cast<float>(rand() % AFTERGLOW_HEIGHT) * afterglow.scale;
+            CreateParticleFpsChecked(BITMAP_SPARK, position, angle, light, 0);
+        }
+
+        afterglow.framesLeft -= FPS_ANIMATION_FACTOR;
+    }
+
+    std::erase_if(g_afterglows, [](const Afterglow& afterglow) { return afterglow.framesLeft <= 0.f; });
 }

@@ -6513,6 +6513,7 @@ void MoveCharactersClient()
     {
         MoveCharacterClient(&CharactersClient[i]);
     }
+    MoveDarkSkeletonAfterglows();
     UpdateCharactersAnimationParallel(std::span<CHARACTER>(CharactersClient, MAX_CHARACTERS_CLIENT));
     MoveBlurs();
 }

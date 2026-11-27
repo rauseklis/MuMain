@@ -32,5 +32,9 @@ void CreateDarkSkeletonFlames(CHARACTER* c, OBJECT* o);
 /// characters.
 void CreateDarkSkeletonDeathEmbers(CHARACTER* c, OBJECT* o);
 
-/// Creates the burst of ember sparks of a dark skeleton which falls apart into bones. Does nothing for other characters.
+/// Creates the burst of ember sparks of a dark skeleton which falls apart into bones, and keeps the place glowing
+/// for a few seconds. Does nothing for other characters.
 void CreateDarkSkeletonFallApartEmbers(CHARACTER* c);
+
+/// Creates the ember sparks still rising for a few seconds where dark skeletons fell apart. Called every frame.
+void MoveDarkSkeletonAfterglows();
