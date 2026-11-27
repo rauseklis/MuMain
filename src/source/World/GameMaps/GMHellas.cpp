@@ -74,7 +74,6 @@ void TintKalimaWaterfallParticle(PARTICLE* particle)
     VectorScale(particle->Velocity, LAVA_FLOW_SPEED, particle->Velocity);
 }
 
-static constexpr float EMBER_FLAME_SCALE = 0.25f;
 static constexpr int EMBER_RAIN_INTERVAL = 2;
 static constexpr int EMBER_RAIN_RADIUS = 700;
 static constexpr float EMBER_RAIN_HEIGHT = 30.f;
@@ -95,12 +94,12 @@ static void CreateEmberRain()
     CreateParticle(BITMAP_SPARK, position, Hero->Object.Angle, light, 0);
 }
 
-// A small rising flame in ember colour: replaces the old water smoke puffs on Kalima monsters.
-static void CreateEmberFlame(vec3_t position, vec3_t angle)
+// A spark in ember colour: replaces the old water smoke puffs on Kalima monsters.
+static void CreateEmberSpark(vec3_t position, vec3_t angle)
 {
     vec3_t emberLight;
     Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, emberLight);
-    CreateParticleFpsChecked(BITMAP_FLAME, position, angle, emberLight, 0, EMBER_FLAME_SCALE);
+    CreateParticleFpsChecked(BITMAP_SPARK, position, angle, emberLight, 0);
 }
 
 bool CreateWaterTerrain(int)
@@ -1406,7 +1405,7 @@ void MonsterMoveWaterSmoke(OBJECT* o)
     {
         vec3_t Position;
         Vector(o->Position[0] + rand() % 200 - 100, o->Position[1] + rand() % 200 - 100, o->Position[2], Position);
-        CreateEmberFlame(Position, o->Angle);
+        CreateEmberSpark(Position, o->Angle);
     }
 }
 void MonsterDieWaterSmoke(OBJECT* o)
@@ -1439,8 +1438,8 @@ bool MoveHellasMonsterVisual(OBJECT* o, BMD* b)
             Position[1] = o->Position[1] + rand() % 100 - 50;
             Position[2] = o->Position[2];
 
-            CreateEmberFlame(Position, o->Angle);
-            CreateEmberFlame(Position, o->Angle);
+            CreateEmberSpark(Position, o->Angle);
+            CreateEmberSpark(Position, o->Angle);
             CreateEffectFpsChecked(MODEL_STONE1, o->Position, o->Angle, o->Light);
             CreateEffectFpsChecked(MODEL_STONE2, o->Position, o->Angle, o->Light);
         }
