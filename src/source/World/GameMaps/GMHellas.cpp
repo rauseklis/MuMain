@@ -108,6 +108,37 @@ static void CreateEmberSpark(vec3_t position, vec3_t angle)
     CreateParticleFpsChecked(BITMAP_SPARK, position, angle, emberLight, 0);
 }
 
+static constexpr int DEATH_EMBER_CHANCE = 45;
+
+// Ember sparks bursting out of a dying monster's body: replaces the old water bubbles.
+static void RenderDeathEmbers(BMD* b)
+{
+    if (b->NumMeshs <= 0 || b->Meshs[0].NumTriangles <= 0)
+    {
+        return;
+    }
+
+    const Mesh_t& mesh = b->Meshs[0];
+    b->EnsureCpuVertices(0);
+
+    vec3_t angle;
+    vec3_t light;
+    Vector(0.f, 0.f, 0.f, angle);
+    SetEmberLight(light);
+
+    for (int t = 0; t < mesh.NumTriangles; ++t)
+    {
+        const Triangle_t& triangle = mesh.Triangles[t];
+        for (int k = 0; k < triangle.Polygon; ++k)
+        {
+            if (rand_fps_check(DEATH_EMBER_CHANCE))
+            {
+                CreateParticle(BITMAP_SPARK, VertexTransform[0][triangle.VertexIndex[k]], angle, light, 0);
+            }
+        }
+    }
+}
+
 bool CreateWaterTerrain(int)
 {
     DeleteWaterTerrain();
@@ -2025,7 +2056,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_FLAME);
+                RenderDeathEmbers(b);
             }
         }
         b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV);
@@ -2146,7 +2177,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_FLAME);
+                RenderDeathEmbers(b);
             }
         }
         b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
@@ -2160,7 +2191,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_FLAME);
+                RenderDeathEmbers(b);
             }
         }
         b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV);
@@ -2175,7 +2206,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_FLAME);
+                RenderDeathEmbers(b);
             }
         }
         if (o->SubType == 9)
@@ -2216,7 +2247,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_FLAME);
+                RenderDeathEmbers(b);
             }
         }
         b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
@@ -2232,7 +2263,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_FLAME);
+                RenderDeathEmbers(b);
             }
         }
         b->BeginRender(1.f);

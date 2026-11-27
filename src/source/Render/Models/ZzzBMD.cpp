@@ -2252,12 +2252,6 @@ void BMD::RenderMeshAlternative(int iRndExtFlag, int iParam, int i, int RenderFl
     mu::GetRenderer().RenderTriangles(muVerts.first(vertexIndex), 0u);
 }
 
-// Ember-coloured sparks bursting from a mesh (used by the dying Kalima monsters instead of bubbles).
-static constexpr float MESH_EMBER_RED = 1.f;
-static constexpr float MESH_EMBER_GREEN = 0.45f;
-static constexpr float MESH_EMBER_BLUE = 0.12f;
-static constexpr int MESH_EMBER_CHANCE = 45;
-
 void BMD::RenderMeshEffect(int i, int iType, int iSubType, vec3_t Angle, VOID* obj)
 {
     if (i >= NumMeshs || i < 0) return;
@@ -2398,7 +2392,7 @@ void BMD::RenderMeshEffect(int i, int iType, int iSubType, vec3_t Angle, VOID* o
                     Vector(1.f, 0.8f, 0.2f, Light);
                     if ((j % 22) == 0)
                     {
-                        auto* o = static_cast<OBJECT*>(obj);
+                        auto* o = (OBJECT*)obj;
 
                         angle[0] = -(float)(rand() % 90);
                         angle[1] = 0.f;
@@ -2412,13 +2406,6 @@ void BMD::RenderMeshEffect(int i, int iType, int iSubType, vec3_t Angle, VOID* o
                 if (rand_fps_check(30))
                 {
                     CreateParticle(BITMAP_BUBBLE, VertexTransform[i][vi], angle, Light, 2);
-                }
-                break;
-            case BITMAP_FLAME:
-                Vector(MESH_EMBER_RED, MESH_EMBER_GREEN, MESH_EMBER_BLUE, Light);
-                if (rand_fps_check(MESH_EMBER_CHANCE))
-                {
-                    CreateParticle(BITMAP_SPARK, VertexTransform[i][vi], angle, Light, 0);
                 }
                 break;
             }
@@ -3319,12 +3306,9 @@ bool BMD::Open2(const wchar_t* DirName, const wchar_t* ModelFileName, bool bReAl
         // wprintf(L"[Open2] WARNING: Invalid file extension: %.64hs in %.64s\n", Name, ModelPath);
     }
 
-    NumMeshs = *reinterpret_cast<short*>(data + ptr);
-    ptr += sizeof(short);
-    NumBones = *reinterpret_cast<short*>(data + ptr);
-    ptr += sizeof(short);
-    NumActions = *reinterpret_cast<short*>(data + ptr);
-    ptr += sizeof(short);
+    NumMeshs = *(short*)(data + ptr); ptr += sizeof(short);
+    NumBones = *(short*)(data + ptr); ptr += sizeof(short);
+    NumActions = *(short*)(data + ptr); ptr += sizeof(short);
 
     assert(NumBones <= MAX_BONES && "Bones 200");
     //// wprintf(L"[Open2] Model: %.32hs | Meshes: %d | Bones: %d | Actions: %d\n", Name, NumMeshs, NumBones, NumActions);
@@ -3349,16 +3333,11 @@ bool BMD::Open2(const wchar_t* DirName, const wchar_t* ModelFileName, bool bReAl
     for (int i = 0; i < NumMeshs; ++i)
     {
         Mesh_t& m = Meshs[i];
-        m.NumVertices = *reinterpret_cast<short*>(data + ptr);
-        ptr += sizeof(short);
-        m.NumNormals = *reinterpret_cast<short*>(data + ptr);
-        ptr += sizeof(short);
-        m.NumTexCoords = *reinterpret_cast<short*>(data + ptr);
-        ptr += sizeof(short);
-        m.NumTriangles = *reinterpret_cast<short*>(data + ptr);
-        ptr += sizeof(short);
-        m.Texture = *reinterpret_cast<short*>(data + ptr);
-        ptr += sizeof(short);
+        m.NumVertices = *(short*)(data + ptr); ptr += sizeof(short);
+        m.NumNormals = *(short*)(data + ptr); ptr += sizeof(short);
+        m.NumTexCoords = *(short*)(data + ptr); ptr += sizeof(short);
+        m.NumTriangles = *(short*)(data + ptr); ptr += sizeof(short);
+        m.Texture = *(short*)(data + ptr); ptr += sizeof(short);
         m.NoneBlendMesh = false;
 
         //// wprintf(L"[Open2] Mesh[%d] V:%d N:%d T:%d Tri:%d Tex:%d\n", i, m.NumVertices, m.NumNormals, m.NumTexCoords, m.NumTriangles, m.Texture);
@@ -3396,10 +3375,8 @@ bool BMD::Open2(const wchar_t* DirName, const wchar_t* ModelFileName, bool bReAl
     {
         Action_t& a = Actions[i];
         a.Loop = false;
-        a.NumAnimationKeys = *reinterpret_cast<short*>(data + ptr);
-        ptr += sizeof(short);
-        a.LockPositions = *reinterpret_cast<bool*>(data + ptr);
-        ptr += sizeof(bool);
+        a.NumAnimationKeys = *(short*)(data + ptr); ptr += sizeof(short);
+        a.LockPositions = *(bool*)(data + ptr);  ptr += sizeof(bool);
 
         //// wprintf(L"[Open2] Action[%d] Keys: %d Lock: %d\n", i, a.NumAnimationKeys, a.LockPositions);
 
@@ -3423,8 +3400,7 @@ bool BMD::Open2(const wchar_t* DirName, const wchar_t* ModelFileName, bool bReAl
         if (!b.Dummy)
         {
             memcpy(b.Name, data + ptr, 32); ptr += 32;
-            b.Parent = *reinterpret_cast<short*>(data + ptr);
-            ptr += sizeof(short);
+            b.Parent = *(short*)(data + ptr); ptr += sizeof(short);
 
             //// wprintf(L"[Open2] Bone[%d] Name: %.32hs Parent: %d\n", i, b.Name, b.Parent);
 
