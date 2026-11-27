@@ -13,14 +13,16 @@ struct DarkSkeletonLook
     int weapon; // right hand; the left hand stays empty
     float sizeFactor; // the size compared to the Death Bone skeleton
     bool sparks;      // sparks under the feet while walking
+    // Flames on the body like the burning arms of the Kalima Schriker.
+    bool flames;
 };
 
 // The Death Bone skeleton (monster 56) is drawn at 0.8. Dark Skeleton and Dark Reaper are 20% bigger, Dark Mage 10%.
 // The weapon is attached to the hand, so it grows with the body.
 constexpr DarkSkeletonLook DARK_SKELETON_LOOKS[] = {
-    {MONSTER_DARK_SKELETON, MODEL_GORGON_STAFF, 1.2f, true},
-    {MONSTER_DARK_REAPER, MODEL_RUNE_BLADE, 1.2f, true},
-    {MONSTER_DARK_MAGE, MODEL_SKULL_STAFF, 1.1f, true},
+    {MONSTER_DARK_SKELETON, MODEL_GORGON_STAFF, 1.2f, true, false},
+    {MONSTER_DARK_REAPER, MODEL_RUNE_BLADE, 1.2f, true, true},
+    {MONSTER_DARK_MAGE, MODEL_SKULL_STAFF, 1.1f, true, false},
 };
 
 constexpr float DEATH_BONE_SCALE = 0.8f;
@@ -46,6 +48,11 @@ constexpr float HEAD_GLOW_SCALE = 1.2f;
 constexpr float HEAD_GLOW_PULSE_SPEED = 0.002f;
 constexpr float HEAD_GLOW_MIN = 0.5f;
 constexpr float HEAD_GLOW_PULSE = 0.3f;
+
+// The flames of the dark skeletons which have them: the fire of the burning arms of the Kalima Schriker
+// (BITMAP_FIRE + 1, subtype 1) on FLAMES_PER_FRAME random body bones every frame at the original 25 FPS.
+constexpr int FLAMES_PER_FRAME = 3;
+constexpr float FLAME_SCALE = 1.2f;
 
 // Dying: ember sparks come out of the whole body like on a dying Kalima monster (RenderDeathEmbers). A skeleton does
 // not fade out: about 15 frames after its death it falls apart into bones (SetPlayerDie). Until then
@@ -207,6 +214,25 @@ void CreateDarkSkeletonFootSparks(CHARACTER* c, OBJECT* o)
     for (int i = 0; i < SPARKS_PER_BURST; ++i)
     {
         CreateEmberSpark(o);
+    }
+}
+
+void CreateDarkSkeletonFlames(CHARACTER* c, OBJECT* o)
+{
+    const DarkSkeletonLook* look = FindLook(c->MonsterIndex);
+    if (look == nullptr || !look->flames || c->Dead > 0)
+    {
+        return;
+    }
+
+    vec3_t light, position;
+    Vector(1.f, 0.9f, 0.9f, light);
+    for (int i = 0; i < FLAMES_PER_FRAME; ++i)
+    {
+        if (RandomBodyBonePosition(o, position))
+        {
+            CreateParticleFpsChecked(BITMAP_FIRE + 1, position, o->Angle, light, 1, FLAME_SCALE);
+        }
     }
 }
 

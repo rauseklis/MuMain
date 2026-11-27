@@ -5621,6 +5621,7 @@ void MoveCharacterVisual(CHARACTER* c, OBJECT* o)
     // left by MovePath() in ZzzAI.cpp -- see UpdateVisualArrivalCatchup().
     UpdateVisualArrivalCatchup(c);
     CreateDarkSkeletonFootSparks(c, o);
+    CreateDarkSkeletonFlames(c, o);
     CreateDarkSkeletonDeathEmbers(c, o);
 
     BMD* b = &Models[o->Type];

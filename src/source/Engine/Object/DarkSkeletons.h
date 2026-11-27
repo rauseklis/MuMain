@@ -3,7 +3,8 @@
 // The dark skeletons (monsters 1111-1113): the Death Bone skeleton drawn bigger and much darker, in the ember look of
 // the Kalima monsters: a glowing head, ember sparks under its feet while it walks, and ember sparks bursting out of
 // its body when it dies and falls apart. Dark Skeleton (Gorgon Staff) and Dark Reaper (Rune Blade) are 20% bigger,
-// Dark Mage (Skull Staff) 10%. The server decides which skill their attacks show (Evil Spirit, Hellfire, Flame).
+// Dark Mage (Skull Staff) 10%. The Dark Reaper also burns like the Kalima Schriker. The server decides which skill
+// their attacks show (Evil Spirit, Hellfire, Flame).
 
 struct CHARACTER;
 struct OBJECT;
@@ -22,6 +23,10 @@ void RenderDarkSkeletonGlow(CHARACTER* c, OBJECT* o);
 
 /// Creates the ember sparks under the feet of a walking dark skeleton which has them. Does nothing for other characters.
 void CreateDarkSkeletonFootSparks(CHARACTER* c, OBJECT* o);
+
+/// Creates the flames on the body of a living dark skeleton which has them (the Dark Reaper), like the burning arms of
+/// the Kalima Schriker. Does nothing for other characters.
+void CreateDarkSkeletonFlames(CHARACTER* c, OBJECT* o);
 
 /// Creates the ember sparks coming out of a dying dark skeleton, like the Kalima monsters. Does nothing for other
 /// characters.
