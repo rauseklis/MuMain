@@ -11,6 +11,7 @@
 #include "GameLogic/NPCs/MonsterDash.h"
 #include "Render/Items/RoyalMaceFlames.h"
 #include "Engine/Object/ArenaWarriors.h"
+#include "Engine/Object/DarkSkeletons.h"
 #include "Core/Time/FrameTiming.h"
 #include <execution>
 #include <algorithm>
@@ -5618,6 +5619,7 @@ void MoveCharacterVisual(CHARACTER* c, OBJECT* o)
     // finishes easing any pending post-arrival visual position correction
     // left by MovePath() in ZzzAI.cpp -- see UpdateVisualArrivalCatchup().
     UpdateVisualArrivalCatchup(c);
+    CreateDarkSkeletonFootSparks(c, o);
 
     BMD* b = &Models[o->Type];
     if (b->NumActions == 0)
@@ -9280,6 +9282,11 @@ void RenderCharacter(CHARACTER* c, OBJECT* o, int Select)
     }
 
     VectorAdd(Light, o->Light, c->Light);
+    if (IsDarkSkeleton(c->MonsterIndex))
+    {
+        DarkenDarkSkeletonLight(c->Light);
+    }
+
     if (o->Type == MODEL_DARK_PHEONIX_SHIELD)
     {
         Vector(.6f, .6f, .6f, c->Light);
@@ -13412,6 +13419,13 @@ CHARACTER* CreateMonster(EMonsterType Type, int PositionX, int PositionY, int Ke
     }
 
     c = CreateArenaWarrior(Type, Key, PositionX, PositionY);
+    if (c != NULL)
+    {
+        Setting_Monster(c, Type, PositionX, PositionY);
+        return c;
+    }
+
+    c = CreateDarkSkeleton(Type, Key, PositionX, PositionY);
     if (c != NULL)
     {
         Setting_Monster(c, Type, PositionX, PositionY);
