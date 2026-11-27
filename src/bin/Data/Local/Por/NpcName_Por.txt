@@ -686,4 +686,6 @@
 1108	1	"Soul Wizzard"	
 1109	1	"Great Dragon Warrior"	
 1110	1	"Dragon Knight Warrior"	
+1111	1	"Dark Skeleton"	
+1112	1	"Dark Reaper"	
 end		

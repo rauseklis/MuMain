@@ -259,3 +259,15 @@ followed up this way; buffs, healing, potions, pickup, repair and walking back s
 are not sent to the server more often. Skill and buff timers set in seconds are now real seconds (they used to last
 1.25 s each). After updating, compare 10 seconds of helper attacks with 10 seconds of holding the mouse on the same
 monsters: the hit count should be about the same.
+
+## Dark skeletons (monsters 1111 and 1112)
+
+Two custom monsters built on the Death Bone skeleton, drawn 20% bigger (scale 0.96 instead of 0.8, the weapon grows
+with the hand), much darker (a quarter of the terrain light, so they still follow day and night) and with sparks under
+their feet while they walk. Dark Skeleton (1111) carries a Gorgon Staff and its attacks are shown as Evil Spirit; Dark
+Reaper (1112) carries a Rune Blade and its attacks are shown as Hellfire. The skill is only the look: each attack
+hits its one target like a normal monster attack. Both have level 100, 10 000 health and 100 damage, defense, attack
+rate and defense rate; the monster scaling of each server is applied on top. For testing one of each spawns in Devias:
+Dark Skeleton at 221/81 (respawn 10 s), Dark Reaper at 222/85 (respawn 20 s). The server adds them with update 181
+(`AddDarkSkeletonMonsters`). After updating, check in Devias: size, darkness, sparks while walking, the weapon in
+the hand, the Evil Spirit and Hellfire effects on attack, and the names above them.
