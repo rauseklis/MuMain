@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Core/Time/FrameTimerScheduler.h"
+#include "Core/Platform/HangWatchdog.h"
 
 #include <chrono>
 #include <vector>
@@ -46,6 +47,8 @@ namespace Core::Time
 
     void FrameTimerScheduler::Tick()
     {
+        Core::Platform::HangWatchdog::Beat();
+
         const std::uint64_t now = NowMs();
 
         // Collect the due ids first, then fire. A callback may register or kill
