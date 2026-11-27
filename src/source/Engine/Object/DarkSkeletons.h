@@ -21,7 +21,8 @@ void DarkenDarkSkeletonLight(vec3_t light);
 /// Draws the ember glow in the head of a living dark skeleton. Does nothing for other characters.
 void RenderDarkSkeletonGlow(CHARACTER* c, OBJECT* o);
 
-/// Creates the ember sparks under the feet of a walking dark skeleton which has them. Does nothing for other characters.
+/// Creates the ember sparks under the feet of a walking dark skeleton which has them. Does nothing for other
+/// characters.
 void CreateDarkSkeletonFootSparks(CHARACTER* c, OBJECT* o);
 
 /// Creates the flames on the body of a living dark skeleton which has them (the Dark Reaper), like the burning arms of
