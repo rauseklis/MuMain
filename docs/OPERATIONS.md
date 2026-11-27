@@ -271,7 +271,7 @@ is applied on top of the values below. For testing one of each spawns in Devias.
 |---|---|---|---|---|---|
 | Dark Skeleton (1111) | 20% bigger, sparks while walking, Gorgon Staff | Evil Spirit | 25 000 health, damage/defense/defense rate 100, attack rate 300, range 3, a hit every 2 s | 221/81, respawn 10 s | Box of Heaven 45%, Firecracker 45%, Pink Chocolate Box 10% |
 | Dark Reaper (1112) | 20% bigger, sparks while walking, Rune Blade | Hellfire | 50 000 health, damage/defense 300, attack/defense rate 1000, range 2, a hit every 2 s | 222/85, respawn 20 s | Box of Heaven 45%, Star of the Sacred Birth 45%, Blue Chocolate Box 10% |
-| Dark Mage (1113) | 10% bigger, no sparks, Skull Staff | Flame | 10 000 health, everything else 100, range 4, a hit every 2 s | 223/83, respawn 10 s | Silver Medal, Gold Medal, Box of Heaven, Firecracker, Heart of Love, 20% each |
+| Dark Mage (1113) | 10% bigger, sparks while walking, Skull Staff | Flame | 10 000 health, everything else 100, range 4, a hit every 2 s | 223/83, respawn 10 s | Silver Medal, Gold Medal, Box of Heaven, Firecracker, Heart of Love, 20% each |
 
 The server adds them with updates 181 and 184 and sets values and drops with updates 182 to 184. After updating, check
 in Devias: size, darkness, sparks while walking, the weapon in the hand, the attack effects, and the names above them.

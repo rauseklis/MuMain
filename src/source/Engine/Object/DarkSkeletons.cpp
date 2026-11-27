@@ -19,7 +19,7 @@ struct DarkSkeletonLook
 constexpr DarkSkeletonLook DARK_SKELETON_LOOKS[] = {
     {MONSTER_DARK_SKELETON, MODEL_GORGON_STAFF, 1.2f, true},
     {MONSTER_DARK_REAPER, MODEL_RUNE_BLADE, 1.2f, true},
-    {MONSTER_DARK_MAGE, MODEL_SKULL_STAFF, 1.1f, false},
+    {MONSTER_DARK_MAGE, MODEL_SKULL_STAFF, 1.1f, true},
 };
 
 constexpr float DEATH_BONE_SCALE = 0.8f;
