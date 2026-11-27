@@ -78,9 +78,13 @@ bool RandomBonePosition(OBJECT* o, vec3_t position)
         return false;
     }
 
-    vec3_t offset;
+    // Not BMD::TransformPosition: that places the bone at the position and size of the character the model was last
+    // drawn for, which can be another player.
+    vec3_t offset, bone;
     Vector(0.f, 0.f, 0.f, offset);
-    b->TransformPosition(o->BoneTransform[rand() % bones], offset, position, true);
+    VectorTransform(offset, o->BoneTransform[rand() % bones], bone);
+    VectorScale(bone, o->Scale, bone);
+    VectorAdd(bone, o->Position, position);
     return true;
 }
 
