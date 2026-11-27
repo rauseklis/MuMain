@@ -47,11 +47,12 @@ constexpr float HEAD_GLOW_PULSE_SPEED = 0.002f;
 constexpr float HEAD_GLOW_MIN = 0.5f;
 constexpr float HEAD_GLOW_PULSE = 0.3f;
 
-// Dying: like the Kalima monsters (RenderDeathEmbers), the body bursts into ember sparks once it has faded to half:
-// DEATH_EMBERS_PER_FRAME sparks per frame at the original 25 FPS, each at a random body bone moved up to
-// DEATH_EMBER_SPREAD units, so they come out of the whole body.
-constexpr float DEATH_EMBER_ALPHA = 0.5f;
+// Dying: ember sparks come out of the whole body like on a dying Kalima monster (RenderDeathEmbers). A skeleton does
+// not fade out: about 15 frames after its death it falls apart into bones (SetPlayerDie). Until then
+// DEATH_EMBERS_PER_FRAME sparks per frame at the original 25 FPS, and DEATH_EMBER_BURST sparks at once when it falls
+// apart, each at a random body bone moved up to DEATH_EMBER_SPREAD units.
 constexpr int DEATH_EMBERS_PER_FRAME = 12;
+constexpr int DEATH_EMBER_BURST = 80;
 constexpr int DEATH_EMBER_SPREAD = 20;
 // The bones of the body of the player model (the ones above belong to wings and weapons), as the Nova death uses.
 constexpr int BODY_BONES = 32;
@@ -97,6 +98,35 @@ bool RandomBodyBonePosition(const OBJECT* o, vec3_t position)
 {
     const int bones = std::min(BODY_BONES, static_cast<int>(Models[o->Type].NumBones));
     return bones > 0 && BonePosition(o, rand() % bones, position);
+}
+
+// An ember spark at a random place of the body; false when the bones aren't known.
+bool CreateBodyEmber(const OBJECT* o, bool fpsChecked)
+{
+    vec3_t position;
+    if (!RandomBodyBonePosition(o, position))
+    {
+        return false;
+    }
+
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        position[axis] += static_cast<float>(rand() % (DEATH_EMBER_SPREAD * 2) - DEATH_EMBER_SPREAD);
+    }
+
+    vec3_t angle, light;
+    Vector(0.f, 0.f, 0.f, angle);
+    SetEmberLight(light);
+    if (fpsChecked)
+    {
+        CreateParticleFpsChecked(BITMAP_SPARK, position, angle, light, 0);
+    }
+    else
+    {
+        CreateParticle(BITMAP_SPARK, position, angle, light, 0);
+    }
+
+    return true;
 }
 
 void CreateEmberSpark(const OBJECT* o)
@@ -182,24 +212,26 @@ void CreateDarkSkeletonFootSparks(CHARACTER* c, OBJECT* o)
 
 void CreateDarkSkeletonDeathEmbers(CHARACTER* c, OBJECT* o)
 {
-    if (!IsDarkSkeleton(c->MonsterIndex) || c->Dead <= 0 || o->Alpha >= DEATH_EMBER_ALPHA)
+    if (!IsDarkSkeleton(c->MonsterIndex) || c->Dead <= 0)
     {
         return;
     }
 
-    vec3_t angle, light, position;
-    Vector(0.f, 0.f, 0.f, angle);
-    SetEmberLight(light);
     for (int i = 0; i < DEATH_EMBERS_PER_FRAME; ++i)
     {
-        if (RandomBodyBonePosition(o, position))
-        {
-            for (int axis = 0; axis < 3; ++axis)
-            {
-                position[axis] += static_cast<float>(rand() % (DEATH_EMBER_SPREAD * 2) - DEATH_EMBER_SPREAD);
-            }
+        CreateBodyEmber(o, true);
+    }
+}
 
-            CreateParticleFpsChecked(BITMAP_SPARK, position, angle, light, 0);
-        }
+void CreateDarkSkeletonFallApartEmbers(CHARACTER* c)
+{
+    if (!IsDarkSkeleton(c->MonsterIndex))
+    {
+        return;
+    }
+
+    for (int i = 0; i < DEATH_EMBER_BURST; ++i)
+    {
+        CreateBodyEmber(&c->Object, false);
     }
 }

@@ -1474,6 +1474,7 @@ void SetPlayerDie(CHARACTER* c)
     {
         if (o->SubType >= MODEL_SKELETON1 && o->SubType <= MODEL_SKELETON3)
         {
+            CreateDarkSkeletonFallApartEmbers(c);
             o->Live = false;
             CreateEffect(MODEL_BONE1, o->Position, o->Angle, o->Light);
             for (int j = 0; j < 10; j++)
