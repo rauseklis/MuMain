@@ -50,21 +50,49 @@ static constexpr float LAVA_FOAM_RED = 1.f;
 static constexpr float LAVA_FOAM_GREEN = 0.5f;
 static constexpr float LAVA_FOAM_BLUE = 0.15f;
 
-// The waterfall particles set their own grey light when they are created, so the colour has to be applied afterwards.
-void TintKalimaWaterfallParticle(int particleType, vec3_t light)
+// Lava flows slower than water, in bigger glowing blobs: the fast white foam becomes slow flames.
+static constexpr float LAVA_FLOW_SPEED = 0.35f;
+static constexpr float LAVA_FLOW_SCALE = 1.5f;
+static constexpr float LAVA_FLOW_LIFETIME = 2.5f;
+
+// The waterfall particles set their own grey light, speed and picture when they are created, so the lava look is applied afterwards.
+void TintKalimaWaterfallParticle(PARTICLE* particle)
 {
-    const bool isWaterfallParticle = particleType >= BITMAP_WATERFALL_1 && particleType <= BITMAP_WATERFALL_5;
+    const bool isWaterfallParticle = particle->Type >= BITMAP_WATERFALL_1 && particle->Type <= BITMAP_WATERFALL_5;
     if (!isWaterfallParticle || !gMapManager.InHellas())
     {
         return;
     }
 
-    light[0] *= LAVA_FOAM_RED;
-    light[1] *= LAVA_FOAM_GREEN;
-    light[2] *= LAVA_FOAM_BLUE;
+    particle->Light[0] *= LAVA_FOAM_RED;
+    particle->Light[1] *= LAVA_FOAM_GREEN;
+    particle->Light[2] *= LAVA_FOAM_BLUE;
+    particle->TexType = BITMAP_FLAME;
+    particle->Scale *= LAVA_FLOW_SCALE;
+    particle->LifeTime *= LAVA_FLOW_LIFETIME;
+    VectorScale(particle->Velocity, LAVA_FLOW_SPEED, particle->Velocity);
 }
 
 static constexpr float EMBER_FLAME_SCALE = 0.5f;
+static constexpr int EMBER_RAIN_INTERVAL = 2;
+static constexpr int EMBER_RAIN_RADIUS = 700;
+static constexpr float EMBER_RAIN_HEIGHT = 30.f;
+
+// Sparks flying up around the player, so the whole map feels like it is burning.
+static void CreateEmberRain()
+{
+    if (!rand_fps_check(EMBER_RAIN_INTERVAL))
+    {
+        return;
+    }
+
+    vec3_t position, light;
+    Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, light);
+    position[0] = Hero->Object.Position[0] + rand() % (EMBER_RAIN_RADIUS * 2) - EMBER_RAIN_RADIUS;
+    position[1] = Hero->Object.Position[1] + rand() % (EMBER_RAIN_RADIUS * 2) - EMBER_RAIN_RADIUS;
+    position[2] = Hero->Object.Position[2] + EMBER_RAIN_HEIGHT;
+    CreateParticle(BITMAP_SPARK, position, Hero->Object.Angle, light, 0);
+}
 
 // A small rising flame in ember colour: replaces the old water smoke puffs on Kalima monsters.
 static void CreateEmberFlame(vec3_t position, vec3_t angle)
@@ -377,6 +405,7 @@ bool MoveHellasObjectSetting(int& objCount, int object)
         }
     }
 
+    CreateEmberRain();
     return true;
 }
 
@@ -610,13 +639,7 @@ bool RenderHellasObjectMesh(OBJECT* o, BMD* b)
 
         if (o->Type >= 0 && o->Type <= 66)
         {
-            if (o->Type != 2 && o->Type != 4 && o->Type != 12 && o->Type != 14 && o->Type != 15 && o->Type != 18 && o->Type != 20 && o->Type != 21 && o->Type != 27 && o->Type != 29 && o->Type != 30 &&
-                o->Type != 31 && o->Type != 32 && o->Type != 41 && o->Type != 43 && o->Type != 52 && o->Type != 54 && o->Type != 55)
-            {
-                float Luminosity = sinf(WorldTime * 0.002f) * 0.1f + 0.3f;
-                Vector(Luminosity, Luminosity, Luminosity, b->BodyLight);
-                b->RenderBody(RENDER_TEXTURE, 0.3f, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh, BITMAP_WATER + WaterTextureNumber);
-            }
+            // The old animated water picture that rippled over the walls and stones is gone: Kalima is burning, not wet.
 
             if (o->Type == 34)
             {

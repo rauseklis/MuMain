@@ -3834,7 +3834,7 @@ int CreateParticle(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Su
             }
             break;
             }
-            TintKalimaWaterfallParticle(o->Type, o->Light);
+            TintKalimaWaterfallParticle(o);
             return i;
         }
     }
