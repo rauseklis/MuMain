@@ -35,6 +35,7 @@
 #include "GameLogic/Events/MatchEvent.h"
 #include "GameLogic/ExpHunt/ExpHuntTracker.h"
 #include "Engine/AI/GOBoid.h"
+#include "Render/Terrain/MapDarkness.h"
 #include "GameLogic/Quests/CSQuest.h"
 #include "GameLogic/Items/PersonalShopTitleImp.h"
 #include "GameLogic/NPCs/npcBreeder.h"
@@ -1102,6 +1103,7 @@ void LogSafeCastSizeMismatch(const char* packet_type, std::size_t received, std:
 BOOL ReceiveJoinMapServer(std::span<const BYTE> ReceiveBuffer)
 {
     Network::Buffs::ResetDetails();
+    Render::Terrain::Darkness::Reset();
     MouseLButton = false;
     HeroIndex = rand() % MAX_CHARACTERS_CLIENT;
     CHARACTER* c = &CharactersClient[HeroIndex];
@@ -7369,6 +7371,9 @@ void ReceiveEvent(const BYTE* ReceiveBuffer)
         else
             EnableEvent = 0;
         break;
+    case Render::Terrain::Darkness::DarkSkeletonInvasionEvent:
+        Render::Terrain::Darkness::SetActive(Data->m_byValue != 0, gMapManager.WorldActive);
+        return; // Not a dragon event: keep the flying dragons (boids) of a running dragon invasion.
     }
     DeleteBoids();
 }

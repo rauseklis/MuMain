@@ -2660,7 +2660,7 @@ void DeleteAllFrustrum()
 extern float RainCurrent;
 extern int EnableEvent;
 
-void InitTerrainLight()
+void InitTerrainLight(float lightFactor)
 {
     int xi, yi;
     yi = FrustrumBoundMinY;
@@ -2670,7 +2670,7 @@ void InitTerrainLight()
         for (; xi <= FrustrumBoundMaxX + 3; xi += 1)
         {
             int Index = TERRAIN_INDEX_REPEAT(xi, yi);
-            VectorCopy(BackTerrainLight[Index], PrimaryTerrainLight[Index]);
+            VectorScale(BackTerrainLight[Index], lightFactor, PrimaryTerrainLight[Index]);
         }
     }
     float WindScale;
