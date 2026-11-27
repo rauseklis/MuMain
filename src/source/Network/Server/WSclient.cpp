@@ -11,6 +11,7 @@
 #include "Engine/Object/ZzzInfomation.h"
 #include "Engine/Object/ZzzObject.h"
 #include "Engine/Object/ZzzCharacter.h"
+#include "Engine/Object/DarkSkeletons.h"
 #include "Engine/Object/ZzzInterface.h"
 #include "UI/Chat/Whisper.h"
 #include "Core/Input/ImeInput.h"
@@ -4937,6 +4938,16 @@ BOOL ReceiveMagic(const BYTE* ReceiveBuffer, int Size, BOOL bEncrypted)
             MouseRButtonPress = 0;
         }
         sc->AttackTime = 1;
+        break;
+    case AT_SKILL_HELL_FIRE:
+    case AT_SKILL_HELL_FIRE_STR:
+        // Players cast Hellfire through ReceiveMagicContinue. A dark skeleton (the Dark Reaper) sends it here after
+        // its normal attack; it jumps like a player casting Hellfire instead of swinging its weapon.
+        if (IsDarkSkeleton(sc->MonsterIndex))
+        {
+            SetAction(so, PLAYER_SKILL_HELL);
+            sc->AttackTime = 1;
+        }
         break;
     case AT_SKILL_FIRE_SCREAM:
     case AT_SKILL_FIRE_SCREAM_STR:
