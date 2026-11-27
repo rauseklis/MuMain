@@ -64,6 +64,16 @@ void TintKalimaWaterfallParticle(int particleType, vec3_t light)
     light[2] *= LAVA_FOAM_BLUE;
 }
 
+static constexpr float EMBER_FLAME_SCALE = 0.5f;
+
+// A small rising flame in ember colour: replaces the old water smoke puffs on Kalima monsters.
+static void CreateEmberFlame(vec3_t position, vec3_t angle)
+{
+    vec3_t emberLight;
+    Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, emberLight);
+    CreateParticleFpsChecked(BITMAP_FLAME, position, angle, emberLight, 0, EMBER_FLAME_SCALE);
+}
+
 bool CreateWaterTerrain(int)
 {
     DeleteWaterTerrain();
@@ -1372,7 +1382,7 @@ void MonsterMoveWaterSmoke(OBJECT* o)
     {
         vec3_t Position;
         Vector(o->Position[0] + rand() % 200 - 100, o->Position[1] + rand() % 200 - 100, o->Position[2], Position);
-        CreateParticleFpsChecked(BITMAP_SMOKE + 1, Position, o->Angle, o->Light);
+        CreateEmberFlame(Position, o->Angle);
     }
 }
 void MonsterDieWaterSmoke(OBJECT* o)
@@ -1405,8 +1415,8 @@ bool MoveHellasMonsterVisual(OBJECT* o, BMD* b)
             Position[1] = o->Position[1] + rand() % 100 - 50;
             Position[2] = o->Position[2];
 
-            CreateParticleFpsChecked(BITMAP_SMOKE + 1, Position, o->Angle, o->Light);
-            CreateParticleFpsChecked(BITMAP_SMOKE + 1, Position, o->Angle, o->Light);
+            CreateEmberFlame(Position, o->Angle);
+            CreateEmberFlame(Position, o->Angle);
             CreateEffectFpsChecked(MODEL_STONE1, o->Position, o->Angle, o->Light);
             CreateEffectFpsChecked(MODEL_STONE2, o->Position, o->Angle, o->Light);
         }
@@ -1454,7 +1464,7 @@ bool MoveHellasMonsterVisual(OBJECT* o, BMD* b)
                 }
                 else
                 {
-                    Vector(0.0f, 0.3f, 1.0f, Light);
+                    Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, Light);
                 }
                 CreateParticleFpsChecked(BITMAP_SMOKE, Position, o->Angle, Light, 17);
             }
@@ -1504,14 +1514,14 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
             for (i = 0; i < 5; ++i)
             {
                 Luminosity += 1 / 4.f;
-                Vector(Luminosity * 0.1f, Luminosity * 0.4f, Luminosity, Light);
+                Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, Light);
 
                 b->TransformPosition(o->BoneTransform[i + 74], p, Position, true);
                 CreateSprite(BITMAP_LIGHT, Position, 1.5f - (0.2f * i), Light, o, WorldTime);
                 CreateSprite(BITMAP_LIGHT, Position, 1.5f - (0.2f * i), Light, o, WorldTime);
                 if (rand_fps_check(2))
                 {
-                    CreateParticle(BITMAP_BUBBLE, Position, o->Angle, Light, 1);
+                    CreateParticle(BITMAP_SPARK, Position, o->Angle, Light, 0);
                 }
 
                 b->TransformPosition(o->BoneTransform[i + 62], p, Position, true);
@@ -1519,7 +1529,7 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
                 CreateSprite(BITMAP_LIGHT, Position, 1.5f - (0.2f * i), Light, o, WorldTime);
                 if (rand_fps_check(2))
                 {
-                    CreateParticle(BITMAP_BUBBLE, Position, o->Angle, Light, 1);
+                    CreateParticle(BITMAP_SPARK, Position, o->Angle, Light, 0);
                 }
             }
 
@@ -1545,7 +1555,7 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
         Luminosity = sinf(WorldTime * 0.001f) * 0.2f + 0.4f;
         for (i = 0; i < 5; ++i)
         {
-            Vector(Luminosity * 0.1f, Luminosity * 0.4f, Luminosity, Light);
+            Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, Light);
 
             b->TransformPosition(o->BoneTransform[i + 51], p, Position, true);
             CreateSprite(BITMAP_LIGHT, Position, 2.f, Light, o, WorldTime);
@@ -1988,7 +1998,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_BUBBLE);
+                b->RenderMeshEffect(0, BITMAP_FLAME);
             }
         }
         b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV);
@@ -2109,7 +2119,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_BUBBLE);
+                b->RenderMeshEffect(0, BITMAP_FLAME);
             }
         }
         b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
@@ -2123,7 +2133,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_BUBBLE);
+                b->RenderMeshEffect(0, BITMAP_FLAME);
             }
         }
         b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV);
@@ -2138,7 +2148,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_BUBBLE);
+                b->RenderMeshEffect(0, BITMAP_FLAME);
             }
         }
         if (o->SubType == 9)
@@ -2179,7 +2189,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_BUBBLE);
+                b->RenderMeshEffect(0, BITMAP_FLAME);
             }
         }
         b->RenderBody(RENDER_TEXTURE, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
@@ -2195,7 +2205,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         {
             if (o->Alpha < 0.5f)
             {
-                b->RenderMeshEffect(0, BITMAP_BUBBLE);
+                b->RenderMeshEffect(0, BITMAP_FLAME);
             }
         }
         b->BeginRender(1.f);

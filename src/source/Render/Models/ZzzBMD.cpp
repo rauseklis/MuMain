@@ -2252,6 +2252,12 @@ void BMD::RenderMeshAlternative(int iRndExtFlag, int iParam, int i, int RenderFl
     mu::GetRenderer().RenderTriangles(muVerts.first(vertexIndex), 0u);
 }
 
+// Ember-coloured flames rising from a mesh (used by the dying Kalima monsters instead of bubbles).
+static constexpr float MESH_EMBER_RED = 1.f;
+static constexpr float MESH_EMBER_GREEN = 0.45f;
+static constexpr float MESH_EMBER_BLUE = 0.12f;
+static constexpr float MESH_EMBER_SCALE = 0.5f;
+
 void BMD::RenderMeshEffect(int i, int iType, int iSubType, vec3_t Angle, VOID* obj)
 {
     if (i >= NumMeshs || i < 0) return;
@@ -2406,6 +2412,13 @@ void BMD::RenderMeshEffect(int i, int iType, int iSubType, vec3_t Angle, VOID* o
                 if (rand_fps_check(30))
                 {
                     CreateParticle(BITMAP_BUBBLE, VertexTransform[i][vi], angle, Light, 2);
+                }
+                break;
+            case BITMAP_FLAME:
+                Vector(MESH_EMBER_RED, MESH_EMBER_GREEN, MESH_EMBER_BLUE, Light);
+                if (rand_fps_check(30))
+                {
+                    CreateParticle(BITMAP_FLAME, VertexTransform[i][vi], angle, Light, 0, MESH_EMBER_SCALE);
                 }
                 break;
             }
