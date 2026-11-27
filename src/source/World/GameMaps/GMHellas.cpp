@@ -51,9 +51,10 @@ static constexpr float LAVA_FOAM_GREEN = 0.5f;
 static constexpr float LAVA_FOAM_BLUE = 0.15f;
 
 // Lava flows slower than water, in bigger glowing blobs: the fast white foam becomes slow flames.
-static constexpr float LAVA_FLOW_SPEED = 0.35f;
-static constexpr float LAVA_FLOW_SCALE = 1.5f;
-static constexpr float LAVA_FLOW_LIFETIME = 2.5f;
+static constexpr float LAVA_FLOW_SPEED = 0.3f;
+static constexpr float LAVA_FLOW_SCALE = 1.2f;
+static constexpr float LAVA_FLOW_LIFETIME = 1.5f;
+static constexpr float LAVA_FLOW_BRIGHTNESS = 0.55f;
 
 // The waterfall particles set their own grey light, speed and picture when they are created, so the lava look is applied afterwards.
 void TintKalimaWaterfallParticle(PARTICLE* particle)
@@ -64,16 +65,16 @@ void TintKalimaWaterfallParticle(PARTICLE* particle)
         return;
     }
 
-    particle->Light[0] *= LAVA_FOAM_RED;
-    particle->Light[1] *= LAVA_FOAM_GREEN;
-    particle->Light[2] *= LAVA_FOAM_BLUE;
-    particle->TexType = BITMAP_FLAME;
+    particle->Light[0] *= LAVA_FOAM_RED * LAVA_FLOW_BRIGHTNESS;
+    particle->Light[1] *= LAVA_FOAM_GREEN * LAVA_FLOW_BRIGHTNESS;
+    particle->Light[2] *= LAVA_FOAM_BLUE * LAVA_FLOW_BRIGHTNESS;
+    particle->TexType = BITMAP_FIRE_RED;
     particle->Scale *= LAVA_FLOW_SCALE;
     particle->LifeTime *= LAVA_FLOW_LIFETIME;
     VectorScale(particle->Velocity, LAVA_FLOW_SPEED, particle->Velocity);
 }
 
-static constexpr float EMBER_FLAME_SCALE = 0.5f;
+static constexpr float EMBER_FLAME_SCALE = 0.25f;
 static constexpr int EMBER_RAIN_INTERVAL = 2;
 static constexpr int EMBER_RAIN_RADIUS = 700;
 static constexpr float EMBER_RAIN_HEIGHT = 30.f;
@@ -1560,18 +1561,18 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
             Vector(o->BlendMeshLight, o->BlendMeshLight, o->BlendMeshLight, Light);
             b->TransformPosition(o->BoneTransform[8], p, Position, true);
             CreateSprite(BITMAP_ENERGY, Position, 0.2f, Light, o, 0.f);
-            Vector(o->BlendMeshLight * 0.1f, o->BlendMeshLight * 0.1f, o->BlendMeshLight, Light);
+            Vector(o->BlendMeshLight * EMBER_LIGHT_RED, o->BlendMeshLight * EMBER_LIGHT_GREEN, o->BlendMeshLight * EMBER_LIGHT_BLUE, Light);
             CreateSprite(BITMAP_SHINY + 1, Position, 1.f, Light, o, 0.f);
 
             Vector(0.f, 0.f, 0.f, p);
             b->TransformPosition(o->BoneTransform[22], p, Position, true);
             CreateSprite(BITMAP_ENERGY, Position, 0.2f, Light, o, 0.f);
-            Vector(o->BlendMeshLight * 0.1f, o->BlendMeshLight * 0.1f, o->BlendMeshLight, Light);
+            Vector(o->BlendMeshLight * EMBER_LIGHT_RED, o->BlendMeshLight * EMBER_LIGHT_GREEN, o->BlendMeshLight * EMBER_LIGHT_BLUE, Light);
             CreateSprite(BITMAP_SHINY + 1, Position, 1.f, Light, o, 0.f);
 
             b->TransformPosition(o->BoneTransform[15], p, Position, true);
             CreateSprite(BITMAP_ENERGY, Position, 0.2f, Light, o, 0.f);
-            Vector(o->BlendMeshLight * 0.1f, o->BlendMeshLight * 0.1f, o->BlendMeshLight, Light);
+            Vector(o->BlendMeshLight * EMBER_LIGHT_RED, o->BlendMeshLight * EMBER_LIGHT_GREEN, o->BlendMeshLight * EMBER_LIGHT_BLUE, Light);
             CreateSprite(BITMAP_SHINY + 1, Position, 1.f, Light, o, 0.f);
         }
 
@@ -1818,14 +1819,14 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
             Vector(Luminosity * 1.0f, Luminosity * 1.0f, Luminosity * 1.0f, Light);
             b->TransformPosition(o->BoneTransform[9], p, Position, true);
             CreateSprite(BITMAP_ENERGY, Position, 0.1f, Light, o, 0.f);
-            Vector(Luminosity * 0.3f, Luminosity * 0.6f, Luminosity * 1.f, Light);
+            Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, Light);
             CreateSprite(BITMAP_SHINY + 1, Position, 1.f, Light, o, 0.f);
 
             Vector(4.f, 0.f, 5.f, p);
             Vector(Luminosity * 1.0f, Luminosity * 1.0f, Luminosity * 1.0f, Light);
             b->TransformPosition(o->BoneTransform[10], p, Position, true);
             CreateSprite(BITMAP_ENERGY, Position, 0.1f, Light, o, 0.f);
-            Vector(Luminosity * 0.3f, Luminosity * 0.6f, Luminosity * 1.f, Light);
+            Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, Light);
             CreateSprite(BITMAP_SHINY + 1, Position, 1.f, Light, o, 0.f);
 
             Vector(0, 0, 0, p);
@@ -1924,10 +1925,10 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
             CreateSprite(BITMAP_ENERGY, pos, 0.5f + (Luminosity * 0.2f), Light, o, -WorldTime * 0.1f);
             CreateParticleFpsChecked(BITMAP_LIGHT, pos, o->Angle, Light, 0, 1.1f);
 
-            Vector(0.1f, 0.4f, 1.f, Light);
+            Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, Light);
             CreateSprite(BITMAP_LIGHT, Position, 1.f, Light, o, 0.f);
 
-            Vector(0.1f, 0.3f, 1.f, Light);
+            Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, Light);
             for (i = 0; i < 5; ++i)
             {
                 b->TransformPosition(o->BoneTransform[63 + i], p, Position, true);
@@ -1957,7 +1958,7 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
             }
             else
             {
-                Vector(Luminosity * 0.0f, Luminosity * 0.9f, Luminosity * 1.f, Light);
+                Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, Light);
             }
             CreateSprite(BITMAP_ENERGY, Pos1, 0.1f, Light, o, 0.f);
             CreateSprite(BITMAP_ENERGY, Pos2, 0.1f, Light, o, 0.f);
@@ -1967,7 +1968,7 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
             }
             else
             {
-                Vector(Luminosity * 0.1f, Luminosity * 0.3f, Luminosity * 1.f, Light);
+                Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, Light);
             }
             CreateSprite(BITMAP_SHINY + 1, Pos1, 0.7f, Light, o, 0.f);
             CreateSprite(BITMAP_SHINY + 1, Pos2, 0.7f, Light, o, 0.f);
@@ -1978,7 +1979,7 @@ bool RenderHellasMonsterVisual(CHARACTER* c, OBJECT* o, BMD* b)
             }
             else
             {
-                Vector(Luminosity * 0.9f, Luminosity * 0.9f, Luminosity * 1.f, Light);
+                Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, Light);
             }
             for (i = 0; i < 6; ++i)
             {
@@ -2195,7 +2196,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         }
         else
         {
-            Vector(0.1f, 0.6f, 1.f, b->BodyLight);
+            Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, b->BodyLight);
         }
         b->RenderMesh(0, RENDER_CHROME | RENDER_BRIGHT, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
         b->RenderMesh(2, RENDER_CHROME | RENDER_BRIGHT, o->Alpha, o->BlendMesh, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
@@ -2247,7 +2248,7 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
         else
         {
             o->BlendMeshLight = 1.f;
-            Vector(Luminosity * 0.3f, Luminosity * 0.6f, Luminosity * 1.f, b->BodyLight);
+            Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, b->BodyLight);
         }
         b->RenderMesh(2, RENDER_WAVE | RENDER_BRIGHT, o->Alpha, 2, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
         b->RenderMesh(4, RENDER_WAVE | RENDER_BRIGHT, o->Alpha, 4, o->BlendMeshLight, o->BlendMeshTexCoordU, o->BlendMeshTexCoordV, o->HiddenMesh);
@@ -2281,11 +2282,11 @@ bool RenderHellasMonsterObjectMesh(OBJECT* o, BMD* b)
 
             if (g_isCharacterBuff(o, eBuff_WizDefense))
             {
-                Vector(Luminosity * 0.1f, Luminosity * 0.3f, Luminosity * 0.6f, b->BodyLight);
+                Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, b->BodyLight);
             }
             else if (g_isCharacterBuff(o, eBuff_Defense))
             {
-                Vector(Luminosity * 0.1f, Luminosity * 0.6f, Luminosity * 0.3f, b->BodyLight);
+                Vector(Luminosity * EMBER_LIGHT_RED, Luminosity * EMBER_LIGHT_GREEN, Luminosity * EMBER_LIGHT_BLUE, b->BodyLight);
             }
 
             RenderPartObjectEdge(b, o, RENDER_CHROME | RENDER_BRIGHT, true, 1.3f);

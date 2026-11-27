@@ -2256,7 +2256,8 @@ void BMD::RenderMeshAlternative(int iRndExtFlag, int iParam, int i, int RenderFl
 static constexpr float MESH_EMBER_RED = 1.f;
 static constexpr float MESH_EMBER_GREEN = 0.45f;
 static constexpr float MESH_EMBER_BLUE = 0.12f;
-static constexpr float MESH_EMBER_SCALE = 0.5f;
+static constexpr float MESH_EMBER_SCALE = 0.25f;
+static constexpr int MESH_EMBER_CHANCE = 150;
 
 void BMD::RenderMeshEffect(int i, int iType, int iSubType, vec3_t Angle, VOID* obj)
 {
@@ -2416,7 +2417,7 @@ void BMD::RenderMeshEffect(int i, int iType, int iSubType, vec3_t Angle, VOID* o
                 break;
             case BITMAP_FLAME:
                 Vector(MESH_EMBER_RED, MESH_EMBER_GREEN, MESH_EMBER_BLUE, Light);
-                if (rand_fps_check(30))
+                if (rand_fps_check(MESH_EMBER_CHANCE))
                 {
                     CreateParticle(BITMAP_FLAME, VertexTransform[i][vi], angle, Light, 0, MESH_EMBER_SCALE);
                 }

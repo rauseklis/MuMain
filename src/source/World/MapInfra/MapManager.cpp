@@ -984,6 +984,8 @@ void CMapManager::Load() // OK
 
     if (this->InHellas())
     {
+        LoadBitmap(L"Effect\\firered.jpg", BITMAP_FIRE_RED, GL_LINEAR, GL_CLAMP_TO_EDGE);
+
         // These two used to seed BITMAP_MAPTILE/+1 with the water surface texture before
         // CSWaterTerrain::Render() bound them each frame. Since CreateWaterTerrain() (GMHellas.cpp)
         // now unconditionally returns false for every map (see docs/AUDIT.md, "Render Kalima with
