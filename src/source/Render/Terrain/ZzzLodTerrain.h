@@ -57,7 +57,8 @@ void SetTerrainWaterState(std::list<int>& terrainIndex, int state = 0);
 void AddTerrainHeight(float xf, float yf, float Height, int Range, float* Buffer);
 
 void InitTerrainRay(int HeroX, int HeroY);
-void InitTerrainLight();
+// lightFactor scales the terrain light (1 = normal), e.g. to darken the map during an event.
+void InitTerrainLight(float lightFactor = 1.f);
 void InitTerrainShadow();
 void SetTerrainLight(float xf, float yf, vec3_t Light, int Range, vec3_t* Buffer);
 void AddTerrainLight(float xf, float yf, vec3_t Light, int Range, vec3_t* Buffer);

@@ -12,6 +12,7 @@
 #include "Engine/Object/ZzzObject.h"
 #include "Engine/Object/ZzzCharacter.h"
 #include "Render/Terrain/ZzzLodTerrain.h"
+#include "Render/Terrain/MapDarkness.h"
 #include "Engine/Object/ZzzInterface.h"
 #include "Input/Selection.h"
 #include "Render/Effects/ZzzEffect.h"
@@ -196,7 +197,7 @@ static void InitializeMainScene()
 static void InitializeSceneFrame()
 {
     EarthQuake *= 0.2f;
-    InitTerrainLight();
+    InitTerrainLight(Render::Terrain::Darkness::UpdateLightFactor(gMapManager.WorldActive));
 
     CheckInventory = NULL;
     CheckSkill = -1;
