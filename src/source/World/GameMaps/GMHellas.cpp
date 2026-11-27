@@ -50,6 +50,20 @@ static constexpr float LAVA_FOAM_RED = 1.f;
 static constexpr float LAVA_FOAM_GREEN = 0.5f;
 static constexpr float LAVA_FOAM_BLUE = 0.15f;
 
+// The waterfall particles set their own grey light when they are created, so the colour has to be applied afterwards.
+void TintKalimaWaterfallParticle(int particleType, vec3_t light)
+{
+    const bool isWaterfallParticle = particleType >= BITMAP_WATERFALL_1 && particleType <= BITMAP_WATERFALL_5;
+    if (!isWaterfallParticle || !gMapManager.InHellas())
+    {
+        return;
+    }
+
+    light[0] *= LAVA_FOAM_RED;
+    light[1] *= LAVA_FOAM_GREEN;
+    light[2] *= LAVA_FOAM_BLUE;
+}
+
 bool CreateWaterTerrain(int)
 {
     DeleteWaterTerrain();

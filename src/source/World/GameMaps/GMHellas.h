@@ -22,6 +22,7 @@ bool	EnableKalima(CLASS_TYPE Class, int Level, int ItemLevel);
 void    AddObjectDescription(wchar_t* Text, vec3_t position);
 void    RenderObjectDescription(void);
 
+void    TintKalimaWaterfallParticle(int particleType, vec3_t light);
 bool    CreateHellasObject(OBJECT* o);
 bool    MoveHellasObjectSetting(int& objCount, int object);
 bool    MoveHellasObject(OBJECT* o, int& object, int& visibleObject);
