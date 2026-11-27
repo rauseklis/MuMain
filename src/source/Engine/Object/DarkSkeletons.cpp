@@ -11,7 +11,7 @@ struct DarkSkeletonLook
     EMonsterType monster;
     int weapon; // right hand; the left hand stays empty
     float sizeFactor; // the size compared to the Death Bone skeleton
-    bool sparks; // sparks under the feet while walking
+    bool sparks;      // sparks under the feet while walking
 };
 
 // The Death Bone skeleton (monster 56) is drawn at 0.8. Dark Skeleton and Dark Reaper are 20% bigger, Dark Mage 10%.
