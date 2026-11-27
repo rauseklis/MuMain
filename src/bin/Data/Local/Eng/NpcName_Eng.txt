@@ -688,4 +688,5 @@
 1110	1	"Dragon Knight Warrior"	
 1111	1	"Dark Skeleton"	
 1112	1	"Dark Reaper"	
+1113	1	"Dark Mage"	
 end			
