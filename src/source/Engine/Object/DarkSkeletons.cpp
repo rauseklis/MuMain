@@ -43,10 +43,15 @@ constexpr int SPARK_YAW_RANGE = 360;
 // on FLAMES_PER_FRAME random bones every frame at the original 25 FPS.
 constexpr int FLAMES_PER_FRAME = 3;
 constexpr float FLAME_SCALE = 1.2f;
-// Dying: sparks fly off DEATH_SPARKS_PER_FRAME random bones from the death until the body has faded out; while it
-// fades, it also glitters away like a dying Kalima monster (BITMAP_BUBBLE, subtype 2, with its sound).
-constexpr int DEATH_SPARKS_PER_FRAME = 2;
-constexpr int GLITTER_REFERENCE_FRAMES = 3;
+// Dying: like the Kalima monsters (RenderDeathEmbers in GMHellas.cpp), the body bursts into ember coloured sparks
+// once it has faded to half: DEATH_EMBERS_PER_FRAME sparks per frame at the original 25 FPS, each at a random body
+// bone moved up to DEATH_EMBER_SPREAD units, so they come out of the whole body.
+constexpr float DEATH_EMBER_ALPHA = 0.5f;
+constexpr int DEATH_EMBERS_PER_FRAME = 12;
+constexpr int DEATH_EMBER_SPREAD = 20;
+constexpr float EMBER_LIGHT_RED = 1.f;
+constexpr float EMBER_LIGHT_GREEN = 0.45f;
+constexpr float EMBER_LIGHT_BLUE = 0.12f;
 // The bones of the body of the player model (the ones above belong to wings and weapons), as the Nova death uses.
 constexpr int BODY_BONES = 32;
 
@@ -77,18 +82,6 @@ bool RandomBonePosition(OBJECT* o, vec3_t position)
     Vector(0.f, 0.f, 0.f, offset);
     b->TransformPosition(o->BoneTransform[rand() % bones], offset, position, true);
     return true;
-}
-
-void CreateSparkAt(vec3_t position)
-{
-    vec3_t angle;
-    Vector(static_cast<float>(SPARK_PITCH_MIN + rand() % SPARK_PITCH_RANGE), 0.f,
-           static_cast<float>(rand() % SPARK_YAW_RANGE), angle);
-
-    vec3_t light;
-    Vector(1.f, 1.f, 1.f, light);
-    CreateJoint(BITMAP_JOINT_SPARK, position, position, angle);
-    CreateParticle(BITMAP_SPARK, position, angle, light);
 }
 
 void CreateSpark(const OBJECT* o)
@@ -179,23 +172,24 @@ void CreateDarkSkeletonFlames(CHARACTER* c, OBJECT* o)
         return;
     }
 
-    if (!rand_fps_check(1))
+    if (o->Alpha >= DEATH_EMBER_ALPHA)
     {
         return;
     }
 
-    for (int i = 0; i < DEATH_SPARKS_PER_FRAME; ++i)
+    vec3_t angle, light;
+    Vector(0.f, 0.f, 0.f, angle);
+    Vector(EMBER_LIGHT_RED, EMBER_LIGHT_GREEN, EMBER_LIGHT_BLUE, light);
+    for (int i = 0; i < DEATH_EMBERS_PER_FRAME; ++i)
     {
         if (RandomBonePosition(o, position))
         {
-            CreateSparkAt(position);
-        }
-    }
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                position[axis] += static_cast<float>(rand() % (DEATH_EMBER_SPREAD * 2) - DEATH_EMBER_SPREAD);
+            }
 
-    if (o->Alpha < 1.f && rand_fps_check(GLITTER_REFERENCE_FRAMES) && RandomBonePosition(o, position))
-    {
-        vec3_t light;
-        Vector(1.f, 1.f, 1.f, light);
-        CreateParticle(BITMAP_BUBBLE, position, o->Angle, light, 2);
+            CreateParticleFpsChecked(BITMAP_SPARK, position, angle, light, 0);
+        }
     }
 }
