@@ -1,14 +1,33 @@
-# Kalima: apocalyptic look
+# Kalima: the burning look
 
-All seven Kalimas share one map (`Data/World25`, objects in `Data/Object25`), so one set of textures changes them all. The map shape is
-unchanged; only textures were swapped.
+All seven Kalimas share one map (`Data/World25`, objects in `Data/Object25`), so one set of changes covers them all.
+The shape of the map and everything the server cares about (walkable areas, safe zones, gates, monsters) are unchanged.
 
-- **Ground:** the Lost Tower stone tiles (`World5`) replace the blue brick and sand. Where Lost Tower's own tile is blue ice or a blue
-  floor, a neutral stone tile is used instead.
-- **Water and waterfalls:** lava from the Vulcanus-style maps (`World64` lava tile, `Object64` `song_lava1` and `MagmaFish02`) replaces the
-  water, the waterfall textures and the blue glows. The `@2x` HD copies were replaced too, otherwise they would still show the old look.
-- Textures are looked up by file name, so a texture can be swapped by replacing the same file name in the map's folder (and its `@2x` copy).
+## What players see
 
-**HD copies must match.** The game prefers a picture in `World25@2x` over the normal file of the same name (the main ground tile is the lowercase
-`tilegrass01.jpg.png`). Replacing only the normal file changes nothing in game. The HD picture must be exactly twice the size of the normal
-one, otherwise it is rejected (the log says "HD texture rejected").
+- **Ground:** a dark charcoal floor split into irregular regions of different ground: sparse glowing lava cracks, dark rock,
+  rubble, dry cracked earth, obsidian and pale ash. Ash-dust patches sit around groups of objects so they stand out.
+  Different kinds fade through plain floor where they meet.
+- **Lava river:** the lake is a detailed lava tile (dark crust with glowing splits) with a soft edge.
+- **Walls and stone:** burnt ash-brown instead of blue-green; the animated water ripple that used to lie over them is gone.
+- **Waterfalls:** slow, dark-red lava blobs instead of fast white foam (Kalima only).
+- **Monsters:** sparks and embers instead of water smoke and bubbles; the Aegis, Death Centurion and Necron textures are
+  fire and ash coloured; blue glows became ember orange.
+- **Air:** ember sparks fly up around the player.
+- **Light:** the map's light is red and darker (`TerrainLight`).
+
+## How it is made (for whoever edits it next)
+
+- Ground textures are looked up by file name in `Data/World25` (256 px `.OZJ`) and need a matching `Data/World25@2x/<name>.png` of
+  exactly twice the size, otherwise the HD copy is rejected (the game log says "HD texture rejected"). The HD copy wins over the
+  normal file, so changing only the normal file shows nothing.
+- `Data/World25/EncTerrain25.map` is the client-only ground painting: one base tile plus **one** second tile per square, blended by
+  a strength per corner point. The game cannot blend two different second tiles in one square, so different ground kinds must
+  fade out to plain floor where they meet, otherwise hard-edged blocks appear.
+- The server reads only the walk and safe-zone flags (`Terrain25.att` in the server repository), never the textures or the
+  `.map`, so none of this needs a server change. A change to the walkable layout would need the server file changed too.
+- Kalima-only code is in `World/GameMaps/GMHellas.cpp` (colours, sparks, waterfall tint) and one new mesh effect in `ZzzBMD.cpp`.
+
+## Notes
+
+- The original Kalima sounds are not in the repository; a client without `Data/Sound` has no sound at all.
