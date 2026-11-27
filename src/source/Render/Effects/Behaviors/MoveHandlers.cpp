@@ -1989,6 +1989,20 @@ namespace Render::Effects::Behaviors
         return true;
     }
 
+    // The hand position of a caster, taken from its bone matrices, was once measured at twice the caster's own
+    // coordinates, which started the bolt far outside the view where nothing of it could be seen. A hand is never
+    // this far from its owner, so a start point that is falls back to the owner's chest.
+    static void KeepNearSource(const OBJECT* source, vec3_t start)
+    {
+        constexpr float maxHandDistance = 400.f;
+        const float dx = start[0] - source->Position[0];
+        const float dy = start[1] - source->Position[1];
+        if (dx * dx + dy * dy > maxHandDistance * maxHandDistance)
+        {
+            Vector(source->Position[0], source->Position[1], source->Position[2] + 120.f, start);
+        }
+    }
+
     // MODEL_CHAIN_LIGHTNING
     bool Move_MODEL_CHAIN_LIGHTNING(OBJECT* o, int index, float Luminosity)
     {
@@ -2003,12 +2017,14 @@ namespace Render::Effects::Behaviors
             CHARACTER* pTargetChar = &CharactersClient[FindCharacterIndex(o->m_sTargetIndex)];
             OBJECT* pTargetObj = &pTargetChar->Object;
 
-            if (pSourceObj == NULL || pSourceObj->Live == false
-                || pTargetObj == NULL || pTargetObj->Live == false || (pTargetChar->Dead > 0) == true)
+            // A target that has just died still counts: the server applies the hit before it sends the chain, so
+            // a monster killed by that hit is already marked dead when the packet arrives, and the bolt used to end
+            // before it was drawn. Only a target that has left the view ends it.
+            if (pSourceObj == NULL || pSourceObj->Live == false || pTargetObj == NULL || pTargetObj->Live == false)
             {
                 g_ErrorReport.Write(L"[chain-lightning] effect %d ended at once: source %s, target %s\r\n", o->SubType,
                                     (pSourceObj != NULL && pSourceObj->Live) ? L"ok" : L"gone",
-                                    (pTargetObj->Live && pTargetChar->Dead == 0) ? L"ok" : L"gone or dead");
+                                    (pTargetObj->Live) ? L"ok" : L"gone");
                 o->LifeTime = 0;
                 o->Live = false;
                 break;
@@ -2032,6 +2048,7 @@ namespace Render::Effects::Behaviors
 
                 Vector(0.4f, 0.4f, 1.0f, vLight);
                 pSourceModel->TransformPosition(pSourceObj->BoneTransform[37], vRelativePos, vPos, true);
+                KeepNearSource(pSourceObj, vPos);
                 Vector(-60.f, 0.f, pSourceObj->Angle[2], vAngle);
                 CreateJointFpsChecked(BITMAP_JOINT_THUNDER, vPos, pTargetObj->Position, vAngle, 0, pTargetObj, 50.f, -1, 0, 0, -1, vLight);
                 CreateJointFpsChecked(BITMAP_JOINT_THUNDER, vPos, pTargetObj->Position, vAngle, 0, pTargetObj, 10.f, -1, 0, 0, -1, vLight);
@@ -2040,6 +2057,7 @@ namespace Render::Effects::Behaviors
                 CreateJointFpsChecked(BITMAP_JOINT_THUNDER, vPos, pTargetObj->Position, vAngle, 0, pTargetObj, 10.f, -1, 0, 0, -1, vLight);
 
                 pSourceModel->TransformPosition(pSourceObj->BoneTransform[28], vRelativePos, vPos, true);
+                KeepNearSource(pSourceObj, vPos);
                 Vector(-60.f, 0.f, pSourceObj->Angle[2], vAngle);
                 CreateJointFpsChecked(BITMAP_JOINT_THUNDER, vPos, pTargetObj->Position, vAngle, 0, pTargetObj, 50.f, -1, 0, 0, -1, vLight);
                 CreateJointFpsChecked(BITMAP_JOINT_THUNDER, vPos, pTargetObj->Position, vAngle, 0, pTargetObj, 10.f, -1, 0, 0, -1, vLight);
