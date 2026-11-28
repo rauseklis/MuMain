@@ -5674,7 +5674,17 @@ BOOL ReceiveMagicContinue(const BYTE* ReceiveBuffer, int Size, BOOL bEncrypted)
         so->AnimationFrame = 0;
     }
     sc->AttackTime = 1;
-    sc->TargetCharacter = -1;
+    // The server also echoes the cast to the caster. These Summoner skills make their effect from the target the
+    // caster chose when casting, so the echo must not clear it.
+    const bool keepsTarget =
+        sc == Hero && (MagicNumber == AT_SKILL_ALICE_DRAINLIFE || MagicNumber == AT_SKILL_ALICE_DRAINLIFE_STR ||
+                       MagicNumber == AT_SKILL_ALICE_LIGHTNINGORB || MagicNumber == AT_SKILL_ALICE_THORNS ||
+                       MagicNumber == AT_SKILL_ALICE_SLEEP || MagicNumber == AT_SKILL_ALICE_SLEEP_STR ||
+                       MagicNumber == AT_SKILL_ALICE_BLIND);
+    if (!keepsTarget)
+    {
+        sc->TargetCharacter = -1;
+    }
     sc->AttackFlag = ATTACK_FAIL;
     sc->SkillX = Data->PositionX;
     sc->SkillY = Data->PositionY;
