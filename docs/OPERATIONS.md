@@ -112,7 +112,7 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
   1 to 2 minutes, so a fresh server worktree per task is fine.
 - **Do not control the game** (no automated clicks or keys into the game window); starting and stopping your own test processes is fine, and
   the owner plays and reports.
-- GM commands for staging items and events on a test server: `/item <group> <number> [level]`, `/jewelrain` (see the Jewel Rain design), `/startdark` and `/stopdark` (Dark Skeleton Invasion).
+- GM commands for staging items and events on a test server: `/item <group> <number> [level]`, `/jewelrain` (see the Jewel Rain design), `/startdarkdevias`, `/startdarklorencia`, `/startdarknoria`, `/startdarkelbeland` and `/stopdark` (Dark Skeleton Invasion).
 - Build the client with `-DBUILD_TESTING=OFF` for the game; unit tests are built separately (see the Jewel Bank handover).
 - The repository mixes LF and CRLF line endings: keep the file's own endings when you edit.
 
@@ -144,7 +144,7 @@ A Contabo VPS (Cloud VPS 4: 4 vCPU, 8 GB, Ubuntu 24.04, location EU), billed mon
 
 - Jewel Bank: `docs/superpowers/specs/2026-10-20-jewel-bank-design.md`, `docs/jewel-bank-handover-2026-10-20.md`
 - Jewel Rain: `docs/superpowers/specs/2026-10-21-jewel-rain-event-design.md`, `docs/superpowers/plans/2026-10-21-jewel-rain-event.md`
-- Dark Skeleton Invasion (daily event on both servers, `/startdark`, `/stopdark`, darkened map): `docs/dark-skeleton-invasion.md`
+- Dark Skeleton Invasion (daily event on both servers plus Kalima 2-7, `/startdark<map>`, `/stopdark`, darkened maps): `docs/dark-skeleton-invasion.md`
 - Auction House: `docs/auction-house-claude-handover-2026-10-13.md`, `docs/auction-house-claude-handover-2026-10-11.md`
 - Packets folder: `nuget-feed/README.md`
 - Live server setup (server repository): `deploy/live/README.md`

@@ -197,7 +197,7 @@ static void InitializeMainScene()
 static void InitializeSceneFrame()
 {
     EarthQuake *= 0.2f;
-    InitTerrainLight(Render::Terrain::Darkness::UpdateLightFactor(gMapManager.WorldActive));
+    InitTerrainLight(Render::Terrain::Darkness::UpdateLightFactor(gMapManager.WorldActive, gMapManager.InHellas()));
 
     CheckInventory = NULL;
     CheckSkill = -1;

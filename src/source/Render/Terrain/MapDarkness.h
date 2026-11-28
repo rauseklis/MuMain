@@ -15,6 +15,6 @@ void SetActive(bool active, int world);
 void Reset();
 
 // Advances the fade by one frame and returns the factor (1 = normal light) which the
-// terrain light of the given current map is multiplied with.
-float UpdateLightFactor(int currentWorld);
+// terrain light of the given current map is multiplied with. Kalima, a dark map already, gets less dark.
+float UpdateLightFactor(int currentWorld, bool isKalima);
 } // namespace Render::Terrain::Darkness
