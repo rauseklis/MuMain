@@ -2133,6 +2133,15 @@ namespace Render::Effects::Behaviors
             Vector(0.0f, 0.0f, 0.0f, vRelativePos);
 
             OBJECT* pSourceObj = o->Owner;
+            if (o->AttackPoint[0] == 0)
+            {
+                // Diagnostic, once per effect: does the effect still find its caster and its target?
+                o->AttackPoint[0] = 1;
+                const OBJECT* logTarget = (pSourceObj != NULL) ? pSourceObj->Owner : NULL;
+                g_ErrorReport.Write(L"[drain-life] effect %d: caster %s, target %s\r\n", index,
+                                    (pSourceObj == NULL) ? L"missing" : (pSourceObj->Live ? L"ok" : L"gone"),
+                                    (logTarget == NULL) ? L"missing" : (logTarget->Live ? L"ok" : L"gone"));
+            }
             if (pSourceObj == NULL || pSourceObj->Live == false)
             {
                 return true;

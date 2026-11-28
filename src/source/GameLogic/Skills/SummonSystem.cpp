@@ -65,6 +65,7 @@ void CSummonSystem::SetPlayerSummon(CHARACTER* pCharacter, OBJECT* pObject)
 void CSummonSystem::CastSummonSkill(int iSkill, CHARACTER* pCharacter, OBJECT* pObject, int iTargetPos_X,
                                     int iTargetPos_Y)
 {
+    g_ErrorReport.Write(L"[summoner] skill %d cast at (%d,%d)\r\n", iSkill, iTargetPos_X, iTargetPos_Y);
     pObject->Angle[2] = CreateAngle(pObject->Position[0], pObject->Position[1], (float)iTargetPos_X * TERRAIN_SCALE,
                                     (float)iTargetPos_Y * TERRAIN_SCALE);
     SetPlayerSummon(pCharacter, pObject);

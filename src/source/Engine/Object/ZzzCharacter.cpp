@@ -4170,6 +4170,15 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
         c->LastAttackEffectTime = -1;
         o->PKKey = getTargetCharacterKey(c, SelectedCharacter);
 
+        if ((c->Skill >= AT_SKILL_ALICE_DRAINLIFE && c->Skill <= AT_SKILL_ALICE_ENERVATION) ||
+            c->Skill == AT_SKILL_ALICE_SLEEP_STR || c->Skill == AT_SKILL_ALICE_DRAINLIFE_STR ||
+            c->Skill == AT_SKILL_ALICE_BERSERKER_STR)
+        {
+            // Diagnostic: a Summoner cast reached its end; without a target no target-based effect is made.
+            g_ErrorReport.Write(L"[summoner] skill %d cast ended, target slot %d\r\n", static_cast<int>(c->Skill),
+                                c->TargetCharacter);
+        }
+
         switch ((c->Skill))
         {
         case AT_SKILL_SUMMON:
@@ -5248,6 +5257,10 @@ void MoveCharacter(CHARACTER* c, OBJECT* o)
                 OBJECT* pSourceObj = o;
                 pSourceObj->Owner = &(pTargetChar->Object);
 
+                g_ErrorReport.Write(L"[drain-life] cast finished: target slot %d key %d, %s, dead %d\r\n",
+                                    c->TargetCharacter, static_cast<int>(pTargetChar->Key),
+                                    pTargetChar->Object.Live ? L"live" : L"not live",
+                                    static_cast<int>(pTargetChar->Dead));
                 CreateEffect(MODEL_ALICE_DRAIN_LIFE, pSourceObj->Position, pSourceObj->Angle, pSourceObj->Light, 0, pSourceObj);
                 PlayBuffer(SOUND_SKILL_DRAIN_LIFE);
             }
